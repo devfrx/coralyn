@@ -11,6 +11,9 @@ Thumbs.db
 *.log
 *.tmp
 
+# File di lavoro del companion visivo (brainstorming)
+.superpowers/
+
 # Dipendenze / build (lo stack non è ancora deciso — vedi deferred.md D-001;
 # questa sezione verrà completata con la scelta dello stack)
 node_modules/
