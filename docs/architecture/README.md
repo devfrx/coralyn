@@ -18,37 +18,63 @@ destinato alla vendita in abbonamento a più stabilimenti.
 - Debito solo se consapevole e registrato in [deferred.md](deferred.md).
 - Linguaggio: codice EN, dominio IT, docs IT ([ADR-0003](decisions/0003-language-convention.md)).
 
-## Moduli del prodotto (vista a grandi linee)
+## Stile architetturale ([ADR-0007](decisions/0007-stile-architetturale.md))
 
-Il prodotto è scomposto in moduli costruiti in sequenza, ciascuno con il proprio
-ciclo spec → piano → implementazione.
+- **Monolite modulare**: un solo backend deployabile, moduli a bounded context.
+- **API-first (REST)**: un'unica API serve l'app staff e (in futuro) il booking online.
+- **Multi-tenant-aware** dal modello dati: ogni entità porta `stabilimento_id`.
+- **IA come servizio separato** (futuro), consumato via API dal core.
 
-1. **Core operativo** *(MVP, in progettazione)* — anagrafica Clienti, Listino/Tariffe,
-   mappa Ombrelloni interattiva, Prenotazioni e Abbonamenti. Costruito **tenant-aware**
-   nel modello dati fin da subito.
-2. **Cassa e pagamenti** — incassi, ricevute, chiusura giornaliera; si innesta sulle
-   Prenotazioni del Core.
-3. **Multi-tenancy & account** — registrazione stabilimenti, isolamento dati, ruoli e
-   permessi, billing dell'abbonamento SaaS.
-4. **Booking online clienti** — portale lato bagnante che riusa mappa e disponibilità
-   del Core.
-5. **Reportistica & extra** — statistiche di occupazione, eventuale bar/ristorante,
-   gestione personale.
+## Stack e layout ([ADR-0008](decisions/0008-stack-e-layout.md))
 
-## Modello dati (in evoluzione)
+- **Frontend**: Vue 3 + TypeScript + Vite + Pinia → web app + PWA ([ADR-0004](decisions/0004-form-factor-e-delivery.md)).
+- **Backend**: NestJS (Node + TS).
+- **DB**: PostgreSQL · **ORM**: Prisma · **API**: REST + OpenAPI.
+- **Monorepo** (pnpm workspaces):
+  - `apps/` → `api` (NestJS), `web-staff` (Vue), in futuro `web-booking`.
+  - `packages/` → `contracts` (tipi/DTO condivisi FE/BE), comuni futuri.
 
-Da definire nello spec del Core operativo. Vincolo già fissato: ogni entità di
-business è legata a uno **Stabilimento** (`stabilimento_id`) per abilitare la
-multi-tenancy futura senza riscritture.
+## Moduli del prodotto (roadmap)
 
-Vedi il [glossario](glossary.md) per i termini di dominio.
+1. **Core operativo** *(MVP, in progettazione)* — Clienti, Listino/Tariffe, mappa
+   Ombrelloni, Prenotazioni e Abbonamenti. Vedi
+   [spec](../specs/2026-06-27-core-operativo-design.md).
+2. **Cassa e pagamenti** — incassi, ricevute, chiusura giornaliera.
+3. **Multi-tenancy & account** — signup stabilimenti, isolamento, ruoli, billing
+   ([D-002](deferred.md)).
+4. **Booking online clienti** — portale lato bagnante, riusa l'API del Core.
+5. **Reportistica & extra** — statistiche, bar/ristorante, personale.
 
-## Stack tecnologico
+## Moduli del Core (backend NestJS)
 
-Da decidere dopo l'approvazione dello spec del Core (vedi [D-001](deferred.md)).
+- `mappa` — Settore, Fila, Ombrellone ([ADR-0005](decisions/0005-modello-mappa.md)).
+- `catalogo` — Pacchetto, Stagione, Listino, Tariffa + **pricing engine**.
+- `clienti` — anagrafica Cliente.
+- `prenotazioni` — Prenotazione, disponibilità (anti-overlap), lista d'attesa minima.
+- `identita` — utenti staff + contesto tenant (RBAC granulare → modulo 3).
+- `core` — contesto tenant, basi condivise.
+
+Dominio prenotazioni e pricing: [ADR-0006](decisions/0006-dominio-prenotazioni-e-pricing.md).
+
+## Modello dati
+
+Diagramma ER e invarianti: [docs/design/data-model.md](../design/data-model.md).
+Flussi principali: [docs/design/flows.md](../design/flows.md).
+Termini di dominio: [glossario](glossary.md).
+
+## Documentazione di design ([ADR-0009](decisions/0009-documentazione-di-design.md))
+
+Diagrammi in Mermaid e mockup in [docs/design/](../design/), versionati e tenuti
+aggiornati.
 
 ## Indice degli ADR
 
 - [ADR-0001](decisions/0001-use-adrs.md) — Adottare gli ADR
 - [ADR-0002](decisions/0002-decision-rubric.md) — Decision rubric (i quattro filtri)
 - [ADR-0003](decisions/0003-language-convention.md) — Convenzione linguistica
+- [ADR-0004](decisions/0004-form-factor-e-delivery.md) — Form factor e delivery (web + PWA)
+- [ADR-0005](decisions/0005-modello-mappa.md) — Modello della mappa (settori/file)
+- [ADR-0006](decisions/0006-dominio-prenotazioni-e-pricing.md) — Prenotazioni, unità e pricing
+- [ADR-0007](decisions/0007-stile-architetturale.md) — Stile architetturale
+- [ADR-0008](decisions/0008-stack-e-layout.md) — Stack e layout (monorepo)
+- [ADR-0009](decisions/0009-documentazione-di-design.md) — Documentazione di design
