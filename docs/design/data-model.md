@@ -14,6 +14,11 @@ erDiagram
     STABILIMENTO ||--o{ PRENOTAZIONE : "possiede"
     STABILIMENTO ||--o{ LISTA_ATTESA : "possiede"
     STABILIMENTO ||--o{ UTENTE : "ha"
+    STABILIMENTO ||--o{ FASCIA : "definisce"
+    STABILIMENTO ||--o{ AUDIT_LOG : "registra"
+    UTENTE ||--o{ AUDIT_LOG : "genera"
+    FASCIA ||--o{ TARIFFA : "qualifica"
+    FASCIA ||--o{ PRENOTAZIONE : "slot di"
     SETTORE ||--o{ FILA : "contiene"
     FILA ||--o{ OMBRELLONE : "contiene"
     STAGIONE ||--o{ LISTINO : "contiene"
@@ -55,6 +60,14 @@ erDiagram
         string nome
         json dotazione "n. lettini, sdraio, ..."
     }
+    FASCIA {
+        uuid id PK
+        uuid stabilimento_id FK
+        string nome "Giornata intera|Mattina|Pomeriggio"
+        time ora_inizio
+        time ora_fine
+        int ordine
+    }
     CLIENTE {
         uuid id PK
         uuid stabilimento_id FK
@@ -80,7 +93,8 @@ erDiagram
         string tipo "giornaliera|periodica|abbonamento"
         string ambito "settore/fila"
         uuid pacchetto_id FK
-        json periodo "fascia/intervallo"
+        uuid fascia_id FK "slot (intera/mattina/pomeriggio)"
+        json periodo "intervallo/stagione"
         decimal prezzo
         string unita "giorno|periodo"
     }
@@ -89,6 +103,7 @@ erDiagram
         uuid stabilimento_id FK
         uuid cliente_id FK
         uuid ombrellone_id FK
+        uuid fascia_id FK "slot prenotato"
         uuid pacchetto_id FK
         uuid prenotazione_precedente_id FK "rinnovo (self-link, nullable)"
         date data_inizio
@@ -112,9 +127,19 @@ erDiagram
     }
     UTENTE {
         uuid id PK
-        uuid stabilimento_id FK
+        uuid stabilimento_id FK "null per superuser"
         string email
-        string ruolo "admin|staff"
+        string ruolo "admin|staff|superuser"
+    }
+    AUDIT_LOG {
+        uuid id PK
+        uuid stabilimento_id FK "tenant dell'evento (null se globale)"
+        uuid utente_id FK
+        string azione
+        string entita
+        uuid entita_id
+        json dettaglio "sanificato"
+        timestamp creato_il
     }
 ```
 
@@ -133,8 +158,17 @@ erDiagram
   ([ADR-0012](../architecture/decisions/0012-gestione-abbonamenti.md)). Prelazione
   automatica e cabine sono rimandate ([D-011](../architecture/deferred.md),
   [D-012](../architecture/deferred.md)).
-- **Anti-overlap**: non esistono due `PRENOTAZIONE` in stato confermato che si
-  sovrappongano sullo stesso `OMBRELLONE` per intervalli di date intersecanti.
+- **Audit & superuser**: gli eventi di dominio sono registrati in `AUDIT_LOG`
+  (sanificati, tenant-tagged); il ruolo `superuser` di piattaforma li consulta
+  cross-tenant in sola lettura
+  ([ADR-0015](../architecture/decisions/0015-osservabilita-e-console-superuser.md)).
+- **Disponibilità per slot**: l'unità di disponibilità è (`OMBRELLONE`, data,
+  `FASCIA`); con un'unica `FASCIA` "Giornata intera" il modello degrada al caso
+  per-giorno.
+- **Anti-overlap (per slot)**: non esistono due `PRENOTAZIONE` in stato confermato che
+  si sovrappongano sullo stesso `OMBRELLONE` per intervalli di date intersecanti **e
+  `FASCIA` uguale o sovrapposta**. Mattina e pomeriggio sullo stesso ombrellone/giorno
+  non si sovrappongono ([ADR-0013](../architecture/decisions/0013-granularita-disponibilita-a-slot.md)).
 - **Risoluzione prezzo**: il pricing engine seleziona la `TARIFFA` applicabile a una
   `PRENOTAZIONE` combinando {tipo, ambito posizione, pacchetto, periodo}, dalla regola
   più specifica alla più generica.

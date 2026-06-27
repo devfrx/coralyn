@@ -21,6 +21,9 @@ ammesso, quello silenzioso no.
 | D-011 | Prelazione abbonamenti completa: finestre con scadenza, rilascio automatico del posto, priorità per anzianità | L'MVP fa rinnovo manuale in un clic + storico ([ADR-0012](decisions/0012-gestione-abbonamenti.md)); le politiche di prelazione sono un workflow a parte. | Richiesta di automatizzare la campagna rinnovi. | Media: la campagna prelazione resta guidata ma manuale. |
 | D-012 | Cabina e servizi accessori (posto auto, ingressi) come risorse prenotabili | L'MVP gestisce gli ombrelloni; la Cabina è una risorsa gemella aggiungibile col medesimo pattern. | Lidi per cui cabine/servizi sono centrali nell'offerta. | Bassa: additivo (stesso pattern di Ombrellone), non una riscrittura. |
 | D-013 | Sospensione / cessione / disdetta dell'abbonamento | Workflow con regole, raro nell'operativo quotidiano dell'MVP. | Esigenza concreta (subentri, rimborsi). | Bassa/Media: gestibile a mano nell'MVP (annulla + ricrea). |
+| D-014 | Gestione personale / turni bagnini (rostering, presenze) | Sotto-dominio HR a basso accoppiamento col Core, valore incerto; nel Core resta solo l'`Utente` per l'accesso. | Domanda reale dei clienti → possibile modulo successivo. | Bassa: indipendente dal cuore prenotazioni, costruibile a parte. |
+| D-015 | Disponibilità a orari arbitrari (fasce libere, es. 10–13) | L'MVP usa slot configurabili intera/mezza giornata ([ADR-0013](decisions/0013-granularita-disponibilita-a-slot.md)); l'orario libero è atipico per ombrelloni e costoso. | Domanda concreta di prenotazioni a ore. | Bassa: il modello a `Fascia` è generalizzabile a fasce più fini senza riscrittura. |
+| D-016 | Streaming live di log tecnici grezzi nella console superuser | L'MVP mostra audit + errori sanificati ([ADR-0015](decisions/0015-osservabilita-e-console-superuser.md)); il live raw è rischioso (PII) e costoso. | Esigenza diagnostica avanzata. | Bassa: si appoggia allo stack di logging già presente. |
 
 ## Risolte
 

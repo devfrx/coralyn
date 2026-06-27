@@ -25,9 +25,9 @@ flowchart TD
     K --> D[Drawer contestuale]
     D --> A{Azione}
     A -->|Nuova prenotazione| P1[Scegli/crea Cliente]
-    P1 --> P2[Scegli Pacchetto + periodo]
+    P1 --> P2[Scegli Pacchetto + fascia + periodo]
     P2 --> P3[Pricing engine calcola il prezzo]
-    P3 --> P4{Ombrellone libero<br/>nel periodo?}
+    P3 --> P4{Ombrellone libero<br/>nel periodo e fascia?}
     P4 -->|Sì| P5[Conferma Prenotazione]
     P4 -->|No| W[Proponi Lista d'attesa]
     A -->|Assegna abbonamento| AB[Cliente + Ombrellone<br/>per l'intera Stagione]

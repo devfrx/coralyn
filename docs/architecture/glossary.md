@@ -21,6 +21,9 @@ Regola: prima di introdurre un nuovo concetto di dominio nel codice, definirlo q
 | **Cliente** | Il bagnante/anagrafica che effettua prenotazioni o sottoscrive abbonamenti. | Da non confondere con il *cliente del SaaS* (lo Stabilimento/gestore). |
 | **Stagione** | Arco temporale operativo dello stabilimento (es. apertura–chiusura estiva). | Contesto temporale di listini e abbonamenti. |
 | **Bagnino / Staff** | Operatore che usa il gestionale per lo stabilimento. | Soggetto a ruoli/permessi (modulo multi-tenancy). |
+| **Fascia** | Slot temporale prenotabile di una giornata (es. Giornata intera, Mattina, Pomeriggio), configurabile per Stabilimento. | Unità di disponibilità = (Ombrellone, data, Fascia). |
+| **Audit log** | Registro persistito degli eventi di dominio (chi/cosa/quando), taggati per tenant. | Consultabile dal Superuser. |
+| **Superuser (di piattaforma)** | Ruolo dell'operatore del SaaS, sopra i tenant, con visibilità cross-stabilimento (sola lettura nella console). | Distinto dai ruoli tenant (admin/staff). |
 
 > Disambiguazione importante: **"cliente"** è sovraccarico. Nel codice distinguiamo
 > `Cliente` (il bagnante, entità di dominio) dal *tenant* (lo Stabilimento, cliente

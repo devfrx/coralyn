@@ -17,18 +17,23 @@ L'MVP è costruito **tenant-aware** dal modello dati, così la multi-tenancy com
 ## 2. Scope
 
 ### In scope
-- **Mappa ombrelloni** interattiva (Settori → File → Ombrelloni), con stati per data.
+- **Mappa ombrelloni** interattiva (Settori → File → Ombrelloni), con stati per data;
+  **setup strutturato** della struttura ([ADR-0014](../architecture/decisions/0014-setup-mappa-strutturato.md)).
 - **Anagrafica Clienti** (il bagnante).
 - **Pacchetti** personalizzabili (dotazione: lettini/sdraio…).
 - **Listino e Tariffe** per Stagione + **pricing engine** multi-dimensione.
 - **Prenotazioni** unificate a intervallo: giornaliera, periodica, abbonamento.
-- **Disponibilità** con invariante anti-overlap.
+- **Disponibilità a slot** (giornata intera / mezza giornata, configurabile per
+  stabilimento) con invariante anti-overlap per fascia ([ADR-0013](../architecture/decisions/0013-granularita-disponibilita-a-slot.md)).
 - **Lista d'attesa minima** (coda + promozione manuale).
 - **Accesso staff minimo** (utenti con ruolo admin/staff, contesto tenant).
 - **Incasso base**: stato di pagamento (non_pagato/parziale/saldato), importo, metodo
   e data sulla Prenotazione ([ADR-0011](../architecture/decisions/0011-incasso-base-nel-core.md)).
 - **Abbonamenti**: assegnazione stagionale, **rinnovo in un clic** dalla stagione
   precedente e **storico/anzianità** ([ADR-0012](../architecture/decisions/0012-gestione-abbonamenti.md)).
+- **Osservabilità**: logging strutturato, **audit log** e **console superuser** in-app
+  (cross-tenant, sola lettura, eventi sanificati) + ruolo superuser di piattaforma
+  ([ADR-0015](../architecture/decisions/0015-osservabilita-e-console-superuser.md)).
 
 ### Fuori scope (rimandato, vedi [deferred.md](../architecture/deferred.md))
 **Cassa completa**: ricevute, chiusura giornaliera, **fiscale** (modulo 2, [D-004](../architecture/deferred.md)) ·
@@ -36,7 +41,9 @@ Entità `Pagamento` completa: acconti/ricevute/storni ([D-009](../architecture/d
 Multi-tenancy completa + billing (D-002) · Booking online (modulo 4) · Editor
 planimetria (D-005) · Liste d'attesa avanzate: hold+notifiche (D-006) · Wrapper
 Electron (D-007) · Offline-sync completo (D-008) · i18n (D-003) · Prelazione abbonamenti completa (D-011) ·
-Cabina e servizi accessori (D-012) · Sospensione/cessione/disdetta abbonamento (D-013).
+Cabina e servizi accessori (D-012) · Sospensione/cessione/disdetta abbonamento (D-013) ·
+Gestione personale/turni (D-014) · Disponibilità a orari arbitrari (D-015) · Streaming
+log tecnici live (D-016).
 
 > Nota: la **registrazione incasso base** *è* in scope ([ADR-0011](../architecture/decisions/0011-incasso-base-nel-core.md));
 > qui sopra è esclusa solo la cassa *completa* (ricevute/chiusura/fiscale/processing).
@@ -54,6 +61,9 @@ Cabina e servizi accessori (D-012) · Sospensione/cessione/disdetta abbonamento 
 | Multi-tenant (DB) | Shared schema + RLS, escape hatch silo | [0010](../architecture/decisions/0010-isolamento-multi-tenant.md) |
 | Incasso base | Stato pagamento sulla Prenotazione; cassa completa al modulo 2 | [0011](../architecture/decisions/0011-incasso-base-nel-core.md) |
 | Gestione abbonamenti | Rinnovo in un clic + storico (self-link); prelazione/cabine rimandate | [0012](../architecture/decisions/0012-gestione-abbonamenti.md) |
+| Granularità disponibilità | Slot configurabili (intera/mezza giornata); orari arbitrari rimandati | [0013](../architecture/decisions/0013-granularita-disponibilita-a-slot.md) |
+| Setup mappa | Strutturato per form; editor planimetria rimandato (D-005) | [0014](../architecture/decisions/0014-setup-mappa-strutturato.md) |
+| Osservabilità | Logging + audit log + console superuser (ruolo di piattaforma) | [0015](../architecture/decisions/0015-osservabilita-e-console-superuser.md) |
 
 ## 4. Architettura
 
@@ -73,8 +83,9 @@ packages/
 
 Diagramma ER e invarianti: [docs/design/data-model.md](../design/data-model.md).
 Entità: Stabilimento, Settore, Fila, Ombrellone, Pacchetto, Cliente, Stagione,
-Listino, Tariffa, Prenotazione, Lista_attesa, Utente. Ogni entità di business porta
-`stabilimento_id`.
+Listino, Tariffa, **Fascia**, Prenotazione, Lista_attesa, Utente, **AuditLog**. Ogni
+entità di business porta `stabilimento_id` (nullable per Utente `superuser` e per gli
+eventi globali di AuditLog).
 
 ## 6. Moduli del Core (confini e responsabilità)
 
@@ -84,11 +95,12 @@ solo da ciò che è dichiarato. Questo abilita test in isolamento e basso accopp
 | Modulo | Responsabilità | Espone | Dipende da |
 |---|---|---|---|
 | `core` | Contesto tenant, tipi base, utilità trasversali | TenantContext, base entities | — |
-| `identita` | Utenti staff, login, ruolo, risoluzione tenant | Auth/guards, utente corrente | `core` |
-| `mappa` | Settori, File, Ombrelloni; struttura della spiaggia | CRUD struttura, query ombrelloni | `core` |
+| `identita` | Utenti staff, login, ruolo, risoluzione tenant; **superuser di piattaforma** | Auth/guards, utente corrente | `core` |
+| `mappa` | Settori, File, Ombrelloni; **setup strutturato** della spiaggia | CRUD struttura, generazione ombrelloni, query | `core` |
 | `clienti` | Anagrafica Cliente | CRUD clienti, ricerca | `core` |
-| `catalogo` | Pacchetti, Stagioni, Listini, Tariffe + **pricing engine** | calcolaPrezzo(...), CRUD listino | `core`, `mappa` (ambito posizione) |
-| `prenotazioni` | Prenotazione, disponibilità (anti-overlap), lista d'attesa, stato di pagamento (incasso base), rinnovo abbonamenti e storico | crea/annulla/promuovi, disponibilità per data, registra incasso, rinnova abbonamento | `core`, `mappa`, `clienti`, `catalogo` |
+| `catalogo` | Pacchetti, Stagioni, **Fasce**, Listini, Tariffe + **pricing engine** (dimensione fascia) | calcolaPrezzo(...), CRUD listino/fasce | `core`, `mappa` (ambito posizione) |
+| `prenotazioni` | Prenotazione, disponibilità **per slot** (anti-overlap), lista d'attesa, stato di pagamento (incasso base), rinnovo abbonamenti e storico | crea/annulla/promuovi, disponibilità per data+fascia, registra incasso, rinnova abbonamento | `core`, `mappa`, `clienti`, `catalogo` |
+| `audit` | Logging strutturato, audit log, console superuser | registra evento, query audit (superuser) | `core`, `identita` |
 
 Regola: le dipendenze vanno in una sola direzione (niente cicli). `prenotazioni` è il
 modulo orchestratore; `catalogo` non conosce `prenotazioni`.
@@ -98,7 +110,7 @@ modulo orchestratore; `catalogo` non conosce `prenotazioni`.
 Calcola il prezzo di una Prenotazione risolvendo la `Tariffa` applicabile.
 
 - **Input**: tipo prenotazione, Ombrellone (→ Fila/Settore = ambito posizione),
-  Pacchetto, periodo (date).
+  Pacchetto, **fascia** (slot), periodo (date).
 - **Risoluzione**: tra le Tariffe del Listino della Stagione attiva, seleziona quelle
   compatibili e sceglie la **più specifica** secondo una precedenza esplicita e
   documentata (es. match esatto fila > settore > generico; periodo specifico >
@@ -130,6 +142,9 @@ App a sezioni (menù: Mappa, Prenotazioni, Clienti, Listino, Report) con la **Ma
 come home** e drawer contestuale. Responsive desktop + tablet, PWA. Snapshot:
 [docs/design/mockups/main-screen.html](../design/mockups/main-screen.html).
 
+Setup mappa **strutturato per form** ([ADR-0014](../architecture/decisions/0014-setup-mappa-strutturato.md)).
+**Console superuser** come sezione separata, visibile solo al ruolo `superuser`.
+
 ## 10. Multi-tenancy nell'MVP
 
 - Modello dati **tenant-aware** (`stabilimento_id` ovunque) e scoping applicativo di
@@ -146,6 +161,9 @@ come home** e drawer contestuale. Responsive desktop + tablet, PWA. Snapshot:
 ## 11. Accesso e ruoli (MVP)
 
 - Utenti staff con ruolo `admin` (configura struttura e listino) o `staff` (operativo).
+- **Superuser di piattaforma**: ruolo sopra i tenant (l'operatore del SaaS), con
+  accesso cross-tenant in **sola lettura** alla console di osservabilità
+  ([ADR-0015](../architecture/decisions/0015-osservabilita-e-console-superuser.md)).
 - RBAC granulare e gestione account multi-tenant → modulo 3.
 
 ## 12. Rischi e questioni aperte
@@ -156,8 +174,10 @@ come home** e drawer contestuale. Responsive desktop + tablet, PWA. Snapshot:
   (disponibilità) — da validare in fase di piano.
 - **Offline in spiaggia**: l'MVP assume connettività (offline-light); il rischio è
   tracciato in [D-008](../architecture/deferred.md).
-- **Granularità anti-overlap**: confermare se la disponibilità è per giorno (scelta
-  MVP) o per fasce orarie (non previsto ora).
+- **Disponibilità a slot**: l'anti-overlap diventa per (ombrellone, data, fascia); il
+  caso mezza giornata va testato con cura. Orari arbitrari esclusi ([D-015](../architecture/deferred.md)).
+- **Console superuser**: l'accesso cross-tenant è una superficie sensibile; va protetto
+  (autorizzazione dedicata, audit degli accessi superuser, eventi sanificati).
 
 ## 13. Definition of Done dell'MVP
 
@@ -169,6 +189,10 @@ come home** e drawer contestuale. Responsive desktop + tablet, PWA. Snapshot:
 - Lo staff può segnare una prenotazione come pagata (stato, importo, metodo, data).
 - Più stabilimenti isolati nello stesso DB (scoping + RLS), verificato che un tenant
   non veda i dati di un altro.
+- Disponibilità a mezza giornata funzionante (mattina/pomeriggio non confliggono sullo
+  stesso ombrellone/giorno).
+- Audit log popolato dagli eventi di dominio; il superuser consulta la console
+  cross-tenant in sola lettura.
 - Contratti FE/BE condivisi; pricing engine coperto da test; diagrammi in
   `docs/design/` aggiornati.
 
