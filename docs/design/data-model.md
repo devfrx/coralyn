@@ -1,0 +1,128 @@
+# Modello dati del Core (ER)
+
+Fonte di verità del modello dati del Core operativo. Termini di dominio in italiano
+([ADR-0003](../architecture/decisions/0003-language-convention.md)). Decisioni:
+[mappa](../architecture/decisions/0005-modello-mappa.md),
+[prenotazioni & pricing](../architecture/decisions/0006-dominio-prenotazioni-e-pricing.md).
+
+```mermaid
+erDiagram
+    STABILIMENTO ||--o{ SETTORE : "ha"
+    STABILIMENTO ||--o{ CLIENTE : "registra"
+    STABILIMENTO ||--o{ PACCHETTO : "definisce"
+    STABILIMENTO ||--o{ STAGIONE : "ha"
+    STABILIMENTO ||--o{ PRENOTAZIONE : "possiede"
+    STABILIMENTO ||--o{ LISTA_ATTESA : "possiede"
+    STABILIMENTO ||--o{ UTENTE : "ha"
+    SETTORE ||--o{ FILA : "contiene"
+    FILA ||--o{ OMBRELLONE : "contiene"
+    STAGIONE ||--o{ LISTINO : "contiene"
+    LISTINO ||--o{ TARIFFA : "contiene"
+    PACCHETTO ||--o{ TARIFFA : "qualifica"
+    PACCHETTO ||--o{ PRENOTAZIONE : "scelto in"
+    CLIENTE ||--o{ PRENOTAZIONE : "effettua"
+    OMBRELLONE ||--o{ PRENOTAZIONE : "oggetto di"
+    CLIENTE ||--o{ LISTA_ATTESA : "richiede"
+
+    STABILIMENTO {
+        uuid id PK
+        string nome
+        json config
+    }
+    SETTORE {
+        uuid id PK
+        uuid stabilimento_id FK
+        string nome
+        int ordine
+    }
+    FILA {
+        uuid id PK
+        uuid settore_id FK
+        string etichetta
+        int ordine
+    }
+    OMBRELLONE {
+        uuid id PK
+        uuid fila_id FK
+        string etichetta
+        int ordine_logico
+        json posizione_presentazione "layer visivo (D-005)"
+    }
+    PACCHETTO {
+        uuid id PK
+        uuid stabilimento_id FK
+        string nome
+        json dotazione "n. lettini, sdraio, ..."
+    }
+    CLIENTE {
+        uuid id PK
+        uuid stabilimento_id FK
+        string nome
+        string cognome
+        json contatti
+    }
+    STAGIONE {
+        uuid id PK
+        uuid stabilimento_id FK
+        string nome
+        date data_inizio
+        date data_fine
+    }
+    LISTINO {
+        uuid id PK
+        uuid stabilimento_id FK
+        uuid stagione_id FK
+    }
+    TARIFFA {
+        uuid id PK
+        uuid listino_id FK
+        string tipo "giornaliera|periodica|abbonamento"
+        string ambito "settore/fila"
+        uuid pacchetto_id FK
+        json periodo "fascia/intervallo"
+        decimal prezzo
+        string unita "giorno|periodo"
+    }
+    PRENOTAZIONE {
+        uuid id PK
+        uuid stabilimento_id FK
+        uuid cliente_id FK
+        uuid ombrellone_id FK
+        uuid pacchetto_id FK
+        date data_inizio
+        date data_fine
+        string tipo "giornaliera|periodica|abbonamento"
+        string stato
+        decimal prezzo_totale
+        json extras
+    }
+    LISTA_ATTESA {
+        uuid id PK
+        uuid stabilimento_id FK
+        uuid cliente_id FK
+        string ambito
+        json periodo
+        string stato "in_attesa|promossa|annullata"
+    }
+    UTENTE {
+        uuid id PK
+        uuid stabilimento_id FK
+        string email
+        string ruolo "admin|staff"
+    }
+```
+
+## Invarianti e regole
+
+- **Tenant scoping**: ogni entità di business porta `stabilimento_id`; ogni query è
+  filtrata per tenant ([ADR-0007](../architecture/decisions/0007-stile-architetturale.md)).
+- **Anti-overlap**: non esistono due `PRENOTAZIONE` in stato confermato che si
+  sovrappongano sullo stesso `OMBRELLONE` per intervalli di date intersecanti.
+- **Risoluzione prezzo**: il pricing engine seleziona la `TARIFFA` applicabile a una
+  `PRENOTAZIONE` combinando {tipo, ambito posizione, pacchetto, periodo}, dalla regola
+  più specifica alla più generica.
+- **Posizione**: `ordine_logico` governa l'ordinamento nella fila;
+  `posizione_presentazione` è un layer visivo opzionale (porta aperta alla planimetria,
+  [D-005](../architecture/deferred.md)).
+- **Disambiguazione**: `CLIENTE` = il bagnante; il *tenant* è lo `STABILIMENTO`
+  (mai chiamarlo "cliente" nel codice).

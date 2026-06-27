@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mockup — Schermata principale (Core)</title>
+<style>
+  body { font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; background:#f3f5f8; color:#243; margin:0; padding:24px; }
+  .wrap { max-width: 920px; margin: 0 auto; }
+  h1 { font-size: 18px; margin: 0 0 4px; }
+  .sub { color:#67707b; font-size: 13px; margin: 0 0 18px; }
+  .app { border: 1px solid #d8dee6; border-radius: 10px; overflow: hidden; background:#fff; font-size: 13px; box-shadow: 0 2px 10px rgba(0,0,0,.05); }
+  .topbar { background:#1f6f8b; color:#fff; padding:9px 12px; display:flex; align-items:center; gap:10px; }
+  .pill { background: rgba(255,255,255,.2); border-radius: 12px; padding:4px 12px; font-size:12px; }
+  .pill.search { flex:1; background: rgba(255,255,255,.9); color:#789; text-align:left; }
+  .body { display:flex; min-height: 320px; }
+  .sidebar { width: 132px; background:#0f3a4a; color:#cfe2ea; padding:10px 8px; display:flex; flex-direction:column; gap:5px; }
+  .navitem { padding:8px 10px; border-radius:7px; font-size:12px; }
+  .navitem.active { background:#1f6f8b; color:#fff; font-weight:600; }
+  .stage { flex:1; background: linear-gradient(#fbf3da,#f7ead0); padding:14px; position:relative; }
+  .sea { background: linear-gradient(#bfe3f2,#9fd4ec); border-radius:6px; text-align:center; font-size:11px; color:#37708c; padding:4px; margin-bottom:10px; letter-spacing:2px;}
+  .row { display:flex; gap:9px; justify-content:center; margin:7px 0; align-items:center; }
+  .rowlbl { width:14px; font-size:11px; color:#9a8a60; text-align:right; }
+  .u { width:20px; height:20px; border-radius:50%; box-shadow:0 1px 2px rgba(0,0,0,.2); }
+  .u.lib { background:#9ec98a; } .u.abb { background:#5b8def; } .u.gio { background:#ef8a3d; } .u.pre { background:#f2c84b; }
+  .u.sel { outline:3px solid #1f6f8b; outline-offset:2px; }
+  .drawer { position:absolute; right:12px; top:12px; bottom:12px; width:230px; background:#fff; border:1px solid #d8dee6; border-radius:8px; box-shadow:-3px 0 10px rgba(0,0,0,.08); padding:12px; }
+  .drawer h4 { margin:0 0 8px; font-size:13px; }
+  .drawer .line { height:8px; background:#eef1f5; border-radius:4px; margin:6px 0; }
+  .btn { background:#1f6f8b; color:#fff; border-radius:6px; padding:8px; text-align:center; font-size:12px; margin-top:7px; }
+  .btn.ghost { background:#eef1f5; color:#1f6f8b; }
+  .legend { display:flex; gap:16px; flex-wrap:wrap; font-size:11px; color:#6b6150; margin-top:12px; padding:0 2px; }
+  .legend b { display:inline-block; width:12px; height:12px; border-radius:50%; margin-right:5px; vertical-align:middle; }
+  .note { font-size:12px; color:#67707b; margin-top:14px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Schermata principale del Core — direzione approvata</h1>
+  <p class="sub">App a sezioni (menù laterale) con la Mappa come home e drawer contestuale al clic sull'ombrellone. Vedi ADR-0004 (delivery) e ADR-0005 (mappa).</p>
+
+  <div class="app">
+    <div class="topbar">
+      <span class="pill">◀ &nbsp;Sab 27 giu 2026&nbsp; ▶</span>
+      <span class="pill search">🔎 Cerca cliente…</span>
+      <span class="pill">👤 Lido Sole</span>
+    </div>
+    <div class="body">
+      <div class="sidebar">
+        <div class="navitem active">🗺&nbsp; Mappa</div>
+        <div class="navitem">📋&nbsp; Prenotazioni</div>
+        <div class="navitem">👥&nbsp; Clienti</div>
+        <div class="navitem">€&nbsp; Listino</div>
+        <div class="navitem">📊&nbsp; Report</div>
+      </div>
+      <div class="stage">
+        <div class="sea">~ &nbsp; M A R E &nbsp; ~</div>
+        <div class="row"><span class="rowlbl">A</span><span class="u gio"></span><span class="u lib"></span><span class="u abb"></span><span class="u abb"></span><span class="u lib"></span><span class="u gio"></span><span class="u abb"></span></div>
+        <div class="row"><span class="rowlbl">B</span><span class="u abb"></span><span class="u sel pre"></span><span class="u lib"></span><span class="u abb"></span><span class="u gio"></span><span class="u lib"></span></div>
+        <div class="row"><span class="rowlbl">C</span><span class="u lib"></span><span class="u abb"></span><span class="u gio"></span><span class="u lib"></span><span class="u pre"></span><span class="u abb"></span><span class="u lib"></span></div>
+        <div class="row"><span class="rowlbl">D</span><span class="u abb"></span><span class="u lib"></span><span class="u gio"></span><span class="u abb"></span><span class="u lib"></span></div>
+        <div class="drawer">
+          <h4>Ombrellone B2 · Prima fila</h4>
+          <div class="line" style="width:75%"></div>
+          <div class="line" style="width:55%"></div>
+          <div class="line" style="width:40%"></div>
+          <div class="btn">Nuova prenotazione</div>
+          <div class="btn ghost">Assegna abbonamento</div>
+          <div class="btn ghost">Registra presenza</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="legend">
+    <span><b style="background:#9ec98a"></b>Libero</span>
+    <span><b style="background:#5b8def"></b>Abbonato</span>
+    <span><b style="background:#ef8a3d"></b>Giornaliero/occupato</span>
+    <span><b style="background:#f2c84b"></b>Prenotato</span>
+  </div>
+
+  <p class="note">Snapshot di design (non codice). Aggiornare quando cambia la direzione UI — ADR-0009.</p>
+</div>
+</body>
+</html>
