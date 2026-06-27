@@ -1,7 +1,7 @@
 # Spec di design — Core operativo (MVP)
 
 - **Data:** 2026-06-27
-- **Status:** In revisione
+- **Status:** Approvato (2026-06-28)
 - **Modulo:** 1 di 5 (vedi [architettura](../architecture/README.md))
 
 ## 1. Obiettivo
