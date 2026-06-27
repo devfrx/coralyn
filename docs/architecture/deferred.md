@@ -16,6 +16,8 @@ ammesso, quello silenzioso no.
 | D-006 | Liste d'attesa avanzate: hold temporanei con scadenza automatica + notifiche al cliente | L'MVP fa coda + promozione manuale; hold e notifiche dipendono dal modulo notifiche/booking online. | Modulo notifiche o Booking online (modulo 4). | Media: senza hold automatici la gestione dei picchi resta manuale. |
 | D-007 | Wrapper desktop Electron | La delivery primaria è web + PWA ([ADR-0004](decisions/0004-form-factor-e-delivery.md)); un client desktop nativo non serve ora. | Richiesta esplicita di un client desktop nativo. | Bassa: additivo, riusa la stessa web app. |
 | D-008 | Offline-sync completo della PWA | Complesso (sincronizzazione e risoluzione conflitti); l'MVP assume connettività con offline-light (shell + consultazione in cache). | Problemi reali di connettività in spiaggia. | Media: in spiaggia la rete può mancare; mitigato dall'offline-light. |
+| D-009 | Entità `Pagamento` completa (acconti multipli, ricevute, storni/rimborsi) | L'MVP registra l'incasso base sulla Prenotazione ([ADR-0011](decisions/0011-incasso-base-nel-core.md)); il modello ricco appartiene alla Cassa. | Inizio modulo Cassa (modulo 2). | Bassa/Media: migrazione contenuta dai campi base all'entità `Pagamento`. |
+| D-010 | Isolamento fisico per tenant grandi (ibrido pool + silo: DB dedicato) | L'MVP usa shared schema + RLS ([ADR-0010](decisions/0010-isolamento-multi-tenant.md)), adatto a molti tenant piccoli/medi. | Tenant grande con esigenze di carico, compliance o on-prem. | Bassa: l'app filtra sempre per tenant, la promozione a DB dedicato non tocca il codice. |
 
 ## Risolte
 

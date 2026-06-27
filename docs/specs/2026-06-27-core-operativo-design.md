@@ -25,12 +25,18 @@ L'MVP è costruito **tenant-aware** dal modello dati, così la multi-tenancy com
 - **Disponibilità** con invariante anti-overlap.
 - **Lista d'attesa minima** (coda + promozione manuale).
 - **Accesso staff minimo** (utenti con ruolo admin/staff, contesto tenant).
+- **Incasso base**: stato di pagamento (non_pagato/parziale/saldato), importo, metodo
+  e data sulla Prenotazione ([ADR-0011](../architecture/decisions/0011-incasso-base-nel-core.md)).
 
 ### Fuori scope (rimandato, vedi [deferred.md](../architecture/deferred.md))
-Cassa/pagamenti (modulo 2) · Multi-tenancy completa + billing (D-002) · Booking
-online (modulo 4) · Editor planimetria (D-005) · Liste d'attesa avanzate:
-hold+notifiche (D-006) · Wrapper Electron (D-007) · Offline-sync completo (D-008) ·
-i18n (D-003) · Fiscale/scontrino (D-004).
+**Cassa completa**: ricevute, chiusura giornaliera, **fiscale** (modulo 2, [D-004](../architecture/deferred.md)) ·
+Entità `Pagamento` completa: acconti/ricevute/storni ([D-009](../architecture/deferred.md)) ·
+Multi-tenancy completa + billing (D-002) · Booking online (modulo 4) · Editor
+planimetria (D-005) · Liste d'attesa avanzate: hold+notifiche (D-006) · Wrapper
+Electron (D-007) · Offline-sync completo (D-008) · i18n (D-003).
+
+> Nota: la **registrazione incasso base** *è* in scope ([ADR-0011](../architecture/decisions/0011-incasso-base-nel-core.md));
+> qui sopra è esclusa solo la cassa *completa* (ricevute/chiusura/fiscale/processing).
 
 ## 3. Vincoli e decisioni di riferimento
 
@@ -42,6 +48,8 @@ i18n (D-003) · Fiscale/scontrino (D-004).
 | Prenotazioni & pricing | Prenotazione unica a intervallo, ombrellone-pacchetto, listino a regole | [0006](../architecture/decisions/0006-dominio-prenotazioni-e-pricing.md) |
 | Architettura | Monolite modulare, API-first, multi-tenant-aware, IA come servizio | [0007](../architecture/decisions/0007-stile-architetturale.md) |
 | Stack & layout | Vue 3+TS / NestJS / PostgreSQL / Prisma / monorepo | [0008](../architecture/decisions/0008-stack-e-layout.md) |
+| Multi-tenant (DB) | Shared schema + RLS, escape hatch silo | [0010](../architecture/decisions/0010-isolamento-multi-tenant.md) |
+| Incasso base | Stato pagamento sulla Prenotazione; cassa completa al modulo 2 | [0011](../architecture/decisions/0011-incasso-base-nel-core.md) |
 
 ## 4. Architettura
 
@@ -76,7 +84,7 @@ solo da ciò che è dichiarato. Questo abilita test in isolamento e basso accopp
 | `mappa` | Settori, File, Ombrelloni; struttura della spiaggia | CRUD struttura, query ombrelloni | `core` |
 | `clienti` | Anagrafica Cliente | CRUD clienti, ricerca | `core` |
 | `catalogo` | Pacchetti, Stagioni, Listini, Tariffe + **pricing engine** | calcolaPrezzo(...), CRUD listino | `core`, `mappa` (ambito posizione) |
-| `prenotazioni` | Prenotazione, disponibilità (anti-overlap), lista d'attesa | crea/annulla/promuovi, disponibilità per data | `core`, `mappa`, `clienti`, `catalogo` |
+| `prenotazioni` | Prenotazione, disponibilità (anti-overlap), lista d'attesa, stato di pagamento (incasso base) | crea/annulla/promuovi, disponibilità per data, registra incasso | `core`, `mappa`, `clienti`, `catalogo` |
 
 Regola: le dipendenze vanno in una sola direzione (niente cicli). `prenotazioni` è il
 modulo orchestratore; `catalogo` non conosce `prenotazioni`.
@@ -120,7 +128,12 @@ come home** e drawer contestuale. Responsive desktop + tablet, PWA. Snapshot:
 
 - Modello dati **tenant-aware** (`stabilimento_id` ovunque) e scoping applicativo di
   ogni query fin da subito.
-- Signup self-service, isolamento avanzato e billing **non** nell'MVP
+- **Isolamento** ([ADR-0010](../architecture/decisions/0010-isolamento-multi-tenant.md)):
+  shared DB/schema con scoping centrale (guard NestJS + middleware Prisma) e
+  **Row-Level Security** PostgreSQL come rete di sicurezza. Una migrazione e un backup
+  per tutti; onboarding = inserire uno Stabilimento + admin; promozione a DB dedicato
+  possibile in futuro senza toccare il codice ([D-010](../architecture/deferred.md)).
+- Signup self-service, billing e hardening avanzato **non** nell'MVP
   ([D-002](../architecture/deferred.md)): l'MVP opera di fatto su uno stabilimento
   configurato, ma il codice non assume mai un tenant singolo.
 
@@ -146,6 +159,9 @@ come home** e drawer contestuale. Responsive desktop + tablet, PWA. Snapshot:
 - Lo staff crea i tre tipi di prenotazione dalla mappa, con prezzo calcolato
   automaticamente e disponibilità garantita (no overlap).
 - Abbonamento assegnabile per la stagione; lista d'attesa con promozione manuale.
+- Lo staff può segnare una prenotazione come pagata (stato, importo, metodo, data).
+- Più stabilimenti isolati nello stesso DB (scoping + RLS), verificato che un tenant
+  non veda i dati di un altro.
 - Contratti FE/BE condivisi; pricing engine coperto da test; diagrammi in
   `docs/design/` aggiornati.
 

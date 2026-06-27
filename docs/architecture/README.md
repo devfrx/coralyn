@@ -22,7 +22,8 @@ destinato alla vendita in abbonamento a più stabilimenti.
 
 - **Monolite modulare**: un solo backend deployabile, moduli a bounded context.
 - **API-first (REST)**: un'unica API serve l'app staff e (in futuro) il booking online.
-- **Multi-tenant-aware** dal modello dati: ogni entità porta `stabilimento_id`.
+- **Multi-tenant-aware** dal modello dati: ogni entità porta `stabilimento_id`;
+  isolamento shared-schema + RLS ([ADR-0010](decisions/0010-isolamento-multi-tenant.md)).
 - **IA come servizio separato** (futuro), consumato via API dal core.
 
 ## Stack e layout ([ADR-0008](decisions/0008-stack-e-layout.md))
@@ -50,7 +51,8 @@ destinato alla vendita in abbonamento a più stabilimenti.
 - `mappa` — Settore, Fila, Ombrellone ([ADR-0005](decisions/0005-modello-mappa.md)).
 - `catalogo` — Pacchetto, Stagione, Listino, Tariffa + **pricing engine**.
 - `clienti` — anagrafica Cliente.
-- `prenotazioni` — Prenotazione, disponibilità (anti-overlap), lista d'attesa minima.
+- `prenotazioni` — Prenotazione, disponibilità (anti-overlap), lista d'attesa minima,
+  incasso base ([ADR-0011](decisions/0011-incasso-base-nel-core.md)).
 - `identita` — utenti staff + contesto tenant (RBAC granulare → modulo 3).
 - `core` — contesto tenant, basi condivise.
 
@@ -78,3 +80,5 @@ aggiornati.
 - [ADR-0007](decisions/0007-stile-architetturale.md) — Stile architetturale
 - [ADR-0008](decisions/0008-stack-e-layout.md) — Stack e layout (monorepo)
 - [ADR-0009](decisions/0009-documentazione-di-design.md) — Documentazione di design
+- [ADR-0010](decisions/0010-isolamento-multi-tenant.md) — Isolamento multi-tenant (shared schema + RLS)
+- [ADR-0011](decisions/0011-incasso-base-nel-core.md) — Registrazione incasso base nel Core

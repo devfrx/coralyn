@@ -95,6 +95,10 @@ erDiagram
         string stato
         decimal prezzo_totale
         json extras
+        string stato_pagamento "non_pagato|parziale|saldato"
+        decimal importo_incassato
+        string metodo_pagamento "contanti|carta|bonifico|altro"
+        date data_incasso
     }
     LISTA_ATTESA {
         uuid id PK
@@ -115,7 +119,13 @@ erDiagram
 ## Invarianti e regole
 
 - **Tenant scoping**: ogni entità di business porta `stabilimento_id`; ogni query è
-  filtrata per tenant ([ADR-0007](../architecture/decisions/0007-stile-architetturale.md)).
+  filtrata per tenant tramite scoping centrale (guard + middleware) e **Row-Level
+  Security** PostgreSQL come rete di sicurezza
+  ([ADR-0007](../architecture/decisions/0007-stile-architetturale.md),
+  [ADR-0010](../architecture/decisions/0010-isolamento-multi-tenant.md)).
+- **Incasso base**: lo stato di pagamento vive sulla `PRENOTAZIONE`
+  ([ADR-0011](../architecture/decisions/0011-incasso-base-nel-core.md)); l'entità
+  `Pagamento` completa arriverà con la Cassa ([D-009](../architecture/deferred.md)).
 - **Anti-overlap**: non esistono due `PRENOTAZIONE` in stato confermato che si
   sovrappongano sullo stesso `OMBRELLONE` per intervalli di date intersecanti.
 - **Risoluzione prezzo**: il pricing engine seleziona la `TARIFFA` applicabile a una
