@@ -52,7 +52,8 @@ destinato alla vendita in abbonamento a più stabilimenti.
 - `catalogo` — Pacchetto, Stagione, Listino, Tariffa + **pricing engine**.
 - `clienti` — anagrafica Cliente.
 - `prenotazioni` — Prenotazione, disponibilità (anti-overlap), lista d'attesa minima,
-  incasso base ([ADR-0011](decisions/0011-incasso-base-nel-core.md)).
+  incasso base ([ADR-0011](decisions/0011-incasso-base-nel-core.md)), rinnovo
+  abbonamenti e storico ([ADR-0012](decisions/0012-gestione-abbonamenti.md)).
 - `identita` — utenti staff + contesto tenant (RBAC granulare → modulo 3).
 - `core` — contesto tenant, basi condivise.
 
@@ -82,3 +83,4 @@ aggiornati.
 - [ADR-0009](decisions/0009-documentazione-di-design.md) — Documentazione di design
 - [ADR-0010](decisions/0010-isolamento-multi-tenant.md) — Isolamento multi-tenant (shared schema + RLS)
 - [ADR-0011](decisions/0011-incasso-base-nel-core.md) — Registrazione incasso base nel Core
+- [ADR-0012](decisions/0012-gestione-abbonamenti.md) — Gestione abbonamenti (rinnovo + storico)

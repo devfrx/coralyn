@@ -22,6 +22,7 @@ erDiagram
     PACCHETTO ||--o{ PRENOTAZIONE : "scelto in"
     CLIENTE ||--o{ PRENOTAZIONE : "effettua"
     OMBRELLONE ||--o{ PRENOTAZIONE : "oggetto di"
+    PRENOTAZIONE ||--o| PRENOTAZIONE : "rinnovata in"
     CLIENTE ||--o{ LISTA_ATTESA : "richiede"
 
     STABILIMENTO {
@@ -89,6 +90,7 @@ erDiagram
         uuid cliente_id FK
         uuid ombrellone_id FK
         uuid pacchetto_id FK
+        uuid prenotazione_precedente_id FK "rinnovo (self-link, nullable)"
         date data_inizio
         date data_fine
         string tipo "giornaliera|periodica|abbonamento"
@@ -126,6 +128,11 @@ erDiagram
 - **Incasso base**: lo stato di pagamento vive sulla `PRENOTAZIONE`
   ([ADR-0011](../architecture/decisions/0011-incasso-base-nel-core.md)); l'entità
   `Pagamento` completa arriverà con la Cassa ([D-009](../architecture/deferred.md)).
+- **Rinnovo / anzianità**: `prenotazione_precedente_id` collega un abbonamento a quello
+  della stagione precedente; la catena dà storico e anzianità
+  ([ADR-0012](../architecture/decisions/0012-gestione-abbonamenti.md)). Prelazione
+  automatica e cabine sono rimandate ([D-011](../architecture/deferred.md),
+  [D-012](../architecture/deferred.md)).
 - **Anti-overlap**: non esistono due `PRENOTAZIONE` in stato confermato che si
   sovrappongano sullo stesso `OMBRELLONE` per intervalli di date intersecanti.
 - **Risoluzione prezzo**: il pricing engine seleziona la `TARIFFA` applicabile a una

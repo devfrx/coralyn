@@ -14,6 +14,8 @@ Regola: prima di introdurre un nuovo concetto di dominio nel codice, definirlo q
 | **Cabina** | Spogliatoio/deposito assegnabile, spesso abbinato a un abbonamento. | Risorsa prenotabile separata dall'ombrellone. |
 | **Prenotazione** | Impegno di una o più risorse (ombrellone, cabina) per un periodo definito. | Può essere giornaliera o periodica. |
 | **Abbonamento** | Prenotazione di lungo periodo (es. stagionale, mensile) con tariffa dedicata. | Sottocaso/variante di Prenotazione di lungo periodo. |
+| **Rinnovo** | Creazione dell'abbonamento di una nuova Stagione a partire da quello precedente (stesso cliente/ombrellone), col nuovo listino. | Catena via `prenotazione_precedente_id`; base per anzianità e prelazione. |
+| **Anzianità** | Da quante stagioni consecutive un cliente è abbonato a un posto. | Derivata dalla catena dei Rinnovi. |
 | **Tariffa** | Regola di prezzo applicata a una risorsa in funzione di periodo, fila, durata. | Definita nel Listino. |
 | **Listino** | Insieme delle Tariffe valide per uno Stabilimento in una stagione. | |
 | **Cliente** | Il bagnante/anagrafica che effettua prenotazioni o sottoscrive abbonamenti. | Da non confondere con il *cliente del SaaS* (lo Stabilimento/gestore). |

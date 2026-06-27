@@ -50,3 +50,22 @@ stateDiagram-v2
 > Nota: lo stato "opzione/hold" temporaneo con scadenza automatica è rimandato
 > ([D-006](../architecture/deferred.md)); nell'MVP la Lista d'attesa è promossa
 > manualmente a Prenotazione.
+
+## 4. Rinnovo abbonamento (inizio stagione)
+
+Vedi [ADR-0012](../architecture/decisions/0012-gestione-abbonamenti.md).
+
+```mermaid
+flowchart TD
+    L[Lista abbonati stagione precedente] --> R[Clic 'Rinnova' su un abbonato]
+    R --> C[Copia cliente + ombrellone + pacchetto]
+    C --> P[Pricing engine: prezzo sul nuovo Listino]
+    P --> V{Ombrellone libero<br/>nella nuova stagione?}
+    V -->|Sì| N[Crea Prenotazione tipo=abbonamento<br/>link a precedente]
+    V -->|No| F[Segnala conflitto allo staff]
+```
+
+> La **prelazione automatica** (scadenze, rilascio del posto, priorità per anzianità)
+> è rimandata ([D-011](../architecture/deferred.md)); nell'MVP la campagna rinnovi è
+> guidata ma manuale.
+

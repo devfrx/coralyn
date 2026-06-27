@@ -18,6 +18,9 @@ ammesso, quello silenzioso no.
 | D-008 | Offline-sync completo della PWA | Complesso (sincronizzazione e risoluzione conflitti); l'MVP assume connettività con offline-light (shell + consultazione in cache). | Problemi reali di connettività in spiaggia. | Media: in spiaggia la rete può mancare; mitigato dall'offline-light. |
 | D-009 | Entità `Pagamento` completa (acconti multipli, ricevute, storni/rimborsi) | L'MVP registra l'incasso base sulla Prenotazione ([ADR-0011](decisions/0011-incasso-base-nel-core.md)); il modello ricco appartiene alla Cassa. | Inizio modulo Cassa (modulo 2). | Bassa/Media: migrazione contenuta dai campi base all'entità `Pagamento`. |
 | D-010 | Isolamento fisico per tenant grandi (ibrido pool + silo: DB dedicato) | L'MVP usa shared schema + RLS ([ADR-0010](decisions/0010-isolamento-multi-tenant.md)), adatto a molti tenant piccoli/medi. | Tenant grande con esigenze di carico, compliance o on-prem. | Bassa: l'app filtra sempre per tenant, la promozione a DB dedicato non tocca il codice. |
+| D-011 | Prelazione abbonamenti completa: finestre con scadenza, rilascio automatico del posto, priorità per anzianità | L'MVP fa rinnovo manuale in un clic + storico ([ADR-0012](decisions/0012-gestione-abbonamenti.md)); le politiche di prelazione sono un workflow a parte. | Richiesta di automatizzare la campagna rinnovi. | Media: la campagna prelazione resta guidata ma manuale. |
+| D-012 | Cabina e servizi accessori (posto auto, ingressi) come risorse prenotabili | L'MVP gestisce gli ombrelloni; la Cabina è una risorsa gemella aggiungibile col medesimo pattern. | Lidi per cui cabine/servizi sono centrali nell'offerta. | Bassa: additivo (stesso pattern di Ombrellone), non una riscrittura. |
+| D-013 | Sospensione / cessione / disdetta dell'abbonamento | Workflow con regole, raro nell'operativo quotidiano dell'MVP. | Esigenza concreta (subentri, rimborsi). | Bassa/Media: gestibile a mano nell'MVP (annulla + ricrea). |
 
 ## Risolte
 
