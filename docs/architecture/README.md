@@ -34,6 +34,7 @@ destinato alla vendita in abbonamento a più stabilimenti.
 - **Monorepo** (pnpm workspaces):
   - `apps/` → `api` (NestJS), `web-staff` (Vue), in futuro `web-booking`.
   - `packages/` → `contracts` (tipi/DTO condivisi FE/BE), comuni futuri.
+  - Scope dei package: `@driftly/*` (codename provvisorio; brand/dominio = [D-017](deferred.md)).
 
 ## Moduli del prodotto (roadmap)
 

@@ -1,4 +1,8 @@
-# Gestionale Lidi Balneari (nome provvisorio)
+# Driftly — Gestionale Lidi Balneari
+
+> **Driftly** è il *codename* provvisorio del progetto (etichetta interna per repo e
+> package `@driftly/*`). Il brand pubblico e il dominio sono una decisione rimandata
+> ([D-017](docs/architecture/deferred.md)).
 
 Gestionale **SaaS** per la gestione di **lidi balneari** (stabilimenti balneari):
 mappa ombrelloni, prenotazioni e abbonamenti, cassa, e — in prospettiva — booking

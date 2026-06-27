@@ -24,6 +24,7 @@ ammesso, quello silenzioso no.
 | D-014 | Gestione personale / turni bagnini (rostering, presenze) | Sotto-dominio HR a basso accoppiamento col Core, valore incerto; nel Core resta solo l'`Utente` per l'accesso. | Domanda reale dei clienti → possibile modulo successivo. | Bassa: indipendente dal cuore prenotazioni, costruibile a parte. |
 | D-015 | Disponibilità a orari arbitrari (fasce libere, es. 10–13) | L'MVP usa slot configurabili intera/mezza giornata ([ADR-0013](decisions/0013-granularita-disponibilita-a-slot.md)); l'orario libero è atipico per ombrelloni e costoso. | Domanda concreta di prenotazioni a ore. | Bassa: il modello a `Fascia` è generalizzabile a fasce più fini senza riscrittura. |
 | D-016 | Streaming live di log tecnici grezzi nella console superuser | L'MVP mostra audit + errori sanificati ([ADR-0015](decisions/0015-osservabilita-e-console-superuser.md)); il live raw è rischioso (PII) e costoso. | Esigenza diagnostica avanzata. | Bassa: si appoggia allo stack di logging già presente. |
+| D-017 | Brand pubblico e dominio definitivo | I domini `.com`/`.io`/`.app` puliti sono di fatto esauriti; non conviene legarsi a un nome scadente solo perché libero. Codename provvisorio: **Driftly**. | Sessione di naming dedicata, acquisto di un dominio premium, o spunti dalle interviste di validazione. | Bassa: `Driftly` è solo un codename interno; rinominare lo scope dei package è banale. |
 
 ## Risolte
 
