@@ -170,8 +170,9 @@ erDiagram
   `FASCIA` uguale o sovrapposta**. Mattina e pomeriggio sullo stesso ombrellone/giorno
   non si sovrappongono ([ADR-0013](../architecture/decisions/0013-granularita-disponibilita-a-slot.md)).
 - **Risoluzione prezzo**: il pricing engine seleziona la `TARIFFA` applicabile a una
-  `PRENOTAZIONE` combinando {tipo, ambito posizione, pacchetto, periodo}, dalla regola
-  più specifica alla più generica.
+  `PRENOTAZIONE` combinando {tipo, ambito posizione, pacchetto, **fascia**, periodo},
+  dalla regola più specifica alla più generica. Le dimensioni della `TARIFFA` possono
+  essere generiche (non specificate) per fungere da regola di default.
 - **Posizione**: `ordine_logico` governa l'ordinamento nella fila;
   `posizione_presentazione` è un layer visivo opzionale (porta aperta alla planimetria,
   [D-005](../architecture/deferred.md)).

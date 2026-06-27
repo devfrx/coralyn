@@ -10,9 +10,10 @@ flowchart TD
     A[Crea Stabilimento] --> B[Definisci Settori e File]
     B --> C[Genera Ombrelloni nelle File]
     C --> D[Definisci Pacchetti<br/>dotazione personalizzabile]
-    D --> E[Crea Stagione]
+    D --> DF[Definisci Fasce<br/>default: Giornata intera]
+    DF --> E[Crea Stagione]
     E --> F[Crea Listino della Stagione]
-    F --> G[Inserisci Tariffe<br/>tipo x posizione x pacchetto x periodo]
+    F --> G[Inserisci Tariffe<br/>tipo x posizione x pacchetto x fascia x periodo]
     G --> H[Pronto all'operativo]
 ```
 

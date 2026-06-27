@@ -11,12 +11,12 @@ Regola: prima di introdurre un nuovo concetto di dominio nel codice, definirlo q
 | **Stabilimento** | Il lido balneare nel suo complesso: l'unità gestita dal cliente del SaaS. | Radice della multi-tenancy: ogni dato appartiene a uno stabilimento. |
 | **Fila** | Riga di postazioni parallela alla battigia. La distanza dal mare incide sul prezzo. | Contiene più Ombrelloni/Postazioni. |
 | **Ombrellone / Postazione** | L'unità prenotabile sulla spiaggia, tipicamente ombrellone + lettini/sdraio. | Appartiene a una Fila. È la risorsa centrale della mappa. |
-| **Cabina** | Spogliatoio/deposito assegnabile, spesso abbinato a un abbonamento. | Risorsa prenotabile separata dall'ombrellone. |
-| **Prenotazione** | Impegno di una o più risorse (ombrellone, cabina) per un periodo definito. | Può essere giornaliera o periodica. |
+| **Cabina** | Spogliatoio/deposito assegnabile, spesso abbinato a un abbonamento. | Risorsa separata dall'ombrellone; **fuori MVP**, rimandata ([D-012](deferred.md)). |
+| **Prenotazione** | Impegno di un Ombrellone (con Pacchetto) per una Fascia in un periodo definito. | Tipi: giornaliera, periodica, abbonamento. |
 | **Abbonamento** | Prenotazione di lungo periodo (es. stagionale, mensile) con tariffa dedicata. | Sottocaso/variante di Prenotazione di lungo periodo. |
 | **Rinnovo** | Creazione dell'abbonamento di una nuova Stagione a partire da quello precedente (stesso cliente/ombrellone), col nuovo listino. | Catena via `prenotazione_precedente_id`; base per anzianità e prelazione. |
 | **Anzianità** | Da quante stagioni consecutive un cliente è abbonato a un posto. | Derivata dalla catena dei Rinnovi. |
-| **Tariffa** | Regola di prezzo applicata a una risorsa in funzione di periodo, fila, durata. | Definita nel Listino. |
+| **Tariffa** | Regola di prezzo multi-dimensione: {tipo, posizione (settore/fila), pacchetto, fascia, periodo}. | Definita nel Listino; risolta dal pricing engine. |
 | **Listino** | Insieme delle Tariffe valide per uno Stabilimento in una stagione. | |
 | **Cliente** | Il bagnante/anagrafica che effettua prenotazioni o sottoscrive abbonamenti. | Da non confondere con il *cliente del SaaS* (lo Stabilimento/gestore). |
 | **Stagione** | Arco temporale operativo dello stabilimento (es. apertura–chiusura estiva). | Contesto temporale di listini e abbonamenti. |
