@@ -1,0 +1,20 @@
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor / IDE
+.idea/
+.vscode/
+*.swp
+
+# Log e temporanei
+*.log
+*.tmp
+
+# Dipendenze / build (lo stack non è ancora deciso — vedi deferred.md D-001;
+# questa sezione verrà completata con la scelta dello stack)
+node_modules/
+dist/
+build/
+.env
+.env.local
