@@ -8,7 +8,8 @@ Gestionale **SaaS** per la gestione di **lidi balneari** (stabilimenti balneari)
 mappa ombrelloni, prenotazioni e abbonamenti, cassa, e — in prospettiva — booking
 online per il cliente finale.
 
-Progetto in fase di **progettazione iniziale**.
+Stato: **design del Core MVP completato e approvato**; **Piano 1 (backend) scritto**,
+implementazione e pianificazione del frontend in avvio.
 
 ## Documentazione
 
@@ -17,6 +18,9 @@ Progetto in fase di **progettazione iniziale**.
 - [Decisioni rimandate](docs/architecture/deferred.md)
 - [Glossario del dominio](docs/architecture/glossary.md)
 - [Spec di progettazione](docs/specs/)
+- [Design (modello dati, flussi, mockup)](docs/design/)
+- [Piani di implementazione](docs/plans/)
+- [Handoff di sessione](docs/handoff/)
 
 ## Come lavoriamo
 

@@ -38,9 +38,9 @@ destinato alla vendita in abbonamento a più stabilimenti.
 
 ## Moduli del prodotto (roadmap)
 
-1. **Core operativo** *(MVP, in progettazione)* — Clienti, Listino/Tariffe, mappa
-   Ombrelloni, Prenotazioni e Abbonamenti. Vedi
-   [spec](../specs/2026-06-27-core-operativo-design.md).
+1. **Core operativo** *(MVP)* — Clienti, Listino/Tariffe, mappa Ombrelloni,
+   Prenotazioni e Abbonamenti. Vedi [spec](../specs/2026-06-27-core-operativo-design.md)
+   e i [piani di implementazione](../plans/) (Piano 1: Foundation).
 2. **Cassa e pagamenti** — incassi, ricevute, chiusura giornaliera.
 3. **Multi-tenancy & account** — signup stabilimenti, isolamento, ruoli, billing
    ([D-002](deferred.md)).
