@@ -3,7 +3,9 @@ import { http, HttpResponse } from 'msw';
 import { handlers } from './handlers';
 import type { ClienteDTO } from '@driftly/contracts';
 
-const clienti: ClienteDTO[] = [{ id: 'c-1', nome: 'Mario', cognome: 'Rossi' }];
+const INITIAL_CLIENTI: ClienteDTO[] = [{ id: 'c-1', nome: 'Mario', cognome: 'Rossi' }];
+let clienti: ClienteDTO[] = [...INITIAL_CLIENTI];
+export function resetClientiSeed() { clienti = [...INITIAL_CLIENTI]; }
 
 export const server = setupServer(
   ...handlers,
