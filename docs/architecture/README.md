@@ -74,7 +74,8 @@ Termini di dominio: [glossario](glossary.md).
 ## Documentazione di design ([ADR-0009](decisions/0009-documentazione-di-design.md))
 
 Diagrammi in Mermaid e mockup in [docs/design/](../design/), versionati e tenuti
-aggiornati.
+aggiornati. Il [design system del frontend](../design/design-system.md) (token + linguaggio dei
+componenti) è la spec d'implementazione di `ui-kit` ([ADR-0017](decisions/0017-design-system-frontend.md)–[0020](decisions/0020-resa-mappa.md)).
 
 ## Indice degli ADR
 
@@ -98,3 +99,4 @@ aggiornati.
 - [ADR-0018](decisions/0018-linguaggio-visivo.md) — Linguaggio visivo (palette, tipografia, stati mappa, icone)
 - [ADR-0019](decisions/0019-app-shell-e-ux.md) — App-shell e pattern UX (sezioni, drawer, responsive, PWA)
 - [ADR-0020](decisions/0020-resa-mappa.md) — Resa della mappa (HTML/CSS, cella a 4 assi, accessibilità)
+- [ADR-0021](decisions/0021-server-state-frontend.md) — Server-state del frontend (TanStack Query + Pinia)

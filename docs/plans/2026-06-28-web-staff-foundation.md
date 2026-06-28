@@ -2,9 +2,10 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 >
-> **Prerequisiti d'esecuzione:** lavorare in un **worktree isolato** `feat/web-staff` creato da `main`
-> (REQUIRED SUB-SKILL: superpowers:using-git-worktrees). Il monorepo e `packages/contracts`
-> **esistono già** su `main` (Opzione A confermata): questo piano **parte da `apps/web-staff`**.
+> **Prerequisiti d'esecuzione:** lavorare su un **branch** `feat/web-staff` creato da `main`
+> (**niente worktree**: si lavora **sequenzialmente** col backend — vedi §Coordinamento). Il monorepo
+> e `packages/contracts` **esistono già** su `main` (Opzione A confermata): questo piano **parte da
+> `apps/web-staff`**.
 
 **Goal:** Costruire il primo slice eseguibile dell'app staff — **app-shell + `@driftly/ui-kit` + Clienti (su API reale) + Mappa (mockata MSW)** — come *walking skeleton* del frontend, in parallelo al [Piano 1 backend](2026-06-28-core-foundation.md), con `packages/contracts` come confine.
 
@@ -73,9 +74,17 @@ apps/
 
 Il FE **propone** in `contracts` i DTO mappa; il backend li rivede e li allinea al dominio
 ([ADR-0020](../architecture/decisions/0020-resa-mappa.md), [ADR-0016](../architecture/decisions/0016-tipologia-ombrellone.md)).
-Merge **piccoli e frequenti**. `Tipologia.icona` è additiva: finché il backend non la espone, il
-FE usa il **fallback** del registry icone. Tenant via header `X-Stabilimento-Id`
-([ADR-0010](../architecture/decisions/0010-isolamento-multi-tenant.md)).
+Merge **piccoli e frequenti**. `Tipologia.icona` è additiva e porta la **chiave del registry icone**
+(nome breve, es. `palmtree`) — non il nome Iconify completo; finché il backend non la espone, il FE usa
+il **fallback**. `FasciaDTO` è una **proiezione ridotta** (`id/nome/ordine`, senza `oraInizio/oraFine`
+del [data-model](../design/data-model.md)): sufficiente per la mappa, estendibile. Tenant via header
+`X-Stabilimento-Id` ([ADR-0010](../architecture/decisions/0010-isolamento-multi-tenant.md)).
+
+**Esecuzione sequenziale (non concorrente), su branch.** Il backend ha completato il Piano 1 **Task
+1–2** (monorepo + `contracts`); questo slice è il **corrispettivo frontend** e si esegue **ora** su un
+branch `feat/web-staff`. La verifica di **Clienti su API reale** richiede che il backend abbia esposto
+`/clienti` (Piano 1 **Task 3–7**): finché non c'è, sviluppo e test usano **MSW** (anche per
+`/clienti`), e la verifica end-to-end su API reale si fa quando il backend è pronto.
 
 > **Ordine dei task = ordine delle dipendenze.** Eseguire in sequenza: ogni task assume i precedenti.
 
@@ -1510,7 +1519,7 @@ git commit -m "chore(web-staff): lint/typecheck wiring + DoD green"
 - `pnpm install` ok; `@driftly/ui-kit` e `@driftly/web-staff` agganciati al workspace.
 - **App-shell**: topbar (nome stabilimento), sidebar a 5 sezioni + **Console gated** (non visibile a non-superuser); routing per sezione; layout a card sui token.
 - **ui-kit token-first**: token in `@theme`, Tailwind v4 sui token; componenti base + `Icon` (offline) + `OmbrelloneCell`.
-- **Clienti**: elenco + creazione **su API reale** (`/api/clienti` via proxy), invalidazione cache dopo create (TanStack Query).
+- **Clienti**: elenco + creazione verso `/api/clienti` (proxy all'**API reale**), invalidazione cache dopo create (TanStack Query); **verificato via MSW** finché il backend non espone `/clienti` (Piano 1 Task 3–7).
 - **Mappa**: render da **MSW** (settori/file/ombrelloni, Speciali), cella a 4 assi (etichetta, stato split per fascia, marcatore tipologia, selezione), **ink AA**, `aria-label` testuale, drawer contestuale.
 - **MSW**: mappa mockata in dev; Clienti passa al backend; in test tutto mockato.
 - **PWA** installabile con shell in cache (offline-light); SW PWA disattivo in dev (no conflitto MSW).

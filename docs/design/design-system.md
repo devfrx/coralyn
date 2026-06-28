@@ -340,7 +340,7 @@ In testa lo **specchio "mare"**; gli **Speciali** in un settore dedicato in coda
 |---|---|---|
 | **Etichetta** | numero/identificativo fisico, centrato, `tabular-nums`, ink per-stato | `Ombrellone.etichetta` (stringa libera; buchi e "20bis" ammessi, [ADR-0016](../architecture/decisions/0016-tipologia-ombrellone.md)) |
 | **Stato** | colore di riempimento; **split** se diverso per fascia | derivato per (ombrellone, data, fascia) — [ADR-0013](../architecture/decisions/0013-granularita-disponibilita-a-slot.md) |
-| **Tipologia** | **marcatore a icona** d'angolo (top-right); Normale (`NULL`) = nessun marcatore | `Tipologia.icona` (nome Iconify) — fallback FE per nome finché il backend non espone `icona` ([ADR-0020](../architecture/decisions/0020-resa-mappa.md)) |
+| **Tipologia** | **marcatore a icona** d'angolo (top-right); Normale (`NULL`) = nessun marcatore | `Tipologia.icona` = **chiave del registry icone** del `ui-kit` (nome breve, es. `palmtree`); fallback FE finché il backend non espone `icona` ([ADR-0020](../architecture/decisions/0020-resa-mappa.md)) |
 | **Selezione** | **anello teal** + alone tint | stato UI effimero (cella aperta nel drawer) |
 
 Forma: cerchio `--radius-full`, `--cell-size` (desktop) / `--cell-size-touch` (tablet),
@@ -359,9 +359,13 @@ Forma: cerchio `--radius-full`, `--cell-size` (desktop) / `--cell-size-touch` (t
 
 Cerchietto `--color-surface` con `--shadow-xs`, icona `--color-brand` (o `--cool-700`),
 posizionato top-right e **sopra** l'eventuale anello di selezione/focus. Data-driven: l'admin
-sceglie l'icona per ogni `Tipologia`; il FE la rende via `<Icon>`. **Fallback** finché manca
-`icona`: mappa nome→icona (es. "Palma"→`lucide:palmtree`, "Mini-palma"→foglia) senza cambiare il
-contratto del componente.
+sceglie l'icona per ogni `Tipologia`; il valore di `Tipologia.icona` è la **chiave del registry**
+del `ui-kit` (nome breve, es. `palmtree`, `leaf`) — **non** il nome Iconify completo — risolta a
+un'icona **Lucide bundled/offline** dal `<Icon>`. **Fallback** finché manca `icona`: chiave di
+default (es. `umbrella`), senza cambiare il contratto del componente.
+
+> **Convenzione di handshake:** i valori ammessi di `Tipologia.icona` sono le **chiavi del registry**
+> condiviso (offline). Il backend usa quelle chiavi; nomi sconosciuti ricadono sul fallback.
 
 ### 13.4 Selezione e focus (distinti)
 
