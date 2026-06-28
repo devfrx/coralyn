@@ -8,6 +8,9 @@
     "test": "jest",
     "test:e2e": "jest --config ./test/jest-e2e.json"
   },
+  "prisma": {
+    "seed": "ts-node prisma/seed.ts"
+  },
   "dependencies": {
     "@driftly/contracts": "workspace:*",
     "@nestjs/common": "^10.4.4",

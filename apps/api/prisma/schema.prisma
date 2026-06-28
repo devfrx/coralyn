@@ -1,0 +1,24 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Stabilimento {
+  id      String    @id @default(uuid()) @db.Uuid
+  nome    String
+  clienti Cliente[]
+}
+
+model Cliente {
+  id             String       @id @default(uuid()) @db.Uuid
+  stabilimentoId String       @db.Uuid
+  nome           String
+  cognome        String
+  stabilimento   Stabilimento @relation(fields: [stabilimentoId], references: [id])
+
+  @@index([stabilimentoId])
+}
