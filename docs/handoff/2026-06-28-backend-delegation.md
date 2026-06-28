@@ -33,8 +33,9 @@ mappa…), che appartengono ai piani 2+.
   è un **gestionale SaaS multi-tenant per lidi balneari** (stabilimenti balneari).
 - È in costruzione il **Core operativo (MVP)**: mappa ombrelloni, prenotazioni/abbonamenti,
   clienti, listino. Vedi la [spec del Core (Approvato)](../specs/2026-06-27-core-operativo-design.md).
-- **Stato del repo adesso:** contiene **solo `docs/`** (nessun codice). La fondazione che
-  crei tu nei Task 1–2 è la prima riga di codice del progetto. Git è pulito.
+- **Stato del repo adesso:** i **Task 1–2 sono già eseguiti** (monorepo `@driftly/*` +
+  `packages/contracts` con `Ruolo`, `ClienteDTO`, committati su `main`). Prosegui dai **Task 3–7**
+  (NestJS, Postgres/Prisma, RLS, modulo `clienti`). Git pulito.
 - **Disambiguazione di dominio critica:** `Cliente` = **il bagnante**. Il **tenant** è lo
   **`Stabilimento`** — non chiamarlo mai "cliente" nel codice. Vedi il
   [glossario](../architecture/glossary.md).
@@ -129,14 +130,13 @@ pnpm dlx dotenv-cli -e .env.test -- pnpm --filter @driftly/api test:e2e
 
 ## 10. Coordinamento parallelo con il frontend (IL punto di coerenza)
 
-La pianificazione del frontend procede **in parallelo** in un'altra sessione. Decisione
-concordata con l'utente: **Opzione A — il backend possiede la base del monorepo.**
+Il frontend procede **sequenzialmente** (non concorrente) su **branch** — niente worktree.
+Decisione concordata con l'utente: **Opzione A — il backend possiede la base del monorepo** (già
+creata, Task 1–2 su `main`).
 
-- **La fondazione è tua.** I **Task 1–2** (scaffold monorepo + skeleton `contracts`) creano la
-  base condivisa. Operativamente è consigliato **committare Task 1–2 sul branch base e lasciare
-  che il worktree del frontend forki da lì** prima di proseguire con Task 3–7: così non esistono
-  due agenti che creano `pnpm-workspace.yaml`/`tsconfig.base.json`. Coordina questo checkpoint
-  con chi orchestra le due sessioni.
+- **La fondazione (Task 1–2) è già su `main`.** Prosegui dai **Task 3–7**. Si lavora
+  **sequenzialmente** col frontend usando **branch** (niente worktree, niente due sessioni
+  concorrenti): backend e FE si alternano, con `packages/contracts` come punto d'integrazione.
 - **Ownership (per evitare conflitti git):**
   - **Possiedi** `apps/api`, `apps/api/prisma` e sei **editor primario** di `packages/contracts`.
   - **Non toccare `apps/web-staff`** (è del frontend).

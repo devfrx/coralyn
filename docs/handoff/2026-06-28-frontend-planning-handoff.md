@@ -1,5 +1,9 @@
 # Handoff — Pianificazione Frontend (parallela al Piano 1 backend)
 
+> **Nota (aggiornamento 2026-06-28):** questo handoff è **superato** per la fase design+piano da
+> [frontend-design-and-plan-handoff.md](2026-06-28-frontend-design-and-plan-handoff.md). Modello di
+> lavoro attuale: **sequenziale su branch** (niente worktree).
+
 - **Data:** 2026-06-28
 - **Scopo:** permettere a un nuovo agente, in sessione fresca, di riprendere *esattamente* da qui: pianificare con l'utente il **frontend** di Driftly in parallelo all'esecuzione del **Piano 1 (backend)**, senza introdurre incoerenze e rispettando i nostri principi.
 
@@ -43,7 +47,7 @@ Per evitare incoerenze tra FE e BE che procedono in parallelo:
   - sessione **backend** → possiede `apps/api`, `apps/api/prisma`; editor primario di `packages/contracts`.
   - sessione **frontend** → possiede `apps/web-staff`; **consuma** `packages/contracts`.
   - le modifiche al contratto vanno **coordinate** (idealmente il FE propone i DTO necessari e il BE li integra).
-- Consigliato: **branch git separati** (o worktree) per FE e BE, con `packages/contracts` come punto d'integrazione; merge frequenti del solo contratto.
+- **Branch git separati** (niente worktree) per FE e BE, con `packages/contracts` come punto d'integrazione; lavoro **sequenziale**, merge frequenti del solo contratto.
 - **Dipendenza di sequenza da gestire esplicitamente**: il Piano 1 backend (Task 1–2) crea lo **scaffolding del monorepo** (`pnpm-workspace`, `tsconfig.base`, `packages/contracts`). Per non avere due agenti che creano lo stesso scaffolding:
   - Opzione consigliata: il backend crea per primo monorepo + `contracts`; il piano FE **assume** monorepo+contracts presenti e parte da `apps/web-staff`.
   - In alternativa, il piano FE include uno scaffolding minimo proprio se parte prima.

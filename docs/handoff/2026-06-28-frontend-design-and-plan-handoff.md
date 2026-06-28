@@ -84,7 +84,8 @@
 - **Confine = `packages/contracts`** (DTO condivisi). La **dipendenza di scaffolding è RISOLTA**:
   monorepo + `contracts` **esistono** (Opzione A confermata) → il piano FE **assume**
   monorepo+contracts presenti e **parte da `apps/web-staff`**.
-- **Fork** un worktree/branch FE da `main` (es. `feat/web-staff`). Il FE **possiede**
+- **Crea un branch** FE da `main` (es. `feat/web-staff`) — **niente worktree**: si lavora
+  **sequenzialmente** col backend (non due sessioni concorrenti). Il FE **possiede**
   `apps/web-staff`, **consuma** `contracts`. Il backend possiede `apps/api` + `prisma`, è editor
   primario di `contracts`. **Non toccare `apps/api`.**
 - Il FE costruisce contro **`contracts` + API mockata (MSW)** → **non bloccato** dal backend.
