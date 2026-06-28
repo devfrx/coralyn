@@ -7,6 +7,15 @@
     ".": "./src/index.ts",
     "./styles/theme.css": "./src/styles/theme.css"
   },
-  "peerDependencies": { "vue": "^3.5.0" },
-  "dependencies": { "reka-ui": "^2.0.0", "@driftly/contracts": "workspace:*" }
+  "peerDependencies": {
+    "vue": "^3.5.0"
+  },
+  "dependencies": {
+    "@driftly/contracts": "workspace:*",
+    "reka-ui": "^2.0.0"
+  },
+  "devDependencies": {
+    "@vue/test-utils": "^2.4.11",
+    "vitest": "^4.1.9"
+  }
 }
