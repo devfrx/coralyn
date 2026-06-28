@@ -94,3 +94,4 @@ aggiornati.
 - [ADR-0014](decisions/0014-setup-mappa-strutturato.md) — Setup mappa strutturato per form
 - [ADR-0015](decisions/0015-osservabilita-e-console-superuser.md) — Osservabilità e console superuser
 - [ADR-0016](decisions/0016-tipologia-ombrellone.md) — Tipologia ombrellone, numerazione reale e speciali
+- [ADR-0017](decisions/0017-design-system-frontend.md) — Design system frontend (token-first, headless, ui-kit)
