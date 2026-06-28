@@ -27,11 +27,17 @@
     "@vue/test-utils": "^2.4.11",
     "@vue/tsconfig": "^0.9.1",
     "jsdom": "^29.1.1",
+    "msw": "^2.14.6",
     "tailwindcss": "^4.3.1",
     "typescript": "~6.0.2",
     "unplugin-icons": "^23.0.1",
     "vite": "^8.1.0",
     "vitest": "^4.1.9",
     "vue-tsc": "^3.3.5"
+  },
+  "msw": {
+    "workerDirectory": [
+      "public"
+    ]
   }
 }
