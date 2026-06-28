@@ -1,5 +1,17 @@
-# Vue 3 + TypeScript + Vite
+# @driftly/web-staff
 
-This template should help get you started developing with Vue 3 and TypeScript in Vite. The template uses Vue 3 `<script setup>` SFCs, check out the [script setup docs](https://v3.vuejs.org/api/sfc-script-setup.html#sfc-script-setup) to learn more.
+App staff di **Driftly** (gestionale per stabilimenti balneari) — Vue 3 + TypeScript + Vite.
 
-Learn more about the recommended Project Setup and IDE Support in the [Vue Docs TypeScript Guide](https://vuejs.org/guide/typescript/overview.html#project-setup).
+## Sviluppo
+
+Dalla radice del monorepo:
+
+```bash
+pnpm install            # builda anche @driftly/contracts (prepare)
+pnpm --filter @driftly/web-staff dev        # dev server (MSW mocka la Mappa)
+pnpm --filter @driftly/web-staff test       # Vitest
+pnpm --filter @driftly/web-staff typecheck  # vue-tsc -b --noEmit
+pnpm --filter @driftly/web-staff build      # build di produzione (PWA)
+```
+
+Dipende da `@driftly/ui-kit` (design system, token) e `@driftly/contracts` (DTO condivisi col backend). In dev la Mappa è mockata via MSW; `/api/clienti` passa al backend reale (proxy Vite su :3000) quando disponibile.

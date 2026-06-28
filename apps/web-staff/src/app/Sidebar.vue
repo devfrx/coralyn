@@ -14,7 +14,7 @@ const items = [
 <template>
   <nav class="flex w-[220px] flex-col gap-0.5 rounded-[var(--radius-lg)] bg-[var(--color-navy-900)] p-2 [box-shadow:var(--shadow-sm)]">
     <RouterLink v-for="it in items" :key="it.to" :to="it.to" v-slot="{ isActive }">
-      <span :class="['flex items-center gap-2.5 rounded-[var(--radius-md)] px-3 py-2 text-sm font-medium',
+      <span :aria-current="isActive ? 'page' : undefined" :class="['flex items-center gap-2.5 rounded-[var(--radius-md)] px-3 py-2 text-sm font-medium',
         isActive ? 'bg-[var(--color-brand)] text-white' : 'text-[var(--color-on-navy)] hover:bg-white/5']">
         <Icon :name="it.icon" /> {{ it.label }}
       </span>

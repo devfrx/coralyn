@@ -15,7 +15,9 @@
     "reka-ui": "^2.0.0"
   },
   "devDependencies": {
+    "@iconify-json/lucide": "^1.2.114",
     "@vue/test-utils": "^2.4.11",
+    "unplugin-icons": "^23.0.1",
     "vitest": "^4.1.9"
   }
 }
