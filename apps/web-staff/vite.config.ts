@@ -30,6 +30,10 @@ export default defineConfig({
     }),
   ],
   resolve: { alias: { '@': fileURLToPath(new URL('./src', import.meta.url)) } },
+  // @driftly/contracts è CommonJS (consumato anche dal backend via dist). In dev Vite non
+  // pre-bundla i pacchetti di workspace linkati: forziamo il pre-bundle così esbuild lo converte
+  // in ESM ed espone gli export nominati a runtime (es. l'enum `Ruolo`, importato come valore).
+  optimizeDeps: { include: ['@driftly/contracts'] },
   server: {
     proxy: {
       // Clienti -> API reale (Piano 1) senza CORS; MSW in dev bypassa /api non gestiti.
