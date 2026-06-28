@@ -14,10 +14,13 @@ Thumbs.db
 # File di lavoro del companion visivo (brainstorming)
 .superpowers/
 
-# Dipendenze / build (lo stack non è ancora deciso — vedi deferred.md D-001;
-# questa sezione verrà completata con la scelta dello stack)
+# Dipendenze / build — monorepo pnpm (@driftly/*), vedi ADR-0008
 node_modules/
-dist/
+**/dist/
 build/
+*.tsbuildinfo
+
+# Variabili d'ambiente: ignora tutti i .env tranne l'esempio versionato
 .env
-.env.local
+.env.*
+!.env.example
