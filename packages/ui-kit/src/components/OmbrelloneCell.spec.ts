@@ -23,4 +23,10 @@ describe('OmbrelloneCell', () => {
     await w.get('button').trigger('click');
     expect(w.emitted('select')).toBeTruthy();
   });
+  it('riflette la selezione (aria-pressed + ring)', () => {
+    const w = mount(OmbrelloneCell, { props: { ...base, selezionato: true } });
+    const btn = w.get('button');
+    expect(btn.attributes('aria-pressed')).toBe('true');
+    expect(btn.classes()).toContain('outline');
+  });
 });
