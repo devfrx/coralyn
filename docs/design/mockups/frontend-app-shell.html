@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mockup — App-shell e Mappa (design frontend validato)</title>
+<style>
+  body { font-family:'Inter', system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; background:#f3f5f8; color:#23323F; margin:0; padding:24px; }
+  .wrap { max-width:940px; margin:0 auto; }
+  h1 { font-size:18px; margin:0 0 4px; }
+  .sub { color:#67707b; font-size:13px; margin:0 0 18px; }
+  .ic { width:16px; height:16px; display:inline-block; vertical-align:-3px; fill:none; stroke:currentColor; stroke-width:1.7; stroke-linecap:round; stroke-linejoin:round; }
+  .canvas { background:#E9EFF2; padding:12px; border-radius:16px; border:1px solid #DCE3E9; }
+  .card { border-radius:12px; box-shadow:0 2px 10px rgba(15,58,74,.10); }
+  .topcard { background:#1F6F8B; color:#fff; display:flex; align-items:center; gap:10px; padding:10px 13px; margin-bottom:12px; }
+  .brand { display:flex; align-items:center; gap:7px; font-size:13px; font-weight:600; }
+  .topcard .pill { display:flex; align-items:center; gap:6px; background:rgba(255,255,255,.18); border-radius:8px; padding:5px 10px; font-size:12px; font-weight:500; font-variant-numeric:tabular-nums; }
+  .topcard .search { flex:1; display:flex; align-items:center; gap:7px; background:#fff; color:#8a97a2; border-radius:8px; padding:6px 11px; font-size:12px; }
+  .topcard .ava { width:24px; height:24px; border-radius:50%; background:#E0A24E; display:inline-flex; align-items:center; justify-content:center; font-size:11px; font-weight:700; color:#3a2a08; }
+  .cols { display:flex; gap:12px; align-items:stretch; }
+  .sidecard { width:150px; background:#0F3A4A; color:#cfe2ea; padding:10px 9px; display:flex; flex-direction:column; gap:3px; }
+  .nav { display:flex; align-items:center; gap:9px; padding:8px 11px; border-radius:8px; font-size:13px; font-weight:500; }
+  .nav.active { background:#1F6F8B; color:#fff; font-weight:600; }
+  .sidecard .sep { height:1px; background:rgba(255,255,255,.10); margin:7px 4px; }
+  .nav.super { color:#9fb4bf; font-size:12px; }
+  .nav.super .lk { margin-left:auto; font-size:10px; }
+  .stagecard { flex:1; background:linear-gradient(#FBF3DE,#F7EAD0); padding:12px; position:relative; min-height:330px; }
+  .sthead { display:flex; align-items:center; justify-content:space-between; margin-bottom:6px; }
+  .sthead .ttl { font-size:13px; font-weight:600; color:#7a6535; }
+  .sea { background:linear-gradient(#CFEAF6,#AEDAEE); border-radius:7px; text-align:center; font-size:10px; color:#37708c; padding:4px; margin-bottom:8px; letter-spacing:4px; font-weight:600; }
+  .frow { display:flex; gap:8px; justify-content:flex-start; align-items:center; margin:6px 0; }
+  .fl { width:34px; font-size:10px; color:#a8915f; text-align:right; font-weight:600; }
+  .cellwrap { position:relative; display:inline-flex; }
+  .u { width:28px; height:28px; border-radius:50%; box-shadow:0 1px 2px rgba(0,0,0,.22); display:inline-flex; align-items:center; justify-content:center; font-size:10px; font-weight:700; color:#fff; }
+  .u.yel { color:#5A4A10; }
+  .u.split { text-shadow:0 1px 1.5px rgba(0,0,0,.45); }
+  .u.sel { outline:3px solid #1F6F8B; outline-offset:2px; }
+  .u.long { font-size:8px; }
+  .typemark { position:absolute; top:-4px; right:-4px; width:14px; height:14px; border-radius:50%; background:#fff; box-shadow:0 1px 2px rgba(0,0,0,.25); display:inline-flex; align-items:center; justify-content:center; color:#2c7a3f; }
+  .typemark .ic { width:10px; height:10px; stroke-width:2; }
+  .speciali { margin-top:10px; border-top:1px dashed #d8c49a; padding-top:8px; }
+  .speciali .lbl { font-size:10px; font-weight:700; color:#7a6535; text-transform:uppercase; letter-spacing:.05em; margin-bottom:5px; }
+  .legends { display:flex; flex-wrap:wrap; gap:18px; margin-top:10px; }
+  .leg .lt { font-size:9px; font-weight:700; color:#8a7647; text-transform:uppercase; letter-spacing:.05em; margin-bottom:3px; }
+  .leg .row { display:flex; gap:11px; font-size:10px; color:#5b6470; align-items:center; }
+  .leg .d { display:inline-flex; align-items:center; gap:5px; }
+  .leg i.sw { width:13px; height:13px; border-radius:50%; display:inline-block; }
+  .leg i.half { background:linear-gradient(90deg,#E8843C 0 50%,#7BB661 50% 100%); }
+  .drawer { position:absolute; right:10px; top:10px; bottom:10px; width:236px; background:#fff; border-radius:11px; box-shadow:-6px 0 22px rgba(15,58,74,.20); padding:13px; display:flex; flex-direction:column; }
+  .drawer .x { position:absolute; right:10px; top:10px; color:#9aa4ae; }
+  .drawer h4 { margin:0; font-size:14px; font-weight:600; color:#23323F; }
+  .chip { font-size:10px; font-weight:600; padding:2px 7px; border-radius:999px; background:#DCECF2; color:#155A73; display:inline-flex; align-items:center; gap:4px; margin-top:4px; width:max-content; }
+  .crumb { font-size:11px; color:#66727E; margin:3px 0 9px; }
+  .fasce { display:flex; gap:6px; margin-bottom:9px; }
+  .fb { flex:1; border-radius:7px; padding:5px 7px; font-size:10px; font-weight:600; border:1px solid; }
+  .fb.matt { background:#FEF3D0; color:#7a5e16; border-color:#F0C24A; }
+  .fb.pom { background:#E8F3E2; color:#3f6b32; border-color:#7BB661; }
+  .kv { font-size:12px; color:#23323F; }
+  .kv .row { display:flex; justify-content:space-between; padding:4px 0; border-bottom:1px dashed #E6ECF0; }
+  .kv .k { color:#66727E; }
+  .kv .v { font-weight:500; font-variant-numeric:tabular-nums; }
+  .pay { margin-top:8px; font-size:11px; display:flex; align-items:center; gap:6px; color:#3f6b32; font-weight:600; }
+  .pay .dot { width:7px; height:7px; border-radius:50%; background:#3F9D5B; }
+  .btns { margin-top:auto; display:flex; flex-direction:column; gap:6px; padding-top:9px; }
+  .btn { display:flex; align-items:center; justify-content:center; gap:7px; border-radius:8px; padding:8px; font-size:12px; font-weight:600; }
+  .btn.primary { background:#1F6F8B; color:#fff; }
+  .btn.ghost { background:#ECF0F3; color:#1F6F8B; }
+  .note { font-size:12px; color:#67707b; margin-top:14px; line-height:1.5; }
+</style>
+</head>
+<body>
+<svg width="0" height="0" aria-hidden="true" style="position:absolute">
+ <defs>
+  <symbol id="i-map" viewBox="0 0 24 24"><path d="M9 4 3 6v14l6-2 6 2 6-2V4l-6 2-6-2Z"/><path d="M9 4v14M15 6v14"/></symbol>
+  <symbol id="i-cal" viewBox="0 0 24 24"><rect x="3.5" y="5" width="17" height="15.5" rx="2"/><path d="M3.5 9.5h17M8 3v4M16 3v4"/></symbol>
+  <symbol id="i-users" viewBox="0 0 24 24"><circle cx="9" cy="8.5" r="3.3"/><path d="M3 19.5c0-3.3 2.7-5.5 6-5.5s6 2.2 6 5.5"/><path d="M16 6a3 3 0 0 1 0 5.5M17.6 14.3c2 .6 3.4 2 3.4 4.2"/></symbol>
+  <symbol id="i-tag" viewBox="0 0 24 24"><path d="M4 4.5h7.2L20 13.3l-6.7 6.7L4.5 11.7V4.5Z"/><circle cx="8.3" cy="8.3" r="1.3"/></symbol>
+  <symbol id="i-chart" viewBox="0 0 24 24"><path d="M4 20h16"/><path d="M7 20v-6M12 20v-11M17 20v-4"/></symbol>
+  <symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 3.5 19 6v5.2c0 4.4-3 7.4-7 9.3-4-1.9-7-4.9-7-9.3V6Z"/></symbol>
+  <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.3"/><path d="M20 20l-4.6-4.6"/></symbol>
+  <symbol id="i-cl" viewBox="0 0 24 24"><path d="M14.5 6 9 11.5 14.5 17"/></symbol>
+  <symbol id="i-cr" viewBox="0 0 24 24"><path d="M9.5 6 15 11.5 9.5 17"/></symbol>
+  <symbol id="i-umbrella" viewBox="0 0 24 24"><path d="M3.2 12a8.8 8.8 0 0 1 17.6 0Z"/><path d="M12 12v6.4a2 2 0 0 0 4 0"/></symbol>
+  <symbol id="i-palm" viewBox="0 0 24 24"><path d="M12 21c0-6 .3-8.6 1-10.6"/><path d="M13 10.4C11 8 7.9 7.2 5.1 8.4 6.9 6 9.8 5.3 12 6.6"/><path d="M13 10.4c1-3 .4-6-1.6-8 2.4.6 4.1 2.6 4.3 5.2"/><path d="M13 10.4c2.4-1.8 5.4-1.8 8 .2-2.8-.6-5 .2-6.4 2.2"/></symbol>
+  <symbol id="i-leaf" viewBox="0 0 24 24"><path d="M5 19c0-8 5-13 14-13 0 9-5 13-13 13"/><path d="M5.5 18.5c3-5 6.5-7.5 11-8.5"/></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+  <symbol id="i-star" viewBox="0 0 24 24"><path d="M12 4l2.4 4.9 5.4.8-3.9 3.8.9 5.3L12 17.4l-4.8 2.4.9-5.3L4.2 9.7l5.4-.8Z"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12.5 9.5 17 19 7"/></symbol>
+ </defs>
+</svg>
+
+<div class="wrap">
+  <h1>App-shell e Mappa — direzione frontend validata</h1>
+  <p class="sub">Snapshot di design (non codice). Linguaggio "Costiero professionale" sui token. Vedi ADR-0017 (design system), ADR-0018 (linguaggio visivo), ADR-0019 (app-shell), ADR-0020 (resa mappa); modello mappa ADR-0005/0016, slot ADR-0013.</p>
+
+  <div class="canvas">
+    <div class="topcard card">
+      <span class="brand"><svg class="ic"><use href="#i-umbrella"/></svg> Lido Sole</span>
+      <span class="pill"><svg class="ic" style="width:14px;height:14px"><use href="#i-cl"/></svg> Sab 27 giu 2026 <svg class="ic" style="width:14px;height:14px"><use href="#i-cr"/></svg></span>
+      <span class="search"><svg class="ic"><use href="#i-search"/></svg> Cerca cliente…</span>
+      <span class="ava">LS</span>
+    </div>
+    <div class="cols">
+      <div class="sidecard card">
+        <div class="nav active"><svg class="ic"><use href="#i-map"/></svg> Mappa</div>
+        <div class="nav"><svg class="ic"><use href="#i-cal"/></svg> Prenotazioni</div>
+        <div class="nav"><svg class="ic"><use href="#i-users"/></svg> Clienti</div>
+        <div class="nav"><svg class="ic"><use href="#i-tag"/></svg> Listino</div>
+        <div class="nav"><svg class="ic"><use href="#i-chart"/></svg> Report</div>
+        <div class="sep"></div>
+        <div class="nav super"><svg class="ic"><use href="#i-shield"/></svg> Console <span class="lk">solo super</span></div>
+      </div>
+
+      <div class="stagecard card">
+        <div class="sthead"><span class="ttl">Spiaggia · Settore Centro</span></div>
+        <div class="sea">~ &nbsp; M A R E &nbsp; ~</div>
+
+        <div class="frow"><span class="fl">Fila 1</span>
+          <span class="cellwrap"><span class="u" style="background:#E8843C">1</span><span class="typemark"><svg class="ic"><use href="#i-leaf"/></svg></span></span>
+          <span class="cellwrap"><span class="u" style="background:#7BB661">2</span><span class="typemark"><svg class="ic"><use href="#i-leaf"/></svg></span></span>
+          <span class="cellwrap"><span class="u" style="background:#5B8DEF">3</span><span class="typemark"><svg class="ic"><use href="#i-leaf"/></svg></span></span>
+          <span class="cellwrap"><span class="u yel" style="background:#F0C24A">4</span><span class="typemark"><svg class="ic"><use href="#i-leaf"/></svg></span></span>
+          <span class="cellwrap"><span class="u" style="background:#7BB661">5</span><span class="typemark"><svg class="ic"><use href="#i-leaf"/></svg></span></span>
+        </div>
+        <div class="frow"><span class="fl">Fila 2</span>
+          <span class="cellwrap"><span class="u" style="background:#5B8DEF">6</span></span>
+          <span class="cellwrap"><span class="u" style="background:#7BB661">7</span></span>
+          <span class="cellwrap"><span class="u split sel" style="background:linear-gradient(90deg,#F0C24A 0 50%,#7BB661 50% 100%)">8</span></span>
+          <span class="cellwrap"><span class="u" style="background:#5B8DEF">9</span></span>
+          <span class="cellwrap"><span class="u" style="background:#E8843C">10</span></span>
+          <span class="cellwrap"><span class="u" style="background:#7BB661">11</span></span>
+        </div>
+        <div class="frow"><span class="fl">Fila 3</span>
+          <span class="cellwrap"><span class="u" style="background:#7BB661">12</span></span>
+          <span class="cellwrap"><span class="u" style="background:#5B8DEF">13</span></span>
+          <span class="cellwrap"><span class="u" style="background:#5B8DEF">14</span></span>
+          <span class="cellwrap"><span class="u yel" style="background:#F0C24A">15</span></span>
+          <span class="cellwrap"><span class="u" style="background:#7BB661">16</span></span>
+        </div>
+        <div class="frow"><span class="fl">Fila 4</span>
+          <span class="cellwrap"><span class="u" style="background:#E8843C">17</span></span>
+          <span class="cellwrap"><span class="u" style="background:#7BB661">18</span></span>
+          <span class="cellwrap" title="il 19 non esiste (buco ammesso)"><span class="u" style="background:#5B8DEF">20</span></span>
+          <span class="cellwrap"><span class="u long" style="background:#7BB661">20bis</span></span>
+          <span class="cellwrap"><span class="u" style="background:#5B8DEF">21</span></span>
+        </div>
+
+        <div class="speciali">
+          <div class="lbl">Settore Speciali</div>
+          <div class="frow" style="margin-top:2px">
+            <span class="fl">Palme</span>
+            <span class="cellwrap"><span class="u" style="background:#5B8DEF;width:34px;height:34px">P1</span><span class="typemark" style="width:16px;height:16px"><svg class="ic"><use href="#i-palm"/></svg></span></span>
+            <span class="cellwrap"><span class="u" style="background:#7BB661;width:34px;height:34px">P2</span><span class="typemark" style="width:16px;height:16px"><svg class="ic"><use href="#i-palm"/></svg></span></span>
+          </div>
+        </div>
+
+        <div class="legends">
+          <div class="leg"><div class="lt">Stato</div><div class="row">
+            <span class="d"><i class="sw" style="background:#7BB661"></i>Libero</span>
+            <span class="d"><i class="sw" style="background:#5B8DEF"></i>Abbonato</span>
+            <span class="d"><i class="sw" style="background:#E8843C"></i>Giornaliero</span>
+            <span class="d"><i class="sw" style="background:#F0C24A"></i>Prenotato</span>
+            <span class="d"><i class="sw half"></i>Mezza giornata</span>
+          </div></div>
+          <div class="leg"><div class="lt">Tipologia</div><div class="row">
+            <span class="d"><i class="sw" style="background:#b9c2cb"></i>Normale</span>
+            <span class="d"><svg class="ic" style="width:13px;height:13px;color:#2c7a3f"><use href="#i-leaf"/></svg>Mini-palma</span>
+            <span class="d"><svg class="ic" style="width:13px;height:13px;color:#2c7a3f"><use href="#i-palm"/></svg>Palma</span>
+          </div></div>
+        </div>
+
+        <div class="drawer">
+          <span class="x"><svg class="ic"><use href="#i-x"/></svg></span>
+          <h4>Ombrellone 8</h4>
+          <span class="chip"><svg class="ic" style="width:11px;height:11px"><use href="#i-umbrella"/></svg> Normale</span>
+          <div class="crumb">Settore Centro · Fila 2</div>
+          <div class="fasce">
+            <div class="fb matt">Mattina · Prenotato</div>
+            <div class="fb pom">Pomeriggio · Libero</div>
+          </div>
+          <div class="kv">
+            <div class="row"><span class="k">Cliente</span><span class="v">Rossi Mario</span></div>
+            <div class="row"><span class="k">Pacchetto</span><span class="v">Comfort</span></div>
+            <div class="row"><span class="k">Periodo</span><span class="v">Sab 27 giu</span></div>
+          </div>
+          <div class="pay"><span class="dot"></span> Saldato · € 25,00 · Contanti</div>
+          <div class="btns">
+            <div class="btn primary"><svg class="ic"><use href="#i-plus"/></svg> Nuova prenotazione</div>
+            <div class="btn ghost"><svg class="ic"><use href="#i-star"/></svg> Assegna abbonamento</div>
+            <div class="btn ghost"><svg class="ic"><use href="#i-check"/></svg> Registra presenza</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <p class="note"><strong>Ancoraggio ai documenti:</strong> numeri = etichette fisiche reali (buco al 19, "20bis"); Tipologia ortogonale via marcatore a icona modulare (ADR-0016); settore Speciali per le palme; cella slot-aware (l'8: mattina prenotata / pomeriggio libero, ADR-0013); drawer con stato pagamento (ADR-0011) e le 3 azioni dei flussi. In esecuzione ogni cella è un elemento focusabile con aria-label (ADR-0020). Aggiornare quando cambia la direzione UI (ADR-0009).</p>
+</div>
+</body>
+</html>
