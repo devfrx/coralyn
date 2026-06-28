@@ -5,6 +5,8 @@ Diagrammi e mockup **versionati e tenuti aggiornati** (vedi
 
 - [data-model.md](data-model.md) — modello dati / ER (Mermaid) + invarianti.
 - [flows.md](flows.md) — flussi principali e stati (Mermaid).
+- [design-system.md](design-system.md) — token (primitive → semantic) e linguaggio dei
+  componenti del FE (`ui-kit`): spec d'implementazione di ADR-0017–0020.
 - [mockups/](mockups/) — snapshot HTML delle schermate:
   [main-screen](mockups/main-screen.html) (direzione Core) ·
   [frontend-app-shell](mockups/frontend-app-shell.html) (design FE: app-shell + mappa, ADR-0017–0020).
