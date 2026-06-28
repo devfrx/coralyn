@@ -1,7 +1,7 @@
 # Spec di design — Frontend UI/UX (app staff del Core)
 
 - **Data:** 2026-06-28
-- **Status:** Proposto (in revisione)
+- **Status:** Approvato (2026-06-28)
 - **Ambito:** `apps/web-staff` — frontend del [Core operativo](2026-06-27-core-operativo-design.md)
 
 ## 1. Obiettivo
