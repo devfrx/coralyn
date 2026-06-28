@@ -75,7 +75,7 @@ driftly/
 - Create: `pnpm-workspace.yaml`, `package.json`, `tsconfig.base.json`, `.editorconfig`, `.prettierrc.json`, `eslint.config.mjs`
 - Modify: `.gitignore`
 
-- [ ] **Step 1: Crea `pnpm-workspace.yaml`**
+- [x] **Step 1: Crea `pnpm-workspace.yaml`**
 
 ```yaml
 packages:
@@ -83,7 +83,7 @@ packages:
   - "packages/*"
 ```
 
-- [ ] **Step 2: Crea `package.json` (root)**
+- [x] **Step 2: Crea `package.json` (root)**
 
 ```json
 {
@@ -106,7 +106,7 @@ packages:
 }
 ```
 
-- [ ] **Step 3: Crea `tsconfig.base.json`**
+- [x] **Step 3: Crea `tsconfig.base.json`**
 
 ```json
 {
@@ -125,7 +125,7 @@ packages:
 }
 ```
 
-- [ ] **Step 4: Crea `.editorconfig`, `.prettierrc.json`, `eslint.config.mjs`**
+- [x] **Step 4: Crea `.editorconfig`, `.prettierrc.json`, `eslint.config.mjs`**
 
 `.editorconfig`:
 ```ini
@@ -155,7 +155,7 @@ export default tseslint.config(
 );
 ```
 
-- [ ] **Step 5: Aggiorna `.gitignore`** (aggiungi in fondo)
+- [x] **Step 5: Aggiorna `.gitignore`** (aggiungi in fondo)
 
 ```gitignore
 # Node / monorepo
@@ -167,7 +167,7 @@ node_modules/
 !.env.example
 ```
 
-- [ ] **Step 6: Installa e committa**
+- [x] **Step 6: Installa e committa**
 
 Run:
 ```bash
@@ -183,7 +183,7 @@ Expected: `pnpm install` completa senza errori (crea `pnpm-lock.yaml`).
 **Files:**
 - Create: `packages/contracts/package.json`, `packages/contracts/tsconfig.json`, `packages/contracts/src/index.ts`
 
-- [ ] **Step 1: Crea `packages/contracts/package.json`**
+- [x] **Step 1: Crea `packages/contracts/package.json`**
 
 ```json
 {
@@ -202,7 +202,7 @@ Expected: `pnpm install` completa senza errori (crea `pnpm-lock.yaml`).
 }
 ```
 
-- [ ] **Step 2: Crea `packages/contracts/tsconfig.json`**
+- [x] **Step 2: Crea `packages/contracts/tsconfig.json`**
 
 ```json
 {
@@ -217,7 +217,7 @@ Expected: `pnpm install` completa senza errori (crea `pnpm-lock.yaml`).
 }
 ```
 
-- [ ] **Step 3: Crea `packages/contracts/src/index.ts`**
+- [x] **Step 3: Crea `packages/contracts/src/index.ts`**
 
 ```ts
 /** Ruoli applicativi. Vedi ADR-0015 (superuser di piattaforma). */
@@ -235,7 +235,7 @@ export interface ClienteDTO {
 }
 ```
 
-- [ ] **Step 4: Builda e committa**
+- [x] **Step 4: Builda e committa**
 
 Run:
 ```bash
