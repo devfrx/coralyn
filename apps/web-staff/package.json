@@ -9,6 +9,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@driftly/ui-kit": "workspace:*",
     "vue": "^3.5.38"
   },
   "devDependencies": {

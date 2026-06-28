@@ -1,0 +1,12 @@
+{
+  "name": "@driftly/ui-kit",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./styles/theme.css": "./src/styles/theme.css"
+  },
+  "peerDependencies": { "vue": "^3.5.0" },
+  "dependencies": { "reka-ui": "^2.0.0", "@driftly/contracts": "workspace:*" }
+}

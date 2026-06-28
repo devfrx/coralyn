@@ -1,0 +1,42 @@
+@theme {
+  /* primitive */
+  --color-teal-700: #155A73; --color-teal-500: #1F6F8B; --color-teal-100: #DCECF2;
+  --color-navy-900: #0F3A4A; --color-navy-700: #1B5167;
+  --color-sand-400: #E0A24E; --color-sand-100: #FBF3DE;
+  --color-cool-0: #FFFFFF; --color-cool-50: #F5F7F9; --color-cool-100: #ECF0F3;
+  --color-cool-150: #E9EFF2; --color-cool-200: #D8E0E6; --color-cool-300: #C2CCD4;
+  --color-cool-400: #99A4AE; --color-cool-500: #66727E; --color-cool-700: #46535F;
+  --color-cool-900: #23323F;
+  --color-green-500: #3F9D5B; --color-amber-500: #E8A93C; --color-red-500: #D6453D; --color-blue-500: #4F86E0;
+  --color-state-libero: #7BB661; --color-state-libero-ink: #1E3A16;
+  --color-state-abbonato: #5B8DEF; --color-state-abbonato-ink: #102945;
+  --color-state-giornaliero: #E8843C; --color-state-giornaliero-ink: #3A1E08;
+  --color-state-prenotato: #F0C24A; --color-state-prenotato-ink: #4A3711;
+
+  /* semantic (alias) */
+  --color-canvas: var(--color-cool-150);
+  --color-bg: var(--color-cool-50);
+  --color-surface: var(--color-cool-0);
+  --color-sunken: var(--color-cool-100);
+  --color-border: var(--color-cool-200);
+  --color-text: var(--color-cool-900);
+  --color-text-muted: var(--color-cool-500);
+  --color-brand: var(--color-teal-500);
+  --color-brand-hover: var(--color-teal-700);
+  --color-brand-tint: var(--color-teal-100);
+  --color-on-navy: #CFE2EA;
+
+  --font-sans: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --radius-sm: 6px; --radius-md: 8px; --radius-lg: 12px; --radius-full: 999px;
+  --shadow-xs: 0 1px 2px rgba(15,58,74,.10);
+  --shadow-sm: 0 2px 10px rgba(15,58,74,.10);
+  --shadow-md: 0 8px 24px rgba(15,58,74,.14);
+  --shadow-lg: 0 16px 40px rgba(15,58,74,.18);
+  --ease-standard: cubic-bezier(.2,0,.2,1);
+  --ease-emphasized: cubic-bezier(.2,0,0,1);
+}
+
+:root { --shadow-focus: 0 0 0 2px var(--color-surface), 0 0 0 4px var(--color-brand); }
+* { box-sizing: border-box; }
+body { font-family: var(--font-sans); color: var(--color-text); background: var(--color-bg); margin: 0; }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
