@@ -135,11 +135,11 @@ o documenta come crearlo (non obbligatorio per i test del Plan 1, che creano i p
 ## 8. Come si eseguono i test
 
 ```bash
-# unit (health)
+# unit (health) — nessun DB richiesto, sempre verde
 pnpm --filter @driftly/api test
-# RLS isolation (contro il DB di test)
-pnpm dlx dotenv-cli -e .env.test -- pnpm --filter @driftly/api test -- prisma.service
-# e2e (isolamento per tenant attraverso l'API)
+# integration/e2e (contro il DB di test): isolamento RLS + API clienti
+# Nota: lo spec RLS vive in test/prisma.service.e2e-spec.ts e gira nella suite e2e,
+# così `pnpm test` (unit) non richiede un database.
 pnpm dlx dotenv-cli -e .env.test -- pnpm --filter @driftly/api test:e2e
 ```
 

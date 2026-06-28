@@ -1,4 +1,4 @@
-import { PrismaService } from './prisma.service';
+import { PrismaService } from '../src/prisma/prisma.service';
 
 describe('PrismaService RLS isolation', () => {
   const prisma = new PrismaService();
