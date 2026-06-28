@@ -19,6 +19,8 @@ L'MVP è costruito **tenant-aware** dal modello dati, così la multi-tenancy com
 ### In scope
 - **Mappa ombrelloni** interattiva (Settori → File → Ombrelloni), con stati per data;
   **setup strutturato** della struttura ([ADR-0014](../architecture/decisions/0014-setup-mappa-strutturato.md)).
+  Ombrelloni con **etichetta = numero fisico reale** e **Tipologia** (Normale/Mini‑palma/Palma…),
+  speciali fuori griglia come Settore dedicato ([ADR-0016](../architecture/decisions/0016-tipologia-ombrellone.md)).
 - **Anagrafica Clienti** (il bagnante).
 - **Pacchetti** personalizzabili (dotazione: lettini/sdraio…).
 - **Listino e Tariffe** per Stagione + **pricing engine** multi-dimensione.
@@ -43,7 +45,8 @@ planimetria (D-005) · Liste d'attesa avanzate: hold+notifiche (D-006) · Wrappe
 Electron (D-007) · Offline-sync completo (D-008) · i18n (D-003) · Prelazione abbonamenti completa (D-011) ·
 Cabina e servizi accessori (D-012) · Sospensione/cessione/disdetta abbonamento (D-013) ·
 Gestione personale/turni (D-014) · Disponibilità a orari arbitrari (D-015) · Streaming
-log tecnici live (D-016).
+log tecnici live (D-016) · Prezzo per tipologia di ombrellone (D-018) · Ombrellone
+standalone senza fila (D-019).
 
 > Nota: la **registrazione incasso base** *è* in scope ([ADR-0011](../architecture/decisions/0011-incasso-base-nel-core.md));
 > qui sopra è esclusa solo la cassa *completa* (ricevute/chiusura/fiscale/processing).
@@ -63,6 +66,7 @@ log tecnici live (D-016).
 | Gestione abbonamenti | Rinnovo in un clic + storico (self-link); prelazione/cabine rimandate | [0012](../architecture/decisions/0012-gestione-abbonamenti.md) |
 | Granularità disponibilità | Slot configurabili (intera/mezza giornata); orari arbitrari rimandati | [0013](../architecture/decisions/0013-granularita-disponibilita-a-slot.md) |
 | Setup mappa | Strutturato per form; editor planimetria rimandato (D-005) | [0014](../architecture/decisions/0014-setup-mappa-strutturato.md) |
+| Tipologia & numerazione ombrelloni | Etichetta = numero fisico reale; Tipologia ortogonale (classificazione, non prezzo); speciali come Settore dedicato | [0016](../architecture/decisions/0016-tipologia-ombrellone.md) |
 | Osservabilità | Logging + audit log + console superuser (ruolo di piattaforma) | [0015](../architecture/decisions/0015-osservabilita-e-console-superuser.md) |
 
 ## 4. Architettura
@@ -82,7 +86,7 @@ packages/
 ## 5. Modello dati
 
 Diagramma ER e invarianti: [docs/design/data-model.md](../design/data-model.md).
-Entità: Stabilimento, Settore, Fila, Ombrellone, Pacchetto, Cliente, Stagione,
+Entità: Stabilimento, Settore, Fila, Ombrellone, **Tipologia**, Pacchetto, Cliente, Stagione,
 Listino, Tariffa, **Fascia**, Prenotazione, Lista_attesa, Utente, **AuditLog**. Ogni
 entità di business porta `stabilimento_id` (nullable per Utente `superuser` e per gli
 eventi globali di AuditLog).
@@ -96,7 +100,7 @@ solo da ciò che è dichiarato. Questo abilita test in isolamento e basso accopp
 |---|---|---|---|
 | `core` | Contesto tenant, tipi base, utilità trasversali | TenantContext, base entities | — |
 | `identita` | Utenti staff, login, ruolo, risoluzione tenant; **superuser di piattaforma** | Auth/guards, utente corrente | `core` |
-| `mappa` | Settori, File, Ombrelloni; **setup strutturato** della spiaggia | CRUD struttura, generazione ombrelloni, query | `core` |
+| `mappa` | Settori, File, Ombrelloni, **Tipologia**; **setup strutturato** e numerazione reale | CRUD struttura, generazione ombrelloni, query | `core` |
 | `clienti` | Anagrafica Cliente | CRUD clienti, ricerca | `core` |
 | `catalogo` | Pacchetti, Stagioni, **Fasce**, Listini, Tariffe + **pricing engine** (dimensione fascia) | calcolaPrezzo(...), CRUD listino/fasce | `core`, `mappa` (ambito posizione) |
 | `prenotazioni` | Prenotazione, disponibilità **per slot** (anti-overlap), lista d'attesa, stato di pagamento (incasso base), rinnovo abbonamenti e storico | crea/annulla/promuovi, disponibilità per data+fascia, registra incasso, rinnova abbonamento | `core`, `mappa`, `clienti`, `catalogo` |
@@ -121,8 +125,8 @@ Calcola il prezzo di una Prenotazione risolvendo la `Tariffa` applicabile.
 
 ## 8. Funzionalità per area
 
-- **Setup** (admin): crea Stabilimento, Settori/File/Ombrelloni, Pacchetti, Stagione,
-  Listino, Tariffe.
+- **Setup** (admin): crea Stabilimento, Settori/File/Ombrelloni (con etichette reali e
+  Tipologie), Pacchetti, Stagione, Listino, Tariffe.
 - **Mappa** (staff): vista per data con stati (libero/abbonato/giornaliero/prenotato);
   clic → drawer contestuale.
 - **Prenotazione**: da drawer → cliente (esistente/nuovo) + pacchetto + periodo →

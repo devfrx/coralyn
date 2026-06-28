@@ -53,7 +53,7 @@ erDiagram
         uuid id PK
         uuid fila_id FK
         uuid tipologia_id FK "nullable; NULL = normale (ADR-0016)"
-        string etichetta "numero fisico reale; unico per stabilimento (ADR-0016)"
+        string etichetta "numero fisico reale; unico per Stabilimento (ADR-0016)"
         int ordine_logico
         json posizione_presentazione "layer visivo (D-005)"
     }
