@@ -8,12 +8,10 @@
   Snapshot di design (NON codice d'app). Token-driven, ancorato a:
   ADR-0017 (design system), ADR-0018 (linguaggio visivo), ADR-0019 (app-shell),
   ADR-0020 (resa mappa); modello ADR-0005/0016, slot ADR-0013.
-  Spec valori: docs/design/design-system.md. In app i token vivono in packages/ui-kit
-  e Inter è bundled offline (qui via CDN per sola fedeltà visiva del mockup).
+  Spec valori: docs/design/design-system.md. Self-contained (ADR-0009): nessuna risorsa
+  esterna; usa Inter se installato localmente, altrimenti system-ui (in app Inter è
+  bundled offline via packages/ui-kit).
 -->
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
   :root {
     /* --- token (sottoinsieme di design-system.md) --- */

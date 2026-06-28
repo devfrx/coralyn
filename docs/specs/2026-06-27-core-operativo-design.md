@@ -143,8 +143,10 @@ Flussi completi: [docs/design/flows.md](../design/flows.md).
 ## 9. UI/UX
 
 App a sezioni (menù: Mappa, Prenotazioni, Clienti, Listino, Report) con la **Mappa
-come home** e drawer contestuale. Responsive desktop + tablet, PWA. Snapshot:
-[docs/design/mockups/main-screen.html](../design/mockups/main-screen.html).
+come home** e drawer contestuale. Responsive desktop + tablet, PWA. Il **design FE di
+dettaglio (corrente)** è in [spec UI/UX FE](2026-06-28-frontend-ui-ux-design.md) +
+[frontend-app-shell.html](../design/mockups/frontend-app-shell.html); snapshot storico:
+[main-screen.html](../design/mockups/main-screen.html).
 
 Setup mappa **strutturato per form** ([ADR-0014](../architecture/decisions/0014-setup-mappa-strutturato.md)).
 **Console superuser** come sezione separata, visibile solo al ruolo `superuser`.
