@@ -1,0 +1,15 @@
+services:
+  db:
+    image: postgres:16
+    container_name: driftly-db
+    environment:
+      POSTGRES_USER: driftly
+      POSTGRES_PASSWORD: driftly
+      POSTGRES_DB: driftly_dev
+    ports:
+      - "5432:5432"
+    volumes:
+      - driftly-pgdata:/var/lib/postgresql/data
+      - ./init:/docker-entrypoint-initdb.d
+volumes:
+  driftly-pgdata:
