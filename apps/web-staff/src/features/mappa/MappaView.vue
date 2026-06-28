@@ -41,7 +41,7 @@ function apri(o: OmbrelloneDTO) { selezionato.value = o; open.value = true; }
           <OmbrelloneCell
             v-for="o in f.ombrelloni" :key="o.id"
             :etichetta="o.etichetta"
-            :aria-label="ariaLabel(o, s.nome, f.etichetta)"
+            :ariaLabel="ariaLabel(o, s.nome, f.etichetta)"
             :stato-mattina="statoFascia(o, 0)"
             :stato-pomeriggio="statoFascia(o, 1)"
             :icona-tipologia="iconaTip(o)"
