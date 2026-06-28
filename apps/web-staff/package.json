@@ -12,8 +12,11 @@
     "typecheck": "vue-tsc --noEmit"
   },
   "dependencies": {
+    "@driftly/contracts": "workspace:*",
     "@driftly/ui-kit": "workspace:*",
-    "vue": "^3.5.38"
+    "pinia": "^3.0.4",
+    "vue": "^3.5.38",
+    "vue-router": "^5.1.0"
   },
   "devDependencies": {
     "@iconify-json/lucide": "^1.2.114",
