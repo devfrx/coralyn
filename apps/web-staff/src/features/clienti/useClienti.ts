@@ -1,3 +1,4 @@
+import { computed } from 'vue';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/vue-query';
 import type { ClienteDTO } from '@driftly/contracts';
 import { apiFetch } from '@/lib/http';
@@ -7,7 +8,7 @@ import { useSessionStore } from '@/stores/session';
 export function useClienti() {
   const session = useSessionStore();
   return useQuery({
-    queryKey: queryKeys.clienti(session.stabilimentoId),
+    queryKey: computed(() => queryKeys.clienti(session.stabilimentoId)),
     queryFn: () => apiFetch<ClienteDTO[]>('/clienti', { tenantId: session.stabilimentoId }),
   });
 }
