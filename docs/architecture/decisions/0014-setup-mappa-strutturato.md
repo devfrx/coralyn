@@ -3,7 +3,7 @@
 - **Status:** Accepted
 - **Data:** 2026-06-27
 - **Decisori:** Team di progetto
-- **ADR correlati:** [ADR-0005](0005-modello-mappa.md); [D-005](../deferred.md)
+- **ADR correlati:** [ADR-0005](0005-modello-mappa.md); [D-005](../deferred.md); [ADR-0016](0016-tipologia-ombrellone.md) (raffina)
 
 ## Context
 

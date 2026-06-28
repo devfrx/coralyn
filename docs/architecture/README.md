@@ -49,7 +49,7 @@ destinato alla vendita in abbonamento a più stabilimenti.
 
 ## Moduli del Core (backend NestJS)
 
-- `mappa` — Settore, Fila, Ombrellone; **setup strutturato** ([ADR-0005](decisions/0005-modello-mappa.md), [ADR-0014](decisions/0014-setup-mappa-strutturato.md)).
+- `mappa` — Settore, Fila, Ombrellone, **Tipologia**; **setup strutturato** e numerazione reale ([ADR-0005](decisions/0005-modello-mappa.md), [ADR-0014](decisions/0014-setup-mappa-strutturato.md), [ADR-0016](decisions/0016-tipologia-ombrellone.md)).
 - `catalogo` — Pacchetto, Stagione, **Fascia**, Listino, Tariffa + **pricing engine**
   (dimensione fascia, [ADR-0013](decisions/0013-granularita-disponibilita-a-slot.md)).
 - `clienti` — anagrafica Cliente.
@@ -93,3 +93,4 @@ aggiornati.
 - [ADR-0013](decisions/0013-granularita-disponibilita-a-slot.md) — Granularità disponibilità a slot
 - [ADR-0014](decisions/0014-setup-mappa-strutturato.md) — Setup mappa strutturato per form
 - [ADR-0015](decisions/0015-osservabilita-e-console-superuser.md) — Osservabilità e console superuser
+- [ADR-0016](decisions/0016-tipologia-ombrellone.md) — Tipologia ombrellone, numerazione reale e speciali

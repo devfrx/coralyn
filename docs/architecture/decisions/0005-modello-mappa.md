@@ -3,7 +3,7 @@
 - **Status:** Accepted
 - **Data:** 2026-06-27
 - **Decisori:** Team di progetto
-- **ADR correlati:** [ADR-0006](0006-dominio-prenotazioni-e-pricing.md), [D-005](../deferred.md)
+- **ADR correlati:** [ADR-0006](0006-dominio-prenotazioni-e-pricing.md), [D-005](../deferred.md), [ADR-0016](0016-tipologia-ombrellone.md) (estende)
 
 ## Context
 

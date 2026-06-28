@@ -15,12 +15,14 @@ erDiagram
     STABILIMENTO ||--o{ LISTA_ATTESA : "possiede"
     STABILIMENTO ||--o{ UTENTE : "ha"
     STABILIMENTO ||--o{ FASCIA : "definisce"
+    STABILIMENTO ||--o{ TIPOLOGIA : "definisce"
     STABILIMENTO ||--o{ AUDIT_LOG : "registra"
     UTENTE ||--o{ AUDIT_LOG : "genera"
     FASCIA ||--o{ TARIFFA : "qualifica"
     FASCIA ||--o{ PRENOTAZIONE : "slot di"
     SETTORE ||--o{ FILA : "contiene"
     FILA ||--o{ OMBRELLONE : "contiene"
+    TIPOLOGIA |o--o{ OMBRELLONE : "classifica"
     STAGIONE ||--o{ LISTINO : "contiene"
     LISTINO ||--o{ TARIFFA : "contiene"
     PACCHETTO ||--o{ TARIFFA : "qualifica"
@@ -50,9 +52,16 @@ erDiagram
     OMBRELLONE {
         uuid id PK
         uuid fila_id FK
-        string etichetta
+        uuid tipologia_id FK "nullable; NULL = normale (ADR-0016)"
+        string etichetta "numero fisico reale; unico per stabilimento (ADR-0016)"
         int ordine_logico
         json posizione_presentazione "layer visivo (D-005)"
+    }
+    TIPOLOGIA {
+        uuid id PK
+        uuid stabilimento_id FK
+        string nome "Normale|Mini-palma|Palma|..."
+        int ordine
     }
     PACCHETTO {
         uuid id PK
@@ -176,5 +185,21 @@ erDiagram
 - **Posizione**: `ordine_logico` governa l'ordinamento nella fila;
   `posizione_presentazione` è un layer visivo opzionale (porta aperta alla planimetria,
   [D-005](../architecture/deferred.md)).
+- **Etichetta ombrellone**: `etichetta` è il **numero/identificativo fisico reale**
+  (stringa libera: `"1"`, `"47"`, `"A1"`, `"12bis"`), **unico per Stabilimento** e
+  **disaccoppiato** da `ordine_logico` e dalla tipologia. L'auto‑generazione del setup è
+  una comodità: etichette modificabili singolarmente, buchi ammessi
+  ([ADR-0016](../architecture/decisions/0016-tipologia-ombrellone.md)).
+- **Tipologia**: `Tipologia` (per Stabilimento) classifica gli ombrelloni (es. Normale,
+  Mini‑palma, Palma) **ortogonalmente alla posizione**; `Ombrellone.tipologia_id` è
+  nullable (`NULL` = normale). È **classificazione** (display, scelta cliente,
+  disponibilità per tipo), **non** una dimensione di prezzo: il prezzo resta per posizione
+  ([ADR-0006](../architecture/decisions/0006-dominio-prenotazioni-e-pricing.md));
+  prezzo‑per‑tipo rimandato ([D-018](../architecture/deferred.md),
+  [ADR-0016](../architecture/decisions/0016-tipologia-ombrellone.md)).
+- **Ombrelloni speciali**: gli esemplari fuori griglia (es. palme) si modellano come un
+  **Settore dedicato** ("Speciali") con Fila; nell'MVP ogni `Ombrellone` resta in una
+  `Fila` (standalone rimandato, [D-019](../architecture/deferred.md))
+  ([ADR-0016](../architecture/decisions/0016-tipologia-ombrellone.md)).
 - **Disambiguazione**: `CLIENTE` = il bagnante; il *tenant* è lo `STABILIMENTO`
   (mai chiamarlo "cliente" nel codice).
