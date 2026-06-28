@@ -109,3 +109,13 @@ posizione ([ADR-0006](0006-dominio-prenotazioni-e-pricing.md)).
    `ordine_logico`) e **tipo** (`Tipologia`): tre responsabilità ortogonali.
 4. **Zero debito** — tutto additivo; i compromessi (prezzo‑per‑tipo, standalone) sono tracciati in
    [D-018](../deferred.md)/[D-019](../deferred.md); nessuna scelta silenziosa.
+
+## Addendum (2026-06-28)
+
+In coordinamento con [ADR-0020](0020-resa-mappa.md) (resa della mappa) e con
+`packages/contracts` (`TipologiaDTO.icona`), la `Tipologia` porta un campo **`icona`**
+opzionale (nullable): una chiave del registry icone del `ui-kit` che fornisce il *marker di
+tipo* sulla cella di mappa. È un attributo di **presentazione persistito per tipo**
+(configurato dal gestore), **additivo** e con fallback senza icona; non altera la decisione
+principale (Tipologia = classificazione ortogonale, non dimensione di prezzo). Riflesso nel
+[data-model](../design/data-model.md).

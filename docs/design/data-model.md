@@ -62,6 +62,7 @@ erDiagram
         uuid stabilimento_id FK
         string nome "Normale|Mini-palma|Palma|..."
         int ordine
+        string icona "opzionale: chiave icona per il marker di mappa (ADR-0020)"
     }
     PACCHETTO {
         uuid id PK
@@ -196,7 +197,9 @@ erDiagram
   disponibilità per tipo), **non** una dimensione di prezzo: il prezzo resta per posizione
   ([ADR-0006](../architecture/decisions/0006-dominio-prenotazioni-e-pricing.md));
   prezzo‑per‑tipo rimandato ([D-018](../architecture/deferred.md),
-  [ADR-0016](../architecture/decisions/0016-tipologia-ombrellone.md)).
+  [ADR-0016](../architecture/decisions/0016-tipologia-ombrellone.md)). Porta una `icona`
+  opzionale (chiave del registry icone del `ui-kit`) per il marker di tipo sulla mappa
+  ([ADR-0020](../architecture/decisions/0020-resa-mappa.md)).
 - **Ombrelloni speciali**: gli esemplari fuori griglia (es. palme) si modellano come un
   **Settore dedicato** ("Speciali") con Fila; nell'MVP ogni `Ombrellone` resta in una
   `Fila` (standalone rimandato, [D-019](../architecture/deferred.md))
