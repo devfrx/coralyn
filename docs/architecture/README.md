@@ -96,3 +96,4 @@ aggiornati.
 - [ADR-0016](decisions/0016-tipologia-ombrellone.md) — Tipologia ombrellone, numerazione reale e speciali
 - [ADR-0017](decisions/0017-design-system-frontend.md) — Design system frontend (token-first, headless, ui-kit)
 - [ADR-0018](decisions/0018-linguaggio-visivo.md) — Linguaggio visivo (palette, tipografia, stati mappa, icone)
+- [ADR-0019](decisions/0019-app-shell-e-ux.md) — App-shell e pattern UX (sezioni, drawer, responsive, PWA)
