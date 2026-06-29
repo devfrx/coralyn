@@ -123,4 +123,42 @@ describe('Clienti (e2e) isolamento per tenant', () => {
       .send({ nome: 'Eva', cognome: 'Gialli', email: 'non-una-email' })
       .expect(400);
   });
+
+  it('tratta i contatti vuoti come assenti (come fa il form della scheda)', async () => {
+    // Un cliente senza email: il form invia comunque email:'' al salvataggio.
+    const created = await request(app.getHttpServer())
+      .post('/api/clienti')
+      .set('X-Stabilimento-Id', s1)
+      .send({ nome: 'Senza', cognome: 'Contatti', telefono: '', email: '', note: '' })
+      .expect(201);
+    // stringhe vuote → campi assenti nel DTO (null in DB → undefined nel DTO)
+    expect(created.body.telefono).toBeUndefined();
+    expect(created.body.email).toBeUndefined();
+    expect(created.body.note).toBeUndefined();
+
+    // PATCH con email vuota NON deve dare 400 (il @IsEmail non scatta su valore assente)
+    const patched = await request(app.getHttpServer())
+      .patch(`/api/clienti/${created.body.id}`)
+      .set('X-Stabilimento-Id', s1)
+      .send({ telefono: '  +39 333 1212121  ', email: '', note: '' })
+      .expect(200);
+    expect(patched.body.telefono).toBe('+39 333 1212121'); // trim applicato
+    expect(patched.body.email).toBeUndefined();
+  });
+
+  it('cancella un contatto esistente svuotando il campo', async () => {
+    const created = await request(app.getHttpServer())
+      .post('/api/clienti')
+      .set('X-Stabilimento-Id', s1)
+      .send({ nome: 'Aveva', cognome: 'Email', email: 'aveva@email.it' })
+      .expect(201);
+    expect(created.body.email).toBe('aveva@email.it');
+
+    const patched = await request(app.getHttpServer())
+      .patch(`/api/clienti/${created.body.id}`)
+      .set('X-Stabilimento-Id', s1)
+      .send({ email: '' })
+      .expect(200);
+    expect(patched.body.email).toBeUndefined(); // svuotare = cancellare (→ null in DB)
+  });
 });

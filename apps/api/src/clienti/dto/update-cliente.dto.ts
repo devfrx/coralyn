@@ -1,5 +1,6 @@
 import { IsEmail, IsOptional, IsString } from 'class-validator';
 import type { ModificaClienteInput } from '@driftly/contracts';
+import { NormalizeContatto } from './normalize';
 
 export class UpdateClienteDto implements ModificaClienteInput {
   @IsOptional()
@@ -10,14 +11,17 @@ export class UpdateClienteDto implements ModificaClienteInput {
   @IsString()
   cognome?: string;
 
+  @NormalizeContatto()
   @IsOptional()
   @IsString()
   telefono?: string;
 
+  @NormalizeContatto()
   @IsOptional()
   @IsEmail()
   email?: string;
 
+  @NormalizeContatto()
   @IsOptional()
   @IsString()
   note?: string;

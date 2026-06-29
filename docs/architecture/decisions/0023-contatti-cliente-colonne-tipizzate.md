@@ -47,6 +47,12 @@ model Cliente {
 - La validazione server-side è realizzata con **DTO `class-validator`** (`@IsEmail` su
   `email`, `@IsString`/`@IsOptional` sugli altri) + `ValidationPipe({ whitelist, transform })`
   globale. Email malformata → **400** (non più un 500). Questo **risolve [D-022](../deferred.md)**.
+- **Normalizzazione dei contatti** (`@Transform` `NormalizeContatto`): i campi `telefono`,
+  `email`, `note` vengono **trimmati** e una **stringa vuota `''` è convertita in `null`**
+  (= "assente"), prima della validazione. Conseguenze volute: (a) un form che invia sempre
+  tutti i campi (anche vuoti) non incappa in un falso `@IsEmail('')` → **400**; (b) **svuotare**
+  un contatto e salvare lo **cancella** (`NULL` in DB), coerente con la proiezione `null → undefined`;
+  (c) niente stringhe vuote sporche in DB. `@IsOptional` salta poi la validazione sui `null`.
 - Il confine FE/BE resta `@driftly/contracts`: `ClienteDTO` espone i campi come
   `telefono?/email?/note?` (additivo), `CreaClienteInput`/`ModificaClienteInput` per gli input.
 - La proiezione DTO nel service mappa `null → undefined` in **tutti** i metodi
