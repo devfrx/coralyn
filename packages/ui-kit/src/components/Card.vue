@@ -1,3 +1,3 @@
 <template>
-  <div class="rounded-[var(--radius-lg)] bg-[var(--color-surface)] [box-shadow:var(--shadow-sm)]"><slot /></div>
+  <div class="rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-[var(--color-surface)] [box-shadow:var(--shadow-card)]"><slot /></div>
 </template>
