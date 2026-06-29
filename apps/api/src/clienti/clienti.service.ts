@@ -1,7 +1,8 @@
 import { Injectable } from '@nestjs/common';
+import type { Cliente } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { TenantContext } from '../tenant/tenant-context';
-import { ClienteDTO } from '@driftly/contracts';
+import { ClienteDTO, CreaClienteInput } from '@driftly/contracts';
 
 @Injectable()
 export class ClientiService {
@@ -10,17 +11,29 @@ export class ClientiService {
     private readonly tenant: TenantContext,
   ) {}
 
+  /** Proietta una riga Cliente nel DTO condiviso, mappando null → undefined. */
+  private toDTO(c: Cliente): ClienteDTO {
+    return {
+      id: c.id,
+      nome: c.nome,
+      cognome: c.cognome,
+      telefono: c.telefono ?? undefined,
+      email: c.email ?? undefined,
+      note: c.note ?? undefined,
+    };
+  }
+
   async list(): Promise<ClienteDTO[]> {
     const tenantId = this.tenant.require();
     const rows = await this.prisma.forTenant(tenantId, (tx) => tx.cliente.findMany());
-    return rows.map((c) => ({ id: c.id, nome: c.nome, cognome: c.cognome }));
+    return rows.map((c) => this.toDTO(c));
   }
 
-  async create(input: { nome: string; cognome: string }): Promise<ClienteDTO> {
+  async create(input: CreaClienteInput): Promise<ClienteDTO> {
     const tenantId = this.tenant.require();
     const c = await this.prisma.forTenant(tenantId, (tx) =>
       tx.cliente.create({ data: { stabilimentoId: tenantId, ...input } }),
     );
-    return { id: c.id, nome: c.nome, cognome: c.cognome };
+    return this.toDTO(c);
   }
 }

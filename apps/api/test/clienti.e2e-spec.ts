@@ -46,4 +46,26 @@ describe('Clienti (e2e) isolamento per tenant', () => {
       .expect(200);
     expect(resS2.body).toHaveLength(0);
   });
+
+  it('crea un cliente coi contatti e li ritorna nel DTO', async () => {
+    const res = await request(app.getHttpServer())
+      .post('/api/clienti')
+      .set('X-Stabilimento-Id', s1)
+      .send({
+        nome: 'Anna',
+        cognome: 'Bianchi',
+        telefono: '+39 333 1234567',
+        email: 'anna.bianchi@email.it',
+        note: 'Cliente storica',
+      })
+      .expect(201);
+    expect(res.body).toMatchObject({
+      nome: 'Anna',
+      cognome: 'Bianchi',
+      telefono: '+39 333 1234567',
+      email: 'anna.bianchi@email.it',
+      note: 'Cliente storica',
+    });
+    expect(res.body.id).toBeDefined();
+  });
 });
