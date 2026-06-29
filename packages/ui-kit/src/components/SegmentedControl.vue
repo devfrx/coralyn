@@ -1,0 +1,12 @@
+<script setup lang="ts">
+defineProps<{ modelValue: string; options: { value: string; label: string }[] }>();
+defineEmits<{ 'update:modelValue': [value: string] }>();
+</script>
+<template>
+  <div role="tablist" class="inline-flex gap-0.5 rounded-[var(--radius-md)] border border-[var(--color-warm-border-seg)] bg-[var(--color-warm-250)] p-[3px]">
+    <button v-for="o in options" :key="o.value" role="tab" :aria-selected="o.value === modelValue"
+      class="rounded-[9px] px-3.5 py-1.5 text-[12.5px] font-medium transition-colors"
+      :class="o.value === modelValue ? 'bg-[var(--color-surface)] font-semibold text-[var(--color-text)] [box-shadow:var(--shadow-soft)]' : 'text-[var(--color-ink-600)] hover:text-[var(--color-text)]'"
+      @click="$emit('update:modelValue', o.value)">{{ o.label }}</button>
+  </div>
+</template>

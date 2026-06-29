@@ -9,3 +9,4 @@ export { default as OmbrelloneCell } from './components/OmbrelloneCell.vue';
 export { default as Drawer } from './components/Drawer.vue';
 export { default as Textarea } from './components/Textarea.vue';
 export { default as Avatar } from './components/Avatar.vue';
+export { default as SegmentedControl } from './components/SegmentedControl.vue';
