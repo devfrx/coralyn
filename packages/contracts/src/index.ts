@@ -73,3 +73,23 @@ export interface MappaGiornoDTO {
   fasce: FasciaDTO[];
   settori: SettoreDTO[];
 }
+
+/** Profilo dell'utente staff. `stabilimentoId` null = superuser di piattaforma. */
+export interface UtenteDTO {
+  id: string;
+  email: string;
+  ruolo: Ruolo;
+  stabilimentoId: string | null;
+}
+
+/** Credenziali di login. */
+export interface LoginInput {
+  email: string;
+  password: string;
+}
+
+/** Risposta del login: token di accesso + profilo. */
+export interface LoginResponse {
+  accessToken: string;
+  utente: UtenteDTO;
+}
