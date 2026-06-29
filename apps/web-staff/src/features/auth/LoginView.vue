@@ -1,0 +1,30 @@
+<script setup lang="ts">
+import { ref } from 'vue';
+import { useRouter } from 'vue-router';
+import { Field, Input, Button } from '@driftly/ui-kit';
+import { useSessionStore } from '@/stores/session';
+import AuthLayout from '@/app/AuthLayout.vue';
+const router = useRouter();
+const session = useSessionStore();
+const email = ref('');
+const password = ref('');
+function accedi() { session.login(); router.push('/mappa'); }
+</script>
+<template>
+  <AuthLayout>
+    <template #hero>
+      <h2 class="mb-3.5 text-[30px] font-bold leading-[1.22] tracking-[-.02em] text-[var(--color-on-sidebar-strong)]">La spiaggia, gestita con leggerezza.</h2>
+      <p class="text-[14.5px] leading-relaxed text-[var(--color-on-teal-2nd)]">Mappa ombrelloni, prenotazioni, abbonamenti e cassa del tuo stabilimento, in un unico posto.</p>
+    </template>
+    <template #footer>Stagione 2026 · sessione protetta</template>
+    <h1 class="mb-1.5 text-[27px] font-bold tracking-[-.02em] text-[var(--color-text)]">Bentornato</h1>
+    <p class="mb-6 text-sm text-[var(--color-text-muted)]">Accedi al gestionale del tuo stabilimento.</p>
+    <form class="flex flex-col gap-4" @submit.prevent="accedi">
+      <Field label="Email"><Input v-model="email" type="email" placeholder="nome@stabilimento.it" /></Field>
+      <Field label="Password"><Input v-model="password" type="password" placeholder="••••••••" /></Field>
+      <Button type="submit" class="w-full">Accedi</Button>
+    </form>
+    <div class="my-6 flex items-center gap-3"><span class="h-px flex-1 bg-[var(--color-border)]"></span><span class="text-[10.5px] font-semibold uppercase tracking-[.1em] text-[var(--color-placeholder)]">oppure</span><span class="h-px flex-1 bg-[var(--color-border)]"></span></div>
+    <p class="text-center text-[13.5px] text-[var(--color-text-2nd)]">Non hai un account? <RouterLink to="/registrazione" class="font-semibold text-[var(--color-brand-ink)]">Registra il tuo stabilimento</RouterLink></p>
+  </AuthLayout>
+</template>
