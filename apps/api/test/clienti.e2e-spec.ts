@@ -1,5 +1,5 @@
 import { Test } from '@nestjs/testing';
-import { INestApplication } from '@nestjs/common';
+import { INestApplication, ValidationPipe } from '@nestjs/common';
 import request from 'supertest';
 import { AppModule } from '../src/app.module';
 import { PrismaService } from '../src/prisma/prisma.service';
@@ -14,6 +14,7 @@ describe('Clienti (e2e) isolamento per tenant', () => {
     const moduleRef = await Test.createTestingModule({ imports: [AppModule] }).compile();
     app = moduleRef.createNestApplication();
     app.setGlobalPrefix('api', { exclude: ['health'] }); // allineato a main.ts
+    app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true })); // allineato a main.ts
     await app.init();
     prisma = app.get(PrismaService);
     s1 = (await prisma.stabilimento.create({ data: { nome: 'E2E A' } })).id;
@@ -113,5 +114,13 @@ describe('Clienti (e2e) isolamento per tenant', () => {
       .set('X-Stabilimento-Id', s2)
       .send({ telefono: '+39 111' })
       .expect(404);
+  });
+
+  it('rifiuta email malformata con 400', async () => {
+    await request(app.getHttpServer())
+      .post('/api/clienti')
+      .set('X-Stabilimento-Id', s1)
+      .send({ nome: 'Eva', cognome: 'Gialli', email: 'non-una-email' })
+      .expect(400);
   });
 });
