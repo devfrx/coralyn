@@ -14,10 +14,17 @@
     "@driftly/contracts": "workspace:*",
     "reka-ui": "^2.0.0"
   },
+  "scripts": {
+    "test": "vitest run",
+    "typecheck": "vue-tsc -b --noEmit"
+  },
   "devDependencies": {
     "@iconify-json/lucide": "^1.2.114",
+    "@vitejs/plugin-vue": "^6.0.7",
     "@vue/test-utils": "^2.4.11",
+    "jsdom": "^29.1.1",
     "unplugin-icons": "^23.0.1",
-    "vitest": "^4.1.9"
+    "vitest": "^4.1.9",
+    "vue-tsc": "^3.3.5"
   }
 }
