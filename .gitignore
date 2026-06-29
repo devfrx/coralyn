@@ -27,3 +27,8 @@ build/
 
 # Override locale di docker compose (porta DB specifica della macchina)
 docker-compose.override.yml
+
+# Dump dell'export del design tool Coralyn — il mockup canonico è versionato
+# in docs/design/mockups/Coralyn.dc.html (ADR-0009); qui resta solo in locale.
+/Coralyn - Gestionale Lidi.html
+/Redesign coralyn gestionale moderno/

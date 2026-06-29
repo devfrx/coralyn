@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "web-staff",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["--filter", "@driftly/web-staff", "dev"],
+      "port": 5173
+    }
+  ]
+}
