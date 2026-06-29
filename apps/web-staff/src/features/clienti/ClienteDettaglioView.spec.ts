@@ -3,7 +3,7 @@ import { flushPromises } from '@vue/test-utils';
 import { mountApp } from '@/test/utils';
 import ClienteDettaglioView from './ClienteDettaglioView.vue';
 
-async function settle(w: ReturnType<typeof mountApp>) {
+async function settle() {
   await flushPromises();
   await new Promise((r) => setTimeout(r, 0));
   await flushPromises();
@@ -12,7 +12,7 @@ async function settle(w: ReturnType<typeof mountApp>) {
 describe('ClienteDettaglioView', () => {
   it('mostra header e anagrafica del cliente', async () => {
     const w = mountApp(ClienteDettaglioView, { props: { id: 'c-1' } });
-    await settle(w);
+    await settle();
     expect(w.text()).toContain('Mario');
     expect(w.text()).toContain('Rossi');
     // email/telefono sono campi editabili: il valore vive nel DOM dell'input, non nel testo
@@ -22,18 +22,18 @@ describe('ClienteDettaglioView', () => {
 
   it('mostra i placeholder delle sezioni in arrivo', async () => {
     const w = mountApp(ClienteDettaglioView, { props: { id: 'c-1' } });
-    await settle(w);
+    await settle();
     expect(w.text()).toContain('in arrivo');
     expect(w.text()).toContain('Storico prenotazioni');
   });
 
   it('modifica il telefono e lo rilegge aggiornato', async () => {
     const w = mountApp(ClienteDettaglioView, { props: { id: 'c-1' } });
-    await settle(w);
+    await settle();
     const tel = w.find('input[name="telefono"]');
     await tel.setValue('+39 333 9999999');
     await w.find('form').trigger('submit.prevent');
-    await settle(w);
+    await settle();
     // dopo il PATCH, l'invalidazione rilegge il dettaglio e il watch ripopola l'input col valore salvato
     expect((w.find('input[name="telefono"]').element as HTMLInputElement).value).toBe('+39 333 9999999');
   });
