@@ -7,3 +7,4 @@ export { default as Field } from './components/Field.vue';
 export { default as Input } from './components/Input.vue';
 export { default as OmbrelloneCell } from './components/OmbrelloneCell.vue';
 export { default as Drawer } from './components/Drawer.vue';
+export { default as Textarea } from './components/Textarea.vue';

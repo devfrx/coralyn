@@ -5,7 +5,7 @@
     "moduleResolution": "Bundler",
     "jsx": "preserve",
     "noEmit": true,
-    "types": ["vite/client", "unplugin-icons/types/vue"]
+    "types": ["unplugin-icons/types/vue"]
   },
   "include": ["src"]
 }
