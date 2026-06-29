@@ -18,8 +18,8 @@ export default defineConfig({
         name: 'Driftly · Staff',
         short_name: 'Driftly',
         lang: 'it',
-        theme_color: '#1F6F8B',
-        background_color: '#E9EFF2',
+        theme_color: '#E0795A',
+        background_color: '#ECE3D5',
         display: 'standalone',
         icons: [
           { src: 'pwa-192.png', sizes: '192x192', type: 'image/png' },
