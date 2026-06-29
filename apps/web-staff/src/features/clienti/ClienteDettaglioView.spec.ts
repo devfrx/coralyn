@@ -15,7 +15,9 @@ describe('ClienteDettaglioView', () => {
     await settle(w);
     expect(w.text()).toContain('Mario');
     expect(w.text()).toContain('Rossi');
-    expect(w.text()).toContain('mario.rossi@email.it');
+    // email/telefono sono campi editabili: il valore vive nel DOM dell'input, non nel testo
+    expect((w.find('input[name="email"]').element as HTMLInputElement).value).toBe('mario.rossi@email.it');
+    expect((w.find('input[name="telefono"]').element as HTMLInputElement).value).toBe('+39 333 1111111');
   });
 
   it('mostra i placeholder delle sezioni in arrivo', async () => {
@@ -23,5 +25,16 @@ describe('ClienteDettaglioView', () => {
     await settle(w);
     expect(w.text()).toContain('in arrivo');
     expect(w.text()).toContain('Storico prenotazioni');
+  });
+
+  it('modifica il telefono e lo rilegge aggiornato', async () => {
+    const w = mountApp(ClienteDettaglioView, { props: { id: 'c-1' } });
+    await settle(w);
+    const tel = w.find('input[name="telefono"]');
+    await tel.setValue('+39 333 9999999');
+    await w.find('form').trigger('submit.prevent');
+    await settle(w);
+    // dopo il PATCH, l'invalidazione rilegge il dettaglio e il watch ripopola l'input col valore salvato
+    expect((w.find('input[name="telefono"]').element as HTMLInputElement).value).toBe('+39 333 9999999');
   });
 });

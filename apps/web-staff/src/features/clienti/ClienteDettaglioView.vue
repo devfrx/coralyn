@@ -1,9 +1,22 @@
 <script setup lang="ts">
-import { Card, Badge } from '@driftly/ui-kit';
-import { useCliente } from './useClienti';
+import { ref, watch } from 'vue';
+import { Card, Badge, Button, Field, Input } from '@driftly/ui-kit';
+import { useCliente, useModificaCliente } from './useClienti';
 
 const props = defineProps<{ id: string }>();
 const { data: cliente, isLoading, isError } = useCliente(props.id);
+const modifica = useModificaCliente(props.id);
+
+const telefono = ref('');
+const email = ref('');
+const note = ref('');
+watch(cliente, (c) => {
+  if (c) { telefono.value = c.telefono ?? ''; email.value = c.email ?? ''; note.value = c.note ?? ''; }
+}, { immediate: true });
+
+function salva() {
+  modifica.mutate({ telefono: telefono.value, email: email.value, note: note.value });
+}
 
 const inArrivo = ['Abbonamento e anzianità', 'Storico prenotazioni', 'Pagamenti e saldo'];
 </script>
@@ -26,11 +39,12 @@ const inArrivo = ['Abbonamento e anzianità', 'Storico prenotazioni', 'Pagamenti
 
       <Card class="mb-4 p-4">
         <h3 class="mb-2 text-sm font-medium">Anagrafica e contatti</h3>
-        <dl class="grid grid-cols-[8rem_1fr] gap-y-1 text-sm">
-          <dt class="text-[var(--color-text-muted)]">Telefono</dt><dd>{{ cliente.telefono || '—' }}</dd>
-          <dt class="text-[var(--color-text-muted)]">Email</dt><dd>{{ cliente.email || '—' }}</dd>
-          <dt class="text-[var(--color-text-muted)]">Note</dt><dd>{{ cliente.note || '—' }}</dd>
-        </dl>
+        <form class="flex flex-col gap-3" @submit.prevent="salva">
+          <Field label="Telefono"><Input name="telefono" v-model="telefono" /></Field>
+          <Field label="Email"><Input name="email" v-model="email" /></Field>
+          <Field label="Note"><Input name="note" v-model="note" /></Field>
+          <div><Button type="submit">Salva</Button></div>
+        </form>
       </Card>
 
       <Card v-for="s in inArrivo" :key="s" class="mb-2 p-4 text-sm text-[var(--color-text-muted)]">
