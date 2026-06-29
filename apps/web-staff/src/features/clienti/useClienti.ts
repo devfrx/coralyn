@@ -1,6 +1,6 @@
 import { computed } from 'vue';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/vue-query';
-import type { ClienteDTO, ModificaClienteInput } from '@driftly/contracts';
+import type { ClienteDTO, CreaClienteInput, ModificaClienteInput } from '@driftly/contracts';
 import { apiFetch } from '@/lib/http';
 import { queryKeys } from '@/lib/queryKeys';
 import { useSessionStore } from '@/stores/session';
@@ -38,7 +38,7 @@ export function useCreaCliente() {
   const session = useSessionStore();
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (input: { nome: string; cognome: string }) =>
+    mutationFn: (input: CreaClienteInput) =>
       apiFetch<ClienteDTO>('/clienti', { tenantId: session.stabilimentoId, method: 'POST', body: JSON.stringify(input) }),
     onSuccess: () => qc.invalidateQueries({ queryKey: queryKeys.clienti(session.stabilimentoId) }),
   });

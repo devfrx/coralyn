@@ -23,7 +23,7 @@ describe('ClienteDettaglioView', () => {
   it('mostra i placeholder delle sezioni in arrivo', async () => {
     const w = mountApp(ClienteDettaglioView, { props: { id: 'c-1' } });
     await settle();
-    expect(w.text()).toContain('in arrivo');
+    expect(w.text()).toContain('In arrivo');
     expect(w.text()).toContain('Storico prenotazioni');
   });
 

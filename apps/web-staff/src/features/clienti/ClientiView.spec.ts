@@ -11,15 +11,21 @@ describe('ClientiView', () => {
     expect(w.text()).toContain('Rossi');
   });
 
-  it('crea un cliente e invalida la lista (compare in tabella)', async () => {
-    const w = mountApp(ClientiView);
+  it('crea un cliente dal modal e compare in tabella', async () => {
+    const w = mountApp(ClientiView, { attachTo: document.body });
     await flushPromises();
     await new Promise((r) => setTimeout(r, 0));
-    const inputs = w.findAll('input');
-    await inputs[0].setValue('Anna');     // Nome
-    await inputs[1].setValue('Verdi');    // Cognome
-    await w.find('form').trigger('submit.prevent');
-    // attende mutation -> onSuccess invalidate -> refetch -> re-render
+    await w.get('[data-test="nuovo-cliente"]').trigger('click');
+    await flushPromises();
+    const set = (name: string, val: string) => {
+      const el = document.querySelector(`input[name="${name}"]`) as HTMLInputElement;
+      el.value = val;
+      el.dispatchEvent(new Event('input', { bubbles: true }));
+    };
+    set('nome', 'Anna');
+    set('cognome', 'Verdi');
+    (document.querySelector('[data-test="form-nuovo-cliente"]') as HTMLFormElement)
+      .dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
     await flushPromises();
     await new Promise((r) => setTimeout(r, 0));
     await flushPromises();
