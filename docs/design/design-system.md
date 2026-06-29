@@ -35,8 +35,7 @@
    tablet ([ADR-0018](../architecture/decisions/0018-linguaggio-visivo.md)/[0019](../architecture/decisions/0019-app-shell-e-ux.md)/[0020](../architecture/decisions/0020-resa-mappa.md)).
 4. **Motion funzionale e sobrio.** Le animazioni spiegano una transizione (apertura drawer,
    selezione), non decorano. Sempre dietro `prefers-reduced-motion`.
-5. **Coerenza fredda.** Neutri freddi, ombre tinte di navy (non nero puro): identità "Costiero
-   professionale", calma e da gestionale serio — non estetica "AI generica".
+5. **Coerenza calda.** Neutri avorio caldi, ombre tinte di teal-navy (non nero puro): identità "Mediterraneo Caldo" — calore balneare senza perdere la serietà del gestionale.
 
 ## 2. Token — Colore (primitive)
 
@@ -453,7 +452,7 @@ e le azioni: **Nuova prenotazione**, **Assegna abbonamento**, **Registra presenz
 
 - Contrasti testo **AA**; verifica dei token di stato/ink in CI (un test che calcola il rapporto
   di contrasto etichetta↔stato fallisce sotto 4.5).
-- Focus **sempre** visibile (`--shadow-focus`); navigazione completa da tastiera; primitivi Reka UI
+- Focus **sempre** visibile (`--ring-focus`); navigazione completa da tastiera; primitivi Reka UI
   per focus trap/ESC/ARIA su drawer, dialog, menu, combobox.
 - Colore **mai** unico veicolo: testo + `aria-label` ovunque (celle, badge di stato, legende).
 - Target tocco ≥ 44px su tablet; `prefers-reduced-motion` rispettato.
