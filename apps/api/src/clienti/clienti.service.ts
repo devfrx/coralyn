@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import type { Cliente } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { TenantContext } from '../tenant/tenant-context';
@@ -27,6 +27,15 @@ export class ClientiService {
     const tenantId = this.tenant.require();
     const rows = await this.prisma.forTenant(tenantId, (tx) => tx.cliente.findMany());
     return rows.map((c) => this.toDTO(c));
+  }
+
+  async getById(id: string): Promise<ClienteDTO> {
+    const tenantId = this.tenant.require();
+    const c = await this.prisma.forTenant(tenantId, (tx) =>
+      tx.cliente.findFirst({ where: { id } }),
+    );
+    if (!c) throw new NotFoundException('Cliente non trovato');
+    return this.toDTO(c);
   }
 
   async create(input: CreaClienteInput): Promise<ClienteDTO> {

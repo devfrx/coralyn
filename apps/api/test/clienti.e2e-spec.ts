@@ -68,4 +68,24 @@ describe('Clienti (e2e) isolamento per tenant', () => {
     });
     expect(res.body.id).toBeDefined();
   });
+
+  it('GET /:id ritorna il cliente al proprietario e 404 ad altro tenant', async () => {
+    const created = await request(app.getHttpServer())
+      .post('/api/clienti')
+      .set('X-Stabilimento-Id', s1)
+      .send({ nome: 'Carlo', cognome: 'Verdi' })
+      .expect(201);
+    const id = created.body.id as string;
+
+    await request(app.getHttpServer())
+      .get(`/api/clienti/${id}`)
+      .set('X-Stabilimento-Id', s1)
+      .expect(200)
+      .expect((r) => expect(r.body).toMatchObject({ id, nome: 'Carlo', cognome: 'Verdi' }));
+
+    await request(app.getHttpServer())
+      .get(`/api/clienti/${id}`)
+      .set('X-Stabilimento-Id', s2)
+      .expect(404);
+  });
 });
