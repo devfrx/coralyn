@@ -1,6 +1,6 @@
 # ADR-0018: Linguaggio visivo — palette, tipografia, stati mappa, icone
 
-- **Status:** Accepted
+- **Status:** Superseded by [ADR-0027](0027-coralyn-linguaggio-visivo.md) (palette e tipografia)
 - **Data:** 2026-06-28
 - **Decisori:** Team di progetto
 - **ADR correlati:** [ADR-0017](0017-design-system-frontend.md) (dove vivono i token), [ADR-0004](0004-form-factor-e-delivery.md) (PWA/offline), [ADR-0016](0016-tipologia-ombrellone.md) (tipologia → marcatori), [ADR-0020](0020-resa-mappa.md) (resa/a11y degli stati), [ADR-0009](0009-documentazione-di-design.md) (mockup), [D-020](../deferred.md)

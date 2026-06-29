@@ -75,7 +75,7 @@ Termini di dominio: [glossario](glossary.md).
 
 Diagrammi in Mermaid e mockup in [docs/design/](../design/), versionati e tenuti
 aggiornati. Il [design system del frontend](../design/design-system.md) (token + linguaggio dei
-componenti) è la spec d'implementazione di `ui-kit` ([ADR-0017](decisions/0017-design-system-frontend.md)–[0020](decisions/0020-resa-mappa.md)).
+componenti) è la spec d'implementazione di `ui-kit` ([ADR-0017](decisions/0017-design-system-frontend.md)–[0020](decisions/0020-resa-mappa.md), [ADR-0027](decisions/0027-coralyn-linguaggio-visivo.md) — Coralyn).
 
 ## Indice degli ADR
 
@@ -100,3 +100,9 @@ componenti) è la spec d'implementazione di `ui-kit` ([ADR-0017](decisions/0017-
 - [ADR-0019](decisions/0019-app-shell-e-ux.md) — App-shell e pattern UX (sezioni, drawer, responsive, PWA)
 - [ADR-0020](decisions/0020-resa-mappa.md) — Resa della mappa (HTML/CSS, cella a 4 assi, accessibilità)
 - [ADR-0021](decisions/0021-server-state-frontend.md) — Server-state del frontend (TanStack Query + Pinia)
+- [ADR-0022](decisions/0022-base-path-api.md) — Base path API
+- [ADR-0023](decisions/0023-contatti-cliente-colonne-tipizzate.md) — Contatti cliente (colonne tipizzate)
+- [ADR-0024](decisions/0024-strategia-auth.md) — Strategia auth (JWT, argon2id)
+- [ADR-0025](decisions/0025-hashing-password.md) — Hashing password (argon2id)
+- [ADR-0026](decisions/0026-identita-rls-utente.md) — Identità, RLS, Utente
+- [ADR-0027](decisions/0027-coralyn-linguaggio-visivo.md) — Coralyn — aggiornamento linguaggio visivo (da-0 redesign)
