@@ -1,6 +1,6 @@
-import { Body, Controller, Get, Param, Post } from '@nestjs/common';
+import { Body, Controller, Get, Param, Patch, Post } from '@nestjs/common';
 import { ClientiService } from './clienti.service';
-import { ClienteDTO, CreaClienteInput } from '@driftly/contracts';
+import { ClienteDTO, CreaClienteInput, ModificaClienteInput } from '@driftly/contracts';
 
 @Controller('clienti')
 export class ClientiController {
@@ -19,5 +19,10 @@ export class ClientiController {
   @Post()
   create(@Body() body: CreaClienteInput): Promise<ClienteDTO> {
     return this.clienti.create(body);
+  }
+
+  @Patch(':id')
+  update(@Param('id') id: string, @Body() body: ModificaClienteInput): Promise<ClienteDTO> {
+    return this.clienti.update(id, body);
   }
 }

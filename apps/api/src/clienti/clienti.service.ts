@@ -2,7 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import type { Cliente } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { TenantContext } from '../tenant/tenant-context';
-import { ClienteDTO, CreaClienteInput } from '@driftly/contracts';
+import { ClienteDTO, CreaClienteInput, ModificaClienteInput } from '@driftly/contracts';
 
 @Injectable()
 export class ClientiService {
@@ -43,6 +43,17 @@ export class ClientiService {
     const c = await this.prisma.forTenant(tenantId, (tx) =>
       tx.cliente.create({ data: { stabilimentoId: tenantId, ...input } }),
     );
+    return this.toDTO(c);
+  }
+
+  async update(id: string, input: ModificaClienteInput): Promise<ClienteDTO> {
+    const tenantId = this.tenant.require();
+    const c = await this.prisma.forTenant(tenantId, async (tx) => {
+      const existing = await tx.cliente.findFirst({ where: { id } });
+      if (!existing) return null;
+      return tx.cliente.update({ where: { id }, data: input });
+    });
+    if (!c) throw new NotFoundException('Cliente non trovato');
     return this.toDTO(c);
   }
 }

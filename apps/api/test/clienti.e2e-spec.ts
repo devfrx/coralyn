@@ -88,4 +88,30 @@ describe('Clienti (e2e) isolamento per tenant', () => {
       .set('X-Stabilimento-Id', s2)
       .expect(404);
   });
+
+  it('PATCH /:id aggiorna i contatti del proprietario e 404 ad altro tenant', async () => {
+    const created = await request(app.getHttpServer())
+      .post('/api/clienti')
+      .set('X-Stabilimento-Id', s1)
+      .send({ nome: 'Dora', cognome: 'Neri' })
+      .expect(201);
+    const id = created.body.id as string;
+
+    const patched = await request(app.getHttpServer())
+      .patch(`/api/clienti/${id}`)
+      .set('X-Stabilimento-Id', s1)
+      .send({ telefono: '+39 340 0000000', note: 'preferisce prima fila' })
+      .expect(200);
+    expect(patched.body).toMatchObject({
+      id,
+      telefono: '+39 340 0000000',
+      note: 'preferisce prima fila',
+    });
+
+    await request(app.getHttpServer())
+      .patch(`/api/clienti/${id}`)
+      .set('X-Stabilimento-Id', s2)
+      .send({ telefono: '+39 111' })
+      .expect(404);
+  });
 });
