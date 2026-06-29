@@ -12,6 +12,7 @@ const routes: RouteRecordRaw[] = [
   { path: '/clienti/:id', name: 'cliente-dettaglio', component: () => import('@/features/clienti/ClienteDettaglioView.vue'), props: true, meta: { title: 'Scheda cliente', subtitle: 'Anagrafica e attività del bagnante' } },
   { path: '/listino', name: 'listino', component: () => import('@/features/listino/ListinoView.vue'), meta: { title: 'Listino', subtitle: 'Pacchetti, tariffe e fasce' } },
   { path: '/report', name: 'report', component: () => import('@/features/report/ReportView.vue'), meta: { title: 'Report', subtitle: 'Andamento della stagione' } },
+  { path: '/stabilimento', name: 'stabilimento', component: () => import('@/features/stabilimento/StabilimentoView.vue'), meta: { title: 'Stabilimento', subtitle: 'Configurazione e team' } },
   { path: '/console', name: 'console', component: () => import('@/features/console/ConsoleView.vue'), meta: { title: 'Console', subtitle: 'Strumenti di piattaforma', ruolo: Ruolo.Superuser } },
 ];
 
