@@ -162,7 +162,7 @@ const fasciaOpts = [{ value: 'Giornata', label: 'Giornata' }, { value: 'Mattina'
             <span class="flex-1"></span>
             <span class="text-[12.5px] font-bold tabular-nums text-[var(--color-success-ink)]">{{ booking.importo }}</span>
           </div>
-          <button class="mt-2.5 self-start p-0.5 text-xs font-semibold text-[var(--color-danger)]">Annulla prenotazione</button>
+          <button type="button" class="mt-2.5 self-start p-0.5 text-xs font-semibold text-[var(--color-danger)] focus-visible:outline-none focus-visible:[box-shadow:var(--ring-focus)]">Annulla prenotazione</button>
         </template>
         <div v-else class="mt-3.5 rounded-xl border border-dashed border-[var(--color-warm-border-seg)] bg-[var(--color-warm-075)] p-4 text-center text-[12.5px] leading-relaxed text-[var(--color-text-muted)]">
           Postazione disponibile<br />per l'intera giornata.

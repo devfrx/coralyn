@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { KpiCard, BarChart, StackedBar, Card, Avatar, Button, Icon } from '@driftly/ui-kit';
 
+// Mock seam: dati demo statici — da sostituire con useQuery quando il backend espone l'endpoint.
 const kpi = [
   { icon: 'euro', iconBg: 'var(--color-accent-tint)', iconInk: 'var(--color-accent)', label: 'Incasso oggi', value: '€ 2.340', trend: '+12% vs ieri', trendDir: 'up' as const },
   { icon: 'users', iconBg: 'var(--color-success-bg)', iconInk: 'var(--color-success-ink)', label: 'Presenze', value: '128', trend: '+8% vs ieri', trendDir: 'up' as const },

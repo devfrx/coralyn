@@ -14,6 +14,7 @@ const cols = [
   { key: 'incasso', label: 'Incasso', align: 'right' as const },
 ];
 type Tone = 'success' | 'warning' | 'neutral';
+// Mock seam: dati demo statici — da sostituire con useQuery quando il backend espone l'endpoint.
 const prenotazioni: { ini: string; cliente: string; ombrellone: string; pacchetto: string; tipo: string; periodo: string; stato: string; tone: Tone; incasso: string }[] = [
   { ini: 'MR', cliente: 'Mario Rossi', ombrellone: 'Centro · 8', pacchetto: 'Comfort', tipo: 'Stagionale', periodo: '1 giu – 15 set', stato: 'Confermata', tone: 'success', incasso: '€ 1.200,00' },
   { ini: 'GB', cliente: 'Giulia Bianchi', ombrellone: 'Centro · 3', pacchetto: 'Prestige', tipo: 'Settimanale', periodo: '27 giu – 4 lug', stato: 'Confermata', tone: 'success', incasso: '€ 320,00' },

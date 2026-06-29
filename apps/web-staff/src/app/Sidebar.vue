@@ -25,7 +25,7 @@ function esci() { session.logout(); router.push('/login'); }
         <div class="text-[10.5px] font-medium uppercase tracking-[.08em] text-[var(--color-on-sidebar-muted)]">Gestionale lidi</div>
       </div>
     </div>
-    <button @click="router.push('/stabilimento')" class="mb-[18px] flex w-full items-center gap-2.5 rounded-[11px] border border-[var(--color-sidebar-border)] bg-[var(--color-sidebar-raised)] px-2.5 py-2.5 text-left">
+    <button @click="router.push('/stabilimento')" class="mb-[18px] flex w-full items-center gap-2.5 rounded-[11px] border border-[var(--color-sidebar-border)] bg-[var(--color-sidebar-raised)] px-2.5 py-2.5 text-left focus-visible:outline-none focus-visible:[box-shadow:var(--ring-focus)]">
       <span class="grid size-[30px] flex-none place-items-center rounded-lg text-white" style="background:linear-gradient(150deg,#85B4B2,#5E9AA6);"><Icon name="waves" :size="17" /></span>
       <span class="flex-1 leading-tight">
         <span class="block text-[13px] font-semibold text-[var(--color-on-sidebar-strong)]">{{ session.nomeStabilimento }}</span>
@@ -37,7 +37,7 @@ function esci() { session.logout(); router.push('/login'); }
     <nav class="flex flex-col gap-[3px]">
       <RouterLink v-for="it in nav" :key="it.to" :to="it.to" custom v-slot="{ isActive, navigate }">
         <button @click="navigate" :aria-current="isActive ? 'page' : undefined"
-          class="flex items-center gap-2.5 rounded-[10px] px-2.5 py-2.5 text-sm"
+          class="flex items-center gap-2.5 rounded-[10px] px-2.5 py-2.5 text-sm focus-visible:outline-none focus-visible:[box-shadow:var(--ring-focus)]"
           :class="isActive ? 'bg-[var(--color-sidebar-raised)] font-semibold text-[var(--color-on-sidebar-strong)]' : 'font-medium text-[var(--color-on-sidebar)] hover:bg-white/5'">
           <Icon :name="it.icon" :size="20" class="flex-none" />
           <span class="flex-1 text-left">{{ it.label }}</span>
@@ -48,7 +48,7 @@ function esci() { session.logout(); router.push('/login'); }
     <div class="mt-auto flex flex-col gap-[3px]">
       <div class="mx-2 my-3 h-px bg-[var(--color-sidebar-divider)]"></div>
       <RouterLink v-if="session.ruolo === Ruolo.Superuser" to="/console" custom v-slot="{ isActive, navigate }">
-        <button @click="navigate" class="flex items-center gap-2.5 rounded-[10px] px-2.5 py-2.5 text-sm"
+        <button @click="navigate" class="flex items-center gap-2.5 rounded-[10px] px-2.5 py-2.5 text-sm focus-visible:outline-none focus-visible:[box-shadow:var(--ring-focus)]"
           :class="isActive ? 'bg-[var(--color-sidebar-raised)] text-[var(--color-on-sidebar-strong)]' : 'text-[var(--color-on-sidebar)] hover:bg-white/5'">
           <Icon name="shield" :size="19" class="flex-none" />
           <span class="flex-1 text-left">Console</span>
@@ -61,7 +61,7 @@ function esci() { session.logout(); router.push('/login'); }
           <span class="block truncate text-[12px] font-semibold text-[var(--color-on-sidebar-strong)]">{{ session.utenteEmail }}</span>
           <span class="block text-[10.5px] text-[var(--color-on-sidebar-muted)]">Amministratore</span>
         </span>
-        <button @click="esci" aria-label="Esci" title="Esci" class="grid size-[30px] flex-none place-items-center rounded-lg text-[var(--color-on-sidebar-muted)] hover:bg-white/5"><Icon name="logout" :size="18" /></button>
+        <button @click="esci" aria-label="Esci" title="Esci" class="grid size-[30px] flex-none place-items-center rounded-lg text-[var(--color-on-sidebar-muted)] hover:bg-white/5 focus-visible:outline-none focus-visible:[box-shadow:var(--ring-focus)]"><Icon name="logout" :size="18" /></button>
       </div>
     </div>
   </aside>

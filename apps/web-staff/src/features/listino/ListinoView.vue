@@ -2,6 +2,7 @@
 import { Button, Badge, Card, DataTable, Icon } from '@driftly/ui-kit';
 
 type Tone = 'accent' | 'brand' | 'neutral';
+// Mock seam: dati demo statici — da sostituire con useQuery quando il backend espone l'endpoint.
 const pacchetti: { nome: string; tag: string; tone: Tone; dotazione: string; prezzo: string }[] = [
   { nome: 'Base', tag: 'Essenziale', tone: 'neutral', dotazione: 'Ombrellone + 2 lettini. Posizione retro e centrale.', prezzo: '€ 22' },
   { nome: 'Comfort', tag: 'Più richiesto', tone: 'accent', dotazione: 'Ombrellone + 2 lettini + sdraio. Prime file laterali.', prezzo: '€ 28' },
@@ -26,7 +27,7 @@ const tariffe = [
 <template>
   <section class="px-[26px] pb-[30px] pt-[22px]">
     <div class="mb-[18px] flex flex-wrap items-center gap-3">
-      <button class="flex items-center gap-2.5 rounded-[11px] border border-[var(--color-border)] bg-[var(--color-surface)] px-3.5 py-2">
+      <button class="flex items-center gap-2.5 rounded-[11px] border border-[var(--color-border)] bg-[var(--color-surface)] px-3.5 py-2 focus-visible:outline-none focus-visible:[box-shadow:var(--ring-focus)]">
         <span class="text-[13px] font-semibold text-[var(--color-text)]">Estate 2026</span>
         <span class="text-[11.5px] tabular-nums text-[var(--color-text-muted)]">1 giu – 15 set</span>
         <Icon name="chevron-down" :size="15" class="text-[var(--color-text-muted)]" />

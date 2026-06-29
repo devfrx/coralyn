@@ -5,6 +5,7 @@ import { useSessionStore } from '@/stores/session';
 const session = useSessionStore();
 const router = useRouter();
 function esci() { session.logout(); router.push('/login'); }
+// Mock seam: dati demo statici — da sostituire con useQuery quando il backend espone l'endpoint.
 const struttura = [
   { value: '2', label: 'Settori' }, { value: '47', label: 'Ombrelloni' }, { value: '3', label: 'Tipologie' }, { value: '3', label: 'Pacchetti' },
 ];
@@ -40,7 +41,7 @@ const utenti: { ini: string; email: string; ruolo: string; tone: Tone; tu: boole
       </Card>
       <Card>
         <div class="p-5">
-          <div class="mb-4 flex items-center justify-between"><span class="text-sm font-bold text-[var(--color-text)]">Struttura della spiaggia</span><span class="text-[11px] font-semibold text-[var(--color-accent)]">Configura</span></div>
+          <div class="mb-4 flex items-center justify-between"><span class="text-sm font-bold text-[var(--color-text)]">Struttura della spiaggia</span><Badge tone="soon">Configura · in arrivo</Badge></div>
           <div class="grid grid-cols-2 gap-3.5">
             <StatTile v-for="s in struttura" :key="s.label" :value="s.value" :label="s.label" />
           </div>
