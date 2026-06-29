@@ -13,6 +13,14 @@ export function useClienti() {
   });
 }
 
+export function useCliente(id: string) {
+  const session = useSessionStore();
+  return useQuery({
+    queryKey: computed(() => queryKeys.cliente(session.stabilimentoId, id)),
+    queryFn: () => apiFetch<ClienteDTO>(`/clienti/${id}`, { tenantId: session.stabilimentoId }),
+  });
+}
+
 export function useCreaCliente() {
   const session = useSessionStore();
   const qc = useQueryClient();
