@@ -15,8 +15,8 @@ function crea() { session.login(); router.push('/mappa'); }
       <h2 class="mb-3.5 text-[30px] font-bold leading-[1.22] tracking-[-.02em] text-[var(--color-on-sidebar-strong)]">Porta il tuo lido su Coralyn.</h2>
       <p class="mb-5 text-[14.5px] leading-relaxed text-[var(--color-on-teal-2nd)]">Crea l'account dello stabilimento: sarai l'amministratore e potrai configurare mappa, listino e staff.</p>
       <div class="flex flex-col gap-2.5">
-        <div class="flex items-center gap-2.5 text-[13px] text-[var(--color-on-sidebar)]"><span class="grid size-[22px] flex-none place-items-center rounded-[7px]" style="background:rgba(133,180,178,.22);color:#9FD0CB;"><Icon name="check" :size="13" /></span>Configurazione guidata della spiaggia</div>
-        <div class="flex items-center gap-2.5 text-[13px] text-[var(--color-on-sidebar)]"><span class="grid size-[22px] flex-none place-items-center rounded-[7px]" style="background:rgba(133,180,178,.22);color:#9FD0CB;"><Icon name="check" :size="13" /></span>Prenotazioni e abbonamenti dal primo giorno</div>
+        <div class="flex items-center gap-2.5 text-[13px] text-[var(--color-on-sidebar)]"><span class="grid size-[22px] flex-none place-items-center rounded-[7px]" style="background:rgba(133,180,178,.22);color:var(--color-on-teal-check);"><Icon name="check" :size="13" /></span>Configurazione guidata della spiaggia</div>
+        <div class="flex items-center gap-2.5 text-[13px] text-[var(--color-on-sidebar)]"><span class="grid size-[22px] flex-none place-items-center rounded-[7px]" style="background:rgba(133,180,178,.22);color:var(--color-on-teal-check);"><Icon name="check" :size="13" /></span>Prenotazioni e abbonamenti dal primo giorno</div>
       </div>
     </template>
     <template #footer>Abbonamento per stabilimento</template>
