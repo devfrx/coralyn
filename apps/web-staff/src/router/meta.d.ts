@@ -1,0 +1,11 @@
+import 'vue-router';
+import type { Ruolo } from '@driftly/contracts';
+declare module 'vue-router' {
+  interface RouteMeta {
+    title?: string;
+    subtitle?: string;
+    public?: boolean;
+    bare?: boolean;
+    ruolo?: Ruolo;
+  }
+}
