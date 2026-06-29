@@ -34,7 +34,11 @@ function submit() {
         </thead>
         <tbody>
           <tr v-for="c in clienti" :key="c.id" class="border-t border-[var(--color-cool-100)]">
-            <td class="py-2 font-medium">{{ c.cognome }}</td><td class="py-2">{{ c.nome }}</td>
+            <td class="py-2 font-medium">
+              <RouterLink :to="{ name: 'cliente-dettaglio', params: { id: c.id } }" class="text-[var(--color-text-accent)]">
+                {{ c.cognome }}
+              </RouterLink>
+            </td><td class="py-2">{{ c.nome }}</td>
           </tr>
         </tbody>
       </table>

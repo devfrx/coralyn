@@ -25,4 +25,13 @@ describe('ClientiView', () => {
     await flushPromises();
     expect(w.text()).toContain('Verdi');
   });
+
+  it('ogni riga linka alla scheda del cliente', async () => {
+    const w = mountApp(ClientiView);
+    await flushPromises();
+    await new Promise((r) => setTimeout(r, 0));
+    const link = w.find('a');
+    expect(link.exists()).toBe(true);
+    expect(link.text()).toContain('Rossi');
+  });
 });

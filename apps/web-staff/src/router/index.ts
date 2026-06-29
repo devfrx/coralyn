@@ -7,6 +7,7 @@ const routes: RouteRecordRaw[] = [
   { path: '/mappa', name: 'mappa', component: () => import('@/features/mappa/MappaView.vue') },
   { path: '/prenotazioni', name: 'prenotazioni', component: () => import('@/features/prenotazioni/PrenotazioniView.vue') },
   { path: '/clienti', name: 'clienti', component: () => import('@/features/clienti/ClientiView.vue') },
+  { path: '/clienti/:id', name: 'cliente-dettaglio', component: () => import('@/features/clienti/ClienteDettaglioView.vue'), props: true },
   { path: '/listino', name: 'listino', component: () => import('@/features/listino/ListinoView.vue') },
   { path: '/report', name: 'report', component: () => import('@/features/report/ReportView.vue') },
   { path: '/console', name: 'console', component: () => import('@/features/console/ConsoleView.vue'), meta: { ruolo: Ruolo.Superuser } },
