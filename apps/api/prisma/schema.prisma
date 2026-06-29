@@ -11,6 +11,7 @@ model Stabilimento {
   id      String    @id @default(uuid()) @db.Uuid
   nome    String
   clienti Cliente[]
+  utenti  Utente[]
 }
 
 model Cliente {
@@ -22,6 +23,23 @@ model Cliente {
   email          String?
   note           String?
   stabilimento   Stabilimento @relation(fields: [stabilimentoId], references: [id])
+
+  @@index([stabilimentoId])
+}
+
+enum Ruolo {
+  admin
+  staff
+  superuser
+}
+
+model Utente {
+  id             String        @id @default(uuid()) @db.Uuid
+  stabilimentoId String?       @db.Uuid // null = superuser di piattaforma (cross-tenant)
+  email          String        @unique // unica globale: identifica l'utente al login
+  passwordHash   String // argon2id; mai esposto nei DTO
+  ruolo          Ruolo
+  stabilimento   Stabilimento? @relation(fields: [stabilimentoId], references: [id])
 
   @@index([stabilimentoId])
 }
