@@ -83,7 +83,9 @@ erDiagram
         uuid stabilimento_id FK
         string nome
         string cognome
-        json contatti
+        string telefono "nullable; contatto (ADR-0023)"
+        string email "nullable; contatto, validato @IsEmail (ADR-0023)"
+        string note "nullable; annotazione libera dello staff (ADR-0023)"
     }
     STAGIONE {
         uuid id PK
@@ -206,3 +208,9 @@ erDiagram
   ([ADR-0016](../architecture/decisions/0016-tipologia-ombrellone.md)).
 - **Disambiguazione**: `CLIENTE` = il bagnante; il *tenant* è lo `STABILIMENTO`
   (mai chiamarlo "cliente" nel codice).
+- **Contatti del Cliente**: `telefono` ed `email` sono **colonne tipizzate nullable**
+  (non un `json contatti`), `note` è un `text` libero di servizio; l'`email` è validata
+  server-side (`@IsEmail`). Scelta motivata in
+  [ADR-0023](../architecture/decisions/0023-contatti-cliente-colonne-tipizzate.md);
+  cancellazione/anonimizzazione del Cliente (GDPR) rimandata a
+  [D-024](../architecture/deferred.md).
