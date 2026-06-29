@@ -11,3 +11,8 @@ export { default as Textarea } from './components/Textarea.vue';
 export { default as Avatar } from './components/Avatar.vue';
 export { default as SegmentedControl } from './components/SegmentedControl.vue';
 export { default as Modal } from './components/Modal.vue';
+export { default as DataTable } from './components/DataTable.vue';
+export { default as KpiCard } from './components/KpiCard.vue';
+export { default as StatTile } from './components/StatTile.vue';
+export { default as BarChart } from './components/BarChart.vue';
+export { default as StackedBar } from './components/StackedBar.vue';
