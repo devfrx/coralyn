@@ -1,15 +1,16 @@
 <script setup lang="ts">
+import { useRoute } from 'vue-router';
 import Topbar from './Topbar.vue';
 import Sidebar from './Sidebar.vue';
+const route = useRoute();
 </script>
 <template>
-  <div class="min-h-screen bg-[var(--color-canvas)] p-3">
-    <Topbar />
-    <div class="flex items-stretch gap-3">
-      <Sidebar />
-      <main class="min-h-[70vh] flex-1 rounded-[var(--radius-lg)] bg-[var(--color-surface)] [box-shadow:var(--shadow-sm)]">
-        <RouterView />
-      </main>
-    </div>
+  <RouterView v-if="route.meta.bare" />
+  <div v-else class="flex h-screen min-h-[620px] bg-[var(--color-canvas)] text-[var(--color-text)]">
+    <Sidebar />
+    <main class="flex min-w-0 flex-1 flex-col bg-[var(--color-bg)]">
+      <Topbar />
+      <div class="min-h-0 flex-1 overflow-auto"><RouterView /></div>
+    </main>
   </div>
 </template>
