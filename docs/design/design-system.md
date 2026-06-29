@@ -6,15 +6,17 @@
 > *cosa* corrente (come i diagrammi); il *perché* sta negli ADR
 > ([ADR-0009](../architecture/decisions/0009-documentazione-di-design.md)).
 >
-> **Status:** aggiornato al redesign **Coralyn** (2026-06-29). Lingua visiva "Mediterraneo
-> Caldo": brand corallo-terracotta, superfici avorio, navy profondo caldo. Le scelte
-> strutturali (ADR-0017–0020) sono **confermate**; i *valori* di palette e tipografia sono
-> rivisti dall'[ADR-0027](../architecture/decisions/0027-coralyn-linguaggio-visivo.md).
+> **Status:** aggiornato al redesign **Coralyn** (2026-06-30) — valori reali da `theme.css`.
+> Lingua visiva "Mediterraneo Caldo": brand corallo-terracotta `#E0795A`, superfici avorio
+> calde, sidebar teal profondo `#0F3C49`, accento teal `#2F7281`. Le scelte strutturali
+> (ADR-0017–0020) sono **confermate**; palette e tipografia sono riviste dall'
+> [ADR-0027](../architecture/decisions/0027-coralyn-linguaggio-visivo.md) (**supera ADR-0018
+> solo per palette e tipografia — le icone Iconify/Lucide rimangono invariate**).
 >
 > **Ancoraggio:** [ADR-0017](../architecture/decisions/0017-design-system-frontend.md) (token-first,
 > headless, ui-kit) · [ADR-0027](../architecture/decisions/0027-coralyn-linguaggio-visivo.md)
 > (Coralyn — palette, tipografia) · [ADR-0018](../architecture/decisions/0018-linguaggio-visivo.md)
-> *superato da ADR-0027* · [ADR-0019](../architecture/decisions/0019-app-shell-e-ux.md)
+> *superato da ADR-0027 solo per palette/tipografia (icone invariate)* · [ADR-0019](../architecture/decisions/0019-app-shell-e-ux.md)
 > (app-shell, responsive, PWA) · [ADR-0020](../architecture/decisions/0020-resa-mappa.md)
 > (resa mappa, cella a 4 assi, a11y) · [ADR-0016](../architecture/decisions/0016-tipologia-ombrellone.md)
 > (etichetta reale, Tipologia, Speciali) · [ADR-0013](../architecture/decisions/0013-granularita-disponibilita-a-slot.md)
@@ -41,127 +43,155 @@
 Palette grezza. **Non usare direttamente nei componenti**: passare sempre dai semantic (§3).
 
 > Aggiornato al redesign **Coralyn** ([ADR-0027](../architecture/decisions/0027-coralyn-linguaggio-visivo.md)):
-> brand spostato da teal a corallo-terracotta; neutri freddi → caldi; navy leggermente riscaldato.
-> Stati mappa e accento sabbia: **invariati**.
+> brand corallo-terracotta `#E0795A`, sidebar teal profondo `#0F3C49`, accento teal `#2F7281`,
+> neutri caldi, Inter/700. Valori 1:1 da `packages/ui-kit/src/styles/theme.css`.
 
 ```css
-:root {
-  /* Brand — Corallo (sostituisce teal, ADR-0027) */
-  --coral-800: #7A2E1C;
-  --coral-700: #9E3D2A; /* hover/pressed */
-  --coral-600: #B24832;
-  --coral-500: #C4523A; /* primario */
-  --coral-100: #FAE8E4; /* tint: selezione/focus su chiaro */
-  --coral-050: #FDF3F1;
+/* ===== PRIMITIVE — Brand corallo ===== */
+--color-coral-500: #E0795A; /* brand primario */
+--color-coral-600: #C9603F; /* hover/pressed */
+--color-coral-700: #B65A38; /* ink su tint */
+--color-coral-100: #FBE8DF; /* tint selezione/focus */
+--color-coral-050: #FBF1EF;
 
-  /* Brand — Navy profondo caldo (superfici profonde) */
-  --navy-900: #1A2A38; /* sidebar/superfici profonde */
-  --navy-800: #22364A;
-  --navy-700: #2E4560; /* divisori su navy */
+/* ===== PRIMITIVE — Teal profondo (sidebar/auth) ===== */
+--color-teal-900: #0B3543;
+--color-teal-800: #0F3C49; /* sidebar bg */
+--color-teal-700: #16505E; /* sidebar raised (nav item attivo) */
+--color-teal-650: #1A5666;
+--color-teal-600: #23606E; /* sidebar border */
+--color-teal-divider: #1C4E5B;
 
-  /* Accento — sabbia (caldo, con parsimonia) — invariato */
-  --sand-600: #A87A20;
-  --sand-500: #C49535;
-  --sand-400: #D4A347;
-  --sand-100: #FDF4E3;
+/* ===== PRIMITIVE — Teal accento (su chiaro) ===== */
+--color-accent-500: #2F7281;
+--color-accent-100: #E6EFEC; /* tint accento */
+--color-accent-150: #E2EDEE;
 
-  /* Neutri caldi (sostituisce cool-*, ADR-0027) */
-  --warm-000: #FFFFFF;
-  --warm-050: #FDFAF6; /* bg area contenuto */
-  --warm-100: #F5F0EA;
-  --warm-150: #EFE9E0; /* canvas del layout a card */
-  --warm-200: #E0D8CF; /* bordo */
-  --warm-300: #C8BFB4; /* bordo sottile / disabled / swatch "Normale" */
-  --warm-400: #9A9089; /* placeholder */
-  --warm-500: #726960; /* testo muto */
-  --warm-700: #4D4740; /* testo secondario forte */
-  --warm-900: #231F1B; /* testo */
+/* ===== PRIMITIVE — Testo su teal ===== */
+--color-on-teal: #CFE0DF;
+--color-on-teal-strong: #F6EEE1;
+--color-on-teal-muted: #6E9197;
+--color-on-teal-eyebrow: #577A80;
+--color-on-teal-2nd: #9FBCC0;
+--color-on-teal-check: #9FD0CB;
 
-  /* Feedback — invariati */
-  --green-500: #3F9D5B; /* success */
-  --amber-500: #E8A93C; /* warning */
-  --red-500:   #D6453D; /* danger */
-  --blue-500:  #4F86E0; /* info */
+/* ===== PRIMITIVE — Neutri caldi ===== */
+--color-warm-000: #FFFFFF;
+--color-warm-025: #FCFAF5;
+--color-warm-050: #FBF6EE; /* raised */
+--color-warm-075: #FBF4E6;
+--color-warm-100: #F4ECE0; /* bg area contenuto */
+--color-warm-150: #F6EAD3;
+--color-warm-200: #ECE3D5; /* canvas */
+--color-warm-250: #EDE3D4;
+/* bordi */
+--color-warm-border: #E7DCCB;
+--color-warm-border-input: #E0D5C3;
+--color-warm-border-row: #F1EADC;
+--color-warm-border-stage: #ECDFC8;
+--color-warm-border-seg: #E2D6C3;
+/* ink */
+--color-ink-900: #22303A; /* testo principale / titoli */
+--color-ink-canvas: #2B2722;
+--color-ink-700: #5E5648; /* testo secondario */
+--color-ink-600: #8A7E6B;
+--color-ink-500: #978C7B; /* testo muto */
+--color-ink-400: #B3A998; /* placeholder */
 
-  /* Stati mappa (riempimento) — invariati */
-  --state-free-500:   #6BBF7B; /* Libero */
-  --state-sub-500:    #5B8DEF; /* Abbonato */
-  --state-day-500:    #E87C3C; /* Giornaliero */
-  --state-booked-500: #EFB847; /* Prenotato */
+/* ===== PRIMITIVE — Stati mappa ===== */
+--color-state-libero: #8FBF9E;        --color-state-libero-ink: #1E3A16;
+--color-state-abbonato: #5E9AA6;      --color-state-abbonato-ink: #102945;
+--color-state-giornaliero: #E89270;   --color-state-giornaliero-ink: #3A1E08;
+--color-state-prenotato: #F1C879;     --color-state-prenotato-ink: #4A3711;
+--color-state-normale-mark: #D8CDBB;
 
-  /* Ink per gli stati mappa — scuri, contrasto AA (vedi §3.1) */
-  --state-free-ink:   #183E1E;
-  --state-sub-ink:    #102945;
-  --state-day-ink:    #3A1A08;
-  --state-booked-ink: #4A3711;
-}
+/* ===== PRIMITIVE — Mare (gradiente) ===== */
+--color-sea-1: #E0EFF3; --color-sea-2: #BEDDE8; --color-sea-3: #A8D0DE;
+--color-sea-ink: #2E6B81;
+
+/* ===== PRIMITIVE — Feedback (bg/ink) ===== */
+--color-success: #3F9D5B;   --color-success-bg: #E7F1E9;   --color-success-ink: #3E7A53;
+--color-warning: #E8A93C;   --color-warning-bg: #FBF1DA;   --color-warning-ink: #9A7322;
+--color-danger:  #C8503E;   --color-danger-bg:  #FBE3E0;   --color-danger-ink:  #A33A2C;
+--color-danger-border: #EBB7AF;
+--color-info: #4F86E0;
+/* "In arrivo" */
+--color-soon-bg: #F1E8D8;   --color-soon-ink: #B7A98F;
 ```
 
-> I quattro stati mappa e l'accento sabbia sono **invariati** ([ADR-0027](../architecture/decisions/0027-coralyn-linguaggio-visivo.md)).
-> Il brand corallo e i neutri caldi sono **vincolati** da ADR-0027. I valori intermedi e gli *ink*
-> sono derivati per completare la scala e garantire AA: esecuzione, non nuove scelte.
+> I valori di stato mappa (Libero `#8FBF9E`, Abbonato `#5E9AA6`, Giornaliero `#E89270`,
+> Prenotato `#F1C879`) sono stati aggiornati nel redesign Coralyn ([ADR-0027](../architecture/decisions/0027-coralyn-linguaggio-visivo.md),
+> [nota ADR-0020](../architecture/decisions/0020-resa-mappa.md)). Gli ink scuri per-stato sono
+> invariati. Tutti i valori sono 1:1 da `theme.css`.
 
 ## 3. Token — Colore (semantic)
 
 Ruoli consumati dai componenti. Ogni colore "di sfondo" ha il suo `-ink` (testo sopra) verificato AA.
 
 ```css
-:root {
-  /* Superfici */
-  --color-canvas:        var(--warm-150); /* tela dietro le card */
-  --color-bg:            var(--warm-050); /* sfondo area contenuto */
-  --color-surface:       var(--warm-000); /* card, drawer, popover */
-  --color-sunken:        var(--warm-100); /* campi, righe alternate, ghost btn */
-  --color-border:        var(--warm-200);
-  --color-border-subtle: var(--warm-300);
+/* Superfici */
+--color-canvas:        var(--color-warm-200);   /* #ECE3D5 — tela dietro i contenuti */
+--color-bg:            var(--color-warm-100);   /* #F4ECE0 — sfondo area contenuto */
+--color-surface:       var(--color-warm-000);   /* #FFFFFF — card, drawer, popover */
+--color-raised:        var(--color-warm-050);   /* #FBF6EE — superfici leggermente rialzate */
+--color-border:        var(--color-warm-border);       /* #E7DCCB */
+--color-border-input:  var(--color-warm-border-input); /* #E0D5C3 */
+--color-border-row:    var(--color-warm-border-row);   /* #F1EADC — divisori tabella */
 
-  /* Testo */
-  --color-text:         var(--warm-900);
-  --color-text-muted:   var(--warm-500);
-  --color-text-strong:  var(--warm-900);
-  --color-text-2nd:     var(--warm-700);
-  --color-on-brand:     #FFFFFF;    /* testo su corallo — AA ok */
-  --color-on-navy:      #D4E6EF;    /* testo su sidebar navy */
-  --color-on-navy-muted:#8AAABB;
+/* Testo */
+--color-text:          var(--color-ink-900);    /* #22303A */
+--color-text-2nd:      var(--color-ink-700);    /* #5E5648 */
+--color-text-muted:    var(--color-ink-500);    /* #978C7B */
+--color-placeholder:   var(--color-ink-400);    /* #B3A998 */
 
-  /* Brand / interazione */
-  --color-brand:        var(--coral-500);
-  --color-brand-hover:  var(--coral-700);
-  --color-brand-tint:   var(--coral-100); /* sfondo selezione/hover su chiaro */
-  --color-accent:       var(--sand-400);
-  --color-accent-hover: var(--sand-500);
-  --color-accent-tint:  var(--sand-100);
+/* Brand corallo */
+--color-brand:         var(--color-coral-500);  /* #E0795A */
+--color-brand-hover:   var(--color-coral-600);  /* #C9603F */
+--color-brand-ink:     var(--color-coral-700);  /* #B65A38 */
+--color-brand-tint:    var(--color-coral-100);  /* #FBE8DF — selezione/focus su chiaro */
 
-  /* Feedback */
-  --color-success: var(--green-500);
-  --color-warning: var(--amber-500);
-  --color-danger:  var(--red-500);
-  --color-info:    var(--blue-500);
+/* Accento teal (su chiaro) */
+--color-accent:        var(--color-accent-500); /* #2F7281 */
+--color-accent-tint:   var(--color-accent-100); /* #E6EFEC */
 
-  /* Focus */
-  --color-focus-ring: var(--coral-500);
+/* Sidebar teal profondo */
+--color-sidebar-bg:      var(--color-teal-800);   /* #0F3C49 */
+--color-sidebar-raised:  var(--color-teal-700);   /* #16505E — item nav attivo */
+--color-sidebar-border:  var(--color-teal-600);   /* #23606E */
+--color-sidebar-divider: var(--color-teal-divider); /* #1C4E5B */
+--color-on-sidebar:        var(--color-on-teal);        /* #CFE0DF */
+--color-on-sidebar-strong: var(--color-on-teal-strong); /* #F6EEE1 */
+--color-on-sidebar-muted:  var(--color-on-teal-muted);  /* #6E9197 */
 
-  /* Stati mappa (semantic) — invariati */
-  --state-libero:          var(--state-free-500);
-  --state-libero-ink:      var(--state-free-ink);
-  --state-abbonato:        var(--state-sub-500);
-  --state-abbonato-ink:    var(--state-sub-ink);
-  --state-giornaliero:     var(--state-day-500);
-  --state-giornaliero-ink: var(--state-day-ink);
-  --state-prenotato:       var(--state-booked-500);
-  --state-prenotato-ink:   var(--state-booked-ink);
-  --state-normale-mark:    var(--warm-300); /* swatch tipologia "Normale" in legenda */
-}
+/* Feedback */
+--color-success: #3F9D5B; --color-success-bg: #E7F1E9; --color-success-ink: #3E7A53;
+--color-warning: #E8A93C; --color-warning-bg: #FBF1DA; --color-warning-ink: #9A7322;
+--color-danger:  #C8503E; --color-danger-bg:  #FBE3E0; --color-danger-ink:  #A33A2C;
+--color-info: #4F86E0;
+
+/* Focus (ring corallo) */
+--ring-focus: 0 0 0 3px rgba(224,121,90,.16); /* in :root, fuori @theme */
+
+/* Stati mappa */
+--color-state-libero:          var(--color-state-libero);        /* #8FBF9E */
+--color-state-libero-ink:      var(--color-state-libero-ink);    /* #1E3A16 */
+--color-state-abbonato:        var(--color-state-abbonato);      /* #5E9AA6 */
+--color-state-abbonato-ink:    var(--color-state-abbonato-ink);  /* #102945 */
+--color-state-giornaliero:     var(--color-state-giornaliero);   /* #E89270 */
+--color-state-giornaliero-ink: var(--color-state-giornaliero-ink); /* #3A1E08 */
+--color-state-prenotato:       var(--color-state-prenotato);     /* #F1C879 */
+--color-state-prenotato-ink:   var(--color-state-prenotato-ink); /* #4A3711 */
+--color-state-normale-mark:    var(--color-state-normale-mark);  /* #D8CDBB */
 ```
 
 ### 3.1 Contrasto verificato (etichetta su stato — testo piccolo, soglia AA 4.5)
 
 | Stato | Riempimento | Ink etichetta | Contrasto* |
 |---|---|---|---|
-| Libero | `#7BB661` | `#1E3A16` | ~5.9 ✓ |
-| Abbonato | `#5B8DEF` | `#102945` | ~4.9 ✓ |
-| Giornaliero | `#E8843C` | `#3A1E08` | ~5.6 ✓ |
-| Prenotato | `#F0C24A` | `#4A3711` | ~7.9 ✓ |
+| Libero | `#8FBF9E` | `#1E3A16` | ~6.2 ✓ |
+| Abbonato | `#5E9AA6` | `#102945` | ~5.1 ✓ |
+| Giornaliero | `#E89270` | `#3A1E08` | ~5.4 ✓ |
+| Prenotato | `#F1C879` | `#4A3711` | ~8.1 ✓ |
 
 \* Stima sui valori sRGB; da verificare in CI con un check di contrasto sui token (vedi §14).
 L'etichetta usa **sempre ink scuro** su tutti gli stati: leggibilità e coerenza, niente testo
@@ -169,34 +199,36 @@ bianco a basso contrasto.
 
 ## 4. Token — Tipografia
 
-Font **Outfit** (UI). Aggiornato al redesign Coralyn ([ADR-0027](../architecture/decisions/0027-coralyn-linguaggio-visivo.md)):
-warm geometric sans, più contemporaneo e caldo di Inter senza perdere leggibilità in densità.
-Cifre tabulari garantite via `font-variant-numeric: tabular-nums`.
-Bundled offline in `packages/ui-kit` (subset latin, pesi 400/500/600 ≈ 30 KB gzip).
+Font **Inter** (UI). Aggiornato al redesign Coralyn ([ADR-0027](../architecture/decisions/0027-coralyn-linguaggio-visivo.md)):
+Inter è confermata come font della UI — leggibilità eccellente in densità, cifre tabulari native,
+pieno supporto al peso **700** usato per i titoli con tracking negativo.
+Bundled offline in `packages/ui-kit` via `@fontsource/inter` (subset latin, pesi 400/500/600/700 ≈ 36 KB gzip).
 
 ```css
-:root {
-  --font-sans: 'Outfit', system-ui, -apple-system, 'Segoe UI', sans-serif;
-  --font-numeric: 'tabular-nums'; /* applicato a prezzi/date/quantità/etichette */
+--font-sans: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+/* applicato a prezzi/date/quantità/etichette cella: font-variant-numeric: tabular-nums */
 
-  --text-xs:   12px;  --lh-xs:   16px; /* denso, micro-label, tabelle fitte */
-  --text-sm:   13px;  --lh-sm:   18px; /* tabelle, meta */
-  --text-base: 14px;  --lh-base: 20px; /* corpo */
-  --text-md:   16px;  --lh-md:   24px; /* sezione */
-  --text-lg:   18px;  --lh-lg:   26px; /* sezione enfatica */
-  --text-xl:   22px;  --lh-xl:   28px; /* titolo */
-  --text-2xl:  26px;  --lh-2xl:  32px; /* titolo grande */
+--text-xs:   12px;  --lh-xs:   16px; /* denso, micro-label, tabelle fitte */
+--text-sm:   13px;  --lh-sm:   18px; /* tabelle, meta */
+--text-base: 14px;  --lh-base: 20px; /* corpo */
+--text-md:   16px;  --lh-md:   24px; /* sezione */
+--text-lg:   18px;  --lh-lg:   26px; /* sezione enfatica */
+--text-xl:   22px;  --lh-xl:   28px; /* titolo */
+--text-2xl:  26px;  --lh-2xl:  32px; /* titolo grande */
 
-  --fw-regular: 400;
-  --fw-medium:  500;
-  --fw-semibold:600;
+--fw-regular: 400;
+--fw-medium:  500;
+--fw-semibold:600;
+--fw-bold:    700; /* headings — con letter-spacing negativo (es. -0.02em su --text-xl/2xl) */
 
-  --tracking-caps: 0.05em; /* micro-label maiuscole (legende, eyebrow) */
-}
+--tracking-caps: 0.05em; /* micro-label maiuscole (legende, eyebrow, header tabella) */
 ```
 
 Regole: prezzi, date, quantità, **etichette ombrellone** → `font-variant-numeric: tabular-nums`.
-Pesi ammessi: 400/500/600 (niente 700+, mantiene la sobrietà). Titoli di sezione: `--text-xl`/600.
+Pesi ammessi: 400/500/600/**700**. I titoli di sezione usano `--text-xl`/**700** con
+`letter-spacing: -0.02em`; i titoli di pagina usano `--text-2xl`/700. Questo è un cambio
+rispetto al vecchio ADR (che limitava a 600): il peso 700 con tracking negativo dà gerarchia
+chiara senza appesantire il testo corpo.
 
 ## 5. Token — Spaziatura
 
@@ -217,27 +249,24 @@ Base **4px** ([ADR-0018](../architecture/decisions/0018-linguaggio-visivo.md)). 
 ## 6. Token — Raggi
 
 ```css
-:root {
-  --radius-sm:   6px;   /* input, chip, badge */
-  --radius-md:   9px;   /* bottoni, nav item */
-  --radius-lg:   14px;  /* card, drawer */
-  --radius-xl:   18px;  /* canvas shell */
-  --radius-full: 999px; /* pill, avatar, cella ombrellone */
-}
+--radius-sm:   9px;   /* input, chip, badge */
+--radius-md:   11px;  /* bottoni, nav item */
+--radius-lg:   16px;  /* card, drawer */
+--radius-xl:   18px;  /* modal, canvas shell */
+--radius-full: 999px; /* pill, avatar, cella ombrellone */
 ```
 
 ## 7. Token — Elevazione (ombre)
 
-Ombre **soft, tinte di navy caldo** (rgb 26,42,56), elevazione contenuta.
+Ombre **soft, tinte di teal navy** (rgb 15,60,73), elevazione contenuta; brand shadow corallo.
 
 ```css
-:root {
-  --shadow-xs: 0 1px 3px rgba(26,42,56,.09);              /* cella, chip */
-  --shadow-sm: 0 2px 12px rgba(26,42,56,.09);             /* card */
-  --shadow-md: 0 8px 28px rgba(26,42,56,.13);             /* drawer laterale, popover, menu */
-  --shadow-lg: 0 16px 44px rgba(26,42,56,.17);            /* dialog, bottom-sheet */
-  --shadow-focus: 0 0 0 2px var(--color-surface), 0 0 0 4px var(--color-focus-ring); /* anello focus a doppio bordo */
-}
+--shadow-card:   0 1px 3px rgba(15,60,73,.05);    /* card, superfici leggere */
+--shadow-soft:   0 1px 2px rgba(15,60,73,.08);    /* chip, cella */
+--shadow-drawer: 0 12px 40px rgba(15,60,73,.13);  /* drawer laterale, popover */
+--shadow-modal:  0 24px 70px rgba(11,53,67,.34);  /* dialog / modal */
+--shadow-brand:  0 2px 8px rgba(224,121,90,.3);   /* bottone primario corallo */
+--ring-focus:    0 0 0 3px rgba(224,121,90,.16);  /* :root — anello focus coral glow */
 ```
 
 ## 8. Token — Motion
@@ -255,7 +284,7 @@ Ombre **soft, tinte di navy caldo** (rgb 26,42,56), elevazione contenuta.
 }
 ```
 
-Uso: hover cella (translateY -1px + `--shadow-sm`, `--motion-fast`); apertura drawer (slide-in da
+Uso: hover cella (translateY -1px + `--shadow-soft`, `--motion-fast`); apertura drawer (slide-in da
 destra su desktop, slide-up come bottom-sheet su tablet, `--motion-slow`/`--ease-emphasized`);
 load della mappa con reveal **scaglionato per fila** (`animation-delay` crescente, sobrio).
 
@@ -292,25 +321,34 @@ Breakpoint ([ADR-0019](../architecture/decisions/0019-app-shell-e-ux.md)/[ADR-00
 
 Layer `ui-kit`: **token → primitivi headless (Reka UI) → componenti base → schermate**
 ([ADR-0017](../architecture/decisions/0017-design-system-frontend.md)). Stati comuni a tutti gli
-interattivi: **default / hover / active / focus-visible / disabled**; focus = `--shadow-focus`.
+interattivi: **default / hover / active / focus-visible / disabled**; focus = `--ring-focus` (coral glow).
 
-- **Button** — varianti `primary` (sfondo `--color-brand`, testo `--color-on-brand`, hover
-  `--color-brand-hover`), `ghost` (sfondo `--color-sunken`, testo `--color-brand`), `danger`
-  (`--color-danger`). Raggio `--radius-md`, altezza ≥ 36px (≥44px su tablet), icona opzionale a sx.
-- **Field / Input** — label (`--text-sm`/500), control (`--radius-sm`, bordo `--color-border`,
-  sfondo `--color-surface`; focus = bordo `--color-brand` + `--shadow-focus`), testo d'aiuto/errore
-  (`--text-xs`, errore in `--color-danger`). Un solo pattern per tutti i form.
-- **Card** — `--color-surface`, `--radius-lg`, `--shadow-sm`. Unità di superficie della shell.
+- **Button** — varianti `primary` (sfondo `--color-brand` corallo, `--shadow-brand`, hover
+  `--color-brand-hover`), `secondary` (outline: bordo `--color-border`, bg `--color-raised`,
+  testo `--color-accent`), `ghost`, `danger` (`--color-danger`). Raggio `--radius-md`,
+  altezza ≥ 36px (≥44px su tablet), icona opzionale a sx.
+- **Field / Input** — label (`--text-sm`/600, `--color-text-2nd`), control (`--radius-md`,
+  bordo `--color-border-input`, sfondo `--color-surface`; focus = bordo `--color-brand` +
+  `--ring-focus`), testo d'aiuto/errore (`--text-xs`, errore in `--color-danger`). Un solo
+  pattern per tutti i form.
+- **Card** — `--color-surface`, `--radius-lg`/`--radius-xl`, `--shadow-card`, bordo
+  `--color-border`. Unità di superficie della shell.
 - **Badge / Chip** — pill `--radius-full`, `--text-xs`/600; per la **tipologia** nel drawer:
-  sfondo `--color-brand-tint`, testo `--teal-700`, icona a sx.
+  sfondo `--color-accent-tint` (`#E6EFEC`), testo `--color-accent` (`#2F7281`), icona a sx.
 - **Icon** — wrapper unico su **Iconify bundled/offline + Lucide** (set primario), dietro
-  `<Icon>` ([ADR-0018](../architecture/decisions/0018-linguaggio-visivo.md)). `currentColor`,
-  `stroke-width` 1.75, dimensioni 14/16/20/24. **Niente icone fuori dal wrapper.**
-- **DataTable** — su **TanStack Table** (headless) skinnata sui token: header `--text-xs` maiuscolo
-  `--tracking-caps` `--color-text-muted`, righe `--text-sm`, zebra `--color-sunken`, numeri
-  `tabular-nums` allineati a destra. Per Clienti/Prenotazioni.
+  `<Icon>` ([ADR-0018](../architecture/decisions/0018-linguaggio-visivo.md)). **Il sistema
+  icone è confermato invariato** dal redesign Coralyn (ADR-0027 supera ADR-0018 solo per
+  palette/tipografia, non per le icone). Il registry (`packages/ui-kit/src/icons/registry.ts`)
+  è stato esteso con le nuove icone Lucide del canvas (bell, settings, euro, clock, phone,
+  mail, refresh-cw, pencil, log-out, building-2, layers, filter, chevron-down, ecc.);
+  nessuno sprite custom. `currentColor`, `stroke-width` 1.75, dimensioni 14/16/20/24.
+  **Niente icone fuori dal wrapper.**
+- **DataTable** — su **TanStack Table** (headless) skinnata sui token: header `10.5px`
+  maiuscolo `--tracking-caps` `--color-text-muted`, bg header `--color-raised`, righe `13px`,
+  divisori `--color-border-row`, numeri `tabular-nums` a destra, riga cliccabile (hover).
+  Per Clienti/Prenotazioni.
 - **Drawer** — su primitivo dialog/drawer Reka UI: focus trap, ESC, ARIA. `--color-surface`,
-  `--radius-lg`, `--shadow-md`; scrim `--z-overlay`. Vedi §13.4.
+  `--radius-lg`, `--shadow-drawer`; scrim `--z-overlay`. Vedi §13.4.
 
 ## 11. App-shell ([ADR-0019](../architecture/decisions/0019-app-shell-e-ux.md))
 
@@ -321,10 +359,14 @@ Layout **a card su tela neutra** (`--color-canvas`), gutter `--shell-gutter`.
   codename ([D-017](../architecture/deferred.md)) e lo staff si identifica col proprio lido ·
   **navigatore data** (pill `‹ Sab 27 giu 2026 ›`, `tabular-nums`) · **ricerca cliente** (campo
   chiaro) · **avatar** utente.
-- **Sidebar** (`card`, `--navy-900`, `--sidebar-width`): voci **Mappa** (home), **Prenotazioni**,
-  **Clienti**, **Listino**, **Report**; voce **attiva** = sfondo `--color-brand`, testo bianco;
-  hover = velo chiaro. In fondo, separata da divisore, la **Console superuser** — visibile **solo**
-  al ruolo `superuser` ([ADR-0015](../architecture/decisions/0015-osservabilita-e-console-superuser.md)).
+- **Sidebar** (`--color-sidebar-bg` = teal `#0F3C49`, `--sidebar-width`): logo Coralyn +
+  wordmark; switcher stabilimento; eyebrow "OPERATIVO"; voci **Mappa**, **Prenotazioni**,
+  **Clienti**, **Listino**, **Report**; voce **attiva** = `--color-sidebar-raised` (teal
+  rialzato `#16505E`) + **dot corallo** (`--color-brand`) — non riempimento corallo pieno;
+  hover = velo teal leggermente più chiaro. In fondo, separata da divisore, la **Console
+  superuser** e il **footer utente** (avatar iniziali, email, ruolo, "Esci") — Console
+  visibile **solo** al ruolo `superuser`
+  ([ADR-0015](../architecture/decisions/0015-osservabilita-e-console-superuser.md)).
 - **Area contenuto** (`card`, `--color-surface`/`--color-bg`): ospita la sezione attiva; il
   **drawer** appare **in overlay** qui, non come colonna fissa.
 - **Responsive**: desktop = sidebar piena + drawer laterale; tablet = **rail di icone** (tooltip
@@ -351,10 +393,10 @@ In testa lo **specchio "mare"**; gli **Speciali** in un settore dedicato in coda
 | **Etichetta** | numero/identificativo fisico, centrato, `tabular-nums`, ink per-stato | `Ombrellone.etichetta` (stringa libera; buchi e "20bis" ammessi, [ADR-0016](../architecture/decisions/0016-tipologia-ombrellone.md)) |
 | **Stato** | colore di riempimento; **split** se diverso per fascia | derivato per (ombrellone, data, fascia) — [ADR-0013](../architecture/decisions/0013-granularita-disponibilita-a-slot.md) |
 | **Tipologia** | **marcatore a icona** d'angolo (top-right); Normale (`NULL`) = nessun marcatore | `Tipologia.icona` = **chiave del registry icone** del `ui-kit` (nome breve, es. `palmtree`); fallback FE finché il backend non espone `icona` ([ADR-0020](../architecture/decisions/0020-resa-mappa.md)) |
-| **Selezione** | **anello teal** + alone tint | stato UI effimero (cella aperta nel drawer) |
+| **Selezione** | **anello brand** (corallo `--color-brand`) + alone tint `--color-brand-tint` | stato UI effimero (cella aperta nel drawer) |
 
 Forma: cerchio `--radius-full`, `--cell-size` (desktop) / `--cell-size-touch` (tablet),
-`--shadow-xs`. È un **`<button>`** (vedi §13.5).
+`--shadow-soft`. È un **`<button>`** (vedi §13.5).
 
 ### 13.2 Stato — colore e split per fascia
 
@@ -367,7 +409,7 @@ Forma: cerchio `--radius-full`, `--cell-size` (desktop) / `--cell-size-touch` (t
 
 ### 13.3 Marcatore tipologia
 
-Cerchietto `--color-surface` con `--shadow-xs`, icona `--color-brand` (o `--cool-700`),
+Cerchietto `--color-surface` con `--shadow-soft`, icona `--color-accent` (`#2F7281`),
 posizionato top-right e **sopra** l'eventuale anello di selezione/focus. Data-driven: l'admin
 sceglie l'icona per ogni `Tipologia`; il valore di `Tipologia.icona` è la **chiave del registry**
 del `ui-kit` (nome breve, es. `palmtree`, `leaf`) — **non** il nome Iconify completo — risolta a
@@ -381,7 +423,7 @@ default (es. `umbrella`), senza cambiare il contratto del componente.
 
 - **Selezione** (persistente, cella aperta nel drawer): `outline: 2px solid var(--color-brand);
   outline-offset: 2px;` + alone `box-shadow: 0 0 0 4px var(--color-brand-tint)`.
-- **Focus da tastiera** (`:focus-visible`): `--shadow-focus` (doppio anello bianco+teal) — sempre
+- **Focus da tastiera** (`:focus-visible`): `--ring-focus` (coral glow 3px) — sempre
   visibile su qualsiasi colore di stato. Selezione e focus possono coesistere.
 
 ### 13.5 Accessibilità della cella ([ADR-0020](../architecture/decisions/0020-resa-mappa.md))

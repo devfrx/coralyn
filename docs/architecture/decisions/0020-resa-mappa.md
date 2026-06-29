@@ -5,6 +5,24 @@
 - **Decisori:** Team di progetto
 - **ADR correlati:** [ADR-0005](0005-modello-mappa.md) (modello mappa), [ADR-0016](0016-tipologia-ombrellone.md) (etichette reali, tipologia, speciali), [ADR-0013](0013-granularita-disponibilita-a-slot.md) (fasce/slot), [ADR-0018](0018-linguaggio-visivo.md) (stati/colori, icone), [ADR-0017](0017-design-system-frontend.md) (componenti), [D-005](../deferred.md) (planimetria), [D-020](../deferred.md) (pattern colorblind)
 
+## Nota di aggiornamento — 2026-06-30
+
+Nel redesign Coralyn ([ADR-0027](0027-coralyn-linguaggio-visivo.md)) i colori di riempimento
+degli stati mappa sono stati aggiornati alla palette calda:
+
+| Stato | Valore precedente | Valore Coralyn |
+|---|---|---|
+| Libero | `#7BB661` | **`#8FBF9E`** |
+| Abbonato | `#5B8DEF` | **`#5E9AA6`** |
+| Giornaliero | `#E8843C` | **`#E89270`** |
+| Prenotato | `#EFB847` | **`#F1C879`** |
+
+Gli ink scuri per-stato (`#1E3A16` / `#102945` / `#3A1E08` / `#4A3711`) e l'approccio WCAG AA
+(etichetta sempre con ink scuro, verifica in CI) sono **invariati**. La struttura della cella
+a 4 assi, HTML/CSS, accessibilità e coordinamento contratto restano le decisioni di questo ADR.
+
+---
+
 ## Context
 
 La Mappa è il cuore operativo. Il modello ([ADR-0005](0005-modello-mappa.md),

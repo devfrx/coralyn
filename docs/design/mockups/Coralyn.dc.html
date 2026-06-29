@@ -1,0 +1,1256 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  html,body{margin:0;padding:0;height:100%;background:#ECE3D5;}
+  *{box-sizing:border-box;}
+  body{font-family:'Inter',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;}
+  ::-webkit-scrollbar{width:10px;height:10px;}
+  ::-webkit-scrollbar-thumb{background:#D8CBB6;border-radius:99px;border:3px solid transparent;background-clip:content-box;}
+  ::-webkit-scrollbar-thumb:hover{background:#C5B79F;background-clip:content-box;}
+  @keyframes rise{from{opacity:0;transform:translateY(7px)}to{opacity:1;transform:none}}
+  @keyframes drawerIn{from{opacity:0;transform:translateX(16px)}to{opacity:1;transform:none}}
+  @keyframes fadeIn{from{opacity:0}to{opacity:1}}
+  @media (prefers-reduced-motion: reduce){*{animation:none!important;transition:none!important;}}
+</style>
+</helmet>
+
+<svg width="0" height="0" aria-hidden="true" style="position:absolute"><defs>
+  <symbol id="i-map" viewBox="0 0 24 24"><path d="M3.2 11.5a8.8 8.8 0 0 1 17.6 0Z"/><path d="M12 11.5v6.6a2 2 0 0 0 4 0"/></symbol>
+  <symbol id="i-cal" viewBox="0 0 24 24"><rect x="3.5" y="5" width="17" height="15.5" rx="2.5"/><path d="M3.5 9.5h17M8 3v4M16 3v4"/></symbol>
+  <symbol id="i-users" viewBox="0 0 24 24"><circle cx="9" cy="8.5" r="3.3"/><path d="M3 19.5c0-3.3 2.7-5.6 6-5.6s6 2.3 6 5.6"/><path d="M16 6a3 3 0 0 1 0 5.5M17.6 14.3c2 .6 3.4 2 3.4 4.2"/></symbol>
+  <symbol id="i-tag" viewBox="0 0 24 24"><path d="M4 4.5h7.2L20 13.3l-6.7 6.7L4.5 11.7V4.5Z"/><circle cx="8.3" cy="8.3" r="1.3"/></symbol>
+  <symbol id="i-chart" viewBox="0 0 24 24"><path d="M4 20h16"/><path d="M7 20v-6M12 20v-11M17 20v-4"/></symbol>
+  <symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 3.5 19 6v5.2c0 4.4-3 7.5-7 9.3-4-1.8-7-4.9-7-9.3V6Z"/></symbol>
+  <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.3"/><path d="M20 20l-4.6-4.6"/></symbol>
+  <symbol id="i-cl" viewBox="0 0 24 24"><path d="M14.5 6 9 11.5 14.5 17"/></symbol>
+  <symbol id="i-cr" viewBox="0 0 24 24"><path d="M9.5 6 15 11.5 9.5 17"/></symbol>
+  <symbol id="i-umbrella" viewBox="0 0 24 24"><path d="M3.2 11.5a8.8 8.8 0 0 1 17.6 0Z"/><path d="M12 11.5v6.6a2 2 0 0 0 4 0"/></symbol>
+  <symbol id="i-palm" viewBox="0 0 24 24"><path d="M12 21c0-6 .3-8.6 1-10.6"/><path d="M13 10.4C11 8 7.9 7.2 5.1 8.4 6.9 6 9.8 5.3 12 6.6"/><path d="M13 10.4c1-3 .4-6-1.6-8 2.4.6 4.1 2.6 4.3 5.2"/><path d="M13 10.4c2.4-1.8 5.4-1.8 8 .2-2.8-.6-5 .2-6.4 2.2"/></symbol>
+  <symbol id="i-leaf" viewBox="0 0 24 24"><path d="M5 19c0-8 5-13 14-13 0 9-5 13-13 13"/><path d="M5.5 18.5c3-5 6.5-7.5 11-8.5"/></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+  <symbol id="i-star" viewBox="0 0 24 24"><path d="M12 4l2.4 4.9 5.4.8-3.9 3.8.9 5.3L12 17.4l-4.8 2.4.9-5.3L4.2 9.7l5.4-.8Z"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12.5 9.5 17 19 7"/></symbol>
+  <symbol id="i-bell" viewBox="0 0 24 24"><path d="M6.5 9a5.5 5.5 0 0 1 11 0c0 5 2 6.5 2 6.5h-15S6.5 14 6.5 9Z"/><path d="M10 19a2 2 0 0 0 4 0"/></symbol>
+  <symbol id="i-gear" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2.5v3M12 18.5v3M21.5 12h-3M5.5 12h-3M18.4 5.6l-2.1 2.1M7.7 16.3l-2.1 2.1M18.4 18.4l-2.1-2.1M7.7 7.7 5.6 5.6"/></symbol>
+  <symbol id="i-euro" viewBox="0 0 24 24"><path d="M17 6.5A6 6 0 0 0 7 11m10 6.5A6 6 0 0 1 7 13M4.5 10h7M4.5 14h7"/></symbol>
+  <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.2"/><path d="M12 7.5V12l3 2"/></symbol>
+  <symbol id="i-phone" viewBox="0 0 24 24"><path d="M5 4h3.5l1.5 4-2 1.5a11 11 0 0 0 5 5l1.5-2 4 1.5V19a2 2 0 0 1-2.2 2A15.5 15.5 0 0 1 4 6.2 2 2 0 0 1 5 4Z"/></symbol>
+  <symbol id="i-mail" viewBox="0 0 24 24"><rect x="3.5" y="5.5" width="17" height="13" rx="2.5"/><path d="m4.5 7 7.5 5.5L19.5 7"/></symbol>
+  <symbol id="i-arrow-up" viewBox="0 0 24 24"><path d="M12 19V6M6 11l6-5 6 5"/></symbol>
+  <symbol id="i-arrow-dn" viewBox="0 0 24 24"><path d="M12 5v13M6 13l6 5 6-5"/></symbol>
+  <symbol id="i-filter" viewBox="0 0 24 24"><path d="M4 5h16l-6.2 7.4V19l-3.6 1.5v-8.1Z"/></symbol>
+  <symbol id="i-chevron-d" viewBox="0 0 24 24"><path d="M6 9.5 12 15l6-5.5"/></symbol>
+  <symbol id="i-renew" viewBox="0 0 24 24"><path d="M4.5 12a7.5 7.5 0 0 1 12.8-5.3L20 9"/><path d="M19.5 12a7.5 7.5 0 0 1-12.8 5.3L4 15"/><path d="M20 5v4h-4M4 19v-4h4"/></symbol>
+  <symbol id="i-dot" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/></symbol>
+  <symbol id="i-grid" viewBox="0 0 24 24"><rect x="4" y="4" width="6.5" height="6.5" rx="1.5"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="1.5"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="1.5"/><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.5"/></symbol>
+  <symbol id="i-wave" viewBox="0 0 24 24"><path d="M2 9c2.2-2 4-2 6 0s3.8 2 6 0 3.8-2 6 0M2 15c2.2-2 4-2 6 0s3.8 2 6 0 3.8-2 6 0"/></symbol>
+  <symbol id="i-edit" viewBox="0 0 24 24"><path d="M4 20h4L18.5 9.5a2 2 0 0 0-2.8-2.8L5 17.2V20Z"/><path d="M14 7l3 3"/></symbol>
+  <symbol id="i-logout" viewBox="0 0 24 24"><path d="M15 5V4a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h7a2 2 0 0 0 2-2v-1"/><path d="M10 12h10M17 9l3 3-3 3"/></symbol>
+  <symbol id="i-building" viewBox="0 0 24 24"><path d="M4 21V6l8-3 8 3v15"/><path d="M3 21h18M9 9h.01M15 9h.01M9 13h.01M15 13h.01M9 17h6v4H9z"/></symbol>
+  <symbol id="i-layers" viewBox="0 0 24 24"><path d="M12 3 3 8l9 5 9-5-9-5Z"/><path d="m3 13 9 5 9-5M3 16.5l9 5 9-5"/></symbol>
+</defs></svg>
+
+<sc-if value="{{ isApp }}" hint-placeholder-val="{{ true }}">
+<div style="display:flex;height:100vh;min-height:620px;width:100%;background:#ECE3D5;color:#2B2722;">
+
+  <!-- ============ SIDEBAR ============ -->
+  <aside style="width:248px;flex:none;background:#0F3C49;display:flex;flex-direction:column;padding:18px 14px 14px;color:#CFE0DF;">
+    <div style="display:flex;align-items:center;gap:11px;padding:4px 6px 18px;">
+      <img src="assets/coralyn-logo.png" alt="Coralyn" style="width:38px;height:38px;border-radius:11px;object-fit:cover;box-shadow:0 2px 8px rgba(0,0,0,.22);"/>
+      <div style="line-height:1.1;">
+        <div style="font-size:17px;font-weight:700;letter-spacing:-.01em;color:#F6EEE1;">Coralyn</div>
+        <div style="font-size:10.5px;font-weight:500;letter-spacing:.08em;text-transform:uppercase;color:#6E9197;">Gestionale lidi</div>
+      </div>
+    </div>
+
+    <button onClick="{{ goStabilimento }}" style="display:flex;align-items:center;gap:10px;width:100%;text-align:left;background:#16505E;border:1px solid #23606E;border-radius:11px;padding:9px 11px;cursor:pointer;margin-bottom:18px;">
+      <span style="width:30px;height:30px;flex:none;border-radius:8px;background:linear-gradient(150deg,#85B4B2,#5E9AA6);display:flex;align-items:center;justify-content:center;color:#0F3C49;"><svg style="width:17px;height:17px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round;"><use href="#i-wave"/></svg></span>
+      <span style="flex:1;line-height:1.15;">
+        <span style="display:block;font-size:13px;font-weight:600;color:#F6EEE1;">Lido Maestrale</span>
+        <span style="display:block;font-size:10.5px;color:#7FA0A6;">Stagione 2026</span>
+      </span>
+      <svg style="width:16px;height:16px;flex:none;color:#6E9197;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round;"><use href="#i-chevron-d"/></svg>
+    </button>
+
+    <div style="font-size:10px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:#577A80;padding:0 8px 8px;">Operativo</div>
+    <nav style="display:flex;flex-direction:column;gap:3px;">
+      <sc-for list="{{ nav }}" as="item" hint-placeholder-count="0">
+        <button onClick="{{ item.onClick }}" aria-label="{{ item.label }}" style="{{ item.style }}">
+          <span style="width:20px;height:20px;flex:none;display:inline-flex;"><svg style="width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round;"><use href="{{ item.href }}"/></svg></span>
+          <span style="flex:1;text-align:left;">{{ item.label }}</span>
+          <sc-if value="{{ item.active }}"><span style="width:6px;height:6px;border-radius:99px;background:#E0795A;"></span></sc-if>
+        </button>
+      </sc-for>
+    </nav>
+
+    <div style="margin-top:auto;display:flex;flex-direction:column;gap:3px;">
+      <div style="height:1px;background:#1C4E5B;margin:12px 8px;"></div>
+      <button onClick="{{ goConsole }}" style="{{ consoleStyle }}">
+        <span style="width:20px;height:20px;flex:none;display:inline-flex;"><svg style="width:19px;height:19px;fill:none;stroke:currentColor;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round;"><use href="#i-shield"/></svg></span>
+        <span style="flex:1;text-align:left;">Console</span>
+        <span style="font-size:9px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;background:rgba(255,255,255,.08);color:#7FA0A6;padding:2px 7px;border-radius:99px;">super</span>
+      </button>
+      <div style="display:flex;align-items:center;gap:10px;padding:9px 11px;border-radius:10px;">
+        <span style="width:32px;height:32px;flex:none;border-radius:99px;background:#E0795A;color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;">GI</span>
+        <span style="flex:1;min-width:0;line-height:1.3;">
+          <span style="display:block;font-size:12px;font-weight:600;color:#F6EEE1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">giulia@lidomaestrale.it</span>
+          <span style="display:block;font-size:10.5px;color:#6E9197;">Amministratore</span>
+        </span>
+        <button onClick="{{ goLogin }}" aria-label="Esci" title="Esci" style="width:30px;height:30px;flex:none;border:0;background:transparent;border-radius:8px;color:#6E9197;cursor:pointer;display:flex;align-items:center;justify-content:center;"><svg style="width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round;"><use href="#i-gear"/></svg></button>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ============ MAIN ============ -->
+  <main style="flex:1;min-width:0;display:flex;flex-direction:column;background:#F4ECE0;">
+
+    <!-- TOPBAR -->
+    <header style="flex:none;display:flex;align-items:center;gap:18px;padding:16px 26px;border-bottom:1px solid #E7DCCB;background:#FBF6EE;">
+      <div style="min-width:0;">
+        <h1 style="margin:0;font-size:20px;font-weight:700;letter-spacing:-.015em;color:#22303A;white-space:nowrap;">{{ title }}</h1>
+        <p style="margin:2px 0 0;font-size:12.5px;color:#978C7B;">{{ subtitle }}</p>
+      </div>
+      <div style="flex:1;"></div>
+      <div style="display:flex;align-items:center;gap:6px;background:#FFFFFF;border:1px solid #E7DCCB;border-radius:99px;padding:5px 6px;box-shadow:0 1px 2px rgba(15,60,73,.05);">
+        <button aria-label="Giorno precedente" style="width:28px;height:28px;border:0;background:transparent;border-radius:99px;color:#5E5648;cursor:pointer;display:flex;align-items:center;justify-content:center;"><svg style="width:17px;height:17px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round;"><use href="#i-cl"/></svg></button>
+        <span style="font-size:13px;font-weight:600;color:#22303A;font-variant-numeric:tabular-nums;padding:0 4px;min-width:128px;text-align:center;">Sab 27 giu 2026</span>
+        <button aria-label="Giorno successivo" style="width:28px;height:28px;border:0;background:transparent;border-radius:99px;color:#5E5648;cursor:pointer;display:flex;align-items:center;justify-content:center;"><svg style="width:17px;height:17px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round;"><use href="#i-cr"/></svg></button>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;background:#FFFFFF;border:1px solid #E7DCCB;border-radius:99px;padding:8px 14px;width:236px;color:#B3A998;box-shadow:0 1px 2px rgba(15,60,73,.05);">
+        <svg style="width:16px;height:16px;flex:none;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round;"><use href="#i-search"/></svg>
+        <span style="font-size:13px;">Cerca cliente, ombrellone…</span>
+      </div>
+      <button aria-label="Notifiche" style="position:relative;width:40px;height:40px;flex:none;border:1px solid #E7DCCB;background:#FFFFFF;border-radius:99px;color:#5E5648;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 1px 2px rgba(15,60,73,.05);">
+        <svg style="width:19px;height:19px;fill:none;stroke:currentColor;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round;"><use href="#i-bell"/></svg>
+        <span style="position:absolute;top:8px;right:9px;width:7px;height:7px;border-radius:99px;background:#E0795A;border:1.5px solid #FFFFFF;"></span>
+      </button>
+    </header>
+
+    <!-- SCROLL AREA -->
+    <div style="flex:1;min-height:0;overflow:auto;position:relative;">
+
+      <!-- ===== MAPPA ===== -->
+      <sc-if value="{{ isMappa }}" hint-placeholder-val="{{ true }}">
+      <section data-screen-label="Mappa" style="display:flex;flex-direction:column;min-height:560px;">
+        <div style="display:flex;align-items:center;gap:12px;padding:16px 26px 0;flex-wrap:wrap;">
+          <div style="display:inline-flex;background:#EDE3D4;border:1px solid #E2D6C3;border-radius:11px;padding:3px;gap:2px;">
+            <sc-for list="{{ settori }}" as="s" hint-placeholder-count="3">
+              <button onClick="{{ s.onClick }}" style="{{ s.style }}">{{ s.nome }}</button>
+            </sc-for>
+          </div>
+          <div style="flex:1;"></div>
+          <div style="display:flex;align-items:center;gap:8px;font-size:12px;color:#978C7B;">
+            <svg style="width:15px;height:15px;color:#82B2AE;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round;"><use href="#i-clock"/></svg>
+            Stato per fascia · mattina / pomeriggio
+          </div>
+        </div>
+
+        <div style="flex:1;min-height:0;display:flex;gap:18px;padding:16px 26px 26px;align-items:stretch;">
+          <!-- STAGE -->
+          <div style="flex:1;min-width:0;background:linear-gradient(168deg,#FBF4E6 0%,#F6EAD3 100%);border:1px solid #ECDFC8;border-radius:18px;padding:20px 22px;position:relative;overflow:auto;box-shadow:0 1px 3px rgba(15,60,73,.05);">
+            <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:12px;">
+              <span style="font-size:13.5px;font-weight:600;color:#8A6E3F;">Spiaggia · Settore {{ settoreAttivo }}</span>
+              <span style="font-size:10px;font-weight:600;letter-spacing:.09em;text-transform:uppercase;color:#B79A63;">{{ settoreCount }} postazioni</span>
+            </div>
+            <div style="position:relative;height:36px;border-radius:13px;margin-bottom:18px;background:linear-gradient(180deg,#E0EFF3 0%,#BEDDE8 55%,#A8D0DE 100%);overflow:hidden;box-shadow:inset 0 -8px 16px -5px rgba(47,110,132,.24);display:flex;align-items:center;justify-content:center;gap:9px;">
+              <span style="position:absolute;left:0;right:0;top:6px;height:9px;background:repeating-linear-gradient(90deg,transparent 0 9px,rgba(255,255,255,.45) 9px 18px);opacity:.5;-webkit-mask-image:radial-gradient(circle at 9px 100%,#000 4px,transparent 5px);"></span>
+              <svg style="width:16px;height:16px;color:#3C7E93;opacity:.85;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;position:relative;"><use href="#i-wave"/></svg>
+              <span style="font-size:10px;font-weight:600;letter-spacing:.26em;text-transform:uppercase;color:#2E6B81;position:relative;">Mare</span>
+            </div>
+
+            <sc-for list="{{ file }}" as="row" hint-placeholder-count="4">
+              <div style="display:flex;gap:11px;align-items:center;margin:11px 0;">
+                <span style="width:46px;flex:none;font-size:10px;font-weight:600;color:#B79A63;text-align:right;">{{ row.nome }}</span>
+                <div style="display:flex;gap:11px;flex-wrap:wrap;">
+                  <sc-for list="{{ row.celle }}" as="c" hint-placeholder-count="6">
+                    <span style="position:relative;display:inline-flex;">
+                      <button onClick="{{ c.onClick }}" aria-label="{{ c.aria }}" style="{{ c.style }}">{{ c.lab }}</button>
+                      <sc-if value="{{ c.mark }}"><span style="position:absolute;top:-3px;right:-3px;width:16px;height:16px;border-radius:99px;background:#FFFFFF;box-shadow:0 1px 3px rgba(15,60,73,.22);display:flex;align-items:center;justify-content:center;color:#2F7281;"><svg style="width:10px;height:10px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;"><use href="{{ c.mark }}"/></svg></span></sc-if>
+                    </span>
+                  </sc-for>
+                </div>
+              </div>
+            </sc-for>
+
+            <div style="margin-top:18px;border-top:1px dashed #DEC9A1;padding-top:14px;">
+              <div style="font-size:10px;font-weight:600;letter-spacing:.09em;text-transform:uppercase;color:#8A6E3F;margin-bottom:10px;">Settore Speciali · Palme</div>
+              <div style="display:flex;gap:14px;flex-wrap:wrap;">
+                <sc-for list="{{ speciali }}" as="c" hint-placeholder-count="3">
+                  <span style="position:relative;display:inline-flex;">
+                    <button onClick="{{ c.onClick }}" aria-label="{{ c.aria }}" style="{{ c.style }}">{{ c.lab }}</button>
+                    <span style="position:absolute;top:-4px;right:-4px;width:19px;height:19px;border-radius:99px;background:#FFFFFF;box-shadow:0 1px 3px rgba(15,60,73,.22);display:flex;align-items:center;justify-content:center;color:#2F7281;"><svg style="width:12px;height:12px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;"><use href="#i-palm"/></svg></span>
+                  </span>
+                </sc-for>
+              </div>
+            </div>
+
+            <div style="display:flex;flex-wrap:wrap;gap:28px;margin-top:22px;padding-top:16px;border-top:1px solid #ECDFC8;">
+              <div>
+                <div style="font-size:10px;font-weight:600;letter-spacing:.09em;text-transform:uppercase;color:#9A8460;margin-bottom:8px;">Stato</div>
+                <div style="display:flex;flex-wrap:wrap;gap:14px;font-size:11.5px;color:#5E5648;">
+                  <span style="display:inline-flex;align-items:center;gap:6px;"><i style="width:13px;height:13px;border-radius:99px;background:#8FBF9E;"></i>Libero</span>
+                  <span style="display:inline-flex;align-items:center;gap:6px;"><i style="width:13px;height:13px;border-radius:99px;background:#5E9AA6;"></i>Abbonato</span>
+                  <span style="display:inline-flex;align-items:center;gap:6px;"><i style="width:13px;height:13px;border-radius:99px;background:#E89270;"></i>Giornaliero</span>
+                  <span style="display:inline-flex;align-items:center;gap:6px;"><i style="width:13px;height:13px;border-radius:99px;background:#F1C879;"></i>Prenotato</span>
+                  <span style="display:inline-flex;align-items:center;gap:6px;"><i style="width:13px;height:13px;border-radius:99px;background:linear-gradient(90deg,#F1C879 0 50%,#8FBF9E 50% 100%);"></i>Mezza giornata</span>
+                </div>
+              </div>
+              <div>
+                <div style="font-size:10px;font-weight:600;letter-spacing:.09em;text-transform:uppercase;color:#9A8460;margin-bottom:8px;">Tipologia</div>
+                <div style="display:flex;flex-wrap:wrap;gap:14px;font-size:11.5px;color:#5E5648;">
+                  <span style="display:inline-flex;align-items:center;gap:6px;"><i style="width:13px;height:13px;border-radius:99px;background:#D8CDBB;"></i>Normale</span>
+                  <span style="display:inline-flex;align-items:center;gap:6px;"><svg style="width:14px;height:14px;color:#2F7281;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;"><use href="#i-leaf"/></svg>Mini-palma</span>
+                  <span style="display:inline-flex;align-items:center;gap:6px;"><svg style="width:14px;height:14px;color:#2F7281;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;"><use href="#i-palm"/></svg>Palma</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- DRAWER -->
+          <sc-if value="{{ drawerOpen }}">
+          <div style="width:340px;flex:none;background:#FFFFFF;border:1px solid #E7DCCB;border-radius:18px;box-shadow:0 12px 40px rgba(15,60,73,.13);padding:20px;display:flex;flex-direction:column;">
+            <div style="display:flex;align-items:flex-start;justify-content:space-between;">
+              <div>
+                <div style="font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:#978C7B;margin-bottom:3px;">Ombrellone</div>
+                <h3 style="margin:0;font-size:24px;font-weight:700;letter-spacing:-.02em;color:#22303A;font-variant-numeric:tabular-nums;">{{ sel.lab }}</h3>
+              </div>
+              <button onClick="{{ closeDrawer }}" aria-label="Chiudi" style="width:32px;height:32px;border:1px solid #E7DCCB;background:#FBF6EE;border-radius:99px;color:#978C7B;cursor:pointer;display:flex;align-items:center;justify-content:center;"><svg style="width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;"><use href="#i-x"/></svg></button>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;margin:10px 0 4px;">
+              <span style="display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:600;background:#E6EFEC;color:#2F7281;padding:4px 10px;border-radius:99px;"><svg style="width:12px;height:12px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;"><use href="{{ sel.tipoIcon }}"/></svg>{{ sel.tipo }}</span>
+              <span style="font-size:12px;color:#978C7B;">{{ sel.crumb }}</span>
+            </div>
+
+            <div style="display:flex;gap:9px;margin:14px 0 6px;">
+              <div style="flex:1;border-radius:11px;padding:10px 12px;background:{{ sel.mattBg }};border:1px solid {{ sel.mattBorder }};">
+                <span style="display:block;font-size:9.5px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:#8A7E6B;margin-bottom:3px;">Mattina</span>
+                <span style="font-size:13px;font-weight:600;color:{{ sel.mattInk }};">{{ sel.matt }}</span>
+              </div>
+              <div style="flex:1;border-radius:11px;padding:10px 12px;background:{{ sel.pomBg }};border:1px solid {{ sel.pomBorder }};">
+                <span style="display:block;font-size:9.5px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:#8A7E6B;margin-bottom:3px;">Pomeriggio</span>
+                <span style="font-size:13px;font-weight:600;color:{{ sel.pomInk }};">{{ sel.pom }}</span>
+              </div>
+            </div>
+
+            <sc-if value="{{ sel.hasBooking }}">
+            <div style="margin-top:12px;font-size:12.5px;">
+              <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px dashed #EFE6D8;"><span style="color:#978C7B;">Cliente</span><span style="font-weight:600;color:#22303A;">{{ sel.cliente }}</span></div>
+              <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px dashed #EFE6D8;"><span style="color:#978C7B;">Pacchetto</span><span style="font-weight:600;color:#22303A;">{{ sel.pacchetto }}</span></div>
+              <div style="display:flex;justify-content:space-between;padding:8px 0;"><span style="color:#978C7B;">Periodo</span><span style="font-weight:600;color:#22303A;font-variant-numeric:tabular-nums;">{{ sel.periodo }}</span></div>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;margin-top:12px;padding:10px 12px;border-radius:11px;background:{{ sel.payBg }};">
+              <span style="width:9px;height:9px;border-radius:99px;background:{{ sel.payDot }};"></span>
+              <span style="font-size:12.5px;font-weight:600;color:{{ sel.payInk }};">{{ sel.pay }}</span>
+              <span style="flex:1;"></span>
+              <span style="font-size:12.5px;font-weight:700;color:{{ sel.payInk }};font-variant-numeric:tabular-nums;">{{ sel.importo }}</span>
+            </div>
+            <button onClick="{{ openAnnulla }}" style="align-self:flex-start;margin-top:10px;border:0;background:transparent;color:#C8503E;font-size:12px;font-weight:600;cursor:pointer;padding:2px;">Annulla prenotazione</button>
+            </sc-if>
+            <sc-if value="{{ sel.libero }}">
+            <div style="margin-top:14px;padding:16px;border-radius:12px;background:#F6EFE4;border:1px dashed #E2D6C3;text-align:center;">
+              <div style="font-size:12.5px;color:#978C7B;line-height:1.5;">Postazione disponibile<br/>per l'intera giornata.</div>
+            </div>
+            </sc-if>
+
+            <div style="margin-top:auto;display:flex;flex-direction:column;gap:8px;padding-top:16px;">
+              <button onClick="{{ openPren }}" style="display:flex;align-items:center;justify-content:center;gap:8px;border:0;background:#E0795A;color:#fff;border-radius:11px;padding:11px;font-size:13px;font-weight:600;cursor:pointer;box-shadow:0 2px 8px rgba(224,121,90,.32);"><svg style="width:17px;height:17px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;"><use href="#i-plus"/></svg>Nuova prenotazione</button>
+              <div style="display:flex;gap:8px;">
+                <button style="flex:1;display:flex;align-items:center;justify-content:center;gap:7px;border:1px solid #E7DCCB;background:#FBF6EE;color:#2F7281;border-radius:11px;padding:10px;font-size:12.5px;font-weight:600;cursor:pointer;"><svg style="width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;"><use href="#i-star"/></svg>Abbonamento</button>
+                <button style="flex:1;display:flex;align-items:center;justify-content:center;gap:7px;border:1px solid #E7DCCB;background:#FBF6EE;color:#2F7281;border-radius:11px;padding:10px;font-size:12.5px;font-weight:600;cursor:pointer;"><svg style="width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;"><use href="#i-check"/></svg>Presenza</button>
+              </div>
+            </div>
+          </div>
+          </sc-if>
+        </div>
+      </section>
+      </sc-if>
+
+      <!-- ===== PRENOTAZIONI ===== -->
+      <sc-if value="{{ isPrenotazioni }}">
+      <section data-screen-label="Prenotazioni" style="padding:22px 26px 30px;">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;flex-wrap:wrap;">
+          <div style="display:inline-flex;background:#EDE3D4;border:1px solid #E2D6C3;border-radius:11px;padding:3px;gap:2px;">
+            <span style="padding:7px 14px;font-size:12.5px;font-weight:600;border-radius:9px;background:#FFFFFF;color:#22303A;box-shadow:0 1px 2px rgba(15,60,73,.08);">Tutte</span>
+            <span style="padding:7px 14px;font-size:12.5px;font-weight:500;color:#8A7E6B;">Confermate</span>
+            <span style="padding:7px 14px;font-size:12.5px;font-weight:500;color:#8A7E6B;">Bozze</span>
+            <span style="padding:7px 14px;font-size:12.5px;font-weight:500;color:#8A7E6B;">Concluse</span>
+          </div>
+          <div style="flex:1;"></div>
+          <button style="display:inline-flex;align-items:center;gap:7px;border:1px solid #E7DCCB;background:#FFFFFF;color:#5E5648;border-radius:10px;padding:9px 13px;font-size:12.5px;font-weight:600;cursor:pointer;"><svg style="width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round;"><use href="#i-filter"/></svg>Filtri</button>
+          <button style="display:inline-flex;align-items:center;gap:7px;border:0;background:#E0795A;color:#fff;border-radius:10px;padding:9px 15px;font-size:12.5px;font-weight:600;cursor:pointer;white-space:nowrap;box-shadow:0 2px 8px rgba(224,121,90,.3);" onClick="{{ openPren }}"><svg style="width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;"><use href="#i-plus"/></svg>Nuova prenotazione</button>
+        </div>
+
+        <div style="background:#FFFFFF;border:1px solid #E7DCCB;border-radius:16px;overflow:hidden;box-shadow:0 1px 3px rgba(15,60,73,.05);">
+          <table style="width:100%;border-collapse:collapse;font-size:13px;">
+            <thead><tr style="background:#FBF6EE;">
+              <th style="text-align:left;padding:12px 18px;font-size:10.5px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:#978C7B;border-bottom:1px solid #E7DCCB;">Cliente</th>
+              <th style="text-align:left;padding:12px 14px;font-size:10.5px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:#978C7B;border-bottom:1px solid #E7DCCB;">Ombrellone</th>
+              <th style="text-align:left;padding:12px 14px;font-size:10.5px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:#978C7B;border-bottom:1px solid #E7DCCB;">Pacchetto</th>
+              <th style="text-align:left;padding:12px 14px;font-size:10.5px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:#978C7B;border-bottom:1px solid #E7DCCB;">Tipo</th>
+              <th style="text-align:left;padding:12px 14px;font-size:10.5px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:#978C7B;border-bottom:1px solid #E7DCCB;">Periodo</th>
+              <th style="text-align:left;padding:12px 14px;font-size:10.5px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:#978C7B;border-bottom:1px solid #E7DCCB;">Stato</th>
+              <th style="text-align:right;padding:12px 18px;font-size:10.5px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:#978C7B;border-bottom:1px solid #E7DCCB;">Incasso</th>
+            </tr></thead>
+            <tbody>
+              <sc-for list="{{ prenotazioni }}" as="p" hint-placeholder-count="8">
+                <tr style="{{ p.rowStyle }}">
+                  <td style="padding:13px 18px;border-bottom:1px solid #F1EADC;">
+                    <div style="display:flex;align-items:center;gap:10px;">
+                      <span style="width:30px;height:30px;flex:none;border-radius:99px;background:{{ p.avBg }};color:{{ p.avInk }};display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;">{{ p.ini }}</span>
+                      <span style="font-weight:600;color:#22303A;">{{ p.cliente }}</span>
+                    </div>
+                  </td>
+                  <td style="padding:13px 14px;border-bottom:1px solid #F1EADC;color:#5E5648;font-variant-numeric:tabular-nums;">{{ p.ombrellone }}</td>
+                  <td style="padding:13px 14px;border-bottom:1px solid #F1EADC;color:#5E5648;">{{ p.pacchetto }}</td>
+                  <td style="padding:13px 14px;border-bottom:1px solid #F1EADC;color:#5E5648;">{{ p.tipo }}</td>
+                  <td style="padding:13px 14px;border-bottom:1px solid #F1EADC;color:#5E5648;font-variant-numeric:tabular-nums;">{{ p.periodo }}</td>
+                  <td style="padding:13px 14px;border-bottom:1px solid #F1EADC;"><span style="{{ p.badge }}">{{ p.stato }}</span></td>
+                  <td style="padding:13px 18px;border-bottom:1px solid #F1EADC;text-align:right;font-weight:600;color:#22303A;font-variant-numeric:tabular-nums;">{{ p.incasso }}</td>
+                </tr>
+              </sc-for>
+            </tbody>
+          </table>
+        </div>
+      </section>
+      </sc-if>
+
+      <!-- ===== CLIENTI ===== -->
+      <sc-if value="{{ isClientiLista }}">
+      <section data-screen-label="Clienti" style="padding:22px 26px 30px;">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;flex-wrap:wrap;">
+          <div style="display:flex;align-items:center;gap:8px;background:#FFFFFF;border:1px solid #E7DCCB;border-radius:10px;padding:9px 13px;width:300px;color:#B3A998;">
+            <svg style="width:16px;height:16px;flex:none;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round;"><use href="#i-search"/></svg>
+            <span style="font-size:13px;">Cerca per nome o telefono…</span>
+          </div>
+          <div style="flex:1;"></div>
+          <span style="font-size:12.5px;color:#978C7B;font-variant-numeric:tabular-nums;">{{ clientiCount }} clienti</span>
+          <button style="display:inline-flex;align-items:center;gap:7px;border:0;background:#E0795A;color:#fff;border-radius:10px;padding:9px 15px;font-size:12.5px;font-weight:600;cursor:pointer;white-space:nowrap;box-shadow:0 2px 8px rgba(224,121,90,.3);" onClick="{{ openCliente }}"><svg style="width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;"><use href="#i-plus"/></svg>Nuovo cliente</button>
+        </div>
+
+        <div style="background:#FFFFFF;border:1px solid #E7DCCB;border-radius:16px;overflow:hidden;box-shadow:0 1px 3px rgba(15,60,73,.05);">
+          <table style="width:100%;border-collapse:collapse;font-size:13px;">
+            <thead><tr style="background:#FBF6EE;">
+              <th style="text-align:left;padding:12px 18px;font-size:10.5px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:#978C7B;border-bottom:1px solid #E7DCCB;">Cliente</th>
+              <th style="text-align:left;padding:12px 14px;font-size:10.5px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:#978C7B;border-bottom:1px solid #E7DCCB;">Telefono</th>
+              <th style="text-align:left;padding:12px 14px;font-size:10.5px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:#978C7B;border-bottom:1px solid #E7DCCB;">Email</th>
+              <th style="text-align:left;padding:12px 18px;font-size:10.5px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:#978C7B;border-bottom:1px solid #E7DCCB;">Note</th>
+            </tr></thead>
+            <tbody>
+              <sc-for list="{{ clienti }}" as="c" hint-placeholder-count="8">
+                <tr onClick="{{ c.rowClick }}" style="{{ c.rowStyle }}">
+                  <td style="padding:13px 18px;border-bottom:1px solid #F1EADC;">
+                    <div style="display:flex;align-items:center;gap:10px;">
+                      <span style="width:32px;height:32px;flex:none;border-radius:99px;background:{{ c.avBg }};color:{{ c.avInk }};display:flex;align-items:center;justify-content:center;font-size:11.5px;font-weight:600;">{{ c.ini }}</span>
+                      <span style="font-weight:600;color:#22303A;">{{ c.nome }}</span>
+                    </div>
+                  </td>
+                  <td style="padding:13px 14px;border-bottom:1px solid #F1EADC;color:#5E5648;font-variant-numeric:tabular-nums;">{{ c.tel }}</td>
+                  <td style="padding:13px 14px;border-bottom:1px solid #F1EADC;color:#5E5648;">{{ c.email }}</td>
+                  <td style="padding:13px 18px;border-bottom:1px solid #F1EADC;color:#978C7B;max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{{ c.note }}</td>
+                </tr>
+              </sc-for>
+            </tbody>
+          </table>
+        </div>
+      </section>
+      </sc-if>
+
+      <!-- ===== LISTINO ===== -->
+      <sc-if value="{{ isListino }}">
+      <section data-screen-label="Listino" style="padding:22px 26px 30px;">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:18px;flex-wrap:wrap;">
+          <button style="display:inline-flex;align-items:center;gap:9px;background:#FFFFFF;border:1px solid #E7DCCB;border-radius:11px;padding:8px 14px;cursor:pointer;">
+            <span style="font-size:13px;font-weight:600;color:#22303A;">Estate 2026</span>
+            <span style="font-size:11.5px;color:#978C7B;font-variant-numeric:tabular-nums;">1 giu – 15 set</span>
+            <svg style="width:15px;height:15px;color:#978C7B;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round;"><use href="#i-chevron-d"/></svg>
+          </button>
+          <div style="flex:1;"></div>
+          <button style="display:inline-flex;align-items:center;gap:7px;border:0;background:#E0795A;color:#fff;border-radius:10px;padding:9px 15px;font-size:12.5px;font-weight:600;cursor:pointer;white-space:nowrap;box-shadow:0 2px 8px rgba(224,121,90,.3);"><svg style="width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;"><use href="#i-plus"/></svg>Nuova tariffa</button>
+        </div>
+
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:14px;">
+          <sc-for list="{{ pacchetti }}" as="p" hint-placeholder-count="3">
+            <div style="background:#FFFFFF;border:1px solid #E7DCCB;border-radius:16px;padding:18px;box-shadow:0 1px 3px rgba(15,60,73,.05);">
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+                <span style="font-size:15px;font-weight:700;color:#22303A;">{{ p.nome }}</span>
+                <span style="{{ p.tagStyle }}">{{ p.tag }}</span>
+              </div>
+              <div style="font-size:12.5px;color:#5E5648;line-height:1.6;min-height:60px;">{{ p.dotazione }}</div>
+              <div style="margin-top:12px;padding-top:12px;border-top:1px solid #F1EADC;display:flex;align-items:baseline;gap:5px;">
+                <span style="font-size:22px;font-weight:700;color:#22303A;font-variant-numeric:tabular-nums;white-space:nowrap;">{{ p.prezzo }}</span>
+                <span style="font-size:11.5px;color:#978C7B;">/ giorno · prima fila</span>
+              </div>
+            </div>
+          </sc-for>
+        </div>
+
+        <div style="display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap;">
+          <sc-for list="{{ fasce }}" as="f" hint-placeholder-count="3">
+            <div style="display:flex;align-items:center;gap:10px;background:#FBF6EE;border:1px solid #E7DCCB;border-radius:11px;padding:10px 14px;">
+              <svg style="width:16px;height:16px;color:#82B2AE;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round;"><use href="#i-clock"/></svg>
+              <span style="font-size:12.5px;font-weight:600;color:#22303A;">{{ f.nome }}</span>
+              <span style="font-size:11.5px;color:#978C7B;font-variant-numeric:tabular-nums;">{{ f.orario }}</span>
+            </div>
+          </sc-for>
+        </div>
+
+        <div style="background:#FFFFFF;border:1px solid #E7DCCB;border-radius:16px;overflow:hidden;box-shadow:0 1px 3px rgba(15,60,73,.05);">
+          <table style="width:100%;border-collapse:collapse;font-size:13px;">
+            <thead><tr style="background:#FBF6EE;">
+              <th style="text-align:left;padding:12px 18px;font-size:10.5px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:#978C7B;border-bottom:1px solid #E7DCCB;">Posizione</th>
+              <th style="text-align:left;padding:12px 14px;font-size:10.5px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:#978C7B;border-bottom:1px solid #E7DCCB;">Pacchetto</th>
+              <th style="text-align:left;padding:12px 14px;font-size:10.5px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:#978C7B;border-bottom:1px solid #E7DCCB;">Fascia</th>
+              <th style="text-align:right;padding:12px 14px;font-size:10.5px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:#978C7B;border-bottom:1px solid #E7DCCB;">Giornata</th>
+              <th style="text-align:right;padding:12px 14px;font-size:10.5px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:#978C7B;border-bottom:1px solid #E7DCCB;">Settimana</th>
+              <th style="text-align:right;padding:12px 18px;font-size:10.5px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:#978C7B;border-bottom:1px solid #E7DCCB;">Stagione</th>
+            </tr></thead>
+            <tbody>
+              <sc-for list="{{ tariffe }}" as="t" hint-placeholder-count="6">
+                <tr style="{{ t.rowStyle }}">
+                  <td style="padding:13px 18px;border-bottom:1px solid #F1EADC;font-weight:600;color:#22303A;">{{ t.posizione }}</td>
+                  <td style="padding:13px 14px;border-bottom:1px solid #F1EADC;color:#5E5648;">{{ t.pacchetto }}</td>
+                  <td style="padding:13px 14px;border-bottom:1px solid #F1EADC;color:#5E5648;">{{ t.fascia }}</td>
+                  <td style="padding:13px 14px;border-bottom:1px solid #F1EADC;text-align:right;color:#22303A;font-variant-numeric:tabular-nums;">{{ t.giorno }}</td>
+                  <td style="padding:13px 14px;border-bottom:1px solid #F1EADC;text-align:right;color:#22303A;font-variant-numeric:tabular-nums;">{{ t.settimana }}</td>
+                  <td style="padding:13px 18px;border-bottom:1px solid #F1EADC;text-align:right;font-weight:700;color:#22303A;font-variant-numeric:tabular-nums;">{{ t.stagione }}</td>
+                </tr>
+              </sc-for>
+            </tbody>
+          </table>
+        </div>
+      </section>
+      </sc-if>
+
+      <!-- ===== REPORT ===== -->
+      <sc-if value="{{ isReport }}">
+      <section data-screen-label="Report" style="padding:22px 26px 30px;">
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:18px;">
+          <sc-for list="{{ kpi }}" as="k" hint-placeholder-count="0">
+            <div style="background:#FFFFFF;border:1px solid #E7DCCB;border-radius:16px;padding:18px;box-shadow:0 1px 3px rgba(15,60,73,.05);">
+              <div style="display:flex;align-items:center;gap:9px;margin-bottom:14px;">
+                <span style="width:34px;height:34px;border-radius:10px;background:{{ k.iconBg }};color:{{ k.iconInk }};display:flex;align-items:center;justify-content:center;"><svg style="width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round;"><use href="{{ k.icon }}"/></svg></span>
+                <span style="font-size:12px;font-weight:600;color:#978C7B;">{{ k.label }}</span>
+              </div>
+              <div style="font-size:28px;font-weight:700;letter-spacing:-.02em;color:#22303A;font-variant-numeric:tabular-nums;white-space:nowrap;">{{ k.value }}</div>
+              <div style="display:flex;align-items:center;gap:5px;margin-top:6px;font-size:11.5px;font-weight:600;color:{{ k.trendInk }};">
+                <svg style="width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;"><use href="{{ k.trendIcon }}"/></svg>{{ k.trend }}
+              </div>
+            </div>
+          </sc-for>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1.6fr 1fr;gap:14px;margin-bottom:14px;">
+          <div style="background:#FFFFFF;border:1px solid #E7DCCB;border-radius:16px;padding:20px;box-shadow:0 1px 3px rgba(15,60,73,.05);">
+            <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:18px;">
+              <span style="font-size:14px;font-weight:700;color:#22303A;">Incassi ultimi 7 giorni</span>
+              <span style="font-size:12px;color:#978C7B;font-variant-numeric:tabular-nums;">Totale € 11.780</span>
+            </div>
+            <div style="display:flex;align-items:flex-end;gap:14px;height:170px;padding-bottom:4px;">
+              <sc-for list="{{ incassi }}" as="b" hint-placeholder-count="7">
+                <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:8px;height:100%;justify-content:flex-end;">
+                  <span style="font-size:10.5px;font-weight:600;color:#5E5648;font-variant-numeric:tabular-nums;">{{ b.val }}</span>
+                  <div style="width:100%;max-width:42px;border-radius:8px 8px 4px 4px;background:{{ b.fill }};height:{{ b.h }};transition:height .3s ease;"></div>
+                  <span style="font-size:10.5px;color:#978C7B;">{{ b.day }}</span>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+
+          <div style="background:#FFFFFF;border:1px solid #E7DCCB;border-radius:16px;padding:20px;box-shadow:0 1px 3px rgba(15,60,73,.05);">
+            <span style="font-size:14px;font-weight:700;color:#22303A;">Stato ombrelloni</span>
+            <div style="display:flex;height:14px;border-radius:99px;overflow:hidden;margin:18px 0 16px;">
+              <div style="width:48%;background:#5E9AA6;"></div>
+              <div style="width:18%;background:#E89270;"></div>
+              <div style="width:12%;background:#F1C879;"></div>
+              <div style="width:22%;background:#8FBF9E;"></div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:11px;">
+              <sc-for list="{{ statoMix }}" as="s" hint-placeholder-count="4">
+                <div style="display:flex;align-items:center;gap:9px;font-size:12.5px;">
+                  <span style="width:11px;height:11px;border-radius:99px;background:{{ s.col }};"></span>
+                  <span style="flex:1;color:#5E5648;">{{ s.label }}</span>
+                  <span style="font-weight:600;color:#22303A;font-variant-numeric:tabular-nums;">{{ s.pct }}</span>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+        </div>
+
+        <div style="background:#FFFFFF;border:1px solid #E7DCCB;border-radius:16px;padding:20px;box-shadow:0 1px 3px rgba(15,60,73,.05);">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+            <span style="font-size:14px;font-weight:700;color:#22303A;">Abbonamenti in scadenza</span>
+            <span style="font-size:12px;color:#978C7B;">Campagna rinnovi</span>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:2px;">
+            <sc-for list="{{ scadenze }}" as="r" hint-placeholder-count="4">
+              <div style="display:flex;align-items:center;gap:12px;padding:11px 4px;border-bottom:1px solid #F1EADC;">
+                <span style="width:32px;height:32px;flex:none;border-radius:99px;background:{{ r.avBg }};color:{{ r.avInk }};display:flex;align-items:center;justify-content:center;font-size:11.5px;font-weight:600;">{{ r.ini }}</span>
+                <div style="flex:1;min-width:0;">
+                  <div style="font-size:13px;font-weight:600;color:#22303A;">{{ r.nome }}</div>
+                  <div style="font-size:11.5px;color:#978C7B;font-variant-numeric:tabular-nums;">Ombrellone {{ r.ombrellone }} · {{ r.anzianita }} stagioni</div>
+                </div>
+                <span style="font-size:12px;color:#5E5648;font-variant-numeric:tabular-nums;">Scade {{ r.scadenza }}</span>
+                <button style="display:inline-flex;align-items:center;gap:6px;border:1px solid #E7DCCB;background:#FBF6EE;color:#2F7281;border-radius:9px;padding:7px 12px;font-size:12px;font-weight:600;cursor:pointer;"><svg style="width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;"><use href="#i-renew"/></svg>Rinnova</button>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </section>
+      </sc-if>
+
+      <!-- ===== SCHEDA CLIENTE (dettaglio) ===== -->
+      <sc-if value="{{ isClienteDettaglio }}">
+      <section data-screen-label="Scheda cliente" style="padding:18px 26px 30px;max-width:940px;">
+        <button onClick="{{ backToClienti }}" style="display:inline-flex;align-items:center;gap:6px;border:0;background:transparent;color:#2F7281;font-size:13px;font-weight:600;cursor:pointer;padding:4px 0;margin-bottom:12px;"><svg style="width:17px;height:17px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;"><use href="#i-cl"/></svg>Clienti</button>
+
+        <!-- header di sintesi -->
+        <div style="background:#FFFFFF;border:1px solid #E7DCCB;border-radius:18px;padding:22px;box-shadow:0 1px 3px rgba(15,60,73,.05);display:flex;align-items:center;gap:18px;margin-bottom:16px;">
+          <span style="width:60px;height:60px;flex:none;border-radius:99px;background:{{ scheda.avBg }};color:{{ scheda.avInk }};display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:700;">{{ scheda.ini }}</span>
+          <div style="flex:1;min-width:0;">
+            <div style="display:flex;align-items:center;gap:11px;"><h2 style="margin:0;font-size:23px;font-weight:700;letter-spacing:-.015em;color:#22303A;white-space:nowrap;">{{ scheda.nomeVis }}</h2></div>
+            <div style="margin-top:9px;font-size:13px;color:#5E5648;">
+              <span style="margin-right:22px;font-variant-numeric:tabular-nums;white-space:nowrap;"><svg style="width:15px;height:15px;color:#B3A998;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round;display:inline-block;vertical-align:-3px;margin-right:6px;"><use href="#i-phone"/></svg>{{ scheda.tel }}</span>
+              <span style="white-space:nowrap;"><svg style="width:15px;height:15px;color:#B3A998;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round;display:inline-block;vertical-align:-3px;margin-right:6px;"><use href="#i-mail"/></svg>{{ scheda.email }}</span>
+            </div>
+          </div>
+          <button style="display:inline-flex;align-items:center;gap:7px;border:1px solid #E7DCCB;background:#FBF6EE;color:#2F7281;border-radius:11px;padding:10px 15px;font-size:12.5px;font-weight:600;cursor:pointer;white-space:nowrap;"><svg style="width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round;"><use href="#i-edit"/></svg>Modifica</button>
+        </div>
+
+        <!-- Anagrafica e contatti (ora) -->
+        <div style="background:#FFFFFF;border:1px solid #E7DCCB;border-radius:16px;padding:20px 22px;box-shadow:0 1px 3px rgba(15,60,73,.05);margin-bottom:16px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+            <span style="font-size:14px;font-weight:700;color:#22303A;">Anagrafica e contatti</span>
+            <button style="display:inline-flex;align-items:center;gap:6px;border:0;background:transparent;color:#2F7281;font-size:12.5px;font-weight:600;cursor:pointer;"><svg style="width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;"><use href="#i-edit"/></svg>Modifica</button>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:18px 28px;">
+            <div><div style="font-size:11px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:#978C7B;margin-bottom:4px;">Nome</div><div style="font-size:14px;font-weight:500;color:#22303A;">{{ scheda.nome }}</div></div>
+            <div><div style="font-size:11px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:#978C7B;margin-bottom:4px;">Cognome</div><div style="font-size:14px;font-weight:500;color:#22303A;">{{ scheda.cognome }}</div></div>
+            <div><div style="font-size:11px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:#978C7B;margin-bottom:4px;">Telefono</div><div style="font-size:14px;font-weight:500;color:#22303A;font-variant-numeric:tabular-nums;">{{ scheda.tel }}</div></div>
+            <div><div style="font-size:11px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:#978C7B;margin-bottom:4px;">Email</div><div style="font-size:14px;font-weight:500;color:#22303A;">{{ scheda.email }}</div></div>
+            <div style="grid-column:1 / -1;"><div style="font-size:11px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:#978C7B;margin-bottom:4px;">Note</div><div style="font-size:14px;font-weight:400;color:#5E5648;line-height:1.5;">{{ scheda.note }}</div></div>
+          </div>
+        </div>
+
+        <!-- sezioni in arrivo -->
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px;">
+          <div style="background:#FBF6EE;border:1px dashed #E0D5C3;border-radius:16px;padding:18px;">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;"><span style="width:34px;height:34px;border-radius:10px;background:#FFFFFF;border:1px solid #ECE2D2;color:#B7A98F;display:flex;align-items:center;justify-content:center;"><svg style="width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;"><use href="#i-star"/></svg></span><span style="font-size:9.5px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:#B7A98F;background:#F1E8D8;padding:3px 8px;border-radius:99px;">In arrivo</span></div>
+            <div style="font-size:13.5px;font-weight:700;color:#7E7361;margin-bottom:4px;">Abbonamento e anzianità</div>
+            <div style="font-size:12px;color:#A99E8C;line-height:1.5;">Stagioni consecutive, rinnovi e prelazione del posto.</div>
+          </div>
+          <div style="background:#FBF6EE;border:1px dashed #E0D5C3;border-radius:16px;padding:18px;">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;"><span style="width:34px;height:34px;border-radius:10px;background:#FFFFFF;border:1px solid #ECE2D2;color:#B7A98F;display:flex;align-items:center;justify-content:center;"><svg style="width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;"><use href="#i-cal"/></svg></span><span style="font-size:9.5px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:#B7A98F;background:#F1E8D8;padding:3px 8px;border-radius:99px;">In arrivo</span></div>
+            <div style="font-size:13.5px;font-weight:700;color:#7E7361;margin-bottom:4px;">Storico prenotazioni</div>
+            <div style="font-size:12px;color:#A99E8C;line-height:1.5;">Tutte le prenotazioni del bagnante, per stagione.</div>
+          </div>
+          <div style="background:#FBF6EE;border:1px dashed #E0D5C3;border-radius:16px;padding:18px;">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;"><span style="width:34px;height:34px;border-radius:10px;background:#FFFFFF;border:1px solid #ECE2D2;color:#B7A98F;display:flex;align-items:center;justify-content:center;"><svg style="width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;"><use href="#i-euro"/></svg></span><span style="font-size:9.5px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:#B7A98F;background:#F1E8D8;padding:3px 8px;border-radius:99px;">In arrivo</span></div>
+            <div style="font-size:13.5px;font-weight:700;color:#7E7361;margin-bottom:4px;">Pagamenti e saldo</div>
+            <div style="font-size:12px;color:#A99E8C;line-height:1.5;">Incassi, metodo di pagamento e saldo aperto.</div>
+          </div>
+        </div>
+      </section>
+      </sc-if>
+
+      <!-- ===== STABILIMENTO ===== -->
+      <sc-if value="{{ isStabilimento }}">
+      <section data-screen-label="Stabilimento" style="padding:22px 26px 30px;max-width:940px;">
+        <!-- header -->
+        <div style="background:#FFFFFF;border:1px solid #E7DCCB;border-radius:18px;padding:22px;box-shadow:0 1px 3px rgba(15,60,73,.05);display:flex;align-items:center;gap:18px;margin-bottom:16px;">
+          <img src="assets/coralyn-logo.png" alt="Lido Maestrale" style="width:56px;height:56px;border-radius:14px;object-fit:cover;box-shadow:0 2px 8px rgba(15,60,73,.18);"/>
+          <div style="flex:1;min-width:0;">
+            <h2 style="margin:0;font-size:23px;font-weight:700;letter-spacing:-.015em;color:#22303A;">Lido Maestrale</h2>
+            <div style="font-size:13px;color:#978C7B;margin-top:5px;">Amministratore · giulia@lidomaestrale.it · <span style="font-variant-numeric:tabular-nums;">Stagione 2026</span></div>
+          </div>
+          <button style="display:inline-flex;align-items:center;gap:7px;border:1px solid #E7DCCB;background:#FBF6EE;color:#2F7281;border-radius:11px;padding:10px 15px;font-size:12.5px;font-weight:600;cursor:pointer;white-space:nowrap;"><svg style="width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round;"><use href="#i-edit"/></svg>Modifica</button>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;">
+          <!-- informazioni -->
+          <div style="background:#FFFFFF;border:1px solid #E7DCCB;border-radius:16px;padding:20px 22px;box-shadow:0 1px 3px rgba(15,60,73,.05);">
+            <span style="font-size:14px;font-weight:700;color:#22303A;">Informazioni stabilimento</span>
+            <div style="margin-top:16px;display:flex;flex-direction:column;gap:14px;">
+              <div><div style="font-size:11px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:#978C7B;margin-bottom:4px;">Nome</div><div style="font-size:14px;font-weight:500;color:#22303A;">Lido Maestrale</div></div>
+              <div><div style="font-size:11px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:#978C7B;margin-bottom:4px;">Stagione attiva</div><div style="font-size:14px;font-weight:500;color:#22303A;font-variant-numeric:tabular-nums;">Estate 2026 · 1 giu – 15 set</div></div>
+              <div><div style="font-size:11px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:#978C7B;margin-bottom:4px;">Fasce operative</div><div style="font-size:14px;font-weight:500;color:#22303A;">Giornata · Mattina · Pomeriggio</div></div>
+            </div>
+          </div>
+          <!-- struttura -->
+          <div style="background:#FFFFFF;border:1px solid #E7DCCB;border-radius:16px;padding:20px 22px;box-shadow:0 1px 3px rgba(15,60,73,.05);">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;"><span style="font-size:14px;font-weight:700;color:#22303A;">Struttura della spiaggia</span><span style="font-size:11px;color:#2F7281;font-weight:600;">Configura</span></div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+              <div style="background:#FBF6EE;border-radius:11px;padding:13px 14px;"><div style="font-size:24px;font-weight:700;color:#22303A;font-variant-numeric:tabular-nums;">2</div><div style="font-size:11.5px;color:#978C7B;margin-top:2px;">Settori</div></div>
+              <div style="background:#FBF6EE;border-radius:11px;padding:13px 14px;"><div style="font-size:24px;font-weight:700;color:#22303A;font-variant-numeric:tabular-nums;">47</div><div style="font-size:11.5px;color:#978C7B;margin-top:2px;">Ombrelloni</div></div>
+              <div style="background:#FBF6EE;border-radius:11px;padding:13px 14px;"><div style="font-size:24px;font-weight:700;color:#22303A;font-variant-numeric:tabular-nums;">3</div><div style="font-size:11.5px;color:#978C7B;margin-top:2px;">Tipologie</div></div>
+              <div style="background:#FBF6EE;border-radius:11px;padding:13px 14px;"><div style="font-size:24px;font-weight:700;color:#22303A;font-variant-numeric:tabular-nums;">3</div><div style="font-size:11.5px;color:#978C7B;margin-top:2px;">Pacchetti</div></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- utenti e ruoli -->
+        <div style="background:#FFFFFF;border:1px solid #E7DCCB;border-radius:16px;padding:20px 22px;box-shadow:0 1px 3px rgba(15,60,73,.05);margin-bottom:16px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+            <span style="font-size:14px;font-weight:700;color:#22303A;">Utenti e ruoli</span>
+            <span style="display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:600;color:#B7A98F;background:#F1E8D8;padding:5px 11px;border-radius:99px;"><svg style="width:13px;height:13px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;"><use href="#i-plus"/></svg>Inviti e gestione · in arrivo</span>
+          </div>
+          <p style="margin:0 0 12px;font-size:12px;color:#978C7B;line-height:1.5;">Il team dello stabilimento ha ruoli <strong style="color:#5E5648;">Amministratore</strong> e <strong style="color:#5E5648;">Staff</strong>. Il ruolo <strong style="color:#5E5648;">Superuser</strong> è di piattaforma (console cross-stabilimento) e non appartiene al team del lido.</p>
+          <div style="display:flex;flex-direction:column;gap:2px;">
+            <sc-for list="{{ utenti }}" as="u" hint-placeholder-count="0">
+              <div style="display:flex;align-items:center;gap:12px;padding:12px 4px;border-bottom:1px solid #F1EADC;">
+                <span style="width:36px;height:36px;flex:none;border-radius:99px;background:{{ u.avBg }};color:{{ u.avInk }};display:flex;align-items:center;justify-content:center;font-size:12.5px;font-weight:600;">{{ u.ini }}</span>
+                <div style="flex:1;min-width:0;">
+                  <div style="display:flex;align-items:center;gap:8px;"><span style="font-size:13.5px;font-weight:600;color:#22303A;">{{ u.email }}</span><sc-if value="{{ u.tu }}"><span style="font-size:9.5px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:#2F7281;background:#E6EFEC;padding:2px 7px;border-radius:99px;">Tu</span></sc-if></div>
+                </div>
+                <span style="{{ u.badge }}">{{ u.ruolo }}</span>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+
+        <!-- sessione -->
+        <div style="background:#FFFFFF;border:1px solid #E7DCCB;border-radius:16px;padding:20px 22px;box-shadow:0 1px 3px rgba(15,60,73,.05);display:flex;align-items:center;gap:14px;">
+          <span style="width:40px;height:40px;flex:none;border-radius:11px;background:#E6EFEC;color:#2F7281;display:flex;align-items:center;justify-content:center;"><svg style="width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;"><use href="#i-shield"/></svg></span>
+          <div style="flex:1;min-width:0;">
+            <div style="font-size:13.5px;font-weight:700;color:#22303A;">Sessione</div>
+            <div style="font-size:12px;color:#978C7B;margin-top:1px;">Accesso protetto · la sessione scade dopo 8 ore.</div>
+          </div>
+          <button onClick="{{ goLogin }}" style="display:inline-flex;align-items:center;gap:8px;border:1px solid #EBB7AF;background:#FBF1EF;color:#C8503E;border-radius:11px;padding:10px 16px;font-size:12.5px;font-weight:600;cursor:pointer;white-space:nowrap;"><svg style="width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round;"><use href="#i-logout"/></svg>Esci</button>
+        </div>
+      </section>
+      </sc-if>
+
+    </div>
+  </main>
+</div>
+
+  <!-- ============ MODALI ============ -->
+  <sc-if value="{{ modalOpen }}">
+  <div onClick="{{ closeModal }}" style="position:fixed;inset:0;z-index:80;display:flex;align-items:center;justify-content:center;padding:24px;background:rgba(11,53,67,.46);">
+
+    <!-- Nuova prenotazione -->
+    <sc-if value="{{ isModalPren }}">
+    <div onClick="{{ stop }}" style="width:100%;max-width:548px;max-height:90vh;overflow:auto;background:#FFFFFF;border-radius:18px;box-shadow:0 24px 70px rgba(11,53,67,.34);">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;padding:20px 22px 16px;border-bottom:1px solid #F1EADC;">
+        <div>
+          <div style="font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:#978C7B;margin-bottom:3px;">Settore Centro · Ombrellone {{ selLabModal }}</div>
+          <h3 style="margin:0;font-size:19px;font-weight:700;letter-spacing:-.01em;color:#22303A;">Nuova prenotazione</h3>
+        </div>
+        <button onClick="{{ closeModal }}" aria-label="Chiudi" style="width:32px;height:32px;border:1px solid #E7DCCB;background:#FBF6EE;border-radius:99px;color:#978C7B;cursor:pointer;display:flex;align-items:center;justify-content:center;"><svg style="width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;"><use href="#i-x"/></svg></button>
+      </div>
+      <div style="padding:18px 22px;display:flex;flex-direction:column;gap:18px;">
+        <div>
+          <label style="display:block;font-size:12.5px;font-weight:600;color:#5E5648;margin-bottom:7px;">Cliente</label>
+          <div style="display:flex;gap:9px;">
+            <div style="flex:1;display:flex;align-items:center;gap:9px;border:1.5px solid #E0D5C3;background:#FFFFFF;border-radius:11px;padding:11px 13px;color:#B3A998;"><svg style="width:16px;height:16px;flex:none;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round;"><use href="#i-search"/></svg><span style="font-size:13.5px;">Cerca un cliente…</span></div>
+            <button onClick="{{ openCliente }}" style="display:inline-flex;align-items:center;gap:6px;border:1px solid #E7DCCB;background:#FBF6EE;color:#2F7281;border-radius:11px;padding:0 14px;font-size:12.5px;font-weight:600;cursor:pointer;white-space:nowrap;"><svg style="width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;"><use href="#i-plus"/></svg>Nuovo</button>
+          </div>
+        </div>
+        <div>
+          <label style="display:block;font-size:12.5px;font-weight:600;color:#5E5648;margin-bottom:7px;">Pacchetto</label>
+          <div style="display:flex;gap:9px;">
+            <sc-for list="{{ packOpts }}" as="o" hint-placeholder-count="3">
+              <button onClick="{{ o.onClick }}" style="{{ o.style }}"><span style="display:block;font-weight:600;">{{ o.nome }}</span><span style="display:block;font-size:10.5px;font-weight:500;opacity:.72;margin-top:3px;line-height:1.3;">{{ o.desc }}</span></button>
+            </sc-for>
+          </div>
+        </div>
+        <div>
+          <label style="display:block;font-size:12.5px;font-weight:600;color:#5E5648;margin-bottom:7px;">Fascia</label>
+          <div style="display:flex;gap:9px;">
+            <sc-for list="{{ fasciaOpts }}" as="o" hint-placeholder-count="3">
+              <button onClick="{{ o.onClick }}" style="{{ o.style }}">{{ o.nome }}</button>
+            </sc-for>
+          </div>
+        </div>
+        <div style="display:flex;gap:14px;">
+          <div style="flex:1;">
+            <label style="display:block;font-size:12.5px;font-weight:600;color:#5E5648;margin-bottom:7px;">Dal</label>
+            <input type="text" value="27/06/2026" style="width:100%;border:1.5px solid #E0D5C3;background:#FFFFFF;border-radius:11px;padding:11px 13px;font-size:13.5px;color:#22303A;outline:none;font-family:inherit;box-sizing:border-box;font-variant-numeric:tabular-nums;" style-focus="border-color:#E0795A;box-shadow:0 0 0 3px rgba(224,121,90,.16);"/>
+          </div>
+          <div style="flex:1;">
+            <label style="display:block;font-size:12.5px;font-weight:600;color:#5E5648;margin-bottom:7px;">Al</label>
+            <input type="text" value="27/06/2026" style="width:100%;border:1.5px solid #E0D5C3;background:#FFFFFF;border-radius:11px;padding:11px 13px;font-size:13.5px;color:#22303A;outline:none;font-family:inherit;box-sizing:border-box;font-variant-numeric:tabular-nums;" style-focus="border-color:#E0795A;box-shadow:0 0 0 3px rgba(224,121,90,.16);"/>
+          </div>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:14px;padding:16px 22px;border-top:1px solid #F1EADC;background:#FBF6EE;">
+        <div style="line-height:1.1;">
+          <div style="font-size:11px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:#978C7B;">Totale stimato</div>
+          <div style="font-size:22px;font-weight:700;color:#22303A;font-variant-numeric:tabular-nums;">{{ prezzoModal }}</div>
+        </div>
+        <div style="display:flex;gap:9px;">
+          <button onClick="{{ closeModal }}" style="border:1px solid #E7DCCB;background:#FFFFFF;color:#5E5648;border-radius:11px;padding:11px 18px;font-size:13px;font-weight:600;cursor:pointer;">Annulla</button>
+          <button onClick="{{ closeModal }}" style="border:0;background:#E0795A;color:#fff;border-radius:11px;padding:11px 20px;font-size:13px;font-weight:600;cursor:pointer;box-shadow:0 2px 8px rgba(224,121,90,.32);">Conferma prenotazione</button>
+        </div>
+      </div>
+    </div>
+    </sc-if>
+
+    <!-- Nuovo cliente -->
+    <sc-if value="{{ isModalCliente }}">
+    <div onClick="{{ stop }}" style="width:100%;max-width:468px;max-height:90vh;overflow:auto;background:#FFFFFF;border-radius:18px;box-shadow:0 24px 70px rgba(11,53,67,.34);">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;padding:20px 22px 16px;border-bottom:1px solid #F1EADC;">
+        <div>
+          <div style="font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:#978C7B;margin-bottom:3px;">Anagrafica</div>
+          <h3 style="margin:0;font-size:19px;font-weight:700;letter-spacing:-.01em;color:#22303A;">Nuovo cliente</h3>
+        </div>
+        <button onClick="{{ closeModal }}" aria-label="Chiudi" style="width:32px;height:32px;border:1px solid #E7DCCB;background:#FBF6EE;border-radius:99px;color:#978C7B;cursor:pointer;display:flex;align-items:center;justify-content:center;"><svg style="width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;"><use href="#i-x"/></svg></button>
+      </div>
+      <div style="padding:18px 22px;display:flex;flex-direction:column;gap:15px;">
+        <div style="display:flex;gap:14px;">
+          <div style="flex:1;"><label style="display:block;font-size:12.5px;font-weight:600;color:#5E5648;margin-bottom:6px;">Nome</label><input type="text" placeholder="Mario" style="width:100%;border:1.5px solid #E0D5C3;background:#FFFFFF;border-radius:11px;padding:11px 13px;font-size:14px;color:#22303A;outline:none;font-family:inherit;box-sizing:border-box;" style-focus="border-color:#E0795A;box-shadow:0 0 0 3px rgba(224,121,90,.16);"/></div>
+          <div style="flex:1;"><label style="display:block;font-size:12.5px;font-weight:600;color:#5E5648;margin-bottom:6px;">Cognome</label><input type="text" placeholder="Rossi" style="width:100%;border:1.5px solid #E0D5C3;background:#FFFFFF;border-radius:11px;padding:11px 13px;font-size:14px;color:#22303A;outline:none;font-family:inherit;box-sizing:border-box;" style-focus="border-color:#E0795A;box-shadow:0 0 0 3px rgba(224,121,90,.16);"/></div>
+        </div>
+        <div><label style="display:block;font-size:12.5px;font-weight:600;color:#5E5648;margin-bottom:6px;">Telefono</label><input type="text" placeholder="+39 ___ ___ ____" style="width:100%;border:1.5px solid #E0D5C3;background:#FFFFFF;border-radius:11px;padding:11px 13px;font-size:14px;color:#22303A;outline:none;font-family:inherit;box-sizing:border-box;" style-focus="border-color:#E0795A;box-shadow:0 0 0 3px rgba(224,121,90,.16);"/></div>
+        <div><label style="display:block;font-size:12.5px;font-weight:600;color:#5E5648;margin-bottom:6px;">Email <span style="color:#C9603F;">*</span></label><input type="email" placeholder="nome@email.it" style="width:100%;border:1.5px solid #E0D5C3;background:#FFFFFF;border-radius:11px;padding:11px 13px;font-size:14px;color:#22303A;outline:none;font-family:inherit;box-sizing:border-box;" style-focus="border-color:#E0795A;box-shadow:0 0 0 3px rgba(224,121,90,.16);"/></div>
+        <div><label style="display:block;font-size:12.5px;font-weight:600;color:#5E5648;margin-bottom:6px;">Note</label><textarea rows="2" placeholder="Preferenze, recapiti aggiuntivi…" style="width:100%;border:1.5px solid #E0D5C3;background:#FFFFFF;border-radius:11px;padding:11px 13px;font-size:14px;color:#22303A;outline:none;font-family:inherit;box-sizing:border-box;resize:none;" style-focus="border-color:#E0795A;box-shadow:0 0 0 3px rgba(224,121,90,.16);"></textarea></div>
+      </div>
+      <div style="display:flex;justify-content:flex-end;gap:9px;padding:16px 22px;border-top:1px solid #F1EADC;background:#FBF6EE;">
+        <button onClick="{{ closeModal }}" style="border:1px solid #E7DCCB;background:#FFFFFF;color:#5E5648;border-radius:11px;padding:11px 18px;font-size:13px;font-weight:600;cursor:pointer;">Annulla</button>
+        <button onClick="{{ closeModal }}" style="border:0;background:#E0795A;color:#fff;border-radius:11px;padding:11px 20px;font-size:13px;font-weight:600;cursor:pointer;box-shadow:0 2px 8px rgba(224,121,90,.32);">Salva cliente</button>
+      </div>
+    </div>
+    </sc-if>
+
+    <!-- Annulla prenotazione (conferma) -->
+    <sc-if value="{{ isModalAnnulla }}">
+    <div onClick="{{ stop }}" style="width:100%;max-width:412px;background:#FFFFFF;border-radius:18px;box-shadow:0 24px 70px rgba(11,53,67,.34);padding:26px 24px 22px;text-align:center;">
+      <div style="width:52px;height:52px;border-radius:99px;background:#FBE3E0;color:#C8503E;display:flex;align-items:center;justify-content:center;margin:0 auto 16px;"><svg style="width:26px;height:26px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round;"><use href="#i-x"/></svg></div>
+      <h3 style="margin:0 0 8px;font-size:19px;font-weight:700;color:#22303A;">Annullare la prenotazione?</h3>
+      <p style="margin:0 0 22px;font-size:13.5px;line-height:1.55;color:#978C7B;">L'ombrellone tornerà disponibile per la fascia selezionata. L'azione non è reversibile.</p>
+      <div style="display:flex;gap:9px;">
+        <button onClick="{{ closeModal }}" style="flex:1;border:1px solid #E7DCCB;background:#FFFFFF;color:#5E5648;border-radius:11px;padding:12px;font-size:13px;font-weight:600;cursor:pointer;">Indietro</button>
+        <button onClick="{{ closeModal }}" style="flex:1;border:0;background:#C8503E;color:#fff;border-radius:11px;padding:12px;font-size:13px;font-weight:600;cursor:pointer;box-shadow:0 2px 8px rgba(200,80,62,.3);">Annulla prenotazione</button>
+      </div>
+    </div>
+    </sc-if>
+
+  </div>
+  </sc-if>
+</sc-if>
+
+  <!-- ============ LOGIN ============ -->
+  <sc-if value="{{ isLogin }}">
+  <div data-screen-label="Login" style="height:100vh;min-height:620px;display:flex;background:#F4ECE0;color:#2B2722;">
+    <div style="width:44%;max-width:540px;flex:none;position:relative;overflow:hidden;background:linear-gradient(158deg,#1A5666 0%,#0F3C49 52%,#0B3543 100%);color:#CFE0DF;display:flex;flex-direction:column;justify-content:space-between;padding:46px 48px;">
+      <div style="position:absolute;left:-60px;bottom:-80px;width:320px;height:320px;border-radius:99px;background:radial-gradient(circle,rgba(133,180,178,.20),transparent 70%);pointer-events:none;"></div>
+      <div style="position:absolute;right:-50px;top:-40px;width:220px;height:220px;border-radius:99px;background:radial-gradient(circle,rgba(224,121,90,.18),transparent 70%);pointer-events:none;"></div>
+      <div style="display:flex;align-items:center;gap:13px;position:relative;">
+        <img src="assets/coralyn-logo.png" alt="Coralyn" style="width:46px;height:46px;border-radius:13px;object-fit:cover;box-shadow:0 4px 14px rgba(0,0,0,.28);"/>
+        <div style="line-height:1.1;"><div style="font-size:22px;font-weight:700;color:#F6EEE1;letter-spacing:-.01em;">Coralyn</div><div style="font-size:11px;font-weight:500;letter-spacing:.1em;text-transform:uppercase;color:#6E9197;">Gestionale lidi</div></div>
+      </div>
+      <div style="max-width:380px;position:relative;">
+        <h2 style="font-size:30px;line-height:1.22;font-weight:700;color:#F6EEE1;letter-spacing:-.02em;margin:0 0 14px;">La spiaggia, gestita con leggerezza.</h2>
+        <p style="font-size:14.5px;line-height:1.6;color:#9FBCC0;margin:0;">Mappa ombrelloni, prenotazioni, abbonamenti e cassa del tuo stabilimento, in un unico posto.</p>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;font-size:12px;color:#6E9197;position:relative;">
+        <span style="width:7px;height:7px;border-radius:99px;background:#E0795A;"></span>Stagione 2026 · sessione protetta
+      </div>
+    </div>
+    <div style="flex:1;display:flex;align-items:center;justify-content:center;padding:32px;">
+      <div style="width:100%;max-width:380px;">
+        <h1 style="font-size:27px;font-weight:700;color:#22303A;letter-spacing:-.02em;margin:0 0 6px;">Bentornato</h1>
+        <p style="font-size:14px;color:#978C7B;margin:0 0 26px;">Accedi al gestionale del tuo stabilimento.</p>
+        <sc-if value="{{ loginError }}">
+        <div style="display:flex;align-items:center;gap:9px;background:#FBE3E0;border:1px solid #EBB7AF;border-radius:11px;padding:11px 14px;margin-bottom:18px;">
+          <svg style="width:17px;height:17px;flex:none;color:#C8503E;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;"><use href="#i-x"/></svg>
+          <span style="font-size:13px;color:#A33A2C;font-weight:500;">Email o password non corretti.</span>
+        </div>
+        </sc-if>
+        <label style="display:block;font-size:12.5px;font-weight:600;color:#5E5648;margin-bottom:6px;">Email</label>
+        <input ref="{{ emailRef }}" type="email" placeholder="nome@stabilimento.it" style="width:100%;border:1.5px solid #E0D5C3;background:#FFFFFF;border-radius:11px;padding:12px 14px;font-size:14px;color:#22303A;margin-bottom:16px;outline:none;font-family:inherit;box-sizing:border-box;" style-focus="border-color:#E0795A;box-shadow:0 0 0 3px rgba(224,121,90,.16);"/>
+        <label style="display:block;font-size:12.5px;font-weight:600;color:#5E5648;margin-bottom:6px;">Password</label>
+        <input ref="{{ pwdRef }}" type="password" placeholder="••••••••" style="width:100%;border:1.5px solid #E0D5C3;background:#FFFFFF;border-radius:11px;padding:12px 14px;font-size:14px;color:#22303A;margin-bottom:8px;outline:none;font-family:inherit;box-sizing:border-box;" style-focus="border-color:#E0795A;box-shadow:0 0 0 3px rgba(224,121,90,.16);"/>
+        <button onClick="{{ tryLogin }}" style="width:100%;border:0;background:#E0795A;color:#fff;border-radius:11px;padding:13px;font-size:14px;font-weight:600;cursor:pointer;box-shadow:0 4px 14px rgba(224,121,90,.32);margin-top:10px;">Accedi</button>
+        <div style="display:flex;align-items:center;gap:12px;margin:24px 0;"><span style="flex:1;height:1px;background:#E7DCCB;"></span><span style="font-size:10.5px;color:#B3A998;text-transform:uppercase;letter-spacing:.1em;font-weight:600;">oppure</span><span style="flex:1;height:1px;background:#E7DCCB;"></span></div>
+        <p style="text-align:center;font-size:13.5px;color:#5E5648;margin:0;">Non hai un account? <span onClick="{{ goRegister }}" style="color:#C9603F;font-weight:600;cursor:pointer;">Registra il tuo stabilimento</span></p>
+      </div>
+    </div>
+  </div>
+  </sc-if>
+
+  <!-- ============ REGISTRAZIONE ============ -->
+  <sc-if value="{{ isRegister }}">
+  <div data-screen-label="Registrazione" style="height:100vh;min-height:620px;display:flex;background:#F4ECE0;color:#2B2722;">
+    <div style="width:44%;max-width:540px;flex:none;position:relative;overflow:hidden;background:linear-gradient(158deg,#1A5666 0%,#0F3C49 52%,#0B3543 100%);color:#CFE0DF;display:flex;flex-direction:column;justify-content:space-between;padding:46px 48px;">
+      <div style="position:absolute;left:-60px;bottom:-80px;width:320px;height:320px;border-radius:99px;background:radial-gradient(circle,rgba(224,121,90,.18),transparent 70%);pointer-events:none;"></div>
+      <div style="position:absolute;right:-50px;top:-40px;width:220px;height:220px;border-radius:99px;background:radial-gradient(circle,rgba(133,180,178,.20),transparent 70%);pointer-events:none;"></div>
+      <div style="display:flex;align-items:center;gap:13px;position:relative;">
+        <img src="assets/coralyn-logo.png" alt="Coralyn" style="width:46px;height:46px;border-radius:13px;object-fit:cover;box-shadow:0 4px 14px rgba(0,0,0,.28);"/>
+        <div style="line-height:1.1;"><div style="font-size:22px;font-weight:700;color:#F6EEE1;letter-spacing:-.01em;">Coralyn</div><div style="font-size:11px;font-weight:500;letter-spacing:.1em;text-transform:uppercase;color:#6E9197;">Gestionale lidi</div></div>
+      </div>
+      <div style="max-width:380px;position:relative;">
+        <h2 style="font-size:30px;line-height:1.22;font-weight:700;color:#F6EEE1;letter-spacing:-.02em;margin:0 0 14px;">Porta il tuo lido su Coralyn.</h2>
+        <p style="font-size:14.5px;line-height:1.6;color:#9FBCC0;margin:0 0 22px;">Crea l'account dello stabilimento: sarai l'amministratore e potrai configurare mappa, listino e staff.</p>
+        <div style="display:flex;flex-direction:column;gap:11px;">
+          <div style="display:flex;align-items:center;gap:10px;font-size:13px;color:#CFE0DF;"><span style="width:22px;height:22px;flex:none;border-radius:7px;background:rgba(133,180,178,.22);color:#9FD0CB;display:flex;align-items:center;justify-content:center;"><svg style="width:13px;height:13px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round;"><use href="#i-check"/></svg></span>Configurazione guidata della spiaggia</div>
+        <div style="display:flex;align-items:center;gap:10px;font-size:13px;color:#CFE0DF;"><span style="width:22px;height:22px;flex:none;border-radius:7px;background:rgba(133,180,178,.22);color:#9FD0CB;display:flex;align-items:center;justify-content:center;"><svg style="width:13px;height:13px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round;"><use href="#i-check"/></svg></span>Prenotazioni e abbonamenti dal primo giorno</div>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;font-size:12px;color:#6E9197;position:relative;">
+        <span style="width:7px;height:7px;border-radius:99px;background:#E0795A;"></span>Abbonamento per stabilimento
+      </div>
+    </div>
+    <div style="flex:1;display:flex;align-items:center;justify-content:center;padding:32px;overflow:auto;">
+      <div style="width:100%;max-width:400px;">
+        <h1 style="font-size:27px;font-weight:700;color:#22303A;letter-spacing:-.02em;margin:0 0 6px;">Crea il tuo stabilimento</h1>
+        <p style="font-size:14px;color:#978C7B;margin:0 0 24px;">Pochi dati per iniziare. Sarai l'amministratore dell'account.</p>
+        <label style="display:block;font-size:12.5px;font-weight:600;color:#5E5648;margin-bottom:6px;">Nome dello stabilimento</label>
+        <input type="text" placeholder="Lido Maestrale" style="width:100%;border:1.5px solid #E0D5C3;background:#FFFFFF;border-radius:11px;padding:12px 14px;font-size:14px;color:#22303A;margin-bottom:15px;outline:none;font-family:inherit;box-sizing:border-box;" style-focus="border-color:#E0795A;box-shadow:0 0 0 3px rgba(224,121,90,.16);"/>
+        <label style="display:block;font-size:12.5px;font-weight:600;color:#5E5648;margin-bottom:6px;">Email</label>
+        <input type="email" placeholder="nome@stabilimento.it" style="width:100%;border:1.5px solid #E0D5C3;background:#FFFFFF;border-radius:11px;padding:12px 14px;font-size:14px;color:#22303A;margin-bottom:15px;outline:none;font-family:inherit;box-sizing:border-box;" style-focus="border-color:#E0795A;box-shadow:0 0 0 3px rgba(224,121,90,.16);"/>
+        <div style="display:flex;gap:14px;margin-bottom:18px;">
+          <div style="flex:1;"><label style="display:block;font-size:12.5px;font-weight:600;color:#5E5648;margin-bottom:6px;">Password</label><input type="password" placeholder="••••••••" style="width:100%;border:1.5px solid #E0D5C3;background:#FFFFFF;border-radius:11px;padding:12px 14px;font-size:14px;color:#22303A;outline:none;font-family:inherit;box-sizing:border-box;" style-focus="border-color:#E0795A;box-shadow:0 0 0 3px rgba(224,121,90,.16);"/></div>
+          <div style="flex:1;"><label style="display:block;font-size:12.5px;font-weight:600;color:#5E5648;margin-bottom:6px;">Conferma</label><input type="password" placeholder="••••••••" style="width:100%;border:1.5px solid #E0D5C3;background:#FFFFFF;border-radius:11px;padding:12px 14px;font-size:14px;color:#22303A;outline:none;font-family:inherit;box-sizing:border-box;" style-focus="border-color:#E0795A;box-shadow:0 0 0 3px rgba(224,121,90,.16);"/></div>
+        </div>
+        <button onClick="{{ goApp }}" style="width:100%;border:0;background:#E0795A;color:#fff;border-radius:11px;padding:13px;font-size:14px;font-weight:600;cursor:pointer;box-shadow:0 4px 14px rgba(224,121,90,.32);">Crea stabilimento</button>
+        <p style="text-align:center;font-size:13.5px;color:#5E5648;margin:22px 0 0;">Hai già un account? <span onClick="{{ goLogin }}" style="color:#C9603F;font-weight:600;cursor:pointer;">Accedi</span></p>
+      </div>
+    </div>
+  </div>
+  </sc-if>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1280,&quot;height&quot;:820},&quot;densitaMappa&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;Comoda&quot;,&quot;Compatta&quot;],&quot;default&quot;:&quot;Comoda&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Mappa&quot;},&quot;drawerIniziale&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Mappa&quot;}}">
+class Component extends DCLogic {
+  constructor(props){
+    super(props);
+    this.state = { section:'mappa', settore:'Centro', sel: (this.props.drawerIniziale===false ? null : 'centro-9'), view:'app', modal:null, loginError:false, modalPack:'Comfort', modalFascia:'Giornata intera', clienteSel:null };
+    this.emailRef = React.createRef();
+    this.pwdRef = React.createRef();
+    this.S = {
+      libero:{bg:'#8FBF9E',ink:'#21402C',tint:'#E7F1E9',label:'Libero'},
+      abbonato:{bg:'#5E9AA6',ink:'#0E3038',tint:'#E2EDEE',label:'Abbonato'},
+      giornaliero:{bg:'#E89270',ink:'#45200E',tint:'#FBE8DF',label:'Giornaliero'},
+      prenotato:{bg:'#F1C879',ink:'#463414',tint:'#FBF1DA',label:'Prenotato'},
+    };
+    this._cellById = {};
+    this._build();
+  }
+
+  _cellStyle(bg, ink, big){
+    const compact = this.props.densitaMappa === 'Compatta';
+    const base = compact ? 36 : 42;
+    const sz = big ? base+6 : base;
+    const fs = big ? 14 : (compact ? 12 : 13);
+    return `width:${sz}px;height:${sz}px;border-radius:99px;border:0;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;font-size:${fs}px;font-weight:600;font-variant-numeric:tabular-nums;background:${bg};color:${ink};box-shadow:0 1px 2px rgba(15,60,73,.16);transition:transform .12s ease,box-shadow .12s ease;`;
+  }
+
+  // c(id, lab, kind, opts) — kind: 'libero'|'abbonato'|'giornaliero'|'prenotato'|'split'
+  _c(id, lab, kind, opts){
+    opts = opts || {};
+    const big = !!opts.big;
+    const S = this.S;
+    let bg, ink, matt, pom, mattK, pomK;
+    if(kind==='split'){
+      mattK = opts.matt; pomK = opts.pom;
+      bg = `linear-gradient(90deg,${S[mattK].bg} 0 48%,rgba(255,255,255,.8) 48% 52%,${S[pomK].bg} 52% 100%)`;
+      ink = '#2B2722';
+      matt = S[mattK].label; pom = S[pomK].label;
+    } else {
+      bg = S[kind].bg; ink = S[kind].ink;
+      mattK = kind; pomK = kind; matt = S[kind].label; pom = S[kind].label;
+    }
+    const tipo = opts.tipo || 'Normale';
+    const markMap = {leaf:'#i-leaf', palm:'#i-palm'};
+    const mark = opts.mark ? markMap[opts.mark] : '';
+    let sel = (this.state.sel === id);
+    let style = this._cellStyle(bg, ink, big);
+    if(sel) style += 'outline:2.5px solid #E0795A;outline-offset:2px;box-shadow:0 0 0 5px rgba(224,121,90,.18);transform:translateY(-1px);';
+    const aria = `Ombrellone ${lab}, Settore ${opts.settore||''} ${opts.fila||''}, tipologia ${tipo}, mattina ${matt.toLowerCase()}, pomeriggio ${pom.toLowerCase()}${sel?', selezionato':''}`;
+    const cell = {
+      id, lab, kind, big, style, mark,
+      tipo, tipoIcon: opts.mark==='palm'?'#i-palm':(opts.mark==='leaf'?'#i-leaf':'#i-umbrella'),
+      aria,
+      crumb: `Settore ${opts.settore||''} · ${opts.fila||''}`,
+      matt, pom, mattK, pomK,
+      booking: opts.booking || null,
+    };
+    this._cellById[id] = cell;
+    return cell;
+  }
+
+  _build(){
+    const C = (id,lab,kind,o)=>this._c(id,lab,kind,o);
+    const bk = (cliente,pacchetto,periodo,pay,importo,metodo)=>({cliente,pacchetto,periodo,pay,importo,metodo});
+    const sC = 'Centro', sL = 'Levante';
+    this._settori = {
+      Centro: [
+        { nome:'Fila 1', celle:[
+          C('centro-1','1','giornaliero',{settore:sC,fila:'Fila 1',mark:'leaf',tipo:'Mini-palma',booking:bk('Bianchi Elena','Comfort','Sab 27 giu','day',28,'Carta')}),
+          C('centro-2','2','libero',{settore:sC,fila:'Fila 1',mark:'leaf',tipo:'Mini-palma'}),
+          C('centro-3','3','abbonato',{settore:sC,fila:'Fila 1',mark:'leaf',tipo:'Mini-palma',booking:bk('Rossi Mario','Premium','Stagione 2026','full',1180,'Bonifico')}),
+          C('centro-4','4','prenotato',{settore:sC,fila:'Fila 1',mark:'leaf',tipo:'Mini-palma',booking:bk('Greco Anna','Comfort','Sab 27 – Dom 28 giu','part',32,'Contanti')}),
+          C('centro-5','5','libero',{settore:sC,fila:'Fila 1',mark:'leaf',tipo:'Mini-palma'}),
+          C('centro-6','6','abbonato',{settore:sC,fila:'Fila 1',mark:'leaf',tipo:'Mini-palma',booking:bk('Ferri Luca','Premium','Stagione 2026','full',1180,'Bonifico')}),
+        ]},
+        { nome:'Fila 2', celle:[
+          C('centro-7','7','abbonato',{settore:sC,fila:'Fila 2',booking:bk('Conti Sara','Comfort','Stagione 2026','full',940,'Carta')}),
+          C('centro-8','8','libero',{settore:sC,fila:'Fila 2'}),
+          C('centro-9','9','split',{settore:sC,fila:'Fila 2',matt:'prenotato',pom:'libero',booking:bk('Rossi Mario','Comfort','Sab 27 giu','full',25,'Contanti')}),
+          C('centro-10','10','abbonato',{settore:sC,fila:'Fila 2',booking:bk('De Luca Marco','Comfort','Stagione 2026','full',940,'Bonifico')}),
+          C('centro-11','11','giornaliero',{settore:sC,fila:'Fila 2',booking:bk('Villa Paolo','Base','Sab 27 giu','full',22,'Contanti')}),
+          C('centro-12','12','libero',{settore:sC,fila:'Fila 2'}),
+        ]},
+        { nome:'Fila 3', celle:[
+          C('centro-13','13','libero',{settore:sC,fila:'Fila 3'}),
+          C('centro-14','14','abbonato',{settore:sC,fila:'Fila 3',booking:bk('Moretti Chiara','Base','Stagione 2026','full',760,'Carta')}),
+          C('centro-15','15','abbonato',{settore:sC,fila:'Fila 3',booking:bk('Gatti Franco','Comfort','Stagione 2026','part',940,'Contanti')}),
+          C('centro-16','16','prenotato',{settore:sC,fila:'Fila 3',booking:bk('Sala Roberto','Base','Sab 27 – Lun 29 giu','part',60,'Carta')}),
+          C('centro-17','17','libero',{settore:sC,fila:'Fila 3'}),
+          C('centro-18','18','giornaliero',{settore:sC,fila:'Fila 3',booking:bk('Neri Giada','Base','Sab 27 giu','full',22,'Contanti')}),
+        ]},
+        { nome:'Fila 4', celle:[
+          C('centro-19','19','giornaliero',{settore:sC,fila:'Fila 4',booking:bk('Costa Davide','Base','Sab 27 giu','full',20,'Contanti')}),
+          C('centro-20','20','libero',{settore:sC,fila:'Fila 4'}),
+          C('centro-22','22','abbonato',{settore:sC,fila:'Fila 4',booking:bk('Lombardi Ivan','Base','Stagione 2026','full',680,'Bonifico')}),
+          C('centro-22b','22bis','libero',{settore:sC,fila:'Fila 4'}),
+          C('centro-23','23','abbonato',{settore:sC,fila:'Fila 4',booking:bk('Marini Ada','Comfort','Stagione 2026','full',880,'Carta')}),
+        ]},
+      ],
+      Levante: [
+        { nome:'Fila 1', celle:[
+          C('lev-30','30','libero',{settore:sL,fila:'Fila 1'}),
+          C('lev-31','31','abbonato',{settore:sL,fila:'Fila 1',booking:bk('Russo Teresa','Premium','Stagione 2026','full',1120,'Bonifico')}),
+          C('lev-32','32','libero',{settore:sL,fila:'Fila 1'}),
+          C('lev-33','33','prenotato',{settore:sL,fila:'Fila 1',booking:bk('Esposito Gino','Comfort','Sab 27 giu','full',30,'Carta')}),
+          C('lev-34','34','libero',{settore:sL,fila:'Fila 1'}),
+        ]},
+        { nome:'Fila 2', celle:[
+          C('lev-35','35','abbonato',{settore:sL,fila:'Fila 2',booking:bk('Fabbri Nadia','Comfort','Stagione 2026','full',920,'Carta')}),
+          C('lev-36','36','split',{settore:sL,fila:'Fila 2',matt:'libero',pom:'giornaliero',booking:bk('Pace Ugo','Base','Sab 27 giu pom.','full',14,'Contanti')}),
+          C('lev-37','37','libero',{settore:sL,fila:'Fila 2'}),
+          C('lev-38','38','abbonato',{settore:sL,fila:'Fila 2',booking:bk('Riva Sonia','Base','Stagione 2026','full',720,'Bonifico')}),
+          C('lev-39','39','giornaliero',{settore:sL,fila:'Fila 2',booking:bk('Longo Enzo','Base','Sab 27 giu','full',20,'Contanti')}),
+        ]},
+        { nome:'Fila 3', celle:[
+          C('lev-40','40','libero',{settore:sL,fila:'Fila 3'}),
+          C('lev-41','41','libero',{settore:sL,fila:'Fila 3'}),
+          C('lev-42','42','abbonato',{settore:sL,fila:'Fila 3',booking:bk('Caruso Lia','Base','Stagione 2026','full',680,'Carta')}),
+          C('lev-43','43','prenotato',{settore:sL,fila:'Fila 3',booking:bk('Bruno Tino','Comfort','Sab 27 – Dom 28','part',56,'Carta')}),
+          C('lev-44','44','libero',{settore:sL,fila:'Fila 3'}),
+        ]},
+      ],
+    };
+    this._speciali = [
+      C('sp-1','P1','abbonato',{settore:'Speciali',fila:'Palme',mark:'palm',tipo:'Palma',big:true,booking:bk('Galli Vittorio','Premium','Stagione 2026','full',1680,'Bonifico')}),
+      C('sp-2','P2','libero',{settore:'Speciali',fila:'Palme',mark:'palm',tipo:'Palma',big:true}),
+      C('sp-3','P3','prenotato',{settore:'Speciali',fila:'Palme',mark:'palm',tipo:'Palma',big:true,booking:bk('Monti Clara','Premium','Sab 27 – Ven 03 lug','part',520,'Carta')}),
+    ];
+  }
+
+  _navStyle(active){
+    if(active) return 'display:flex;align-items:center;gap:11px;width:100%;border:0;border-radius:11px;padding:10px 12px;font-size:13.5px;font-weight:600;cursor:pointer;background:#1C5160;color:#F6EEE1;';
+    return 'display:flex;align-items:center;gap:11px;width:100%;border:0;border-radius:11px;padding:10px 12px;font-size:13.5px;font-weight:500;cursor:pointer;background:transparent;color:#A9C2C3;transition:background .12s ease;';
+  }
+  _tabStyle(active){
+    if(active) return 'padding:7px 16px;font-size:12.5px;font-weight:600;border:0;border-radius:9px;cursor:pointer;background:#FFFFFF;color:#22303A;box-shadow:0 1px 2px rgba(15,60,73,.1);';
+    return 'padding:7px 16px;font-size:12.5px;font-weight:500;border:0;border-radius:9px;cursor:pointer;background:transparent;color:#8A7E6B;';
+  }
+  _badge(bg,ink){ return `display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:600;padding:4px 11px;border-radius:99px;background:${bg};color:${ink};`; }
+
+  _initials(name){
+    const parts = name.split(' ');
+    return ((parts[0]||'')[0]||'') + ((parts[1]||'')[0]||'');
+  }
+  _avColor(i){
+    const pal = [['#E6EFEC','#2F7281'],['#FBE8DF','#B65A38'],['#FBF1DA','#9A7322'],['#E7F1E9','#3E7A53']];
+    return pal[i%pal.length];
+  }
+
+  renderVals(){
+    const sec = this.state.section;
+    const setSection = (s)=>()=>this.setState({section:s, clienteSel:null});
+
+    const navDefs = [
+      {id:'mappa',label:'Mappa',href:'#i-map'},
+      {id:'prenotazioni',label:'Prenotazioni',href:'#i-cal'},
+      {id:'clienti',label:'Clienti',href:'#i-users'},
+      {id:'listino',label:'Listino',href:'#i-tag'},
+      {id:'report',label:'Report',href:'#i-chart'},
+    ];
+    const nav = navDefs.map(n=>({...n, active: sec===n.id, style:this._navStyle(sec===n.id), onClick:setSection(n.id)}));
+
+    const titles = {
+      mappa:['Mappa','Lido Maestrale · 47 ombrelloni · vista per giornata'],
+      prenotazioni:['Prenotazioni','Elenco e gestione delle prenotazioni della stagione'],
+      clienti:['Clienti','Anagrafica bagnanti e storico abbonamenti'],
+      listino:['Listino e tariffe','Pacchetti, fasce e tariffe per la stagione'],
+      report:['Report','Andamento operativo dello stabilimento'],
+      stabilimento:['Stabilimento','Impostazioni, struttura e team del tuo lido'],
+      console:['Console superuser','Audit e diagnostica cross-stabilimento (sola lettura)'],
+    };
+    const [title, subtitle] = titles[sec] || titles.mappa;
+
+    // --- mappa ---
+    const setSettore = (s)=>()=>this.setState({settore:s});
+    const settoreAttivo = this.state.settore;
+    const settoriDefs = ['Centro','Levante','Speciali'];
+    const settori = ['Centro','Levante'].map(s=>({nome:s, style:this._tabStyle(settoreAttivo===s||(settoreAttivo==='Speciali'&&false)), onClick:setSettore(s)}));
+    // map tabs: Centro / Levante / Speciali(scroll) -> keep Centro & Levante as switch, Speciali always shown
+    const sett = ['Centro','Levante'].map(s=>({nome:s, style:this._tabStyle(settoreAttivo===s), onClick:setSettore(s)}));
+
+    const decorate = (cell)=>{
+      // recompute selection-dependent style live
+      const sel = this.state.sel === cell.id;
+      let style = this._cellStyle(cell.kind==='split'
+        ? `linear-gradient(90deg,${this.S[cell.mattK].bg} 0 48%,rgba(255,255,255,.8) 48% 52%,${this.S[cell.pomK].bg} 52% 100%)`
+        : this.S[cell.kind].bg,
+        cell.kind==='split' ? '#2B2722' : this.S[cell.kind].ink, cell.big);
+      if(sel) style += 'outline:2.5px solid #E0795A;outline-offset:2px;box-shadow:0 0 0 5px rgba(224,121,90,.18);transform:translateY(-1px);';
+      return {...cell, style, onClick:()=>this.setState({sel:cell.id})};
+    };
+
+    const file = (this._settori[settoreAttivo]||this._settori.Centro).map(row=>({
+      nome: row.nome,
+      celle: row.celle.map(decorate),
+    }));
+    const speciali = this._speciali.map(decorate);
+    const settoreCount = (this._settori[settoreAttivo]||this._settori.Centro).reduce((n,r)=>n+r.celle.length,0);
+
+    // --- drawer (selected) ---
+    const selCell = this._cellById[this.state.sel] || null;
+    let sel = null, drawerOpen = false;
+    if(selCell){
+      drawerOpen = true;
+      const S = this.S;
+      const mk = S[selCell.mattK], pk = S[selCell.pomK];
+      const b = selCell.booking;
+      const payMap = {full:['Saldato','#3E7A53','#E7F1E9','#3E7A53'],part:['Parziale','#9A7322','#FBF1DA','#8A6A1E'],none:['Non pagato','#C8503E','#FBE3E0','#B5392C'],day:['Saldato','#3E7A53','#E7F1E9','#3E7A53']};
+      let payRow = b ? payMap[b.pay] : null;
+      sel = {
+        lab: selCell.lab,
+        tipo: selCell.tipo,
+        tipoIcon: selCell.tipoIcon,
+        crumb: selCell.crumb,
+        matt: selCell.matt, pom: selCell.pom,
+        mattBg: mk.tint, mattBorder: mk.bg, mattInk: mk.ink,
+        pomBg: pk.tint, pomBorder: pk.bg, pomInk: pk.ink,
+        hasBooking: !!b,
+        libero: !b,
+        cliente: b?b.cliente:'', pacchetto: b?b.pacchetto:'', periodo: b?b.periodo:'',
+        pay: payRow?payRow[0]:'', payDot: payRow?payRow[1]:'', payBg: payRow?payRow[2]:'#F6EFE4', payInk: payRow?payRow[3]:'#5E5648',
+        importo: b? ('€ '+b.importo.toLocaleString('it-IT',{minimumFractionDigits:2,maximumFractionDigits:2})+(b.metodo?' · '+b.metodo:'')) : '',
+      };
+    }
+    const closeDrawer = ()=>this.setState({sel:null});
+
+    // --- prenotazioni ---
+    const badgeMap = {
+      Confermata:this._badge('#E7F1E9','#3E7A53'),
+      Bozza:this._badge('#F6EFE4','#8A7E6B'),
+      Conclusa:this._badge('#E2EDEE','#2F7281'),
+      Annullata:this._badge('#FBE3E0','#B5392C'),
+    };
+    const prenRaw = [
+      ['Rossi Mario','C · 9','Comfort','Giornaliera','Sab 27 giu','Confermata','€ 25,00'],
+      ['Galli Vittorio','Sp · P1','Premium','Abbonamento','01 giu – 15 set','Confermata','€ 1.680,00'],
+      ['Greco Anna','C · 4','Comfort','Periodica','27 – 28 giu','Confermata','€ 64,00'],
+      ['Esposito Gino','L · 33','Comfort','Giornaliera','Sab 27 giu','Bozza','€ 30,00'],
+      ['Sala Roberto','C · 16','Base','Periodica','27 – 29 giu','Confermata','€ 60,00'],
+      ['Monti Clara','Sp · P3','Premium','Periodica','27 giu – 03 lug','Confermata','€ 520,00'],
+      ['Villa Paolo','C · 11','Base','Giornaliera','Sab 27 giu','Conclusa','€ 22,00'],
+      ['Bruno Tino','L · 43','Comfort','Periodica','27 – 28 giu','Confermata','€ 56,00'],
+      ['Costa Davide','C · 19','Base','Giornaliera','Sab 27 giu','Conclusa','€ 14,00'],
+      ['Neri Giada','C · 18','Base','Giornaliera','Sab 27 giu','Confermata','€ 22,00'],
+    ];
+    const prenotazioni = prenRaw.map((r,i)=>{
+      const [av1,av2]=this._avColor(i);
+      return {
+        cliente:r[0], ini:this._initials(r[0]), avBg:av1, avInk:av2,
+        ombrellone:r[1], pacchetto:r[2], tipo:r[3], periodo:r[4], stato:r[5], incasso:r[6],
+        badge: badgeMap[r[5]] || badgeMap.Bozza,
+        rowStyle: i%2? 'background:#FCFAF5;':'background:#FFFFFF;',
+      };
+    });
+
+    // --- clienti ---
+    const cliBadge = {
+      VIP:this._badge('#FBE8DF','#B65A38'),
+      Abbonato:this._badge('#E2EDEE','#2F7281'),
+      Occasionale:this._badge('#F6EFE4','#8A7E6B'),
+    };
+    const cliRaw = [
+      ['Rossi Mario','+39 347 118 4420','m.rossi@email.it','2','5','Sab 27 giu','Abbonato'],
+      ['Galli Vittorio','+39 333 920 1185','v.galli@email.it','1','9','Sab 27 giu','VIP'],
+      ['Conti Sara','+39 348 552 0073','sara.conti@email.it','1','3','Ven 26 giu','Abbonato'],
+      ['Greco Anna','+39 340 771 6628','anna.greco@email.it','0','—','Sab 27 giu','Occasionale'],
+      ['De Luca Marco','+39 339 408 9912','m.deluca@email.it','1','4','Gio 25 giu','Abbonato'],
+      ['Moretti Chiara','+39 346 220 5530','c.moretti@email.it','1','2','Sab 27 giu','Abbonato'],
+      ['Esposito Gino','+39 351 664 7781','g.esposito@email.it','0','—','Sab 27 giu','Occasionale'],
+      ['Russo Teresa','+39 338 105 4499','t.russo@email.it','1','7','Mer 24 giu','VIP'],
+      ['Marini Ada','+39 349 778 2210','ada.marini@email.it','1','6','Sab 27 giu','Abbonato'],
+    ];
+    const cliNote = [
+      'Cliente storico, preferisce la prima fila.',
+      'Richiede sempre la palma P1. Saldo a inizio stagione.',
+      'Abbonata mattina. Contattare via WhatsApp.',
+      '',
+      'Famiglia con bambini, vicino al chiosco.',
+      '',
+      '',
+      'Ombrellone d\u2019angolo lato Levante.',
+      'Preferisce il pomeriggio.',
+    ];
+    const clienti = cliRaw.map((r,i)=>{
+      const [av1,av2]=this._avColor(i);
+      return {
+        nome:r[0], ini:this._initials(r[0]), avBg:av1, avInk:av2,
+        tel:r[1], email:r[2], abbonamenti:r[3], anzianita:r[4]==='—'?'—':r[4]+' stag.', ultima:r[5], tipo:r[6],
+        note: cliNote[i] || '\u2014',
+        rowStyle: (i%2? 'background:#FCFAF5;':'background:#FFFFFF;')+'cursor:pointer;',
+        rowClick: ()=>this.setState({clienteSel:i}),
+      };
+    });
+
+    // --- scheda cliente (dettaglio) ---
+    const cs = this.state.clienteSel;
+    let scheda = null;
+    if(cs!=null && cliRaw[cs]){
+      const r = cliRaw[cs];
+      const parts = r[0].split(' ');
+      const cognome = parts[0], nome = parts.slice(1).join(' ');
+      const [av1,av2]=this._avColor(cs);
+      scheda = {
+        nomeVis: nome+' '+cognome, ini:this._initials(r[0]), avBg:av1, avInk:av2,
+        nome, cognome, tel:r[1], email:r[2], note: cliNote[cs] || '\u2014',
+        tipo:r[6], badge: cliBadge[r[6]] || cliBadge.Occasionale,
+      };
+    }
+
+    // --- stabilimento (team) ---
+    const utenti = [
+      {email:'giulia@lidomaestrale.it', ruolo:'Amministratore', rk:'admin', tu:true},
+      {email:'marco@lidomaestrale.it', ruolo:'Staff', rk:'staff'},
+      {email:'sara@lidomaestrale.it', ruolo:'Staff', rk:'staff'},
+      {email:'luca@lidomaestrale.it', ruolo:'Staff', rk:'staff'},
+    ].map((u,i)=>{
+      const [a,b]=this._avColor(i);
+      return {...u, ini:u.email.slice(0,2).toUpperCase(), avBg:a, avInk:b,
+        badge: this._badge(u.rk==='admin'?'#FBE8DF':'#E2EDEE', u.rk==='admin'?'#B65A38':'#2F7281')};
+    });
+
+    // --- listino ---
+    const pacchetti = [
+      {nome:'Base', tag:'Essenziale', tagBg:'#F6EFE4', tagInk:'#8A7E6B', dotazione:'1 ombrellone + 2 sdraio. Cambio postazione su disponibilità.', prezzo:'€ 20'},
+      {nome:'Comfort', tag:'Più richiesto', tagBg:'#FBE8DF', tagInk:'#B65A38', dotazione:'1 ombrellone + 2 lettini. Posizione garantita per il periodo.', prezzo:'€ 28'},
+      {nome:'Premium', tag:'Top', tagBg:'#E2EDEE', tagInk:'#2F7281', dotazione:'1 ombrellone + 2 lettini + sdraio + cassaforte e telo.', prezzo:'€ 38'},
+    ].map(p=>({...p, tagStyle:this._badge(p.tagBg,p.tagInk)}));
+    const fasce = [
+      {nome:'Giornata intera', orario:'08:00 – 19:00'},
+      {nome:'Mattina', orario:'08:00 – 13:00'},
+      {nome:'Pomeriggio', orario:'13:00 – 19:00'},
+    ];
+    const tariffeRaw = [
+      ['Prima fila (mare)','Premium','Giornata intera','€ 38','€ 215','€ 1.180'],
+      ['Prima fila (mare)','Comfort','Giornata intera','€ 30','€ 170','€ 940'],
+      ['Fila centrale','Comfort','Giornata intera','€ 28','€ 158','€ 880'],
+      ['Fila centrale','Base','Giornata intera','€ 22','€ 124','€ 760'],
+      ['Retro spiaggia','Base','Giornata intera','€ 20','€ 112','€ 680'],
+      ['Retro spiaggia','Base','Mattina','€ 14','€ 78','—'],
+      ['Speciali (palme)','Premium','Giornata intera','€ 52','€ 295','€ 1.680'],
+    ];
+    const tariffe = tariffeRaw.map((r,i)=>({
+      posizione:r[0], pacchetto:r[1], fascia:r[2], giorno:r[3], settimana:r[4], stagione:r[5],
+      rowStyle: i%2? 'background:#FCFAF5;':'background:#FFFFFF;',
+    }));
+
+    // --- report ---
+    const kpi = [
+      {label:'Occupazione oggi', value:'78%', icon:'#i-grid', iconBg:'#E2EDEE', iconInk:'#2F7281', trend:'+6% vs ieri', trendIcon:'#i-arrow-up', trendInk:'#3E7A53'},
+      {label:'Incasso giornata', value:'€ 1.840', icon:'#i-euro', iconBg:'#FBE8DF', iconInk:'#B65A38', trend:'+12% vs ieri', trendIcon:'#i-arrow-up', trendInk:'#3E7A53'},
+      {label:'Abbonamenti attivi', value:'142', icon:'#i-star', iconBg:'#FBF1DA', iconInk:'#9A7322', trend:'+3 questa settimana', trendIcon:'#i-arrow-up', trendInk:'#3E7A53'},
+      {label:'In lista d\u2019attesa', value:'6', icon:'#i-clock', iconBg:'#E7F1E9', iconInk:'#3E7A53', trend:'\u22122 da ieri', trendIcon:'#i-arrow-dn', trendInk:'#978C7B'},
+    ];
+    const incassiRaw = [['Lun',1320],['Mar',1180],['Mer',1490],['Gio',1610],['Ven',1980],['Sab',2360],['Dom',1840]];
+    const maxInc = 2360;
+    const incassi = incassiRaw.map((r,i)=>({
+      day:r[0], val:'€ '+(r[1]/1000).toFixed(1)+'k',
+      h: Math.round(r[1]/maxInc*100)+'%',
+      fill: i===5 ? 'linear-gradient(180deg,#E0795A,#CB5F3F)' : '#9DC8C0',
+    }));
+    const statoMix = [
+      {label:'Abbonato', pct:'48%', col:'#5E9AA6'},
+      {label:'Giornaliero', pct:'18%', col:'#E89270'},
+      {label:'Prenotato', pct:'12%', col:'#F1C879'},
+      {label:'Libero', pct:'22%', col:'#8FBF9E'},
+    ];
+    const scadenzeRaw = [
+      ['Russo Teresa','31','7','30 giu'],
+      ['Galli Vittorio','P1','9','02 lug'],
+      ['Conti Sara','7','3','03 lug'],
+      ['De Luca Marco','10','4','05 lug'],
+    ];
+    const scadenze = scadenzeRaw.map((r,i)=>{
+      const [av1,av2]=this._avColor(i);
+      return {nome:r[0], ini:this._initials(r[0]), avBg:av1, avInk:av2, ombrellone:r[1], anzianita:r[2], scadenza:r[3]};
+    });
+
+    // --- view (auth) ---
+    const view = this.state.view;
+    const setView = (v)=>()=>this.setState({view:v, modal:null, loginError:false, clienteSel:null});
+    const tryLogin = ()=>{
+      const e = this.emailRef.current ? this.emailRef.current.value.trim() : '';
+      const p = this.pwdRef.current ? this.pwdRef.current.value : '';
+      if(e && p) this.setState({view:'app', loginError:false});
+      else this.setState({loginError:true});
+    };
+
+    // --- modals ---
+    const modal = this.state.modal;
+    const openModal = (m)=>()=>this.setState({modal:m});
+    const closeModal = ()=>this.setState({modal:null});
+    const stop = (e)=>{ e.stopPropagation(); };
+
+    const packs = ['Base','Comfort','Premium'];
+    const packBase = {Base:22, Comfort:28, Premium:38};
+    const fasceM = ['Giornata intera','Mattina','Pomeriggio'];
+    const fasciaFactor = {'Giornata intera':1, Mattina:0.62, Pomeriggio:0.62};
+    const mp = this.state.modalPack, mf = this.state.modalFascia;
+    const setPack = (p)=>()=>this.setState({modalPack:p});
+    const setFascia = (f)=>()=>this.setState({modalFascia:f});
+    const optStyle = (active)=>active
+      ? 'flex:1;text-align:center;padding:11px 8px;border-radius:10px;border:1.5px solid #E0795A;background:#FBE7DD;color:#7A2E16;font-size:13px;font-weight:600;cursor:pointer;'
+      : 'flex:1;text-align:center;padding:11px 8px;border-radius:10px;border:1.5px solid #E7DCCB;background:#FFFFFF;color:#5E5648;font-size:13px;font-weight:500;cursor:pointer;';
+    const packOpts = packs.map(p=>({nome:p, desc: p==='Base'?'1 ombrellone + 2 sdraio':(p==='Comfort'?'1 ombrellone + 2 lettini':'+ sdraio, cassaforte, telo'), style:optStyle(mp===p), onClick:setPack(p)}));
+    const fasciaOpts = fasceM.map(f=>({nome:f, style:optStyle(mf===f), onClick:setFascia(f)}));
+    const prezzoModal = '\u20AC ' + (packBase[mp]*fasciaFactor[mf]).toLocaleString('it-IT',{minimumFractionDigits:2,maximumFractionDigits:2});
+    const selLabModal = this.state.sel ? ((this._cellById[this.state.sel]||{}).lab || '\u2014') : '\u2014';
+
+    return {
+      view, isApp: view==='app', isLogin: view==='login', isRegister: view==='register',
+      goLogin:setView('login'), goRegister:setView('register'), goApp:setView('app'),
+      tryLogin, loginError: this.state.loginError, emailRef:this.emailRef, pwdRef:this.pwdRef,
+      modalOpen: !!modal, isModalPren: modal==='prenotazione', isModalCliente: modal==='cliente', isModalAnnulla: modal==='annulla',
+      openPren:openModal('prenotazione'), openCliente:openModal('cliente'), openAnnulla:openModal('annulla'), closeModal, stop,
+      packOpts, fasciaOpts, prezzoModal, selLabModal,
+      nav, goConsole:setSection('console'), consoleStyle:this._navStyle(sec==='console'),
+      title: (sec==='clienti'&&cs!=null)?'Scheda cliente':title,
+      subtitle: (sec==='clienti'&&cs!=null)?'Anagrafica e attivit\u00E0 del bagnante':subtitle,
+      isMappa: sec==='mappa', isPrenotazioni: sec==='prenotazioni',
+      isClientiLista: sec==='clienti' && cs==null, isClienteDettaglio: sec==='clienti' && cs!=null,
+      isListino: sec==='listino', isReport: sec==='report', isStabilimento: sec==='stabilimento',
+      goStabilimento: setSection('stabilimento'), backToClienti: ()=>this.setState({clienteSel:null}),
+      scheda, utenti,
+      settori: sett, settoreAttivo, settoreCount, file, speciali,
+      sel, drawerOpen, closeDrawer,
+      prenotazioni,
+      clienti, clientiCount: clienti.length,
+      pacchetti, fasce, tariffe,
+      kpi, incassi, statoMix, scadenze,
+    };
+  }
+}
+</script>
+</body>
+</html>
