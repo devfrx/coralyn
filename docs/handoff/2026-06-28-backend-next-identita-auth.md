@@ -23,7 +23,7 @@ ancora**: lo produci tu (brainstorming → spec → plan → implementazione).
   `executing-plans`), un task alla volta. **TDD** dove prescritto. Chiudi con
   **`superpowers:verification-before-completion`**: nessun "fatto" senza l'output dei test.
 - **Decision rubric [ADR-0002]** (professionalità, convenzioni, modularità, zero debito), raccomandazioni
-  nette. **Un ADR per ogni decisione architetturale** (prossimo libero: **0023**; l'auth ne richiederà
+  nette. **Un ADR per ogni decisione architetturale** (prossimo libero: **0024**; l'auth ne richiederà
   almeno uno: libreria JWT, stateless vs sessione, forma del token, hashing password). Rinvii in
   `deferred.md`. Lingua: codice EN, dominio IT, docs IT. Commit atomici col trailer
   `Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>`. **Comunica in italiano.**
@@ -31,11 +31,16 @@ ancora**: lo produci tu (brainstorming → spec → plan → implementazione).
 ## 2. Stato attuale (il tuo punto di partenza)
 
 - Branch **`main`**, working tree pulita. Node 24, pnpm 11.9.0, Docker 29, Windows (PowerShell + Bash).
-- **Plan 1 (Core Foundation) FATTO e su `main`** — `apps/api`:
-  - NestJS, `GET /health` (root); `GET/POST /api/clienti` isolato per tenant; **global prefix `/api`**
-    con `/health` escluso (ADR-0022).
+- **Plan 1 (Core Foundation) + Scheda Cliente Incremento 1 FATTI e su `main`** — `apps/api`:
+  - NestJS, `GET /health` (root); **global prefix `/api`** con `/health` escluso (ADR-0022).
+  - Modulo `clienti` (esteso nell'Incremento 1, **ADR-0023**): `GET /api/clienti`, **`GET /api/clienti/:id`**
+    (404 cross-tenant), `POST /api/clienti`, **`PATCH /api/clienti/:id`** (404 cross-tenant) — tutti isolati per tenant.
+  - **Validazione input GIÀ ATTIVA**: `app.useGlobalPipes(new ValidationPipe({ whitelist, transform }))` in
+    `main.ts` + DTO `class-validator` (`src/clienti/dto/` con `normalize` `''→null`). Email malformata → **400**,
+    campi extra scartati. **I tuoi DTO auth (login, ecc.) saranno validati automaticamente.**
   - PostgreSQL via Docker, ruolo applicativo **non-superuser** `driftly_app` (la RLS lo richiede).
-  - Prisma: modelli `Stabilimento`, `Cliente`; migrazioni `init` + `rls`; seed dev (`Stabilimento` 00..001).
+  - Prisma: modelli `Stabilimento`, `Cliente {…, telefono?, email?, note?}`; migrazioni `init` + `rls` +
+    `cliente_contatti`; seed dev (`Stabilimento` 00..001).
   - **RLS multi-tenant**: `PrismaService.forTenant(tenantId, tx => ...)` imposta la GUC
     `app.current_tenant` in transazione; policy `tenant_isolation` su `Cliente` (`ENABLE`+`FORCE`).
   - **Tenant provvisorio**: `TenantMiddleware` legge l'header `X-Stabilimento-Id` e setta `req.tenantId`;
@@ -53,8 +58,14 @@ ancora**: lo produci tu (brainstorming → spec → plan → implementazione).
    prenotazioni → audit`. **Il prossimo è `identita`.**
 4. [data-model](../design/data-model.md) — entità e scoping tenant.
 5. ADR rilevanti: **0015** (superuser di piattaforma + AuditLog + osservabilità), **0010** (RLS),
-   **0007/0008** (stile/stack), e per i passi dopo `identita`: **0005/0014/0016** (mappa),
-   **0006/0011/0012/0013** (prenotazioni/pricing/abbonamenti/slot).
+   **0007/0008** (stile/stack), **0023** (contatti tipizzati + **pattern DTO/validazione** da riusare),
+   e per i passi dopo `identita`: **0005/0014/0016** (mappa), **0006/0011/0012/0013**
+   (prenotazioni/pricing/abbonamenti/slot).
+6. **Esempio di slice incrementale già eseguito** (pattern da imitare per endpoint `:id` + DTO + validazione +
+   e2e + RLS): spec [scheda-cliente](../specs/2026-06-28-scheda-cliente-design.md), piani
+   [BE](../plans/2026-06-29-scheda-cliente-be.md) / [FE](../plans/2026-06-28-scheda-cliente-fe.md), e il
+   codice in `apps/api/src/clienti/` (controller con `:id`, DTO `class-validator`, `normalize.ts`, service con
+   proiezione `null→undefined` e **404 cross-tenant** via RLS).
 
 ## 4. Cosa cambia con l'auth (e cosa NON cambia)
 
@@ -96,7 +107,8 @@ trapelare dati cross-tenant). **Progetta la policy con cura** (ADR dedicato) qua
 
 ## 6. Entità ancora da modellare (oltre `Stabilimento`+`Cliente`)
 
-Da [data-model](../design/data-model.md) (tenant-scoped salvo nota):
+> `Cliente` è già stato **esteso** nell'Incremento 1 (anagrafica ricca `telefono/email/note`, ADR-0023);
+> resta da modellare il resto del dominio. Da [data-model](../design/data-model.md) (tenant-scoped salvo nota):
 
 | Modulo | Entità | Note di scoping |
 |---|---|---|
@@ -111,10 +123,13 @@ Il FE **mocka già `/api/mappa`** con `MappaGiornoDTO` (in `contracts`): quando 
 
 ## 7. Deferred backend da conoscere (`docs/architecture/deferred.md`)
 
-- **D-022** — validazione server-side input API (`ValidationPipe` + DTO `class-validator`); **facilmente
-  attuabile, da fare presto** (oggi `POST /api/clienti` accetta qualsiasi body → 500 su input malformato).
+- ~~**D-022** (validazione input)~~ → **RISOLTO** da ADR-0023 (`ValidationPipe` globale + DTO `class-validator`).
+  Già attivo: i tuoi DTO auth sono validati automaticamente — non rifarlo, riusa il pattern in `src/clienti/dto/`.
 - **D-023** — least-privilege del ruolo DB: `driftly_app` ha `CREATEDB` solo per lo shadow DB di
   `prisma migrate dev` (dev); in prod (`migrate deploy`) non serve — separare il ruolo o `shadowDatabaseUrl`.
+  *(Tocca proprio l'area auth/ruoli DB: valuta se affrontarlo in questo slice.)*
+- **D-024** — privacy/GDPR del `Cliente`: cancellazione/anonimizzazione quando sarà legato a
+  `Prenotazione`/storico (oggi niente DELETE). Rilevante quando modellerai le relazioni del `Cliente`.
 - **D-009** (entità `Pagamento` ricca → modulo Cassa), **D-010** (silo per tenant grande), **D-002**
   (infra SaaS completa), **D-006/D-011/D-013** (waitlist/abbonamenti avanzati).
 
