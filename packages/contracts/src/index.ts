@@ -5,12 +5,27 @@ export enum Ruolo {
   Superuser = 'superuser',
 }
 
-/** DTO minimale di un Cliente (il bagnante). Condiviso FE/BE. */
+/** DTO di un Cliente (il bagnante). Condiviso FE/BE. Contatti opzionali (ADR-0023). */
 export interface ClienteDTO {
   id: string;
   nome: string;
   cognome: string;
+  telefono?: string;
+  email?: string;
+  note?: string;
 }
+
+/** Input di creazione di un Cliente (contatti opzionali). */
+export interface CreaClienteInput {
+  nome: string;
+  cognome: string;
+  telefono?: string;
+  email?: string;
+  note?: string;
+}
+
+/** Input di modifica anagrafica: tutti i campi opzionali. */
+export type ModificaClienteInput = Partial<CreaClienteInput>;
 
 /** Stato di uno slot (ombrellone, data, fascia). Derivato dal backend. ADR-0013/0020. */
 export type StatoSlot = 'libero' | 'abbonato' | 'giornaliero' | 'prenotato';
