@@ -18,6 +18,9 @@ model Cliente {
   stabilimentoId String       @db.Uuid
   nome           String
   cognome        String
+  telefono       String?
+  email          String?
+  note           String?
   stabilimento   Stabilimento @relation(fields: [stabilimentoId], references: [id])
 
   @@index([stabilimentoId])
