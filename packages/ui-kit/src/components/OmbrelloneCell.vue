@@ -29,20 +29,15 @@ const bg = computed(() =>
     : fill[props.statoMattina],
 );
 const color = computed(() => (isSplit.value ? 'var(--color-text)' : ink[props.statoMattina]));
-const boxShadow = computed(() =>
-  props.selezionato
-    ? '0 0 0 4px var(--color-brand-tint)'
-    : 'var(--shadow-soft)',
-);
 </script>
 
 <template>
   <span class="relative inline-flex">
     <button
       type="button" :aria-label="ariaLabel" :aria-pressed="selezionato"
-      class="grid size-[34px] place-items-center rounded-full text-xs font-semibold [font-variant-numeric:tabular-nums] transition-transform hover:-translate-y-px focus-visible:outline-none focus-visible:[box-shadow:var(--shadow-focus)]"
-      :class="selezionato ? 'outline outline-2 outline-offset-2 outline-[var(--color-brand)]' : ''"
-      :style="{ background: bg, color, boxShadow }"
+      class="grid size-[34px] place-items-center rounded-full text-xs font-semibold [font-variant-numeric:tabular-nums] transition-transform hover:-translate-y-px focus-visible:outline-none focus-visible:[box-shadow:var(--ring-focus)]"
+      :class="selezionato ? 'outline outline-2 outline-offset-2 outline-[var(--color-brand)] [box-shadow:0_0_0_4px_var(--color-brand-tint)]' : '[box-shadow:var(--shadow-soft)]'"
+      :style="{ background: bg, color }"
       @click="$emit('select')"
     >{{ etichetta }}</button>
     <span v-if="iconaTipologia" class="absolute -right-1 -top-1 z-10 grid size-[15px] place-items-center rounded-full bg-[var(--color-surface)] text-[var(--color-accent)] [box-shadow:var(--shadow-soft)]">
