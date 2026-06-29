@@ -1,42 +1,81 @@
 @theme {
-  /* primitive */
-  --color-teal-700: #155A73; --color-teal-500: #1F6F8B; --color-teal-100: #DCECF2;
-  --color-navy-900: #0F3A4A; --color-navy-700: #1B5167;
-  --color-sand-400: #E0A24E; --color-sand-100: #FBF3DE;
-  --color-cool-0: #FFFFFF; --color-cool-50: #F5F7F9; --color-cool-100: #ECF0F3;
-  --color-cool-150: #E9EFF2; --color-cool-200: #D8E0E6; --color-cool-300: #C2CCD4;
-  --color-cool-400: #99A4AE; --color-cool-500: #66727E; --color-cool-700: #46535F;
-  --color-cool-900: #23323F;
-  --color-green-500: #3F9D5B; --color-amber-500: #E8A93C; --color-red-500: #D6453D; --color-blue-500: #4F86E0;
-  --color-state-libero: #7BB661; --color-state-libero-ink: #1E3A16;
-  --color-state-abbonato: #5B8DEF; --color-state-abbonato-ink: #102945;
-  --color-state-giornaliero: #E8843C; --color-state-giornaliero-ink: #3A1E08;
-  --color-state-prenotato: #F0C24A; --color-state-prenotato-ink: #4A3711;
+  /* ===== PRIMITIVE — Brand corallo ===== */
+  --color-coral-500: #E0795A; --color-coral-600: #C9603F; --color-coral-700: #B65A38;
+  --color-coral-100: #FBE8DF; --color-coral-050: #FBF1EF;
+  /* ===== PRIMITIVE — Teal profondo (sidebar/auth) ===== */
+  --color-teal-900: #0B3543; --color-teal-800: #0F3C49; --color-teal-700: #16505E;
+  --color-teal-650: #1A5666; --color-teal-600: #23606E; --color-teal-divider: #1C4E5B;
+  /* ===== PRIMITIVE — Teal accento (su chiaro) ===== */
+  --color-accent-500: #2F7281; --color-accent-100: #E6EFEC; --color-accent-150: #E2EDEE;
+  /* ===== PRIMITIVE — Testo su teal ===== */
+  --color-on-teal: #CFE0DF; --color-on-teal-strong: #F6EEE1; --color-on-teal-muted: #6E9197;
+  --color-on-teal-eyebrow: #577A80; --color-on-teal-2nd: #9FBCC0;
+  /* ===== PRIMITIVE — Neutri caldi ===== */
+  --color-warm-000: #FFFFFF; --color-warm-025: #FCFAF5; --color-warm-050: #FBF6EE;
+  --color-warm-075: #FBF4E6; --color-warm-100: #F4ECE0; --color-warm-150: #F6EAD3;
+  --color-warm-200: #ECE3D5; --color-warm-250: #EDE3D4;
+  /* bordi */
+  --color-warm-border: #E7DCCB; --color-warm-border-input: #E0D5C3;
+  --color-warm-border-row: #F1EADC; --color-warm-border-stage: #ECDFC8; --color-warm-border-seg: #E2D6C3;
+  /* ink */
+  --color-ink-900: #22303A; --color-ink-canvas: #2B2722; --color-ink-700: #5E5648;
+  --color-ink-600: #8A7E6B; --color-ink-500: #978C7B; --color-ink-400: #B3A998;
+  /* stage eyebrows (su sabbia) */
+  --color-stage-1: #8A6E3F; --color-stage-2: #B79A63; --color-stage-3: #9A8460;
+  /* ===== PRIMITIVE — Stati mappa ===== */
+  --color-state-libero: #8FBF9E; --color-state-libero-ink: #1E3A16;
+  --color-state-abbonato: #5E9AA6; --color-state-abbonato-ink: #102945;
+  --color-state-giornaliero: #E89270; --color-state-giornaliero-ink: #3A1E08;
+  --color-state-prenotato: #F1C879; --color-state-prenotato-ink: #4A3711;
+  --color-state-normale-mark: #D8CDBB;
+  /* Mare */
+  --color-sea-1: #E0EFF3; --color-sea-2: #BEDDE8; --color-sea-3: #A8D0DE; --color-sea-ink: #2E6B81;
+  /* ===== PRIMITIVE — Feedback (bg/ink) ===== */
+  --color-success: #3F9D5B; --color-success-bg: #E7F1E9; --color-success-ink: #3E7A53;
+  --color-warning: #E8A93C; --color-warning-bg: #FBF1DA; --color-warning-ink: #9A7322;
+  --color-danger: #C8503E; --color-danger-bg: #FBE3E0; --color-danger-ink: #A33A2C; --color-danger-border: #EBB7AF;
+  --color-info: #4F86E0; --color-soon-bg: #F1E8D8; --color-soon-ink: #B7A98F;
 
-  /* semantic (alias) */
-  --color-canvas: var(--color-cool-150);
-  --color-bg: var(--color-cool-50);
-  --color-surface: var(--color-cool-0);
-  --color-sunken: var(--color-cool-100);
-  --color-border: var(--color-cool-200);
-  --color-text: var(--color-cool-900);
-  --color-text-muted: var(--color-cool-500);
-  --color-brand: var(--color-teal-500);
-  --color-brand-hover: var(--color-teal-700);
-  --color-brand-tint: var(--color-teal-100);
-  --color-on-navy: #CFE2EA;
+  /* ===== SEMANTIC ===== */
+  --color-canvas: var(--color-warm-200);
+  --color-bg: var(--color-warm-100);
+  --color-surface: var(--color-warm-000);
+  --color-raised: var(--color-warm-050);
+  --color-border: var(--color-warm-border);
+  --color-border-input: var(--color-warm-border-input);
+  --color-border-row: var(--color-warm-border-row);
+  --color-text: var(--color-ink-900);
+  --color-text-2nd: var(--color-ink-700);
+  --color-text-muted: var(--color-ink-500);
+  --color-placeholder: var(--color-ink-400);
+  --color-brand: var(--color-coral-500);
+  --color-brand-hover: var(--color-coral-600);
+  --color-brand-ink: var(--color-coral-700);
+  --color-brand-tint: var(--color-coral-100);
+  --color-accent: var(--color-accent-500);
+  --color-accent-tint: var(--color-accent-100);
+  --color-sidebar-bg: var(--color-teal-800);
+  --color-sidebar-raised: var(--color-teal-700);
+  --color-sidebar-border: var(--color-teal-600);
+  --color-sidebar-divider: var(--color-teal-divider);
+  --color-on-sidebar: var(--color-on-teal);
+  --color-on-sidebar-strong: var(--color-on-teal-strong);
+  --color-on-sidebar-muted: var(--color-on-teal-muted);
 
-  --font-sans: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-  --radius-sm: 6px; --radius-md: 8px; --radius-lg: 12px; --radius-full: 999px;
-  --shadow-xs: 0 1px 2px rgba(15,58,74,.10);
-  --shadow-sm: 0 2px 10px rgba(15,58,74,.10);
-  --shadow-md: 0 8px 24px rgba(15,58,74,.14);
-  --shadow-lg: 0 16px 40px rgba(15,58,74,.18);
+  --font-sans: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --radius-sm: 9px; --radius-md: 11px; --radius-lg: 16px; --radius-xl: 18px; --radius-full: 999px;
+  --shadow-card: 0 1px 3px rgba(15,60,73,.05);
+  --shadow-soft: 0 1px 2px rgba(15,60,73,.08);
+  --shadow-drawer: 0 12px 40px rgba(15,60,73,.13);
+  --shadow-modal: 0 24px 70px rgba(11,53,67,.34);
+  --shadow-brand: 0 2px 8px rgba(224,121,90,.3);
   --ease-standard: cubic-bezier(.2,0,.2,1);
   --ease-emphasized: cubic-bezier(.2,0,0,1);
 }
 
-:root { --shadow-focus: 0 0 0 2px var(--color-surface), 0 0 0 4px var(--color-brand); }
+:root {
+  --ring-focus: 0 0 0 3px rgba(224,121,90,.16);
+}
 * { box-sizing: border-box; }
-body { font-family: var(--font-sans); color: var(--color-text); background: var(--color-bg); margin: 0; }
+body { font-family: var(--font-sans); color: var(--color-text); background: var(--color-bg); margin: 0; -webkit-font-smoothing: antialiased; }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
