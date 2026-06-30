@@ -56,8 +56,12 @@ const sel = ref<{ u: UmbrellaDTO; sector: string; row: string } | null>(null);
 function open(u: UmbrellaDTO, sector: string, row: string) { sel.value = { u, sector, row }; }
 function close() { sel.value = null; }
 
-const morning = computed<SlotState>(() => (sel.value ? slotState(sel.value.u, 0) : 'free'));
-const afternoon = computed<SlotState>(() => (sel.value ? slotState(sel.value.u, 1) : 'free'));
+function liveSlotState(idx: number): SlotState {
+  const s = timeSlots.value[idx] ?? timeSlots.value[0];
+  return (liveU.value.stateBySlot[s?.id] ?? 'free') as SlotState;
+}
+const morning = computed<SlotState>(() => (sel.value ? liveSlotState(0) : 'free'));
+const afternoon = computed<SlotState>(() => (sel.value ? liveSlotState(1) : 'free'));
 function tintBg(s: SlotState) { return `color-mix(in srgb, ${STATE_COLOR[s]} 18%, var(--color-surface))`; }
 function tintBorder(s: SlotState) { return `color-mix(in srgb, ${STATE_COLOR[s]} 40%, var(--color-surface))`; }
 
@@ -71,6 +75,19 @@ const currentBooking = computed<BookingDTO | null>(() => {
   ) ?? null;
 });
 
+const selUmbrella = computed<UmbrellaDTO | null>(() => {
+  if (!sel.value) return null;
+  for (const sector of map.value?.sectors ?? []) {
+    for (const row of sector.rows) {
+      const u = row.umbrellas.find((x) => x.id === sel.value!.u.id);
+      if (u) return u;
+    }
+  }
+  return null;
+});
+/** Stato live dell'ombrellone selezionato (fallback allo snapshot se non in mappa). */
+const liveU = computed<UmbrellaDTO>(() => selUmbrella.value ?? sel.value!.u);
+
 const currentCustomerName = computed<string>(() => {
   const b = currentBooking.value;
   if (!b) return '';
@@ -82,11 +99,11 @@ const customerId = ref<string>('');
 const price = ref<number>(0);
 
 function slotIsBusy(slotId: string): boolean {
-  return sel.value ? (sel.value.u.stateBySlot[slotId] ?? 'free') !== 'free' : false;
+  return sel.value ? (liveU.value.stateBySlot[slotId] ?? 'free') !== 'free' : false;
 }
 function firstFreeSlot(): string {
   if (!sel.value) return timeSlots.value[0]?.id ?? '';
-  const u = sel.value.u;
+  const u = liveU.value;
   const free = timeSlots.value.find((s) => (u.stateBySlot[s.id] ?? 'free') === 'free');
   return free?.id ?? timeSlots.value[0]?.id ?? '';
 }
