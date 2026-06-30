@@ -1,49 +1,107 @@
 <script setup lang="ts">
-import { ref } from 'vue';
+import { ref, computed } from 'vue';
+import { useRouter } from 'vue-router';
 import { SegmentedControl, Button, Badge, Avatar, DataTable, Icon } from '@coralyn/ui-kit';
+import type { BookingDTO, PaymentStatus } from '@coralyn/contracts';
+import { storeToRefs } from 'pinia';
+import { useSessionStore } from '@/stores/session';
+import { useDayBookings } from './useBookings';
+import { useCustomers } from '@/features/customers/useCustomers';
+import { useDayMap } from '@/features/map/useDayMap';
+import SettlePaymentModal from './SettlePaymentModal.vue';
 
-const filtro = ref('tutte');
+const router = useRouter();
+const session = useSessionStore();
+const { activeDate } = storeToRefs(session);
+const { data: bookings } = useDayBookings(activeDate);
+const { data: customers } = useCustomers();
+const { data: map } = useDayMap();
+
+const filtro = ref<'all' | PaymentStatus>('all');
 const filtri = [
-  { value: 'tutte', label: 'Tutte' }, { value: 'confermate', label: 'Confermate' },
-  { value: 'bozze', label: 'Bozze' }, { value: 'concluse', label: 'Concluse' },
+  { value: 'all', label: 'Tutte' },
+  { value: 'unpaid', label: 'Da incassare' },
+  { value: 'partial', label: 'Parziali' },
+  { value: 'paid', label: 'Saldate' },
 ];
+
+const PAY_LABEL: Record<PaymentStatus, string> = { unpaid: 'Da incassare', partial: 'Parziale', paid: 'Saldato' };
+const PAY_TONE: Record<PaymentStatus, 'success' | 'warning' | 'neutral'> = {
+  paid: 'success',
+  partial: 'warning',
+  unpaid: 'neutral',
+};
+
+const customerName = (id: string): string => {
+  const c = (customers.value ?? []).find((x) => x.id === id);
+  return c ? `${c.firstName} ${c.lastName}` : id;
+};
+const umbrellaLabel = computed(() => {
+  const m = new Map<string, string>();
+  for (const s of map.value?.sectors ?? []) for (const r of s.rows) for (const u of r.umbrellas) m.set(u.id, u.label);
+  return m;
+});
+const initials = (name: string): string =>
+  name.split(' ').map((p) => p[0]).slice(0, 2).join('').toUpperCase();
+
 const cols = [
-  { key: 'cliente', label: 'Cliente' }, { key: 'ombrellone', label: 'Ombrellone' },
-  { key: 'pacchetto', label: 'Pacchetto' }, { key: 'tipo', label: 'Tipo' },
-  { key: 'periodo', label: 'Periodo' }, { key: 'stato', label: 'Stato' },
+  { key: 'cliente', label: 'Cliente' },
+  { key: 'ombrellone', label: 'Ombrellone' },
+  { key: 'tipo', label: 'Tipo' },
+  { key: 'periodo', label: 'Periodo' },
+  { key: 'stato', label: 'Stato' },
   { key: 'incasso', label: 'Incasso', align: 'right' as const },
 ];
-type Tone = 'success' | 'warning' | 'neutral';
-// Mock seam: dati demo statici — da sostituire con useQuery quando il backend espone l'endpoint.
-const prenotazioni: { ini: string; cliente: string; ombrellone: string; pacchetto: string; tipo: string; periodo: string; stato: string; tone: Tone; incasso: string }[] = [
-  { ini: 'MR', cliente: 'Mario Rossi', ombrellone: 'Centro · 8', pacchetto: 'Comfort', tipo: 'Stagionale', periodo: '1 giu – 15 set', stato: 'Confermata', tone: 'success', incasso: '€ 1.200,00' },
-  { ini: 'GB', cliente: 'Giulia Bianchi', ombrellone: 'Centro · 3', pacchetto: 'Prestige', tipo: 'Settimanale', periodo: '27 giu – 4 lug', stato: 'Confermata', tone: 'success', incasso: '€ 320,00' },
-  { ini: 'LV', cliente: 'Luca Verdi', ombrellone: 'Centro · 12', pacchetto: 'Base', tipo: 'Giornaliero', periodo: '27 giu', stato: 'Bozza', tone: 'warning', incasso: '€ 28,00' },
-  { ini: 'AC', cliente: 'Anna Conti', ombrellone: 'Palme · P1', pacchetto: 'Prestige', tipo: 'Stagionale', periodo: '1 giu – 15 set', stato: 'Confermata', tone: 'success', incasso: '€ 1.650,00' },
-  { ini: 'FM', cliente: 'Franco Marini', ombrellone: 'Centro · 21', pacchetto: 'Comfort', tipo: 'Settimanale', periodo: '20 – 27 giu', stato: 'Conclusa', tone: 'neutral', incasso: '€ 290,00' },
-  { ini: 'SR', cliente: 'Sara Russo', ombrellone: 'Centro · 5', pacchetto: 'Base', tipo: 'Giornaliero', periodo: '27 giu', stato: 'Confermata', tone: 'success', incasso: '€ 28,00' },
-  { ini: 'DG', cliente: 'Davide Greco', ombrellone: 'Centro · 17', pacchetto: 'Comfort', tipo: 'Settimanale', periodo: '27 giu – 4 lug', stato: 'Bozza', tone: 'warning', incasso: '€ 290,00' },
-  { ini: 'EL', cliente: 'Elena Lombardi', ombrellone: 'Palme · P2', pacchetto: 'Prestige', tipo: 'Stagionale', periodo: '1 giu – 15 set', stato: 'Confermata', tone: 'success', incasso: '€ 1.650,00' },
-];
+
+const rows = computed<BookingDTO[]>(() => {
+  const list = bookings.value ?? [];
+  return filtro.value === 'all' ? list : list.filter((b) => b.paymentStatus === filtro.value);
+});
+
+const modalOpen = ref(false);
+const selected = ref<BookingDTO | null>(null);
+function openSettle(b: BookingDTO): void {
+  selected.value = b;
+  modalOpen.value = true;
+}
 </script>
+
 <template>
   <section class="px-[26px] pb-[30px] pt-[22px]">
     <div class="mb-4 flex flex-wrap items-center gap-3">
       <SegmentedControl v-model="filtro" :options="filtri" />
       <div class="flex-1"></div>
-      <Button variant="secondary"><Icon name="filter" :size="15" />Filtri</Button>
-      <Button><Icon name="plus" :size="16" />Nuova prenotazione</Button>
+      <Button @click="router.push('/map')"><Icon name="plus" :size="16" />Nuova prenotazione</Button>
     </div>
-    <DataTable :columns="cols">
-      <tr v-for="(p, i) in prenotazioni" :key="i" class="cursor-pointer hover:bg-[var(--color-raised)]">
-        <td class="border-b border-[var(--color-border-row)] px-[18px] py-3.5"><div class="flex items-center gap-2.5"><Avatar :initials="p.ini" size="sm" /><span class="font-semibold text-[var(--color-text)]">{{ p.cliente }}</span></div></td>
-        <td class="border-b border-[var(--color-border-row)] px-3.5 py-3.5 tabular-nums text-[var(--color-text-2nd)]">{{ p.ombrellone }}</td>
-        <td class="border-b border-[var(--color-border-row)] px-3.5 py-3.5 text-[var(--color-text-2nd)]">{{ p.pacchetto }}</td>
-        <td class="border-b border-[var(--color-border-row)] px-3.5 py-3.5 text-[var(--color-text-2nd)]">{{ p.tipo }}</td>
-        <td class="border-b border-[var(--color-border-row)] px-3.5 py-3.5 tabular-nums text-[var(--color-text-2nd)]">{{ p.periodo }}</td>
-        <td class="border-b border-[var(--color-border-row)] px-3.5 py-3.5"><Badge :tone="p.tone">{{ p.stato }}</Badge></td>
-        <td class="border-b border-[var(--color-border-row)] px-[18px] py-3.5 text-right font-semibold tabular-nums text-[var(--color-text)]">{{ p.incasso }}</td>
+
+    <DataTable v-if="rows.length" :columns="cols">
+      <tr v-for="b in rows" :key="b.id" class="hover:bg-[var(--color-raised)]">
+        <td class="border-b border-[var(--color-border-row)] px-[18px] py-3.5">
+          <div class="flex items-center gap-2.5">
+            <Avatar :initials="initials(customerName(b.customerId))" size="sm" />
+            <span class="font-semibold text-[var(--color-text)]">{{ customerName(b.customerId) }}</span>
+          </div>
+        </td>
+        <td class="border-b border-[var(--color-border-row)] px-3.5 py-3.5 tabular-nums text-[var(--color-text-2nd)]">{{ umbrellaLabel.get(b.umbrellaId) ?? '—' }}</td>
+        <td class="border-b border-[var(--color-border-row)] px-3.5 py-3.5 text-[var(--color-text-2nd)]">Giornaliero</td>
+        <td class="border-b border-[var(--color-border-row)] px-3.5 py-3.5 tabular-nums text-[var(--color-text-2nd)]">{{ b.startDate }}</td>
+        <td class="border-b border-[var(--color-border-row)] px-3.5 py-3.5"><Badge :tone="PAY_TONE[b.paymentStatus]">{{ PAY_LABEL[b.paymentStatus] }}</Badge></td>
+        <td class="border-b border-[var(--color-border-row)] px-[18px] py-3.5 text-right">
+          <button
+            type="button"
+            class="font-semibold tabular-nums text-[var(--color-text)] underline-offset-2 hover:underline focus-visible:outline-none focus-visible:[box-shadow:var(--ring-focus)]"
+            @click="openSettle(b)"
+          >€ {{ b.amountCollected.toFixed(2) }} / € {{ b.totalPrice.toFixed(2) }}</button>
+        </td>
       </tr>
     </DataTable>
+    <p
+      v-else
+      class="rounded-[var(--radius-lg)] border border-dashed border-[var(--color-border)] px-6 py-10 text-center text-sm text-[var(--color-text-2nd)]"
+    >
+      Nessuna prenotazione per questa data.
+    </p>
+
+    <SettlePaymentModal v-model="modalOpen" :booking="selected" />
   </section>
 </template>
