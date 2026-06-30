@@ -4,6 +4,7 @@ import { UmbrellaCell, SegmentedControl, Badge, Button, Modal, Icon } from '@cor
 import type { UmbrellaDTO, SlotState, BookingDTO } from '@coralyn/contracts';
 import { useDayMap } from './useDayMap';
 import { useDayBookings, useCreateBooking, useCancelBooking } from '@/features/bookings/useBookings';
+import { useBookingQuote } from '@/features/bookings/useBookingQuote';
 import SettlePaymentModal from '@/features/bookings/SettlePaymentModal.vue';
 import { useCustomers } from '@/features/customers/useCustomers';
 import { useSessionStore } from '@/stores/session';
@@ -97,7 +98,6 @@ const currentCustomerName = computed<string>(() => {
 });
 
 const customerId = ref<string>('');
-const price = ref<number>(0);
 
 function slotIsBusy(slotId: string): boolean {
   return sel.value ? (liveU.value.stateBySlot[slotId] ?? 'free') !== 'free' : false;
@@ -111,7 +111,6 @@ function firstFreeSlot(): string {
 function openModal(): void {
   selectedSlotId.value = firstFreeSlot();
   customerId.value = '';
-  price.value = 0;
   modalBooking.value = true;
 }
 async function confirmBooking(): Promise<void> {
@@ -121,7 +120,6 @@ async function confirmBooking(): Promise<void> {
     umbrellaId: sel.value.u.id,
     timeSlotId: selectedSlotId.value,
     date: activeDate.value,
-    totalPrice: price.value,
   });
   modalBooking.value = false;
 }
@@ -130,6 +128,12 @@ async function onCancel(): Promise<void> {
 }
 
 const modalBooking = ref(false);
+const quoteParams = computed(() =>
+  modalBooking.value && sel.value && selectedSlotId.value
+    ? { umbrellaId: sel.value.u.id, timeSlotId: selectedSlotId.value, date: activeDate.value }
+    : null,
+);
+const { data: quote, isError: quoteError, isFetching: quoteLoading } = useBookingQuote(quoteParams);
 const settleOpen = ref(false);
 // Fascia options for modal: only free slots (SegmentedControl has no disabled-option API)
 const freeSlotOptions = computed(() =>
@@ -270,8 +274,10 @@ const freeSlotOptions = computed(() =>
           <SegmentedControl v-model="selectedSlotId" :options="freeSlotOptions" />
         </div>
         <div>
-          <label class="mb-1.5 block text-[12.5px] font-semibold text-[var(--color-text-2nd)]">Prezzo (€)</label>
-          <input type="number" min="0" step="0.01" v-model.number="price" class="w-full rounded-[11px] border-[1.5px] border-[var(--color-border-input)] bg-[var(--color-surface)] px-3.5 py-3 text-[13.5px] text-[var(--color-text)] focus:outline-none" />
+          <label class="mb-1.5 block text-[12.5px] font-semibold text-[var(--color-text-2nd)]">Prezzo</label>
+          <p v-if="quoteLoading" class="text-[13.5px] text-[var(--color-text-muted)]">Calcolo…</p>
+          <p v-else-if="quoteError" class="text-[13.5px] text-[var(--color-danger)]">Prezzo non disponibile: listino non configurato.</p>
+          <p v-else class="text-lg font-bold tabular-nums text-[var(--color-text)]">€ {{ (quote?.totalPrice ?? 0).toFixed(2) }}</p>
         </div>
         <div class="flex justify-end gap-2.5 pt-2">
           <Button variant="secondary" @click="modalBooking = false">Annulla</Button>

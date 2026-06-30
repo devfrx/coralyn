@@ -55,10 +55,11 @@ export const server = setupServer(
     return HttpResponse.json(customers[i]);
   }),
   http.get('/api/bookings', () => HttpResponse.json([])),
+  http.get('/api/bookings/quote', () => HttpResponse.json({ totalPrice: 28 })),
   http.post('/api/bookings', async ({ request }) => {
-    const b = (await request.json()) as { customerId: string; umbrellaId: string; timeSlotId: string; date: string; totalPrice: number };
+    const b = (await request.json()) as { customerId: string; umbrellaId: string; timeSlotId: string; date: string };
     return HttpResponse.json(
-      { id: 'bk-1', ...b, startDate: b.date, endDate: b.date, type: 'daily', status: 'confirmed', paymentStatus: 'unpaid', amountCollected: 0 },
+      { id: 'bk-1', ...b, startDate: b.date, endDate: b.date, type: 'daily', status: 'confirmed', totalPrice: 28, paymentStatus: 'unpaid', amountCollected: 0 },
       { status: 201 },
     );
   }),

@@ -42,6 +42,11 @@ describe('MapView', () => {
     // Il modale è portato fuori dal wrapper (DialogPortal), leggiamo da document.body
     expect(document.body.textContent).toContain('Conferma prenotazione');
 
+    await flushPromises();
+    await new Promise((r) => setTimeout(r, 0));
+    await flushPromises();
+    expect(document.body.textContent).toContain('28');
+
     w.unmount();
   });
 });
