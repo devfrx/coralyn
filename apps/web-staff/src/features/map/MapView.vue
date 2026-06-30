@@ -4,6 +4,7 @@ import { UmbrellaCell, SegmentedControl, Badge, Button, Modal, Icon } from '@cor
 import type { UmbrellaDTO, SlotState, BookingDTO } from '@coralyn/contracts';
 import { useDayMap } from './useDayMap';
 import { useDayBookings, useCreateBooking, useCancelBooking } from '@/features/bookings/useBookings';
+import SettlePaymentModal from '@/features/bookings/SettlePaymentModal.vue';
 import { useCustomers } from '@/features/customers/useCustomers';
 import { useSessionStore } from '@/stores/session';
 import { storeToRefs } from 'pinia';
@@ -129,6 +130,7 @@ async function onCancel(): Promise<void> {
 }
 
 const modalBooking = ref(false);
+const settleOpen = ref(false);
 // Fascia options for modal: only free slots (SegmentedControl has no disabled-option API)
 const freeSlotOptions = computed(() =>
   timeSlots.value
@@ -226,9 +228,17 @@ const freeSlotOptions = computed(() =>
         <template v-if="currentBooking">
           <div class="mt-3 text-[12.5px]">
             <div class="flex justify-between border-b border-dashed border-[var(--color-border-row)] py-2"><span class="text-[var(--color-text-muted)]">Cliente</span><span class="font-semibold text-[var(--color-text)]">{{ currentCustomerName }}</span></div>
-            <div class="flex justify-between py-2"><span class="text-[var(--color-text-muted)]">Importo</span><span class="font-semibold tabular-nums text-[var(--color-text)]">€ {{ currentBooking.totalPrice }}</span></div>
+            <div class="flex justify-between border-b border-dashed border-[var(--color-border-row)] py-2"><span class="text-[var(--color-text-muted)]">Importo</span><span class="font-semibold tabular-nums text-[var(--color-text)]">€ {{ currentBooking.totalPrice }}</span></div>
+            <div class="flex items-center justify-between py-2"><span class="text-[var(--color-text-muted)]">Pagamento</span>
+              <Badge :tone="currentBooking.paymentStatus === 'paid' ? 'success' : currentBooking.paymentStatus === 'partial' ? 'warning' : 'neutral'">
+                {{ currentBooking.paymentStatus === 'paid' ? 'Saldato' : currentBooking.paymentStatus === 'partial' ? 'Parziale' : 'Da incassare' }}
+              </Badge>
+            </div>
           </div>
-          <button type="button" @click="onCancel" class="mt-2.5 self-start p-0.5 text-xs font-semibold text-[var(--color-danger)] focus-visible:outline-none focus-visible:[box-shadow:var(--ring-focus)]">Annulla prenotazione</button>
+          <div class="mt-2.5 flex items-center gap-3">
+            <button type="button" @click="settleOpen = true" class="p-0.5 text-xs font-semibold text-[var(--color-accent)] focus-visible:outline-none focus-visible:[box-shadow:var(--ring-focus)]">Registra incasso</button>
+            <button type="button" @click="onCancel" class="p-0.5 text-xs font-semibold text-[var(--color-danger)] focus-visible:outline-none focus-visible:[box-shadow:var(--ring-focus)]">Annulla prenotazione</button>
+          </div>
         </template>
         <div v-else class="mt-3.5 rounded-xl border border-dashed border-[var(--color-warm-border-seg)] bg-[var(--color-warm-075)] p-4 text-center text-[12.5px] leading-relaxed text-[var(--color-text-muted)]">
           Postazione disponibile<br />per l'intera giornata.
@@ -269,5 +279,7 @@ const freeSlotOptions = computed(() =>
         </div>
       </div>
     </Modal>
+
+    <SettlePaymentModal v-model="settleOpen" :booking="currentBooking" />
   </section>
 </template>
