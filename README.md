@@ -9,11 +9,14 @@ mappa ombrelloni, prenotazioni e abbonamenti, cassa, e — in prospettiva — bo
 online per il cliente finale.
 
 Stato: **design del Core MVP completato e approvato**. **Backend** — Core Foundation
-(Piano 1) e Incremento 1 (scheda cliente) implementati: API `/api/clienti` (CRUD)
-con isolamento multi-tenant RLS e migrazioni Prisma. **Frontend** — redesign
-**Coralyn** completato e integrato (app-shell, ui-kit, tutte le viste; scheda cliente
-end-to-end col backend reale). Containerizzazione locale via Docker Compose.
-Prossimo passo: **identità e autenticazione** (JWT) — branch `feat/api-identita-auth`.
+(Piano 1), Incremento 1 (scheda cliente) e **modulo identità & auth** (login JWT,
+`JwtAuthGuard` globale, RLS Utente) implementati: API `/api/clienti` (CRUD) e
+`/api/auth` (login/me) con isolamento multi-tenant RLS e migrazioni Prisma.
+**Frontend** — redesign **Coralyn** completato e integrato (app-shell, ui-kit, tutte
+le viste; scheda cliente end-to-end col backend reale; login ancora mock seam).
+Containerizzazione locale via Docker Compose.
+Prossimo passo: **cablaggio del login lato frontend** (`LoginView` → `/api/auth/login`
+reale, token Bearer, logout) per chiudere il flusso auth end-to-end.
 
 ## Documentazione
 

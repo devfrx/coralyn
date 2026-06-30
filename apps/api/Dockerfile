@@ -28,7 +28,11 @@ COPY . .
 
 # --ignore-scripts: evita che il `prepare` di root provi a buildare contracts
 # prima del tempo; lo facciamo noi esplicitamente subito dopo.
+# `pnpm rebuild argon2`: argon2 e' un modulo nativo (hashing password, ADR-0025);
+# con --ignore-scripts il suo binding non viene installato -> lo ricostruiamo a mano,
+# altrimenti `require('argon2')` fallirebbe a runtime.
 RUN pnpm install --frozen-lockfile --ignore-scripts --filter "@driftly/api..." \
+ && pnpm rebuild argon2 \
  && pnpm --filter @driftly/contracts build \
  && pnpm --filter @driftly/api exec prisma generate \
  && pnpm --filter @driftly/api build

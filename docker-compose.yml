@@ -37,8 +37,14 @@ services:
     environment:
       DATABASE_URL: "postgresql://driftly_app:driftly_app@db:5432/driftly_dev?schema=public"
       PORT: "3000"
-      # Seed del tenant di sviluppo (00000000-...-0001) al primo avvio, così il FE
-      # può chiamare /api/clienti con l'header X-Stabilimento-Id di dev.
+      # Identità & auth (ADR-0024/0025). Valori DEV-ONLY: in produzione passare
+      # secret reali via env/secret manager, mai questi.
+      JWT_SECRET: "dev-secret-change-me-at-least-32-characters-long"
+      JWT_EXPIRES_IN: "8h"
+      DEV_ADMIN_EMAIL: "admin@driftly.dev"
+      DEV_ADMIN_PASSWORD: "driftly-admin"
+      # Seed al primo avvio: Stabilimento dev (00000000-...-0001) + primo admin,
+      # così si può fare login reale (POST /api/auth/login) sul backend dockerizzato.
       SEED_ON_START: "true"
     depends_on:
       db:
