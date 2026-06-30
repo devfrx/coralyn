@@ -1,6 +1,7 @@
 import { setupServer } from 'msw/node';
 import { http, HttpResponse } from 'msw';
 import { handlers } from './handlers';
+import { mappaSeed } from './data/seed';
 import { Ruolo, type ClienteDTO, type UtenteDTO } from '@coralyn/contracts';
 
 const INITIAL_CLIENTI: ClienteDTO[] = [
@@ -20,6 +21,8 @@ export const MOCK_ADMIN: UtenteDTO = {
 
 export const server = setupServer(
   ...handlers,
+  // Mock della mappa SOLO nei test (in dev il FE usa il backend reale). Fixture = mappaSeed.
+  http.get('/api/mappa', () => HttpResponse.json(mappaSeed)),
   http.post('/api/auth/login', async ({ request }) => {
     const { email, password } = (await request.json()) as { email: string; password: string };
     if (email === MOCK_ADMIN.email && password === 'coralyn-admin') {

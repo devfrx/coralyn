@@ -1,4 +1,5 @@
-import { http, HttpResponse } from 'msw';
-import { mappaSeed } from './data/seed';
+import type { RequestHandler } from 'msw';
 
-export const handlers = [http.get('/api/mappa', () => HttpResponse.json(mappaSeed))];
+// Dev: nessun mock attivo. Il worker MSW (onUnhandledRequest: 'bypass' in main.ts) lascia
+// passare le richieste al backend reale. I mock vivono SOLO nei test (vedi server.ts).
+export const handlers: RequestHandler[] = [];
