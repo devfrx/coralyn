@@ -145,7 +145,7 @@ export interface BookingDTO {
   amountCollected: number;
   paymentMethod?: PaymentMethod; // A2 (additivo): assente finché non si incassa
   collectionDate?: string;       // A2 (additivo): ISO yyyy-mm-dd, assente finché non si incassa
-  packageId?: string;            // A3.1 (additivo): assente finché non si sceglie (A3.2)
+  packageId?: string;            // A3.1 (additivo): valorizzato dal selettore Pacchetto (A3.2); assente = nessun pacchetto
 }
 
 /** Input per creare una prenotazione giornaliera. Il prezzo è calcolato dal pricing engine (A3.1). */

@@ -157,7 +157,7 @@ model Booking {
   umbrellaId        String         @db.Uuid
   timeSlotId        String         @db.Uuid
   previousBookingId String?        @db.Uuid // rinnovo self-link (ADR-0012); null in A1
-  packageId         String?        @db.Uuid // FK Package A3.1; null finché A3.2
+  packageId         String?        @db.Uuid // FK Package (A3.1); valorizzato dal selettore, opzionale (A3.2)
   startDate         DateTime       @db.Date
   endDate           DateTime       @db.Date
   type              BookingType

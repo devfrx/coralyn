@@ -13,10 +13,14 @@
 
 ## 0. Situazione GIT
 
-- Branch **`feat/bookings-package-selector`** creato da `main` (`cc12df0`, A3.1 mergiata).
-- Catena per layer (`git log --oneline main..HEAD`): contratti → `toPackageDTO` → `GET /packages` →
-  create+`packageId` → e2e → FE modale+re-quote → colonna `BookingsView` → doc. Due commit di doc iniziali
-  (spec + piano). **Non ancora mergiata** su `main` al momento della scrittura: vedi §7.
+- **MERGIATA su `main`** (fast-forward, nessun conflitto) e **pushata su `origin/main`**: la slice A3.2
+  (branch `feat/bookings-package-selector`, creato da `main` `cc12df0`) è integrata. Il branch feature è
+  ora ancestor di `main`.
+- Catena per layer (`git log --oneline cc12df0..main`): spec → piano → contratti → `toPackageDTO` →
+  `GET /packages` → create+`packageId` → e2e → FE modale+re-quote → colonna `BookingsView` → doc → fix
+  coerenza post-merge (commenti `packageId` schema/contracts + questo stato merge).
+- I 4 branch storici `origin/feat/*` (api-identita-auth, bookings-daily, bookings-payment,
+  coralyn-redesign-fe) erano già ancestor di `main` (interamente contenuti).
 
 ---
 
@@ -135,7 +139,10 @@ pacchetto (prezzo 60 dalla rate pacchetto, persistenza) + `packageId` inesistent
 
 ## 7. Stato merge
 
-- A3.2 è su `feat/bookings-package-selector`, **pronta**: build/lint verdi, test 14/44/61/53.
-- **Da decidere col responsabile**: merge fast-forward su `main` (come A1/A2/A3.1) o PR. Verifica live
-  Docker (raccomandata) prima del merge: scegliere un pacchetto nel modale → prezzo ricalcolato → la
-  prenotazione mostra il pacchetto nella `BookingsView`.
+- **Mergiata FF su `main` e pushata su `origin/main`.** Build `-r` + `eslint .` verdi; test 14/44/61/53
+  verificati sul risultato mergiato. Branch feature locale eliminato dopo il merge (pattern A1/A2/A3.1).
+- **Verifica live Docker (opzionale, non ancora eseguita):** `docker compose --profile full up -d --build api`
+  + dev FE, poi scegliere un pacchetto nel modale → il prezzo si ricalcola → la prenotazione mostra il
+  pacchetto nella `BookingsView`. Il comportamento è già coperto dai test automatici (FE con MSW: selettore
+  + re-quote + colonna; e2e: endpoint + create + prezzo pacchetto + isolamento).
+- **Prossimo ADR libero: 0033** (A3.2 non ha introdotto ADR; riafferma ADR-0006/0032).
