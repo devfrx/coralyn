@@ -286,8 +286,8 @@ Target da **non** regredire: ui-kit 14 · web-staff 41 · api unit 27 · api e2e
   registra incasso; `typecheck` OK; pulizia `apps/web-staff/node_modules/.vite` dopo il cambio
   contratti.
 - **Doc:** aggiornare `README.md` (stato: A2 incasso implementato), `data-model.md` (comportamento
-  incasso ora attivo, non più "default in A1"); handoff successivo. Glossario: già copre
-  incasso/`paymentStatus`. ADR-0011: nessuna modifica (lo implementa).
+  incasso ora attivo, non più "default in A1"); handoff successivo. **Glossario**: aggiungere il termine
+  *Incasso (base)* e togliere "(futuro)" da `Booking`. ADR-0011: nessuna modifica (lo implementa).
 
 ---
 

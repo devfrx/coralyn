@@ -396,14 +396,13 @@ In `bookings.service.ts`: aggiorna gli import in cima —
       const e = outcome.error;
       if (e === 'NOT_FOUND') throw new NotFoundException('Prenotazione non trovata');
       if (e === 'CANCELLED') throw new ConflictException('Impossibile incassare una prenotazione annullata');
-      if (e === 'OVER_TOTAL') throw new UnprocessableeEntityException('Importo superiore al totale');
+      if (e === 'OVER_TOTAL') throw new UnprocessableEntityException('Importo superiore al totale');
       throw new UnprocessableEntityException('Metodo di pagamento richiesto'); // METHOD_REQUIRED
     }
     return toBookingDTO(outcome.row);
   }
 ```
 
-> ⚠️ Refuso voluto da correggere: usa `UnprocessableEntityException` (già importato nel file).
 > Aggiorna anche l'import dei tipi: `import type { BookingDTO, CreateBookingInput, SettlePaymentInput } from '@coralyn/contracts';`.
 
 - [ ] **Step 2: Aggiungi la rotta al controller**

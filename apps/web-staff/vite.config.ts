@@ -36,9 +36,9 @@ export default defineConfig({
   optimizeDeps: { include: ['@coralyn/contracts'] },
   server: {
     proxy: {
-      // Clienti -> API reale (Piano 1) senza CORS; MSW in dev bypassa /api non gestiti.
-      // Nessun rewrite: il backend monta tutto sotto /api (ADR-0022), quindi /api/clienti va
-      // inoltrato intatto a http://localhost:3000/api/clienti. In produzione il proxy non esiste
+      // FE -> API reale senza CORS; MSW in dev bypassa /api non gestiti.
+      // Nessun rewrite: il backend monta tutto sotto /api (ADR-0022), quindi /api/customers va
+      // inoltrato intatto a http://localhost:3000/api/customers. In produzione il proxy non esiste
       // e il FE chiama /api direttamente sul backend: stesso path, nessuno strip.
       '/api': { target: 'http://localhost:3000', changeOrigin: true },
     },
