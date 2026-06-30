@@ -1,8 +1,9 @@
-# Driftly — Gestionale Lidi Balneari
+# Coralyn — Gestionale Lidi Balneari
 
-> **Driftly** è il *codename* provvisorio del progetto (etichetta interna per repo e
-> package `@driftly/*`). Il brand pubblico e il dominio sono una decisione rimandata
-> ([D-017](docs/architecture/deferred.md)).
+> **Coralyn** è il brand del progetto (scope dei package `@coralyn/*`, identificatori
+> infra `coralyn_*`). Il nome definitivo è stato adottato con
+> [ADR-0029](docs/architecture/decisions/0029-brand-coralyn.md), che risolve la decisione
+> rimandata D-017; in precedenza il repo usava il *codename* provvisorio **Driftly**.
 
 Gestionale **SaaS** per la gestione di **lidi balneari** (stabilimenti balneari):
 mappa ombrelloni, prenotazioni e abbonamenti, cassa, e — in prospettiva — booking

@@ -38,7 +38,7 @@ ancora**: lo produci tu (brainstorming → spec → plan → implementazione).
   - **Validazione input GIÀ ATTIVA**: `app.useGlobalPipes(new ValidationPipe({ whitelist, transform }))` in
     `main.ts` + DTO `class-validator` (`src/clienti/dto/` con `normalize` `''→null`). Email malformata → **400**,
     campi extra scartati. **I tuoi DTO auth (login, ecc.) saranno validati automaticamente.**
-  - PostgreSQL via Docker, ruolo applicativo **non-superuser** `driftly_app` (la RLS lo richiede).
+  - PostgreSQL via Docker, ruolo applicativo **non-superuser** `coralyn_app` (la RLS lo richiede).
   - Prisma: modelli `Stabilimento`, `Cliente {…, telefono?, email?, note?}`; migrazioni `init` + `rls` +
     `cliente_contatti`; seed dev (`Stabilimento` 00..001).
   - **RLS multi-tenant**: `PrismaService.forTenant(tenantId, tx => ...)` imposta la GUC
@@ -125,7 +125,7 @@ Il FE **mocka già `/api/mappa`** con `MappaGiornoDTO` (in `contracts`): quando 
 
 - ~~**D-022** (validazione input)~~ → **RISOLTO** da ADR-0023 (`ValidationPipe` globale + DTO `class-validator`).
   Già attivo: i tuoi DTO auth sono validati automaticamente — non rifarlo, riusa il pattern in `src/clienti/dto/`.
-- **D-023** — least-privilege del ruolo DB: `driftly_app` ha `CREATEDB` solo per lo shadow DB di
+- **D-023** — least-privilege del ruolo DB: `coralyn_app` ha `CREATEDB` solo per lo shadow DB di
   `prisma migrate dev` (dev); in prod (`migrate deploy`) non serve — separare il ruolo o `shadowDatabaseUrl`.
   *(Tocca proprio l'area auth/ruoli DB: valuta se affrontarlo in questo slice.)*
 - **D-024** — privacy/GDPR del `Cliente`: cancellazione/anonimizzazione quando sarà legato a
@@ -145,13 +145,13 @@ Il FE **mocka già `/api/mappa`** con `MappaGiornoDTO` (in `contracts`): quando 
 
 ```bash
 docker compose up -d                                                            # DB su :5433 (override locale)
-pnpm dlx dotenv-cli -e .env      -- pnpm --filter @driftly/api exec prisma migrate dev --name <n>   # dev
-pnpm dlx dotenv-cli -e .env.test -- pnpm --filter @driftly/api exec prisma migrate deploy           # test
-pnpm --filter @driftly/api test                                                 # unit (no DB)
-pnpm dlx dotenv-cli -e .env.test -- pnpm --filter @driftly/api test:e2e         # integrazione+e2e (RLS, API)
+pnpm dlx dotenv-cli -e .env      -- pnpm --filter @coralyn/api exec prisma migrate dev --name <n>   # dev
+pnpm dlx dotenv-cli -e .env.test -- pnpm --filter @coralyn/api exec prisma migrate deploy           # test
+pnpm --filter @coralyn/api test                                                 # unit (no DB)
+pnpm dlx dotenv-cli -e .env.test -- pnpm --filter @coralyn/api test:e2e         # integrazione+e2e (RLS, API)
 ```
 
-Trappole RLS (rileggile): app come `driftly_app` **non-superuser**; `FORCE ROW LEVEL SECURITY`; init
+Trappole RLS (rileggile): app come `coralyn_app` **non-superuser**; `FORCE ROW LEVEL SECURITY`; init
 `init/01-app-role.sql` gira **solo alla prima init del volume** (`docker compose down -v` se preesistente);
 `.env`/`.env.test` gitignored; il backend serve `/api/*` (prefix) con `/health` a root.
 

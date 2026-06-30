@@ -157,7 +157,7 @@ Stati comuni: default / hover / active / focus-visible / disabled. Tutto via tok
 - **AuthLayout** — split: pannello sinistro gradiente teal (`#1A5666→#0F3C49→#0B3543`) con logo, headline,
   bullet; pannello destro form. Usato da Login e Registrazione (fuori dall'AppShell).
 
-### 7.2 Viste (mappate ai tipi di `@driftly/contracts`)
+### 7.2 Viste (mappate ai tipi di `@coralyn/contracts`)
 | Vista | Route | Note |
 |---|---|---|
 | **Mappa** | `/mappa` | SegmentedControl settori · stage (sand gradient, header "Mare", file di celle, Speciali/Palme, legenda Stato+Tipologia) · Drawer contestuale (chip tipologia, crumb, Mattina/Pomeriggio split, dettaglio prenotazione, stato pagamento, azioni). Dati: `MappaGiornoDTO`. |
@@ -202,7 +202,7 @@ Stati comuni: default / hover / active / focus-visible / disabled. Tutto via tok
 
 ## 10. Verifica
 
-- `pnpm --filter @driftly/web-staff typecheck` + build verdi.
+- `pnpm --filter @coralyn/web-staff typecheck` + build verdi.
 - Test esistenti (`OmbrelloneCell`, `Button`, `Icon`, viste con spec) **verdi** dopo il ristyling;
   aggiornare assert legati ai vecchi token/teal dove necessario.
 - Confronto visivo schermata-per-schermata col bundle `Coralyn - Gestionale Lidi.html` (desktop 1280).

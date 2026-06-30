@@ -2,7 +2,7 @@
 
 - **Data:** 2026-06-28
 - **Scopo:** permettere a un nuovo agente, in **sessione fresca**, di **eseguire** da zero il primo
-  slice del frontend di Driftly seguendo il [Piano FE](../plans/2026-06-28-web-staff-foundation.md),
+  slice del frontend di Coralyn seguendo il [Piano FE](../plans/2026-06-28-web-staff-foundation.md),
   con `subagent-driven-development`, su **branch** `feat/web-staff` (**niente worktree**),
   **sequenzialmente** rispetto al backend. Design e piano sono **già fatti e su `main`**: questa
   sessione **scrive codice d'app**.
@@ -10,7 +10,7 @@
 ## 0. Il tuo compito in una frase
 
 Esegui **interamente** il [Piano FE](../plans/2026-06-28-web-staff-foundation.md) (13 task) e
-realizza lo **slice 1**: **app-shell + `@driftly/ui-kit` + Clienti + Mappa (mockata)**, come
+realizza lo **slice 1**: **app-shell + `@coralyn/ui-kit` + Clienti + Mappa (mockata)**, come
 *walking skeleton* dell'app staff. Niente di più (no Prenotazioni/Listino/Report reali, no
 TanStack Table: sono slice successivi).
 
@@ -30,14 +30,14 @@ TanStack Table: sono slice successivi).
 
 ## 2. Contesto prodotto
 
-**Driftly** (codename provvisorio, brand rimandato [D-017](../architecture/deferred.md)) è un
+**Coralyn** (codename provvisorio, brand rimandato [D-017](../architecture/deferred.md)) è un
 **gestionale SaaS multi-tenant per lidi balneari**. Si sta costruendo il **Core operativo (MVP)**.
 Disambiguazione: **`Cliente` = il bagnante**; il **tenant** è lo **`Stabilimento`** (mai
 "cliente" nel codice). Vedi [glossario](../architecture/glossary.md).
 
 ## 3. Stato attuale del repo (preciso, al 2026-06-28)
 
-- **`main` pulito.** Monorepo `@driftly/*` (pnpm workspaces) con `packages/contracts` (espone
+- **`main` pulito.** Monorepo `@coralyn/*` (pnpm workspaces) con `packages/contracts` (espone
   **solo** `Ruolo` + `ClienteDTO`). **`apps/` NON esiste ancora**: lo crei tu (Task 1).
 - **Design FE completo e su `main`:** ADR **0017–0021**, [design-system.md](../design/design-system.md)
   (token + linguaggio componenti, **ink scuro per-stato per AA**), mockup di produzione
@@ -102,20 +102,20 @@ Disambiguazione: **`Cliente` = il bagnante**; il **tenant** è lo **`Stabiliment
 
 - **Scope:** app-shell + `ui-kit` (token + componenti base + `Icon` + `OmbrelloneCell`) + **Clienti**
   (verticale; su MSW finché il backend non espone `/clienti`) + **Mappa** (mockata MSW).
-- **Brand:** **nome stabilimento** in topbar (es. "Lido Sole"); "Driftly" **discreto** (D-017).
+- **Brand:** **nome stabilimento** in topbar (es. "Lido Sole"); "Coralyn" **discreto** (D-017).
 - **PWA:** **offline-light** (manifest + precache della shell); il SW della PWA è **disattivo in
   dev** (`devOptions.enabled: false`) per non confliggere col service worker di **MSW**.
 
 ## 8. Mappa dei 13 task del piano (ordine = dipendenze; esegui in sequenza)
 
 1. Scaffold `apps/web-staff` (Vite vue-ts) + wiring workspace.
-2. `@driftly/ui-kit` skeleton + **token in `@theme`**.
+2. `@coralyn/ui-kit` skeleton + **token in `@theme`**.
 3. **Tailwind v4** sui token (consumo del tema nel web-staff).
 4. **Vitest** + componente **`<Icon>`** offline (unplugin-icons + registry) — TDD.
 5. Componenti base ui-kit (Button, Card, Badge, Field, Input).
 6. **Session store** (Pinia) + Router + **app-shell** (Topbar/Sidebar/AppShell) con **console gated**.
 7. **Data-layer**: http client (header `X-Stabilimento-Id`) + TanStack Query — TDD.
-8. **Handshake DTO**: estendi `@driftly/contracts` con i DTO mappa (proposta FE).
+8. **Handshake DTO**: estendi `@coralyn/contracts` con i DTO mappa (proposta FE).
 9. **MSW** (mock Mappa) + wiring dev/test.
 10. **Clienti** (query + mutation; tabella + form) — TDD con MSW.
 11. **Mappa**: `OmbrelloneCell` (TDD a11y) + `Drawer` (Reka UI) + render dal mock.
@@ -166,7 +166,7 @@ non rinominare i termini di dominio. `Tipologia.icona` è additiva (fallback FE 
 
 ## 13. Definition of Done dello slice 1 (dal piano — non dichiarare "fatto" senza)
 
-- `pnpm install` ok; `@driftly/ui-kit` e `@driftly/web-staff` agganciati al workspace.
+- `pnpm install` ok; `@coralyn/ui-kit` e `@coralyn/web-staff` agganciati al workspace.
 - App-shell (topbar col nome stabilimento, sidebar a 5 sezioni + **console gated**), routing, layout a card sui token.
 - `ui-kit` token-first; componenti base + `Icon` (offline) + `OmbrelloneCell`.
 - **Clienti**: elenco + creazione (TanStack Query, invalidazione dopo create) — **verificato via MSW** finché il backend non espone `/clienti`.

@@ -30,14 +30,14 @@ isolato, e2e). **Niente di più:** non implementare la mappa né altri moduli (a
 ## 2. Stato attuale del repo (il tuo punto di partenza)
 
 - Branch **`main`**, **working tree pulita**.
-- **FATTO** (non rifare): Task 1 (scaffold monorepo pnpm), Task 2 (`@driftly/contracts`),
+- **FATTO** (non rifare): Task 1 (scaffold monorepo pnpm), Task 2 (`@coralyn/contracts`),
   **ADR-0016** (tipologia ombrellone / numerazione reale / speciali).
 - **FRONTEND GIÀ MERGIATO** (slice 1, **in gran parte mock — nulla di reale lato dati**):
   `apps/web-staff` (Vue 3 + Vite + PWA + **MSW** + **TanStack Query** + Pinia), `packages/ui-kit`
   (componenti + design tokens), ADR **0017–0021**, `docs/design/design-system.md`, spec e plan FE,
   deferred D-020/D-021. Il FE gira **su mock MSW**: non dipende ancora da un backend vivo.
 - **`apps/api` NON esiste ancora**: lo crei tu nel Task 3.
-- **`pnpm install`** è pulito (*Already up to date*) e **`pnpm --filter @driftly/contracts build`**
+- **`pnpm install`** è pulito (*Already up to date*) e **`pnpm --filter @coralyn/contracts build`**
   passa. Foundation Task 1–2 intatta.
 - **Ambiente**: **Node 24**, **pnpm 11.9.0** *(N.B.: il piano scrive `10.33.3` ma il
   `packageManager` è già pinnato a `11.9.0` — usa quello)*, **Docker 29**. OS **Windows 11**,
@@ -80,14 +80,14 @@ isolato, e2e). **Niente di più:** non implementare la mappa né altri moduli (a
 ## 5. I 5 task (3–7) — mappa
 
 3. **Skeleton NestJS + `GET /health`** (TDD).
-4. **PostgreSQL via Docker + ruolo `driftly_app` non-superuser** (+ DB `driftly_test`) per la RLS.
+4. **PostgreSQL via Docker + ruolo `coralyn_app` non-superuser** (+ DB `coralyn_test`) per la RLS.
 5. **Prisma** — schema (`Stabilimento`, `Cliente`), prima migrazione, `PrismaService`.
 6. **Row-Level Security + `forTenant` + test di isolamento** — *lo spike* (rischio #1 dello spec).
 7. **Tenant context (header `X-Stabilimento-Id` provvisorio) + `GET/POST /clienti` isolato** (e2e).
 
 ## 6. Confine col frontend — IL CONTRATTO È ORA REALE
 
-Il FE è mergiato e **consuma `@driftly/contracts`**. I Task 3–7 devono restare **compatibili**.
+Il FE è mergiato e **consuma `@coralyn/contracts`**. I Task 3–7 devono restare **compatibili**.
 
 **Cosa il FE già si aspetta dal backend** (oggi servito da mock MSW su `/api/*`):
 - **Tenant**: ogni richiesta porta l'header **`X-Stabilimento-Id: <uuid>`** (dev UUID
@@ -101,7 +101,7 @@ Il FE è mergiato e **consuma `@driftly/contracts`**. I Task 3–7 devono restar
   - `POST /api/clienti` body `{ nome, cognome }` → `ClienteDTO` (**201**)
   - `GET /api/mappa` → `MappaGiornoDTO` (`?data=yyyy-mm-dd`)
 - **`ClienteDTO` = `{ id, nome, cognome }`** (minimale; nessun `contatti`/`stabilimentoId` nel body).
-  Il Task 7 del piano già produce esattamente questa forma. Consuma il tipo da `@driftly/contracts`.
+  Il Task 7 del piano già produce esattamente questa forma. Consuma il tipo da `@coralyn/contracts`.
 
 **SCOPE — leggi due volte:** il **Plan 1 implementa SOLO `/health` + `/clienti`** (e la RLS su
 `Cliente`). **`/mappa` NON è nel Plan 1** (è il modulo `mappa`, Plan 3+): **il FE continua a
@@ -110,7 +110,7 @@ schema mappa (`Settore`/`Fila`/`Ombrellone`/`Tipologia`/`Fascia`) né l'endpoint
 DTO ricchi già in `contracts` sono per i piani futuri: **resisti alla tentazione**.
 
 **`contracts` è additivo:** il FE dipende dagli export attuali → puoi **aggiungere** tipi, mai
-**rinominare/rimuovere**. Ricostruisci `@driftly/contracts` (`pnpm build:contracts`) prima che
+**rinominare/rimuovere**. Ricostruisci `@coralyn/contracts` (`pnpm build:contracts`) prima che
 `apps/api` lo consumi.
 
 **Seed dev tenant (consigliato):** perché in futuro il FE possa girare contro il backend reale,
@@ -120,13 +120,13 @@ o documenta come crearlo (non obbligatorio per i test del Plan 1, che creano i p
 ## 7. Trappole critiche RLS (leggi prima di Task 4–7)
 
 - **Ruolo DB.** I **superuser** PostgreSQL **bypassano** la RLS. L'app **deve** connettersi con
-  `driftly_app` (`NOSUPERUSER NOBYPASSRLS`, creato da `init/01-app-role.sql`). Se nei test "senza
+  `coralyn_app` (`NOSUPERUSER NOBYPASSRLS`, creato da `init/01-app-role.sql`). Se nei test "senza
   tenant" vedi comunque righe → ti stai connettendo come superuser: verifica che
-  `.env`/`.env.test` usino `driftly_app`.
+  `.env`/`.env.test` usino `coralyn_app`.
 - **`init/` gira una sola volta.** `docker-entrypoint-initdb.d` viene eseguito **solo alla prima
-  inizializzazione del volume**. Se `driftly-pgdata` esiste già da prove precedenti, ruolo/DB di
+  inizializzazione del volume**. Se `coralyn-pgdata` esiste già da prove precedenti, ruolo/DB di
   test potrebbero mancare → `docker compose down -v` e risali.
-- **Test contro il DB di test.** RLS (Task 6) ed e2e (Task 7) girano su `driftly_test` via
+- **Test contro il DB di test.** RLS (Task 6) ed e2e (Task 7) girano su `coralyn_test` via
   `dotenv -e .env.test`. Non puntarli al DB di dev.
 - **`FORCE ROW LEVEL SECURITY`.** Serve perché la policy valga **anche per il proprietario** della
   tabella (l'app è owner dello schema). È già nel SQL del piano: non ometterlo.
@@ -136,18 +136,18 @@ o documenta come crearlo (non obbligatorio per i test del Plan 1, che creano i p
 
 ```bash
 # unit (health) — nessun DB richiesto, sempre verde
-pnpm --filter @driftly/api test
+pnpm --filter @coralyn/api test
 # integration/e2e (contro il DB di test): isolamento RLS + API clienti
 # Nota: lo spec RLS vive in test/prisma.service.e2e-spec.ts e gira nella suite e2e,
 # così `pnpm test` (unit) non richiede un database.
-pnpm dlx dotenv-cli -e .env.test -- pnpm --filter @driftly/api test:e2e
+pnpm dlx dotenv-cli -e .env.test -- pnpm --filter @coralyn/api test:e2e
 ```
 
 ## 9. Definition of Done (Plan 1)
 
-- `pnpm install` ok; `pnpm lint` pulito; `@driftly/contracts` builda.
-- `docker compose up -d` avvia Postgres; init crea `driftly_app` (non-superuser) e `driftly_test`;
-  migrazioni applicate su `driftly_dev` **e** `driftly_test`.
+- `pnpm install` ok; `pnpm lint` pulito; `@coralyn/contracts` builda.
+- `docker compose up -d` avvia Postgres; init crea `coralyn_app` (non-superuser) e `coralyn_test`;
+  migrazioni applicate su `coralyn_dev` **e** `coralyn_test`.
 - `GET /health` → `{ status: 'ok' }`.
 - **Test RLS verdi**: un tenant vede solo i propri clienti; senza tenant non si vede nulla.
 - **Test e2e verde**: isolamento per tenant attraverso l'API; path allineati al contratto FE

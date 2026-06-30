@@ -12,7 +12,7 @@
 
 **Source of truth (pixel reference):** `Redesign coralyn gestionale moderno/Coralyn.dc.html` (canvas; line refs below) and `Coralyn - Gestionale Lidi.html` (rendered bundle). Spec: `docs/specs/2026-06-29-coralyn-redesign-fe-design.md`.
 
-**Conventions for every task:** no literal hex/px in components — only `var(--token)` or Tailwind utilities bound to tokens (ADR-0017). Keep existing tests green; update assertions tied to old teal tokens. Commit after each task. Run from repo root with `pnpm --filter @driftly/web-staff <script>` / `pnpm --filter @driftly/ui-kit <script>`.
+**Conventions for every task:** no literal hex/px in components — only `var(--token)` or Tailwind utilities bound to tokens (ADR-0017). Keep existing tests green; update assertions tied to old teal tokens. Commit after each task. Run from repo root with `pnpm --filter @coralyn/web-staff <script>` / `pnpm --filter @coralyn/ui-kit <script>`.
 
 ---
 
@@ -117,7 +117,7 @@ body { font-family: var(--font-sans); color: var(--color-text); background: var(
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 ```
 
-- [x] **Step 3: Build the ui-kit / typecheck.** Run: `pnpm --filter @driftly/ui-kit build` (or `typecheck`). Expected: no errors. (Old token names like `--color-cool-*`, `--color-navy-900`, `--color-teal-500` are now gone — later tasks fix every consumer; a transient broken visual is fine until Phase 1–3 land, but the package must still build.)
+- [x] **Step 3: Build the ui-kit / typecheck.** Run: `pnpm --filter @coralyn/ui-kit build` (or `typecheck`). Expected: no errors. (Old token names like `--color-cool-*`, `--color-navy-900`, `--color-teal-500` are now gone — later tasks fix every consumer; a transient broken visual is fine until Phase 1–3 land, but the package must still build.)
 
 - [x] **Step 4: Commit.**
 
@@ -196,7 +196,7 @@ it('resolve le nuove chiavi del registry', () => {
 });
 ```
 
-- [x] **Step 3: Run tests.** `pnpm --filter @driftly/ui-kit test` → PASS.
+- [x] **Step 3: Run tests.** `pnpm --filter @coralyn/ui-kit test` → PASS.
 - [x] **Step 4: Commit.** `git commit -am "feat(ui-kit): estende registry icone Coralyn (Lucide)"`
 
 ---
@@ -207,14 +207,14 @@ it('resolve le nuove chiavi del registry', () => {
 - Modify: `apps/web-staff/vite.config.ts:21-22`
 
 - [x] **Step 1:** Change `theme_color: '#1F6F8B'` → `'#E0795A'` and `background_color: '#E9EFF2'` → `'#ECE3D5'`.
-- [x] **Step 2:** Run `pnpm --filter @driftly/web-staff typecheck` → PASS.
+- [x] **Step 2:** Run `pnpm --filter @coralyn/web-staff typecheck` → PASS.
 - [x] **Step 3: Commit.** `git commit -am "chore(web-staff): PWA theme/background colors Coralyn"`
 
 ---
 
 ## Phase 1 — ui-kit components
 
-> For each component: match the cited `Coralyn.dc.html` lines, use only tokens, keep `<Icon>` for icons. After Phase 1, run `pnpm --filter @driftly/ui-kit test` and `typecheck`.
+> For each component: match the cited `Coralyn.dc.html` lines, use only tokens, keep `<Icon>` for icons. After Phase 1, run `pnpm --filter @coralyn/ui-kit test` and `typecheck`.
 
 ### Task 4: Button (variants)
 
@@ -237,7 +237,7 @@ const variants = {
 <template><button :class="[base, variants[$props.variant ?? 'primary']]"><slot /></button></template>
 ```
 
-- [x] **Step 2:** Update `Button.spec.ts` assertions: primary uses `--color-brand` (no longer teal token). Run `pnpm --filter @driftly/ui-kit test` → PASS.
+- [x] **Step 2:** Update `Button.spec.ts` assertions: primary uses `--color-brand` (no longer teal token). Run `pnpm --filter @coralyn/ui-kit test` → PASS.
 - [x] **Step 3: Commit.** `git commit -am "feat(ui-kit): Button varianti Coralyn (primary/secondary/ghost/danger)"`
 
 ### Task 5: Badge (status / tipologia / ruolo / soon)
@@ -403,7 +403,7 @@ const open = defineModel<boolean>('open', { required: true });
 **Files:** Modify `packages/ui-kit/src/components/OmbrelloneCell.vue`; Test `OmbrelloneCell.spec.ts` (existing). Ref 177-182 (cell + marker), 193 (speciali).
 
 - [x] **Step 1:** Keep 4-axis logic. Update: split divider uses `var(--color-surface)`; selection ring `outline-[var(--color-brand)]` + halo `0 0 0 4px var(--color-brand-tint)`; tipologia marker = white circle `bg-[var(--color-surface)]`, icon `text-[var(--color-accent)]`, `[box-shadow:var(--shadow-soft)]`, size ~15px. Split-cell label ink → `var(--color-text)`.
-- [x] **Step 2:** Keep existing spec green (fill maps to `--color-state-*` tokens — unchanged token names, new values). Run `pnpm --filter @driftly/ui-kit test` → PASS.
+- [x] **Step 2:** Keep existing spec green (fill maps to `--color-state-*` tokens — unchanged token names, new values). Run `pnpm --filter @coralyn/ui-kit test` → PASS.
 - [x] **Step 3: Commit** `git commit -am "feat(ui-kit): OmbrelloneCell reskin Coralyn (marker teal, ring corallo)"`
 
 ### Task 13: DataTable, KpiCard, StatTile, BarChart, StackedBar (new presentational)
@@ -468,7 +468,7 @@ const open = defineModel<boolean>('open', { required: true });
 - [x] **Step 1:** Header row: SegmentedControl settori (from `MappaGiornoDTO.settori`) + "Stato per fascia" hint with clock icon.
 - [x] **Step 2:** Stage card: `bg-[linear-gradient(168deg,var(--color-warm-075),var(--color-warm-150))] border-[var(--color-warm-border-stage)] rounded-[var(--radius-xl)]`; "Mare" header band (gradient `--color-sea-*`, wave icon + label); rows of `OmbrelloneCell` (fila label + cells from `useMappaGiorno`); Speciali/Palme block; legend (Stato + Tipologia) — micro-labels uppercase.
 - [x] **Step 3:** Selection opens an **inline side panel** (340px `Card`, `--shadow-drawer`): eyebrow "Ombrellone" + label (`text-2xl font-bold tabular-nums`), tipologia `Badge tone="accent"`, crumb, Mattina/Pomeriggio split boxes, booking detail (dashed dividers), payment status row (Saldato/Parziale/Non pagato via success/warning/danger tones), actions (primary "Nuova prenotazione" → opens Modal; secondary "Abbonamento"/"Presenza"; "Annulla prenotazione" danger link).
-- [x] **Step 4:** Keep `MappaView.spec.ts` green (update any teal/token assertions). Run `pnpm --filter @driftly/web-staff test` → PASS.
+- [x] **Step 4:** Keep `MappaView.spec.ts` green (update any teal/token assertions). Run `pnpm --filter @coralyn/web-staff test` → PASS.
 - [x] **Step 5: Commit** `git commit -am "feat(web-staff): MappaView Coralyn (stage, celle, drawer)"`
 
 ### Task 19: PrenotazioniView
@@ -530,10 +530,10 @@ const open = defineModel<boolean>('open', { required: true });
 
 ### Task 25: Full verification
 
-- [x] **Step 1:** `pnpm --filter @driftly/ui-kit test` → PASS. `pnpm --filter @driftly/web-staff test` → PASS.
-- [x] **Step 2:** `pnpm --filter @driftly/web-staff typecheck` → PASS. `pnpm --filter @driftly/web-staff build` → success.
+- [x] **Step 1:** `pnpm --filter @coralyn/ui-kit test` → PASS. `pnpm --filter @coralyn/web-staff test` → PASS.
+- [x] **Step 2:** `pnpm --filter @coralyn/web-staff typecheck` → PASS. `pnpm --filter @coralyn/web-staff build` → success.
 - [x] **Step 3:** Grep guard — no stray literal hex in components (allow tokens/gradients): `rg -n "#[0-9A-Fa-f]{6}" packages/ui-kit/src/components apps/web-staff/src` and confirm only intentional gradient stops / none. Fix leaks into tokens.
-- [x] **Step 4:** `pnpm --filter @driftly/web-staff dev`, visually compare each screen against `Coralyn - Gestionale Lidi.html` at 1280px (Mappa+drawer, Prenotazioni, Clienti, Scheda, Listino, Report, Stabilimento, Login, Registrazione). Note diffs; fix.
+- [x] **Step 4:** `pnpm --filter @coralyn/web-staff dev`, visually compare each screen against `Coralyn - Gestionale Lidi.html` at 1280px (Mappa+drawer, Prenotazioni, Clienti, Scheda, Listino, Report, Stabilimento, Login, Registrazione). Note diffs; fix.
 - [x] **Step 5: Commit** any fixes `git commit -am "fix(web-staff): rifiniture fedeltà Coralyn"`
 
 ### Task 26: Asset — Coralyn logo

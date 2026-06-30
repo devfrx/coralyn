@@ -2,7 +2,7 @@
 
 > **Cos'è questo documento.** È un **messaggio di delega autosufficiente** da incollare
 > all'inizio di una **sessione dedicata** in cui un agente esegue il
-> [Piano 1 backend](../plans/2026-06-28-core-foundation.md) di Driftly. Procede in
+> [Piano 1 backend](../plans/2026-06-28-core-foundation.md) di Coralyn. Procede in
 > **parallelo** alla pianificazione del frontend; il confine di coordinamento è
 > `packages/contracts`. Tutto ciò che serve per eseguire correttamente è qui sotto o nei
 > documenti linkati.
@@ -12,7 +12,7 @@
 ## 0. Il tuo compito in una frase
 
 Esegui **interamente** il [Piano 1](../plans/2026-06-28-core-foundation.md): metti in piedi
-il monorepo `@driftly/*`, un backend NestJS funzionante con PostgreSQL/Prisma, e **dimostra
+il monorepo `@coralyn/*`, un backend NestJS funzionante con PostgreSQL/Prisma, e **dimostra
 con test** l'isolamento multi-tenant tramite **Row-Level Security** (il rischio #1 dello
 spec). Niente di più, niente di meno: **non** anticipare moduli successivi (auth, pricing,
 mappa…), che appartengono ai piani 2+.
@@ -29,11 +29,11 @@ mappa…), che appartengono ai piani 2+.
 
 ## 2. Contesto prodotto (cosa stai costruendo)
 
-- **Driftly** (codename provvisorio — il brand è rimandato, [D-017](../architecture/deferred.md))
+- **Coralyn** (codename provvisorio — il brand è rimandato, [D-017](../architecture/deferred.md))
   è un **gestionale SaaS multi-tenant per lidi balneari** (stabilimenti balneari).
 - È in costruzione il **Core operativo (MVP)**: mappa ombrelloni, prenotazioni/abbonamenti,
   clienti, listino. Vedi la [spec del Core (Approvato)](../specs/2026-06-27-core-operativo-design.md).
-- **Stato del repo adesso:** i **Task 1–2 sono già eseguiti** (monorepo `@driftly/*` +
+- **Stato del repo adesso:** i **Task 1–2 sono già eseguiti** (monorepo `@coralyn/*` +
   `packages/contracts` con `Ruolo`, `ClienteDTO`, committati su `main`). Prosegui dai **Task 3–7**
   (NestJS, Postgres/Prisma, RLS, modulo `clienti`). Git pulito.
 - **Disambiguazione di dominio critica:** `Cliente` = **il bagnante**. Il **tenant** è lo
@@ -83,7 +83,7 @@ mappa…), che appartengono ai piani 2+.
 
 1. **Scaffold monorepo** — `pnpm-workspace.yaml`, `package.json` root, `tsconfig.base.json`,
    `.editorconfig`/`.prettierrc.json`/`eslint.config.mjs`, `.gitignore`.
-2. **`@driftly/contracts`** — pacchetto dei tipi condivisi FE/BE (skeleton: `Ruolo`, `ClienteDTO`),
+2. **`@coralyn/contracts`** — pacchetto dei tipi condivisi FE/BE (skeleton: `Ruolo`, `ClienteDTO`),
    **buildato a `dist` con `tsc`** e consumato come workspace package.
 3. **Skeleton NestJS + `GET /health`** (TDD).
 4. **PostgreSQL via Docker + ruolo applicativo non-superuser** (per la RLS).
@@ -94,35 +94,35 @@ mappa…), che appartengono ai piani 2+.
 ## 7. Trappole critiche (qui falliscono gli spike — leggi prima di Task 4–7)
 
 - **La RLS e il ruolo DB.** I **superuser** PostgreSQL **bypassano** la RLS. L'app **deve**
-  connettersi con il ruolo `driftly_app` (`NOSUPERUSER NOBYPASSRLS`, creato da
+  connettersi con il ruolo `coralyn_app` (`NOSUPERUSER NOBYPASSRLS`, creato da
   `init/01-app-role.sql`). Se nei test "senza tenant" vedi comunque delle righe, quasi certamente
-  ti stai connettendo come superuser: **verifica che `.env`/`.env.test` usino `driftly_app`**.
+  ti stai connettendo come superuser: **verifica che `.env`/`.env.test` usino `coralyn_app`**.
 - **Lo script `init/` gira una sola volta.** `docker-entrypoint-initdb.d` viene eseguito **solo
-  alla prima inizializzazione del volume**. Se il volume `driftly-pgdata` esiste già da prove
+  alla prima inizializzazione del volume**. Se il volume `coralyn-pgdata` esiste già da prove
   precedenti, il ruolo/DB di test potrebbero mancare → `docker compose down -v` e risali.
-- **Test contro il DB di test.** RLS (Task 6) ed e2e (Task 7) girano su `driftly_test` via
+- **Test contro il DB di test.** RLS (Task 6) ed e2e (Task 7) girano su `coralyn_test` via
   `dotenv -e .env.test`. Non puntarli al DB di dev.
 - **`FORCE ROW LEVEL SECURITY`.** Serve perché la policy valga **anche per il proprietario**
   della tabella (l'app è owner dello schema). È già nel SQL del piano: non ometterlo.
-- **`contracts` come pacchetto buildato**, non path-alias a runtime: builda `@driftly/contracts`
+- **`contracts` come pacchetto buildato**, non path-alias a runtime: builda `@coralyn/contracts`
   prima che `apps/api` lo consumi (`pnpm build:contracts`).
 
 ## 8. Come si eseguono i test (riassunto operativo)
 
 ```bash
 # unit (health, RLS isolation)
-pnpm --filter @driftly/api test
+pnpm --filter @coralyn/api test
 # il test RLS va eseguito contro il DB di test:
-pnpm dlx dotenv-cli -e .env.test -- pnpm --filter @driftly/api test -- prisma.service
+pnpm dlx dotenv-cli -e .env.test -- pnpm --filter @coralyn/api test -- prisma.service
 # e2e (isolamento per tenant attraverso l'API)
-pnpm dlx dotenv-cli -e .env.test -- pnpm --filter @driftly/api test:e2e
+pnpm dlx dotenv-cli -e .env.test -- pnpm --filter @coralyn/api test:e2e
 ```
 
 ## 9. Definition of Done (dal piano — non dichiarare "fatto" senza)
 
 - `pnpm install` e build di `contracts` ok; `pnpm lint` pulito.
-- `docker compose up -d` avvia Postgres; init crea `driftly_app` (non-superuser) e
-  `driftly_test`; migrazioni applicate su `driftly_dev` **e** `driftly_test`.
+- `docker compose up -d` avvia Postgres; init crea `coralyn_app` (non-superuser) e
+  `coralyn_test`; migrazioni applicate su `coralyn_dev` **e** `coralyn_test`.
 - `GET /health` → `{ status: 'ok' }`.
 - **Test RLS verdi**: un tenant vede solo i propri clienti; senza tenant non si vede nulla.
 - **Test e2e verde**: isolamento per tenant attraverso l'API.

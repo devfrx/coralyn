@@ -40,7 +40,7 @@
 - `apps/api/src/app.module.ts` — importa `IdentitaModule`, rimuove il wiring del middleware.
 - `apps/api/src/health/health.controller.ts` — `@Public()`.
 - `apps/api/test/clienti.e2e-spec.ts` — autenticazione via Bearer.
-- `docs/architecture/deferred.md`, `docs/design/data-model.md`, `MEMORY.md` + `memory/driftly-project-state.md`.
+- `docs/architecture/deferred.md`, `docs/design/data-model.md`, `MEMORY.md` + `memory/coralyn-project-state.md`.
 
 **Delete:**
 - `apps/api/src/tenant/tenant.middleware.ts`.
@@ -56,7 +56,7 @@
 
 Run (dalla radice):
 ```bash
-pnpm --filter @driftly/api add @nestjs/jwt@^10.2.0 argon2@^0.41.1
+pnpm --filter @coralyn/api add @nestjs/jwt@^10.2.0 argon2@^0.41.1
 ```
 Expected: `apps/api/package.json` elenca `@nestjs/jwt` e `argon2` in `dependencies`; `pnpm-lock.yaml` aggiornato. (`argon2` scarica un binario prebuilt per Node 24/Windows; se fallisse servirebbero i build tools — vedi nota a fine task.)
 
@@ -66,7 +66,7 @@ Aggiungi in fondo a `.env.example`:
 ```
 JWT_SECRET="change-me-please-32+chars-random-secret"
 JWT_EXPIRES_IN="8h"
-DEV_ADMIN_EMAIL="admin@driftly.dev"
+DEV_ADMIN_EMAIL="admin@coralyn.dev"
 DEV_ADMIN_PASSWORD="change-me"
 ```
 
@@ -76,8 +76,8 @@ Aggiungi in fondo a `.env`:
 ```
 JWT_SECRET="dev-only-insecure-secret-please-change-in-prod"
 JWT_EXPIRES_IN="8h"
-DEV_ADMIN_EMAIL="admin@driftly.dev"
-DEV_ADMIN_PASSWORD="driftly-admin"
+DEV_ADMIN_EMAIL="admin@coralyn.dev"
+DEV_ADMIN_PASSWORD="coralyn-admin"
 ```
 
 - [ ] **Step 4: Aggiungi le chiavi a `.env.test`** (test, gitignored)
@@ -133,7 +133,7 @@ export interface LoginResponse {
 
 Run (dalla radice):
 ```bash
-pnpm --filter @driftly/contracts build
+pnpm --filter @coralyn/contracts build
 ```
 Expected: `packages/contracts/dist/index.d.ts` include `UtenteDTO`, `LoginInput`, `LoginResponse`; nessun errore TS.
 
@@ -188,7 +188,7 @@ model Utente {
 
 Run (dalla radice):
 ```bash
-pnpm dlx dotenv-cli -e .env -- pnpm --filter @driftly/api exec prisma migrate dev --name utente
+pnpm dlx dotenv-cli -e .env -- pnpm --filter @coralyn/api exec prisma migrate dev --name utente
 ```
 Expected: crea `apps/api/prisma/migrations/<ts>_utente/migration.sql` con `CreateEnum "Ruolo"` e `CreateTable "Utente"` (+ FK verso `Stabilimento`, indice, unique su `email`); applica al DB dev; rigenera il client Prisma (ora include `prisma.utente` e l'enum `Ruolo`).
 
@@ -205,9 +205,9 @@ Apri `apps/api/prisma/migrations/<ts>_utente/migration.sql` e verifica che **non
 
 Run (dalla radice):
 ```bash
-pnpm dlx dotenv-cli -e .env.test -- pnpm --filter @driftly/api exec prisma migrate deploy
+pnpm dlx dotenv-cli -e .env.test -- pnpm --filter @coralyn/api exec prisma migrate deploy
 ```
-Expected: la migrazione `utente` risulta applicata anche su `driftly_test`.
+Expected: la migrazione `utente` risulta applicata anche su `coralyn_test`.
 
 - [ ] **Step 5: Estendi il seed in `apps/api/prisma/seed.ts`**
 
@@ -230,8 +230,8 @@ async function main(): Promise<void> {
   });
 
   // Primo admin di sviluppo (per login locale). Password hashata con argon2id.
-  const email = process.env.DEV_ADMIN_EMAIL ?? 'admin@driftly.dev';
-  const password = process.env.DEV_ADMIN_PASSWORD ?? 'driftly-admin';
+  const email = process.env.DEV_ADMIN_EMAIL ?? 'admin@coralyn.dev';
+  const password = process.env.DEV_ADMIN_PASSWORD ?? 'coralyn-admin';
   const passwordHash = await argon2.hash(password, { type: argon2.argon2id });
   await prisma.utente.upsert({
     where: { email },
@@ -253,7 +253,7 @@ main()
 
 Run (dalla radice):
 ```bash
-pnpm dlx dotenv-cli -e .env -- pnpm --filter @driftly/api exec prisma db seed
+pnpm dlx dotenv-cli -e .env -- pnpm --filter @coralyn/api exec prisma db seed
 ```
 Expected: nessun errore; l'admin di sviluppo è creato/aggiornato (idempotente).
 
@@ -299,7 +299,7 @@ describe('PasswordHasher', () => {
 
 Run (dalla radice):
 ```bash
-pnpm --filter @driftly/api test -- password-hasher
+pnpm --filter @coralyn/api test -- password-hasher
 ```
 Expected: FAIL — `Cannot find module './password-hasher'`.
 
@@ -326,7 +326,7 @@ export class PasswordHasher {
 
 Run (dalla radice):
 ```bash
-pnpm --filter @driftly/api test -- password-hasher
+pnpm --filter @coralyn/api test -- password-hasher
 ```
 Expected: PASS (2 test).
 
@@ -350,7 +350,7 @@ Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>"
 
 ```ts
 import { JwtService } from '@nestjs/jwt';
-import { Ruolo } from '@driftly/contracts';
+import { Ruolo } from '@coralyn/contracts';
 import { TokenService } from './token.service';
 
 describe('TokenService', () => {
@@ -378,7 +378,7 @@ describe('TokenService', () => {
 
 Run (dalla radice):
 ```bash
-pnpm --filter @driftly/api test -- token.service
+pnpm --filter @coralyn/api test -- token.service
 ```
 Expected: FAIL — `Cannot find module './token.service'`.
 
@@ -387,7 +387,7 @@ Expected: FAIL — `Cannot find module './token.service'`.
 ```ts
 import { Injectable } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import { Ruolo } from '@driftly/contracts';
+import { Ruolo } from '@coralyn/contracts';
 
 /** Claim applicativi del JWT (oltre a iat/exp standard). */
 export interface TokenClaims {
@@ -416,7 +416,7 @@ export class TokenService {
 
 Run (dalla radice):
 ```bash
-pnpm --filter @driftly/api test -- token.service
+pnpm --filter @coralyn/api test -- token.service
 ```
 Expected: PASS (3 test).
 
@@ -441,7 +441,7 @@ Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>"
 - [ ] **Step 1: Crea `apps/api/src/identita/auth-user.ts`**
 
 ```ts
-import { Ruolo } from '@driftly/contracts';
+import { Ruolo } from '@coralyn/contracts';
 
 /** Forma di `req.user` dopo la guard. */
 export interface AuthUser {
@@ -536,7 +536,7 @@ export class JwtAuthGuard implements CanActivate {
 
 Run (dalla radice):
 ```bash
-pnpm --filter @driftly/api exec tsc --noEmit -p tsconfig.json
+pnpm --filter @coralyn/api exec tsc --noEmit -p tsconfig.json
 ```
 Expected: nessun errore TS (i file compilano; non vengono usati finché non li registra il modulo nel Task 7).
 
@@ -562,7 +562,7 @@ Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>"
 
 ```ts
 import { IsEmail, IsNotEmpty, IsString } from 'class-validator';
-import type { LoginInput } from '@driftly/contracts';
+import type { LoginInput } from '@coralyn/contracts';
 
 export class LoginDto implements LoginInput {
   @IsEmail()
@@ -582,7 +582,7 @@ import type { Utente } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { PasswordHasher } from './password-hasher';
 import { TokenService } from './token.service';
-import { LoginInput, LoginResponse, Ruolo, UtenteDTO } from '@driftly/contracts';
+import { LoginInput, LoginResponse, Ruolo, UtenteDTO } from '@coralyn/contracts';
 
 @Injectable()
 export class IdentitaService {
@@ -631,7 +631,7 @@ import { LoginDto } from './dto/login.dto';
 import { Public } from './public.decorator';
 import { CurrentUser } from './current-user.decorator';
 import type { AuthUser } from './auth-user';
-import { LoginResponse, UtenteDTO } from '@driftly/contracts';
+import { LoginResponse, UtenteDTO } from '@coralyn/contracts';
 
 @Controller('auth')
 export class AuthController {
@@ -737,7 +737,7 @@ Expected: il file è rimosso. (`TenantContext` e `TenantModule` restano.)
 
 Run (dalla radice):
 ```bash
-pnpm --filter @driftly/api exec tsc --noEmit -p tsconfig.json
+pnpm --filter @coralyn/api exec tsc --noEmit -p tsconfig.json
 ```
 Expected: nessun errore TS; nessun riferimento residuo a `TenantMiddleware`.
 
@@ -912,7 +912,7 @@ describe('Auth (e2e)', () => {
 
 Run (dalla radice):
 ```bash
-pnpm dlx dotenv-cli -e .env.test -- pnpm --filter @driftly/api test:e2e -- auth
+pnpm dlx dotenv-cli -e .env.test -- pnpm --filter @coralyn/api test:e2e -- auth
 ```
 Expected: PASS (6 test). Login, /me, guard e superuser funzionano end-to-end.
 
@@ -1129,7 +1129,7 @@ describe('Clienti (e2e) isolamento per tenant', () => {
 
 Run (dalla radice):
 ```bash
-pnpm dlx dotenv-cli -e .env.test -- pnpm --filter @driftly/api test:e2e
+pnpm dlx dotenv-cli -e .env.test -- pnpm --filter @coralyn/api test:e2e
 ```
 Expected: PASS — `auth.e2e` e `clienti.e2e` verdi; l'isolamento per tenant continua a valere col Bearer; senza token → 401.
 
@@ -1295,21 +1295,21 @@ Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>"
 ## Task 11: Verifica finale + aggiornamento memoria
 
 **Files:**
-- Modify: `MEMORY.md`, `memory/driftly-project-state.md` (cartella memoria utente, fuori dal repo)
+- Modify: `MEMORY.md`, `memory/coralyn-project-state.md` (cartella memoria utente, fuori dal repo)
 
 - [ ] **Step 1: Verifica completa (verification-before-completion)**
 
 Run (dalla radice), e conferma l'output verde di ciascuno:
 ```bash
-pnpm --filter @driftly/contracts build
+pnpm --filter @coralyn/contracts build
 pnpm lint
-pnpm --filter @driftly/api exec tsc --noEmit -p tsconfig.json
-pnpm dlx dotenv-cli -e .env.test -- pnpm --filter @driftly/api test
-pnpm dlx dotenv-cli -e .env.test -- pnpm --filter @driftly/api test:e2e
+pnpm --filter @coralyn/api exec tsc --noEmit -p tsconfig.json
+pnpm dlx dotenv-cli -e .env.test -- pnpm --filter @coralyn/api test
+pnpm dlx dotenv-cli -e .env.test -- pnpm --filter @coralyn/api test:e2e
 ```
 Expected: build contracts ok; lint pulito; typecheck senza errori; unit verdi (incl. `password-hasher`, `token.service`); e2e verdi (`auth`, `clienti`). Nessun "fatto" senza questo output.
 
-- [ ] **Step 2: Aggiorna la memoria utente** (`C:\Users\Jays\.claude\projects\C--Users-Jays-Desktop-new\memory\driftly-project-state.md` e la riga indice in `MEMORY.md`)
+- [ ] **Step 2: Aggiorna la memoria utente** (`C:\Users\Jays\.claude\projects\C--Users-Jays-Desktop-new\memory\coralyn-project-state.md` e la riga indice in `MEMORY.md`)
 
 Aggiorna lo stato di progetto: modulo `identita` (auth) MERGIATO su main — `Utente` + enum `Ruolo`,
 login argon2id + JWT, `JwtAuthGuard` globale che sostituisce `TenantMiddleware`, ADR-0024/0025/0026,
