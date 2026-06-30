@@ -73,18 +73,29 @@ Le colonne su `Booking` (già presenti, [data-model](../design/data-model.md)):
 | `paymentMethod` | `PaymentMethod?` | metodo dell'incasso; richiesto se `amountCollected>0` |
 | `collectionDate` | `DateTime? @db.Date` | data dell'incasso; default oggi `Europe/Rome` |
 
-**Derivazione dello stato** (funzione pura):
+**Derivazione dello stato** (funzione pura, casi valutati **in quest'ordine**):
 
 ```
-amountCollected == 0            → paymentStatus = 'unpaid'   (method = null, date = null)
+totalPrice == 0                  → paymentStatus = 'paid'     (niente da incassare; method/date = null)
+amountCollected == 0             → paymentStatus = 'unpaid'   (method = null, date = null)
 0 < amountCollected < totalPrice → paymentStatus = 'partial'
 amountCollected == totalPrice    → paymentStatus = 'paid'
-amountCollected  > totalPrice    → ERRORE di dominio (rifiutato)
+amountCollected  > totalPrice    → ERRORE di dominio (422 OVER_TOTAL)
 ```
+
+> **`totalPrice == 0` (booking gratuito):** valutato **per primo** → `paid`. Senza questa guardia,
+> `amount==0` lo lascerebbe `unpaid` per sempre (impossibile saldarlo). Caveat: A1 crea con default
+> `unpaid`; un booking a €0 mai-incassato mostra `unpaid` finché non riceve un PATCH (anche
+> `amount=0` → `paid`). Accettato: il caso è raro e l'azione "Registra incasso" lo risolve in un clic.
 
 > **Nota float:** il confronto avviene **in centesimi interi** (`Math.round(x * 100)`) per evitare
 > imprecisioni di virgola mobile sull'uguaglianza `amount == totalPrice`. Gli importi hanno già
 > al più 2 decimali (validazione DTO).
+
+> **`collectionDate` su re-settle:** ogni PATCH con `amount>0` (senza data esplicita) imposta la data
+> all'**oggi** corrente → `collectionDate` riflette **l'ultimo incasso** (es. parziale oggi, saldo fra
+> tre giorni → la data si sposta al saldo). Lo storico dei singoli incassi è D-009 (Cassa). Date future
+> non bloccate in A2 (l'operatore può registrare una data a sua scelta).
 
 **Regole di coerenza** (enforced in `resolvePayment`, che conosce `totalPrice` dal DB):
 
@@ -198,6 +209,8 @@ A2 la collega al backend reale per la **data attiva** della sessione:
   incassare (`unpaid`) · Parziali (`partial`) · Saldate (`paid`)*. Filtro **computed client-side**
   sui dati già caricati. (I filtri mock "Bozze/Concluse" spariscono: non esiste `draft`, e la
   vista è sulla data attiva.)
+- **Empty-state:** se la data attiva non ha prenotazioni (o il filtro non matcha), mostrare un
+  messaggio esplicito invece della tabella vuota.
 - **Riga → "Registra incasso"**: apre il modale di incasso (§5.3) sulla prenotazione.
 - **"Nuova prenotazione"** resta legato al flusso mappa (serve umbrella+fascia preselezionati):
   il bottone **naviga a `/map`**. La creazione da `BookingsView` è fuori A2.
@@ -246,7 +259,8 @@ Target da **non** regredire: ui-kit 14 · web-staff 41 · api unit 27 · api e2e
   `amount=0 → unpaid` (method/date azzerati); `0<amount<total → partial`; `amount==total → paid`;
   `amount>total → {ok:false, OVER_TOTAL}`; `amount>0 senza method → {ok:false, METHOD_REQUIRED}`;
   `collectionDate` assente con amount>0 → default `today`; `collectionDate` esplicita rispettata;
-  reset (amount=0) azzera method+date anche se forniti.
+  reset (amount=0) azzera method+date anche se forniti; **`totalPrice==0` → `paid`** (amount 0,
+  method/date null) e `amount>0` su `totalPrice==0` → `OVER_TOTAL`.
 - **api unit — proiezione**: `toBookingDTO` mappa `paymentMethod`/`collectionDate` (`null→undefined`,
   `Date→yyyy-mm-dd`).
 - **api e2e — `bookings.payment.e2e`** (`coralyn_test`, 2 tenant):
@@ -291,6 +305,17 @@ Target da **non** regredire: ui-kit 14 · web-staff 41 · api unit 27 · api e2e
 - **`totalPrice` read-only in A2:** correggere il prezzo richiede cancel+ricrea (la modifica
   in-place è rinviata, §1 fuori scope).
 - **Incasso ≠ disponibilità:** lo stato della mappa non cambia con il pagamento (A1 §10).
+- **`totalPrice == 0`** → sempre `paid` (niente da incassare); vedi §2.
+- **Annullo di una prenotazione pagata:** il `DELETE` di A1 (soft, `status=cancelled`) **non tocca** i
+  campi incasso → una `cancelled` può restare con `amountCollected>0`. Implica un **rimborso**, che è
+  gestione Cassa ([D-009](../architecture/deferred.md)), **non** modellato qui. Non è un'anomalia: la
+  `listByDate` ritorna solo `confirmed`, quindi non compare nelle viste operative; resta nello storico.
+  A2 non blocca l'annullo di una prenotazione pagata.
+- **PATCH concorrente sullo stesso booking:** **last-write-wins**, nessun lock ottimistico in A2
+  (deploy mono-operatore; coerente con la finestra di race accettata in A1 → [D-030](../architecture/deferred.md)).
+- **`BookingsView` senza prenotazioni** per la data attiva: empty-state esplicito (non più righe mock).
+- **`collectionDate` esplicita con `amount=0`:** ignorata e azzerata (normalizzazione al reset, regola §2.4),
+  non è un errore.
 
 ## 9. Decisioni chiuse
 
