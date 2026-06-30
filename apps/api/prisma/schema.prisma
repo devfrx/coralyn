@@ -17,6 +17,7 @@ model Establishment {
   umbrellas Umbrella[]
   types     UmbrellaType[]
   timeSlots TimeSlot[]
+  bookings  Booking[]
 }
 
 model Customer {
@@ -28,6 +29,7 @@ model Customer {
   email           String?
   notes           String?
   establishment   Establishment @relation(fields: [establishmentId], references: [id])
+  bookings        Booking[]
 
   @@index([establishmentId])
 }
@@ -36,6 +38,30 @@ enum Role {
   admin
   staff
   superuser
+}
+
+enum BookingType {
+  daily
+  periodic
+  subscription
+}
+
+enum BookingStatus {
+  confirmed
+  cancelled
+}
+
+enum PaymentStatus {
+  unpaid
+  partial
+  paid
+}
+
+enum PaymentMethod {
+  cash
+  card
+  transfer
+  other
 }
 
 model User {
@@ -69,6 +95,7 @@ model TimeSlot {
   endTime         DateTime      @db.Time(0)
   sortOrder       Int
   establishment   Establishment @relation(fields: [establishmentId], references: [id])
+  bookings        Booking[]
 
   @@index([establishmentId])
 }
@@ -109,8 +136,40 @@ model Umbrella {
   establishment        Establishment @relation(fields: [establishmentId], references: [id])
   row                  Row           @relation(fields: [rowId], references: [id])
   type                 UmbrellaType? @relation(fields: [umbrellaTypeId], references: [id])
+  bookings             Booking[]
 
   @@unique([establishmentId, label])
   @@index([establishmentId])
   @@index([rowId])
+}
+
+model Booking {
+  id                String         @id @default(uuid()) @db.Uuid
+  establishmentId   String         @db.Uuid
+  customerId        String         @db.Uuid
+  umbrellaId        String         @db.Uuid
+  timeSlotId        String         @db.Uuid
+  previousBookingId String?        @db.Uuid // rinnovo self-link (ADR-0012); null in A1
+  startDate         DateTime       @db.Date
+  endDate           DateTime       @db.Date
+  type              BookingType
+  status            BookingStatus
+  totalPrice        Decimal        @db.Decimal(10, 2)
+  extras            Json?          @db.JsonB
+  paymentStatus     PaymentStatus  @default(unpaid)
+  amountCollected   Decimal        @default(0) @db.Decimal(10, 2)
+  paymentMethod     PaymentMethod?
+  collectionDate    DateTime?      @db.Date
+  createdAt         DateTime       @default(now())
+
+  establishment    Establishment @relation(fields: [establishmentId], references: [id])
+  customer         Customer      @relation(fields: [customerId], references: [id])
+  umbrella         Umbrella      @relation(fields: [umbrellaId], references: [id])
+  timeSlot         TimeSlot      @relation(fields: [timeSlotId], references: [id])
+  previousBooking  Booking?      @relation("BookingRenewal", fields: [previousBookingId], references: [id])
+  renewals         Booking[]     @relation("BookingRenewal")
+
+  @@index([establishmentId])
+  @@index([umbrellaId])
+  @@index([establishmentId, startDate, endDate])
 }
