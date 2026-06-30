@@ -19,7 +19,7 @@
   (commit per layer; elenco con `git log --oneline origin/main..HEAD`).
 - `main` è a `60e38c5` (doc aggiornati prima della slice). Il branch è **pronto per
   review/merge** su main via PR, con build/lint/test verdi.
-- Verificare il push con `git push -u origin feat/bookings-daily` prima di aprire la PR.
+- **Pushato su `origin/feat/bookings-daily`** (sincronizzato); pronto per la PR verso `main`.
 
 ---
 
@@ -86,7 +86,7 @@ Tutti sotto `JwtAuthGuard` globale (tenant dal JWT):
 |-------------|-------------|---------|-----|
 | ui-kit      | 14          | 14      | —   |
 | web-staff   | 40          | 41      | +1  |
-| api unit    | 9           | 23      | +14 |
+| api unit    | 9           | 27      | +18 |
 | api e2e     | 22          | 31      | +9  |
 
 - **`pnpm -r build` verde.**
@@ -168,6 +168,21 @@ la UI di gestione abbonamenti.
   `PrismaService.forTenant` (o da una transazione con `set_config` manuale). Il
   `PrismaClient` diretto è bloccato da RLS.
 - **`prisma generate` PRIMA di `nest build`** dopo ogni cambio allo schema.
+- **Validazione id FK = forma UUID, non versione** (`apps/api/src/bookings/dto/create-booking.dto.ts`,
+  commit `8f1e487`): i FK del booking (`customerId`/`umbrellaId`/`timeSlotId`) sono validati con
+  `@Matches(UUID_SHAPE)` (forma canonica `8-4-4-4-12`), **non** con `@IsUUID()`. Motivo: il **seed
+  di sviluppo usa UUID sintetici** (es. `50000000-…-0001`, e il tenant `00000000-…-0001`) che
+  Postgres accetta come `uuid` ma non sono RFC-4122 v4 → `@IsUUID()` rispondeva **400**. Emerso solo
+  in verifica live perché gli e2e creano le entità con `uuid()` reali. Se in futuro aggiungi DTO con
+  FK verso entità seedate, **non** usare `@IsUUID()` stretto.
+- **Credenziali admin dev (Docker)**: `admin@coralyn.dev` / **`coralyn-admin-8473`** (override in
+  `docker-compose.yml` env `DEV_ADMIN_PASSWORD`; il default del seed `coralyn-admin` vale solo se
+  non sovrascritto). Serve per login reale contro l'api dockerizzata.
+- **Dopo ogni modifica al BE, ricostruire il container api per il dev FE**: il dev server Vite
+  (`:5173`) fa da proxy `/api → http://localhost:3000`, che è il container `coralyn-api`. Se l'api
+  gira in Docker con un'immagine vecchia, le nuove rotte danno **404**. Rebuild:
+  `docker compose --profile full up -d --build api`. (In alternativa, per sviluppo BE attivo:
+  ferma il container e lancia `corepack pnpm --filter @coralyn/api start:dev` sulla 3000.)
 
 ---
 

@@ -20,7 +20,7 @@
 
 ## 1. Obiettivo e confini
 
-**Accendere la mappa.** Oggi `projectDayMap` forza `stateBySlot = 'free'` per ogni slot
+**Accendere la mappa.** Prima di questo slice `projectDayMap` forzava `stateBySlot = 'free'` per ogni slot
 ([map.projection.ts:33](../../apps/api/src/map/map.projection.ts)). Questo slice introduce
 l'entità `Booking` (sola prenotazione **giornaliera**), l'invariante anti-overlap a slot e la
 derivazione reale dello stato della mappa dalle prenotazioni confermate. La `MapView` (FE)
@@ -152,8 +152,9 @@ protetti dalla `JwtAuthGuard` globale (no `@Public()`); il tenant arriva dal JWT
 (`TenantContext.require()`), niente Bearer → **401**. Validazione via DTO `class-validator` +
 `ValidationPipe` globale.
 
-- **`POST /api/bookings`** — body `CreateBookingDto`: `customerId` (UUID), `umbrellaId` (UUID),
-  `timeSlotId` (UUID), `date` (forma `/^\d{4}-\d{2}-\d{2}$/` **+ validità di calendario**: la
+- **`POST /api/bookings`** — body `CreateBookingDto`: `customerId`, `umbrellaId`, `timeSlotId`
+  (validati per **forma** UUID canonica 8-4-4-4-12, **non** per versione RFC-4122 — vedi §10),
+  `date` (forma `/^\d{4}-\d{2}-\d{2}$/` **+ validità di calendario**: la
   regex da sola accetta `2026-13-40`, va respinta come **400**), `totalPrice` (number ≥ 0, max 2
   decimali, ≤ 99 999 999,99). Il service: forza `type=daily`, `status=confirmed`,
   `startDate=endDate=date`; verifica che customer/umbrella/timeSlot appartengano al tenant (RLS
@@ -308,6 +309,11 @@ revisione; i test relativi sono in §8).
 - **Validazione `date`**: forma `YYYY-MM-DD` **+** validità calendariale reale (no `2026-13-40`).
 - **`totalPrice`**: `Decimal(10,2)`, ≥ 0, max 2 decimali, ≤ 99 999 999,99.
 - **FK fuori tenant**: customer/umbrella/timeSlot inesistenti nel tenant → 422 (RLS non li trova).
+- **Validazione id FK = forma UUID, non versione**: `customerId`/`umbrellaId`/`timeSlotId` sono
+  validati con la **forma** canonica `8-4-4-4-12` (`@Matches`), **non** con `@IsUUID()` stretto.
+  Motivo: gli id sintetici del seed di sviluppo (es. `50000000-…-0001`) e l'id del tenant
+  (`00000000-…-0001`) sono UUID validi per Postgres ma non RFC-4122 v4; `@IsUUID()` li rifiutava
+  con 400. La forma evita i 500 da cast Postgres su input malformato; l'esistenza la verifica la FK (422).
 - **Superuser** (`establishmentId` null nel JWT): respinto sugli endpoint tenant-scoped (**400**,
   `TenantContext.require()` → "Tenant non risolto"), mai create con tenant nullo.
 - **Solo create + cancel in A1** (niente PATCH): per correggere cliente/fascia/prezzo si **annulla
