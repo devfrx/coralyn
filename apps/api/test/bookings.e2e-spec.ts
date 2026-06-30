@@ -110,4 +110,70 @@ describe('Bookings (e2e)', () => {
     expect(u2.stateBySlot[ids.slotMorning]).toBe('free');
     await request(app.getHttpServer()).post('/api/bookings').set(...bearer(token1)).send(body({ umbrellaId: ids.u2, date: '2026-07-19' })).expect(201);
   });
+
+  describe('PATCH /bookings/:id/payment', () => {
+    let bId: string;
+    const settle = '2026-08-01';
+
+    beforeAll(async () => {
+      const res = await request(app.getHttpServer()).post('/api/bookings').set(...bearer(token1))
+        .send(body({ umbrellaId: ids.u1, timeSlotId: ids.slotMorning, date: settle, totalPrice: 50 })).expect(201);
+      bId = res.body.id;
+    });
+
+    it('senza token → 401', async () => {
+      await request(app.getHttpServer()).patch(`/api/bookings/${bId}/payment`).send({ amountCollected: 50, paymentMethod: 'cash' }).expect(401);
+    });
+
+    it('salda tutto → paid e GET riflette', async () => {
+      const res = await request(app.getHttpServer()).patch(`/api/bookings/${bId}/payment`).set(...bearer(token1))
+        .send({ amountCollected: 50, paymentMethod: 'cash' }).expect(200);
+      expect(res.body).toMatchObject({ paymentStatus: 'paid', amountCollected: 50, paymentMethod: 'cash' });
+      expect(res.body.collectionDate).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+      const get = await request(app.getHttpServer()).get(`/api/bookings?date=${settle}`).set(...bearer(token1)).expect(200);
+      expect(get.body.find((b: { id: string }) => b.id === bId).paymentStatus).toBe('paid');
+    });
+
+    it('parziale → partial', async () => {
+      const res = await request(app.getHttpServer()).patch(`/api/bookings/${bId}/payment`).set(...bearer(token1))
+        .send({ amountCollected: 20, paymentMethod: 'card' }).expect(200);
+      expect(res.body).toMatchObject({ paymentStatus: 'partial', amountCollected: 20, paymentMethod: 'card' });
+    });
+
+    it('reset (amount 0) → unpaid, method/date assenti', async () => {
+      const res = await request(app.getHttpServer()).patch(`/api/bookings/${bId}/payment`).set(...bearer(token1))
+        .send({ amountCollected: 0 }).expect(200);
+      expect(res.body.paymentStatus).toBe('unpaid');
+      expect(res.body.paymentMethod).toBeUndefined();
+      expect(res.body.collectionDate).toBeUndefined();
+    });
+
+    it('amount > totale → 422', async () => {
+      await request(app.getHttpServer()).patch(`/api/bookings/${bId}/payment`).set(...bearer(token1))
+        .send({ amountCollected: 60, paymentMethod: 'cash' }).expect(422);
+    });
+
+    it('amount > 0 senza metodo → 422', async () => {
+      await request(app.getHttpServer()).patch(`/api/bookings/${bId}/payment`).set(...bearer(token1))
+        .send({ amountCollected: 10 }).expect(422);
+    });
+
+    it('id inesistente → 404', async () => {
+      await request(app.getHttpServer()).patch('/api/bookings/99999999-9999-9999-9999-999999999999/payment').set(...bearer(token1))
+        .send({ amountCollected: 0 }).expect(404);
+    });
+
+    it('prenotazione annullata → 409', async () => {
+      const created = await request(app.getHttpServer()).post('/api/bookings').set(...bearer(token1))
+        .send(body({ umbrellaId: ids.u2, date: '2026-08-02', totalPrice: 30 })).expect(201);
+      await request(app.getHttpServer()).delete(`/api/bookings/${created.body.id}`).set(...bearer(token1)).expect(200);
+      await request(app.getHttpServer()).patch(`/api/bookings/${created.body.id}/payment`).set(...bearer(token1))
+        .send({ amountCollected: 30, paymentMethod: 'cash' }).expect(409);
+    });
+
+    it('isolamento: s2 non incassa una prenotazione di s1 → 404', async () => {
+      await request(app.getHttpServer()).patch(`/api/bookings/${bId}/payment`).set(...bearer(token2))
+        .send({ amountCollected: 0 }).expect(404);
+    });
+  });
 });
