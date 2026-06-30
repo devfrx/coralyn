@@ -106,3 +106,4 @@ componenti) è la spec d'implementazione di `ui-kit` ([ADR-0017](decisions/0017-
 - [ADR-0025](decisions/0025-hashing-password.md) — Hashing password (argon2id)
 - [ADR-0026](decisions/0026-identita-rls-utente.md) — Identità, RLS, Utente
 - [ADR-0027](decisions/0027-coralyn-linguaggio-visivo.md) — Coralyn — aggiornamento linguaggio visivo (da-0 redesign)
+- [ADR-0028](decisions/0028-provisioning-tenant.md) — Provisioning dei tenant (fornitore + inviti, no self-registration aperta)

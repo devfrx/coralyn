@@ -9,7 +9,7 @@ export function useClienti() {
   const session = useSessionStore();
   return useQuery({
     queryKey: computed(() => queryKeys.clienti(session.stabilimentoId)),
-    queryFn: () => apiFetch<ClienteDTO[]>('/clienti', { tenantId: session.stabilimentoId }),
+    queryFn: () => apiFetch<ClienteDTO[]>('/clienti'),
   });
 }
 
@@ -17,7 +17,7 @@ export function useCliente(id: string) {
   const session = useSessionStore();
   return useQuery({
     queryKey: computed(() => queryKeys.cliente(session.stabilimentoId, id)),
-    queryFn: () => apiFetch<ClienteDTO>(`/clienti/${id}`, { tenantId: session.stabilimentoId }),
+    queryFn: () => apiFetch<ClienteDTO>(`/clienti/${id}`),
   });
 }
 
@@ -26,7 +26,7 @@ export function useModificaCliente(id: string) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (input: ModificaClienteInput) =>
-      apiFetch<ClienteDTO>(`/clienti/${id}`, { tenantId: session.stabilimentoId, method: 'PATCH', body: JSON.stringify(input) }),
+      apiFetch<ClienteDTO>(`/clienti/${id}`, { method: 'PATCH', body: JSON.stringify(input) }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: queryKeys.clienti(session.stabilimentoId) });
       qc.invalidateQueries({ queryKey: queryKeys.cliente(session.stabilimentoId, id) });
@@ -39,7 +39,7 @@ export function useCreaCliente() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (input: CreaClienteInput) =>
-      apiFetch<ClienteDTO>('/clienti', { tenantId: session.stabilimentoId, method: 'POST', body: JSON.stringify(input) }),
+      apiFetch<ClienteDTO>('/clienti', { method: 'POST', body: JSON.stringify(input) }),
     onSuccess: () => qc.invalidateQueries({ queryKey: queryKeys.clienti(session.stabilimentoId) }),
   });
 }

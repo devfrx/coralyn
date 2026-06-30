@@ -13,10 +13,12 @@ Stato: **design del Core MVP completato e approvato**. **Backend** — Core Foun
 `JwtAuthGuard` globale, RLS Utente) implementati: API `/api/clienti` (CRUD) e
 `/api/auth` (login/me) con isolamento multi-tenant RLS e migrazioni Prisma.
 **Frontend** — redesign **Coralyn** completato e integrato (app-shell, ui-kit, tutte
-le viste; scheda cliente end-to-end col backend reale; login ancora mock seam).
+le viste); **login reale end-to-end** (`LoginView` → `/api/auth/login`, token Bearer
+persistito, reidratazione via `/me`, logout) e scheda cliente sul backend reale. Il
+provisioning è **fornitore + inviti** ([ADR-0028](docs/architecture/decisions/0028-provisioning-tenant.md)):
+la pagina `/registrazione` è informativa ("attivazione su invito"), non self-service.
 Containerizzazione locale via Docker Compose.
-Prossimo passo: **cablaggio del login lato frontend** (`LoginView` → `/api/auth/login`
-reale, token Bearer, logout) per chiudere il flusso auth end-to-end.
+Prossimo passo: endpoint reali della **mappa** e **gestione utenti staff** ([D-025](docs/architecture/deferred.md)).
 
 ## Documentazione
 

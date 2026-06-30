@@ -1,21 +1,37 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { apiFetch } from './http';
+import { setToken, clearToken } from './authToken';
 
-afterEach(() => vi.restoreAllMocks());
+afterEach(() => {
+  vi.restoreAllMocks();
+  clearToken();
+});
 
 describe('apiFetch', () => {
-  it('aggiunge X-Stabilimento-Id e ritorna il json', async () => {
+  it('aggiunge Authorization: Bearer dal token (e non X-Stabilimento-Id)', async () => {
+    setToken('jwt-abc');
     const spy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
       new Response(JSON.stringify({ ok: true }), { status: 200, headers: { 'content-type': 'application/json' } }),
     );
-    const data = await apiFetch<{ ok: boolean }>('/clienti', { tenantId: 'tenant-123' });
+    const data = await apiFetch<{ ok: boolean }>('/clienti');
     expect(data).toEqual({ ok: true });
     const [, init] = spy.mock.calls[0];
-    expect(new Headers(init?.headers).get('X-Stabilimento-Id')).toBe('tenant-123');
+    const headers = new Headers(init?.headers);
+    expect(headers.get('Authorization')).toBe('Bearer jwt-abc');
+    expect(headers.get('X-Stabilimento-Id')).toBeNull();
   });
 
-  it('lancia su risposta non ok', async () => {
-    vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response('boom', { status: 500 }));
-    await expect(apiFetch('/clienti', { tenantId: 't' })).rejects.toThrow();
+  it('senza token non invia Authorization', async () => {
+    const spy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response('{}', { status: 200, headers: { 'content-type': 'application/json' } }),
+    );
+    await apiFetch('/clienti');
+    const [, init] = spy.mock.calls[0];
+    expect(new Headers(init?.headers).get('Authorization')).toBeNull();
+  });
+
+  it('lancia un ApiError con lo status su risposta non ok', async () => {
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response('boom', { status: 401 }));
+    await expect(apiFetch('/clienti')).rejects.toMatchObject({ status: 401 });
   });
 });
