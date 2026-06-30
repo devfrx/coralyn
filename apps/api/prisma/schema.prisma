@@ -18,6 +18,10 @@ model Establishment {
   types     UmbrellaType[]
   timeSlots TimeSlot[]
   bookings  Booking[]
+  packages  Package[]
+  seasons   Season[]
+  pricings  Pricing[]
+  rates     Rate[]
 }
 
 model Customer {
@@ -96,6 +100,7 @@ model TimeSlot {
   sortOrder       Int
   establishment   Establishment @relation(fields: [establishmentId], references: [id])
   bookings        Booking[]
+  rates           Rate[]
 
   @@index([establishmentId])
 }
@@ -107,6 +112,7 @@ model Sector {
   sortOrder       Int
   establishment   Establishment @relation(fields: [establishmentId], references: [id])
   rows            Row[]
+  rates           Rate[]
 
   @@index([establishmentId])
 }
@@ -120,6 +126,7 @@ model Row {
   establishment   Establishment @relation(fields: [establishmentId], references: [id])
   sector          Sector        @relation(fields: [sectorId], references: [id])
   umbrellas       Umbrella[]
+  rates           Rate[]
 
   @@index([establishmentId])
   @@index([sectorId])
@@ -150,6 +157,7 @@ model Booking {
   umbrellaId        String         @db.Uuid
   timeSlotId        String         @db.Uuid
   previousBookingId String?        @db.Uuid // rinnovo self-link (ADR-0012); null in A1
+  packageId         String?        @db.Uuid // FK Package A3.1; null finché A3.2
   startDate         DateTime       @db.Date
   endDate           DateTime       @db.Date
   type              BookingType
@@ -168,8 +176,74 @@ model Booking {
   timeSlot         TimeSlot      @relation(fields: [timeSlotId], references: [id])
   previousBooking  Booking?      @relation("BookingRenewal", fields: [previousBookingId], references: [id])
   renewals         Booking[]     @relation("BookingRenewal")
+  package          Package?      @relation(fields: [packageId], references: [id])
 
   @@index([establishmentId])
   @@index([umbrellaId])
   @@index([establishmentId, startDate, endDate])
+}
+
+enum RateUnit {
+  day
+  period
+}
+
+model Package {
+  id              String        @id @default(uuid()) @db.Uuid
+  establishmentId String        @db.Uuid
+  name            String
+  equipment       Json          @db.JsonB
+  establishment   Establishment @relation(fields: [establishmentId], references: [id])
+  bookings        Booking[]
+  rates           Rate[]
+
+  @@index([establishmentId])
+}
+
+model Season {
+  id              String        @id @default(uuid()) @db.Uuid
+  establishmentId String        @db.Uuid
+  name            String
+  startDate       DateTime      @db.Date
+  endDate         DateTime      @db.Date
+  establishment   Establishment @relation(fields: [establishmentId], references: [id])
+  pricings        Pricing[]
+
+  @@index([establishmentId])
+}
+
+model Pricing {
+  id              String        @id @default(uuid()) @db.Uuid
+  establishmentId String        @db.Uuid
+  seasonId        String        @db.Uuid
+  establishment   Establishment @relation(fields: [establishmentId], references: [id])
+  season          Season        @relation(fields: [seasonId], references: [id])
+  rates           Rate[]
+
+  @@unique([seasonId])
+  @@index([establishmentId])
+}
+
+model Rate {
+  id              String        @id @default(uuid()) @db.Uuid
+  establishmentId String        @db.Uuid
+  pricingId       String        @db.Uuid
+  type            BookingType?
+  sectorId        String?       @db.Uuid
+  rowId           String?       @db.Uuid
+  packageId       String?       @db.Uuid
+  timeSlotId      String?       @db.Uuid
+  periodStart     DateTime?     @db.Date
+  periodEnd       DateTime?     @db.Date
+  price           Decimal       @db.Decimal(10, 2)
+  unit            RateUnit
+  establishment   Establishment @relation(fields: [establishmentId], references: [id])
+  pricing         Pricing       @relation(fields: [pricingId], references: [id])
+  sector          Sector?       @relation(fields: [sectorId], references: [id])
+  row             Row?          @relation(fields: [rowId], references: [id])
+  package         Package?      @relation(fields: [packageId], references: [id])
+  timeSlot        TimeSlot?     @relation(fields: [timeSlotId], references: [id])
+
+  @@index([establishmentId])
+  @@index([pricingId])
 }
