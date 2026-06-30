@@ -16,13 +16,13 @@ destinato alla vendita in abbonamento a più stabilimenti.
 - Decisioni tracciate come [ADR](decisions/); cambi di rotta via *supersede*, mai
   cancellazione.
 - Debito solo se consapevole e registrato in [deferred.md](deferred.md).
-- Linguaggio: codice EN, dominio IT, docs IT ([ADR-0003](decisions/0003-language-convention.md)).
+- Linguaggio: **codice e DB in inglese**, UI a video e docs in italiano ([ADR-0030](decisions/0030-codice-e-db-in-inglese.md), supera [ADR-0003](decisions/0003-language-convention.md)); mappatura termini nel [glossario](glossary.md).
 
 ## Stile architetturale ([ADR-0007](decisions/0007-stile-architetturale.md))
 
 - **Monolite modulare**: un solo backend deployabile, moduli a bounded context.
 - **API-first (REST)**: un'unica API serve l'app staff e (in futuro) il booking online.
-- **Multi-tenant-aware** dal modello dati: ogni entità porta `stabilimento_id`;
+- **Multi-tenant-aware** dal modello dati: ogni entità porta `establishmentId`;
   isolamento shared-schema + RLS ([ADR-0010](decisions/0010-isolamento-multi-tenant.md)).
 - **IA come servizio separato** (futuro), consumato via API dal core.
 
@@ -49,14 +49,14 @@ destinato alla vendita in abbonamento a più stabilimenti.
 
 ## Moduli del Core (backend NestJS)
 
-- `mappa` — Settore, Fila, Ombrellone, **Tipologia**; **setup strutturato** e numerazione reale ([ADR-0005](decisions/0005-modello-mappa.md), [ADR-0014](decisions/0014-setup-mappa-strutturato.md), [ADR-0016](decisions/0016-tipologia-ombrellone.md)).
-- `catalogo` — Pacchetto, Stagione, **Fascia**, Listino, Tariffa + **pricing engine**
+- `map` — Sector, Row, Umbrella, **UmbrellaType**; **setup strutturato** e numerazione reale ([ADR-0005](decisions/0005-modello-mappa.md), [ADR-0014](decisions/0014-setup-mappa-strutturato.md), [ADR-0016](decisions/0016-tipologia-ombrellone.md)).
+- `catalog` — Package, Season, **TimeSlot**, Pricing, Rate + **pricing engine**
   (dimensione fascia, [ADR-0013](decisions/0013-granularita-disponibilita-a-slot.md)).
-- `clienti` — anagrafica Cliente.
-- `prenotazioni` — Prenotazione, disponibilità **per slot** (anti-overlap), lista
+- `customers` — anagrafica Customer.
+- `bookings` — Booking, disponibilità **per slot** (anti-overlap), lista
   d'attesa minima, incasso base ([ADR-0011](decisions/0011-incasso-base-nel-core.md)),
   rinnovo abbonamenti e storico ([ADR-0012](decisions/0012-gestione-abbonamenti.md)).
-- `identita` — utenti staff + **superuser di piattaforma** + contesto tenant
+- `identity` — utenti staff + **superuser di piattaforma** + contesto tenant
   ([ADR-0015](decisions/0015-osservabilita-e-console-superuser.md)); RBAC granulare
   tenant → modulo 3.
 - `audit` — logging strutturato, audit log e console superuser
@@ -108,3 +108,4 @@ componenti) è la spec d'implementazione di `ui-kit` ([ADR-0017](decisions/0017-
 - [ADR-0027](decisions/0027-coralyn-linguaggio-visivo.md) — Coralyn — aggiornamento linguaggio visivo (da-0 redesign)
 - [ADR-0028](decisions/0028-provisioning-tenant.md) — Provisioning dei tenant (fornitore + inviti, no self-registration aperta)
 - [ADR-0029](decisions/0029-brand-coralyn.md) — Brand definitivo Coralyn (rename scope `@coralyn/*` + identificatori infra; risolve D-017)
+- [ADR-0030](decisions/0030-codice-e-db-in-inglese.md) — Codice e DB interamente in inglese (supera ADR-0003)

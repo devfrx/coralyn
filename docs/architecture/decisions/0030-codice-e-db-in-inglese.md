@@ -112,6 +112,28 @@ nella **documentazione**.
 - **Migrazione di RENAME additiva** (preserva storia/dati) — scartata: complessa ed
   error-prone su FK/indici/policy RLS; il progetto è pre-release senza dati → squash più pulito.
 
+## Nota — applicazione alla documentazione (2026-06-30)
+
+Per evitare ambiguità su "cosa va in inglese" nei `.md`:
+
+- **Identificatori di codice/DB** (endpoint `/api/map`, simboli `DayMapDTO`/`MapView`,
+  colonne `establishmentId`/`umbrellaTypeId`, accessor `tx.customer`…) → **inglese**.
+- **Termini di dominio in prosa italiana** ("l'ombrellone", "il cliente", "la fascia" come
+  parole) → restano **in italiano**: sono lingua di documentazione, non identificatori. Il
+  ponte parola↔identificatore è il [glossario](glossary.md).
+- **Documenti autoritativi/viventi** — [glossario](glossary.md),
+  [data-model](../design/data-model.md), `README.md`, [architettura](README.md),
+  [deferred](deferred.md) — sono **allineati ai nomi inglesi**: descrivono lo stato corrente e
+  devono combaciare col codice.
+- **Documenti storici datati** (handoff, piani e spec in `docs/handoff|plans|specs/`, ADR
+  superati come [ADR-0003](0003-language-convention.md)) sono **record immutabili**: gli
+  snippet riflettono la nomenclatura del loro tempo e **non** vengono riscritti (riscriverli
+  falserebbe la cronologia e rischierebbe errori). La nomenclatura corrente è questo ADR + il
+  glossario; un lettore mappa i nomi storici tramite la tabella sopra.
+
+La **fonte di verità** della nomenclatura è: questo ADR + il [glossario](glossary.md) + il
+[data-model](../design/data-model.md).
+
 ## Rubric check
 1. **Professionalità** — schema/codebase uniformi in inglese, scelta convenzionale.
 2. **Convenzioni** — inglese ovunque nel codice; UI/doc nella lingua di prodotto/team.
