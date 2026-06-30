@@ -26,6 +26,11 @@ esplicite** (`resolvePrice`, precedenza periodo › fila › settore › pacchet
 `POST /api/bookings`** (il server calcola il `totalPrice`; niente più prezzo digitato a mano) +
 endpoint **`GET /api/bookings/quote`** (preventivo prezzo prima di confermare); listino
 **seeded** (editor CRUD rinviato, [D-032](docs/architecture/deferred.md)).
+**Slice A3.2 — selettore Pacchetto** implementato (completa A3): endpoint read-only
+**`GET /api/packages`** (lista pacchetti del tenant), il modale "Nuova prenotazione" fa scegliere il
+`Package` e **ricalcola il prezzo** al cambio (re-quote), la create **salva** il `packageId`
+(pre-validato nel tenant; pacchetto **opzionale**, `null` = tariffa base) e la `BookingsView` mostra la
+colonna **Pacchetto**.
 **Frontend** — redesign **Coralyn** completato e integrato (app-shell, ui-kit,
 tutte le viste); **login reale end-to-end** (`LoginView` → `/api/auth/login`, token Bearer
 persistito, reidratazione via `/me`, logout), scheda cliente e **`MapView`** sul backend reale
@@ -40,8 +45,8 @@ Il provisioning è **fornitore + inviti**
 ([ADR-0028](docs/architecture/decisions/0028-provisioning-tenant.md)):
 la pagina `/registrazione` è informativa ("attivazione su invito"), non self-service.
 Containerizzazione locale via Docker Compose.
-Prossimi passi: **A3.2** (selettore Pacchetto + ricalcolo nel modale), **A4**
-(prenotazioni periodiche/abbonamenti) e **gestione utenti staff**
+Prossimi passi: **A4** (prenotazioni periodiche/abbonamenti), **editor CRUD del listino**
+([D-032](docs/architecture/deferred.md)) e **gestione utenti staff**
 ([D-025](docs/architecture/deferred.md)).
 
 ## Documentazione

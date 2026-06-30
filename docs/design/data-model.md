@@ -13,7 +13,9 @@
 > `periodStart`/`periodEnd` (`@db.Date`); `Rate.scope "sector/row"` → FK nullable `sectorId`/`rowId`
 > (coerente con [ADR-0023](../architecture/decisions/0023-contatti-cliente-colonne-tipizzate.md));
 > `Rate` porta `establishmentId` direttamente (per RLS sulla tabella, coerente con tutte le entità
-> tenant-scoped); `Booking.packageId` nullable è ora presente (selettore Pacchetto in A3.2).
+> tenant-scoped); `Booking.packageId` nullable è **valorizzato dal selettore** (slice A3.2: il modale
+> sceglie il `Package`, `GET /api/packages` lista i pacchetti del tenant). Pacchetto = dimensione
+> **opzionale** (`null` = tariffa base, nessun pacchetto).
 
 Fonte di verità del modello dati del Core operativo. Decisioni:
 [mappa](../architecture/decisions/0005-modello-mappa.md),
@@ -211,7 +213,9 @@ erDiagram
   stagione attiva → **422** (NO_SEASON). `UmbrellaType` esclusa dal pricing ([D-018](../architecture/deferred.md)).
   Ambiguità impossibile per costruzione: `@@unique` sulla firma delle dimensioni con
   `NULLS NOT DISTINCT`. Il `totalPrice` è **calcolato dal server** (non accettato dal client):
-  `POST /api/bookings` richiama `CatalogService.quote(...)` nella stessa transazione.
+  `POST /api/bookings` richiama `CatalogService.quote(...)` nella stessa transazione. Il `packageId`
+  scelto (slice A3.2, opzionale; `null` = tariffa base) è pre-validato nel tenant (→ 422 se invalido) e
+  passato all'engine come dimensione di prezzo (precedenza pacchetto, [ADR-0032](../architecture/decisions/0032-pricing-engine-precedenza.md)).
 - **Posizione**: `logicalOrder` governa l'ordinamento nella fila;
   `presentationPosition` è un layer visivo opzionale (porta aperta alla planimetria,
   [D-005](../architecture/deferred.md)).
