@@ -119,6 +119,8 @@ export interface BookingDTO {
   totalPrice: number;
   paymentStatus: PaymentStatus;
   amountCollected: number;
+  paymentMethod?: PaymentMethod; // A2 (additivo): assente finché non si incassa
+  collectionDate?: string;       // A2 (additivo): ISO yyyy-mm-dd, assente finché non si incassa
 }
 
 /** Input per creare una prenotazione giornaliera (prezzo digitato a mano in A1). */
@@ -128,4 +130,11 @@ export interface CreateBookingInput {
   timeSlotId: string;
   date: string; // ISO yyyy-mm-dd
   totalPrice: number;
+}
+
+/** Input per registrare l'incasso base (ADR-0011). Lo stato è derivato server-side. */
+export interface SettlePaymentInput {
+  amountCollected: number;       // 0..totalPrice, max 2 decimali
+  paymentMethod?: PaymentMethod; // obbligatorio se amountCollected > 0
+  collectionDate?: string;       // ISO yyyy-mm-dd; default oggi Europe/Rome
 }
