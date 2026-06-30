@@ -1,5 +1,7 @@
 # Coralyn Redesign FE — Implementation Plan
 
+> **Stato: COMPLETATO (2026-06-30).** Tutti i 26 task implementati e integrati su `main` (test ui-kit + web-staff verdi, typecheck/build OK). Le checkbox sottostanti riflettono il lavoro svolto.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Re-skin `apps/web-staff` + `packages/ui-kit` to the Coralyn design, pixel-faithful to `Coralyn.dc.html`, with centralized tokens, an extended Iconify registry, modular ui-kit components, and all views (incl. new Login / Registrazione / Stabilimento).
@@ -21,7 +23,7 @@
 **Files:**
 - Modify (replace): `packages/ui-kit/src/styles/theme.css`
 
-- [ ] **Step 1: Replace the whole file** with the Coralyn token set (primitive → semantic). Keep the Tailwind v4 `@theme` block (so `--color-*` tokens generate utilities) plus a `:root` block for non-color tokens / focus ring.
+- [x] **Step 1: Replace the whole file** with the Coralyn token set (primitive → semantic). Keep the Tailwind v4 `@theme` block (so `--color-*` tokens generate utilities) plus a `:root` block for non-color tokens / focus ring.
 
 ```css
 @theme {
@@ -107,7 +109,7 @@ body { font-family: var(--font-sans); color: var(--color-text); background: var(
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
 ```
 
-- [ ] **Step 2: Load Inter.** Confirm Inter is available. Add to `apps/web-staff/index.html` `<head>` (dev/online) the Google Fonts link; production bundling of Inter is tracked separately (see Task 18 note).
+- [x] **Step 2: Load Inter.** Confirm Inter is available. Add to `apps/web-staff/index.html` `<head>` (dev/online) the Google Fonts link; production bundling of Inter is tracked separately (see Task 18 note).
 
 ```html
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -115,9 +117,9 @@ body { font-family: var(--font-sans); color: var(--color-text); background: var(
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 ```
 
-- [ ] **Step 3: Build the ui-kit / typecheck.** Run: `pnpm --filter @driftly/ui-kit build` (or `typecheck`). Expected: no errors. (Old token names like `--color-cool-*`, `--color-navy-900`, `--color-teal-500` are now gone — later tasks fix every consumer; a transient broken visual is fine until Phase 1–3 land, but the package must still build.)
+- [x] **Step 3: Build the ui-kit / typecheck.** Run: `pnpm --filter @driftly/ui-kit build` (or `typecheck`). Expected: no errors. (Old token names like `--color-cool-*`, `--color-navy-900`, `--color-teal-500` are now gone — later tasks fix every consumer; a transient broken visual is fine until Phase 1–3 land, but the package must still build.)
 
-- [ ] **Step 4: Commit.**
+- [x] **Step 4: Commit.**
 
 ```bash
 git add packages/ui-kit/src/styles/theme.css apps/web-staff/index.html
@@ -132,7 +134,7 @@ git commit -m "feat(ui-kit): Coralyn design tokens (theme.css) + Inter"
 - Modify: `packages/ui-kit/src/icons/registry.ts`
 - Test: `packages/ui-kit/src/components/Icon.spec.ts` (existing — extend)
 
-- [ ] **Step 1: Add the new Lucide imports + registry keys.** Replace the file with:
+- [x] **Step 1: Add the new Lucide imports + registry keys.** Replace the file with:
 
 ```ts
 import type { Component } from 'vue';
@@ -184,7 +186,7 @@ export const icons: Record<string, Component> = {
 export const FALLBACK_ICON = 'umbrella';
 ```
 
-- [ ] **Step 2: Extend the test** to assert a few new keys resolve and unknown falls back.
+- [x] **Step 2: Extend the test** to assert a few new keys resolve and unknown falls back.
 
 ```ts
 it('resolve le nuove chiavi del registry', () => {
@@ -194,8 +196,8 @@ it('resolve le nuove chiavi del registry', () => {
 });
 ```
 
-- [ ] **Step 3: Run tests.** `pnpm --filter @driftly/ui-kit test` → PASS.
-- [ ] **Step 4: Commit.** `git commit -am "feat(ui-kit): estende registry icone Coralyn (Lucide)"`
+- [x] **Step 3: Run tests.** `pnpm --filter @driftly/ui-kit test` → PASS.
+- [x] **Step 4: Commit.** `git commit -am "feat(ui-kit): estende registry icone Coralyn (Lucide)"`
 
 ---
 
@@ -204,9 +206,9 @@ it('resolve le nuove chiavi del registry', () => {
 **Files:**
 - Modify: `apps/web-staff/vite.config.ts:21-22`
 
-- [ ] **Step 1:** Change `theme_color: '#1F6F8B'` → `'#E0795A'` and `background_color: '#E9EFF2'` → `'#ECE3D5'`.
-- [ ] **Step 2:** Run `pnpm --filter @driftly/web-staff typecheck` → PASS.
-- [ ] **Step 3: Commit.** `git commit -am "chore(web-staff): PWA theme/background colors Coralyn"`
+- [x] **Step 1:** Change `theme_color: '#1F6F8B'` → `'#E0795A'` and `background_color: '#E9EFF2'` → `'#ECE3D5'`.
+- [x] **Step 2:** Run `pnpm --filter @driftly/web-staff typecheck` → PASS.
+- [x] **Step 3: Commit.** `git commit -am "chore(web-staff): PWA theme/background colors Coralyn"`
 
 ---
 
@@ -219,7 +221,7 @@ it('resolve le nuove chiavi del registry', () => {
 **Files:** Modify `packages/ui-kit/src/components/Button.vue`; Test `Button.spec.ts` (existing).
 Ref: primary lines 268/292/339/380/694/721; secondary/ghost 270/271/528/657.
 
-- [ ] **Step 1:** Replace component:
+- [x] **Step 1:** Replace component:
 
 ```vue
 <script setup lang="ts">
@@ -235,15 +237,15 @@ const variants = {
 <template><button :class="[base, variants[$props.variant ?? 'primary']]"><slot /></button></template>
 ```
 
-- [ ] **Step 2:** Update `Button.spec.ts` assertions: primary uses `--color-brand` (no longer teal token). Run `pnpm --filter @driftly/ui-kit test` → PASS.
-- [ ] **Step 3: Commit.** `git commit -am "feat(ui-kit): Button varianti Coralyn (primary/secondary/ghost/danger)"`
+- [x] **Step 2:** Update `Button.spec.ts` assertions: primary uses `--color-brand` (no longer teal token). Run `pnpm --filter @driftly/ui-kit test` → PASS.
+- [x] **Step 3: Commit.** `git commit -am "feat(ui-kit): Button varianti Coralyn (primary/secondary/ghost/danger)"`
 
 ### Task 5: Badge (status / tipologia / ruolo / soon)
 
 **Files:** Modify `packages/ui-kit/src/components/Badge.vue`. Test: new `Badge.spec.ts`.
 Ref: status badges in tables (319), tipologia chip 232, ruolo/"Tu" 614, "in arrivo" 549/606.
 
-- [ ] **Step 1:** Replace with a `tone` prop:
+- [x] **Step 1:** Replace with a `tone` prop:
 
 ```vue
 <script setup lang="ts">
@@ -263,31 +265,31 @@ const tones = {
 </template>
 ```
 
-- [ ] **Step 2:** Test renders the `accent` tone classes. Run test → PASS.
-- [ ] **Step 3: Commit.** `git commit -am "feat(ui-kit): Badge a toni semantici (status/tipologia/ruolo/soon)"`
+- [x] **Step 2:** Test renders the `accent` tone classes. Run test → PASS.
+- [x] **Step 3: Commit.** `git commit -am "feat(ui-kit): Badge a toni semantici (status/tipologia/ruolo/soon)"`
 
 ### Task 6: Card
 
 **Files:** Modify `packages/ui-kit/src/components/Card.vue`.
 
-- [ ] **Step 1:** `<div class="rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-[var(--color-surface)] [box-shadow:var(--shadow-card)]"><slot /></div>`
-- [ ] **Step 2: Commit.** `git commit -am "feat(ui-kit): Card superficie Coralyn (bordo + ombra soft)"`
+- [x] **Step 1:** `<div class="rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-[var(--color-surface)] [box-shadow:var(--shadow-card)]"><slot /></div>`
+- [x] **Step 2: Commit.** `git commit -am "feat(ui-kit): Card superficie Coralyn (bordo + ombra soft)"`
 
 ### Task 7: Input / Field / Textarea
 
 **Files:** Modify `Input.vue`, `Field.vue`; Create `Textarea.vue`; export in `index.ts`. Ref lines 712-717, 771-774.
 
-- [ ] **Step 1:** `Input.vue` control = `w-full rounded-[var(--radius-md)] border-[1.5px] border-[var(--color-border-input)] bg-[var(--color-surface)] px-3.5 py-3 text-sm text-[var(--color-text)] placeholder:text-[var(--color-placeholder)] outline-none focus:border-[var(--color-brand)] focus:[box-shadow:var(--ring-focus)]`. Add `[font-variant-numeric:tabular-nums]` when a `numeric?: boolean` prop is set.
-- [ ] **Step 2:** `Field.vue` label = `text-[13px] font-semibold text-[var(--color-text-2nd)] mb-1.5`; error = `text-xs text-[var(--color-danger)]`.
-- [ ] **Step 3:** `Textarea.vue` mirrors Input with `resize-none` + `rows`.
-- [ ] **Step 4:** Export `Textarea` from `packages/ui-kit/src/index.ts`. Run `typecheck` → PASS.
-- [ ] **Step 5: Commit.** `git commit -am "feat(ui-kit): Input/Field/Textarea Coralyn (focus ring corallo)"`
+- [x] **Step 1:** `Input.vue` control = `w-full rounded-[var(--radius-md)] border-[1.5px] border-[var(--color-border-input)] bg-[var(--color-surface)] px-3.5 py-3 text-sm text-[var(--color-text)] placeholder:text-[var(--color-placeholder)] outline-none focus:border-[var(--color-brand)] focus:[box-shadow:var(--ring-focus)]`. Add `[font-variant-numeric:tabular-nums]` when a `numeric?: boolean` prop is set.
+- [x] **Step 2:** `Field.vue` label = `text-[13px] font-semibold text-[var(--color-text-2nd)] mb-1.5`; error = `text-xs text-[var(--color-danger)]`.
+- [x] **Step 3:** `Textarea.vue` mirrors Input with `resize-none` + `rows`.
+- [x] **Step 4:** Export `Textarea` from `packages/ui-kit/src/index.ts`. Run `typecheck` → PASS.
+- [x] **Step 5: Commit.** `git commit -am "feat(ui-kit): Input/Field/Textarea Coralyn (focus ring corallo)"`
 
 ### Task 8: Avatar (new)
 
 **Files:** Create `packages/ui-kit/src/components/Avatar.vue`; export in `index.ts`; Test `Avatar.spec.ts`. Ref 311/355/520.
 
-- [ ] **Step 1: Write failing test** for initials + size:
+- [x] **Step 1: Write failing test** for initials + size:
 
 ```ts
 import { mount } from '@vue/test-utils';
@@ -299,8 +301,8 @@ it('mostra le iniziali e applica la size', () => {
 });
 ```
 
-- [ ] **Step 2: Run** → FAIL (file missing).
-- [ ] **Step 3: Implement:**
+- [x] **Step 2: Run** → FAIL (file missing).
+- [x] **Step 3: Implement:**
 
 ```vue
 <script setup lang="ts">
@@ -316,13 +318,13 @@ const style = computed(() => `width:${px[props.size]};height:${px[props.size]};f
 </template>
 ```
 
-- [ ] **Step 4: Run** → PASS. **Step 5: Commit** `git commit -am "feat(ui-kit): Avatar iniziali (sm/md/lg, toni)"`
+- [x] **Step 4: Run** → PASS. **Step 5: Commit** `git commit -am "feat(ui-kit): Avatar iniziali (sm/md/lg, toni)"`
 
 ### Task 9: SegmentedControl (new)
 
 **Files:** Create `packages/ui-kit/src/components/SegmentedControl.vue`; export; Test. Ref 148-152, 284-289.
 
-- [ ] **Step 1: Failing test** — renders options, active gets `aria-selected`, click emits `update:modelValue`:
+- [x] **Step 1: Failing test** — renders options, active gets `aria-selected`, click emits `update:modelValue`:
 
 ```ts
 import { mount } from '@vue/test-utils';
@@ -336,7 +338,7 @@ it('seleziona ed emette', async () => {
 });
 ```
 
-- [ ] **Step 2: Run** → FAIL. **Step 3: Implement:**
+- [x] **Step 2: Run** → FAIL. **Step 3: Implement:**
 
 ```vue
 <script setup lang="ts">
@@ -353,13 +355,13 @@ defineEmits<{ 'update:modelValue': [value: string] }>();
 </template>
 ```
 
-- [ ] **Step 4: Run** → PASS. **Step 5: Commit** `git commit -am "feat(ui-kit): SegmentedControl (tablist a pill)"`
+- [x] **Step 4: Run** → PASS. **Step 5: Commit** `git commit -am "feat(ui-kit): SegmentedControl (tablist a pill)"`
 
 ### Task 10: Modal / Dialog (new)
 
 **Files:** Create `packages/ui-kit/src/components/Modal.vue`; export. Ref 640-651.
 
-- [ ] **Step 1: Implement** on Reka UI Dialog (centered):
+- [x] **Step 1: Implement** on Reka UI Dialog (centered):
 
 ```vue
 <script setup lang="ts">
@@ -387,33 +389,33 @@ const open = defineModel<boolean>('open', { required: true });
 </template>
 ```
 
-- [ ] **Step 2: Commit** `git commit -am "feat(ui-kit): Modal centrato (Reka Dialog) Coralyn"`
+- [x] **Step 2: Commit** `git commit -am "feat(ui-kit): Modal centrato (Reka Dialog) Coralyn"`
 
 ### Task 11: Drawer (reskin)
 
 **Files:** Modify `packages/ui-kit/src/components/Drawer.vue`. (Keep right-side overlay variant for tablet bottom-sheet / generic use.)
 
-- [ ] **Step 1:** Update tokens: content `rounded-[var(--radius-xl)] bg-[var(--color-surface)] [box-shadow:var(--shadow-drawer)]`, close button styled like Modal's. Overlay `bg-[rgba(11,53,67,.3)]`.
-- [ ] **Step 2: Commit** `git commit -am "feat(ui-kit): Drawer reskin Coralyn"`
+- [x] **Step 1:** Update tokens: content `rounded-[var(--radius-xl)] bg-[var(--color-surface)] [box-shadow:var(--shadow-drawer)]`, close button styled like Modal's. Overlay `bg-[rgba(11,53,67,.3)]`.
+- [x] **Step 2: Commit** `git commit -am "feat(ui-kit): Drawer reskin Coralyn"`
 
 ### Task 12: OmbrelloneCell (reskin)
 
 **Files:** Modify `packages/ui-kit/src/components/OmbrelloneCell.vue`; Test `OmbrelloneCell.spec.ts` (existing). Ref 177-182 (cell + marker), 193 (speciali).
 
-- [ ] **Step 1:** Keep 4-axis logic. Update: split divider uses `var(--color-surface)`; selection ring `outline-[var(--color-brand)]` + halo `0 0 0 4px var(--color-brand-tint)`; tipologia marker = white circle `bg-[var(--color-surface)]`, icon `text-[var(--color-accent)]`, `[box-shadow:var(--shadow-soft)]`, size ~15px. Split-cell label ink → `var(--color-text)`.
-- [ ] **Step 2:** Keep existing spec green (fill maps to `--color-state-*` tokens — unchanged token names, new values). Run `pnpm --filter @driftly/ui-kit test` → PASS.
-- [ ] **Step 3: Commit** `git commit -am "feat(ui-kit): OmbrelloneCell reskin Coralyn (marker teal, ring corallo)"`
+- [x] **Step 1:** Keep 4-axis logic. Update: split divider uses `var(--color-surface)`; selection ring `outline-[var(--color-brand)]` + halo `0 0 0 4px var(--color-brand-tint)`; tipologia marker = white circle `bg-[var(--color-surface)]`, icon `text-[var(--color-accent)]`, `[box-shadow:var(--shadow-soft)]`, size ~15px. Split-cell label ink → `var(--color-text)`.
+- [x] **Step 2:** Keep existing spec green (fill maps to `--color-state-*` tokens — unchanged token names, new values). Run `pnpm --filter @driftly/ui-kit test` → PASS.
+- [x] **Step 3: Commit** `git commit -am "feat(ui-kit): OmbrelloneCell reskin Coralyn (marker teal, ring corallo)"`
 
 ### Task 13: DataTable, KpiCard, StatTile, BarChart, StackedBar (new presentational)
 
 **Files:** Create `DataTable.vue`, `KpiCard.vue`, `StatTile.vue`, `BarChart.vue`, `StackedBar.vue` in `packages/ui-kit/src/components/`; export all in `index.ts`. Ref: table 295-325; KPI 441-449; StatTile 594-597; BarChart 460-468; StackedBar 473-478.
 
-- [ ] **Step 1: DataTable** — slot-based wrapper: `Card`-like container `rounded-[var(--radius-lg)] border ... overflow-hidden`; expose `<thead>` styling via a `columns` prop (`{ key, label, align }`) and a `#row` scoped slot, OR keep it as a thin styled `<table>` wrapper with header cells `text-[10.5px] font-semibold uppercase tracking-[.07em] text-[var(--color-text-muted)]`, header bg `--color-raised`, row divider `--color-border-row`. Choose the thin-wrapper approach (views own their rows).
-- [ ] **Step 2: KpiCard** props `{ icon, iconTone, label, value, trend, trendDir: 'up'|'down' }`; value `text-[28px] font-bold tabular-nums`; trend arrow via `<Icon name="arrow-up|arrow-down">`, color success/danger.
-- [ ] **Step 3: StatTile** props `{ value, label }` on `bg-[var(--color-raised)] rounded-[var(--radius-md)]`.
-- [ ] **Step 4: BarChart** props `{ bars: { label, value, displayValue }[], max }`; render flexbox bars, height `% of max`, fill `--color-accent` (or per-bar), label below.
-- [ ] **Step 5: StackedBar** props `{ segments: { pct, color, label }[] }`; render the `h-3.5 rounded-full overflow-hidden` stacked bar + a legend list.
-- [ ] **Step 6:** Export all. Run `typecheck` → PASS. **Step 7: Commit** `git commit -am "feat(ui-kit): DataTable/KpiCard/StatTile/BarChart/StackedBar"`
+- [x] **Step 1: DataTable** — slot-based wrapper: `Card`-like container `rounded-[var(--radius-lg)] border ... overflow-hidden`; expose `<thead>` styling via a `columns` prop (`{ key, label, align }`) and a `#row` scoped slot, OR keep it as a thin styled `<table>` wrapper with header cells `text-[10.5px] font-semibold uppercase tracking-[.07em] text-[var(--color-text-muted)]`, header bg `--color-raised`, row divider `--color-border-row`. Choose the thin-wrapper approach (views own their rows).
+- [x] **Step 2: KpiCard** props `{ icon, iconTone, label, value, trend, trendDir: 'up'|'down' }`; value `text-[28px] font-bold tabular-nums`; trend arrow via `<Icon name="arrow-up|arrow-down">`, color success/danger.
+- [x] **Step 3: StatTile** props `{ value, label }` on `bg-[var(--color-raised)] rounded-[var(--radius-md)]`.
+- [x] **Step 4: BarChart** props `{ bars: { label, value, displayValue }[], max }`; render flexbox bars, height `% of max`, fill `--color-accent` (or per-bar), label below.
+- [x] **Step 5: StackedBar** props `{ segments: { pct, color, label }[] }`; render the `h-3.5 rounded-full overflow-hidden` stacked bar + a legend list.
+- [x] **Step 6:** Export all. Run `typecheck` → PASS. **Step 7: Commit** `git commit -am "feat(ui-kit): DataTable/KpiCard/StatTile/BarChart/StackedBar"`
 
 ---
 
@@ -423,35 +425,35 @@ const open = defineModel<boolean>('open', { required: true });
 
 **Files:** Modify `apps/web-staff/src/stores/session.ts`, `apps/web-staff/src/router/index.ts`.
 
-- [ ] **Step 1:** Extend `session`: add `authenticated = ref(true)` (dev default true so the app shows; login sets it), `utenteEmail = ref('giulia@lidomaestrale.it')`, `ruolo` default `Ruolo.Admin`; change `nomeStabilimento` → `'Lido Maestrale'`. Add actions `login()` → `authenticated.value = true`, `logout()` → `authenticated.value = false`.
-- [ ] **Step 2:** Router: add routes `/login` (name `login`, `meta.public`), `/registrazione` (name `registrazione`, `meta.public`), `/stabilimento` (name `stabilimento`, `meta: { title:'Stabilimento', subtitle:'Configurazione e team' }`). Add `meta: { title, subtitle }` to every app route (Mappa "Mappa"/"Lido Maestrale · 47 ombrelloni · vista per giornata"; Prenotazioni; Clienti; etc.). Mark login/registrazione `meta.public` and `meta.bare` (no shell).
-- [ ] **Step 3:** Guard: in `beforeEach`, if `!to.meta.public && !session.authenticated` → `{ name: 'login' }`; keep superuser check for `/console`.
-- [ ] **Step 4:** Run `typecheck` → PASS. **Step 5: Commit** `git commit -am "feat(web-staff): session auth seam + route meta (titoli/guard)"`
+- [x] **Step 1:** Extend `session`: add `authenticated = ref(true)` (dev default true so the app shows; login sets it), `utenteEmail = ref('giulia@lidomaestrale.it')`, `ruolo` default `Ruolo.Admin`; change `nomeStabilimento` → `'Lido Maestrale'`. Add actions `login()` → `authenticated.value = true`, `logout()` → `authenticated.value = false`.
+- [x] **Step 2:** Router: add routes `/login` (name `login`, `meta.public`), `/registrazione` (name `registrazione`, `meta.public`), `/stabilimento` (name `stabilimento`, `meta: { title:'Stabilimento', subtitle:'Configurazione e team' }`). Add `meta: { title, subtitle }` to every app route (Mappa "Mappa"/"Lido Maestrale · 47 ombrelloni · vista per giornata"; Prenotazioni; Clienti; etc.). Mark login/registrazione `meta.public` and `meta.bare` (no shell).
+- [x] **Step 3:** Guard: in `beforeEach`, if `!to.meta.public && !session.authenticated` → `{ name: 'login' }`; keep superuser check for `/console`.
+- [x] **Step 4:** Run `typecheck` → PASS. **Step 5: Commit** `git commit -am "feat(web-staff): session auth seam + route meta (titoli/guard)"`
 
 ### Task 15: AppShell + Sidebar
 
 **Files:** Modify `apps/web-staff/src/app/AppShell.vue`, `Sidebar.vue`. Ref sidebar 69-114, shell 66/116-118.
 
-- [ ] **Step 1: AppShell** — bare layout for `meta.bare` routes (render `<RouterView>` only); otherwise flex row: `<Sidebar>` + `<main class="flex min-w-0 flex-1 flex-col bg-[var(--color-bg)]"><Topbar/><div class="min-h-0 flex-1 overflow-auto"><RouterView/></div></main>`, wrapper `flex h-screen min-h-[620px] bg-[var(--color-canvas)] text-[var(--color-text)]`.
-- [ ] **Step 2: Sidebar** — `aside w-[248px] flex-none bg-[var(--color-sidebar-bg)] text-[var(--color-on-sidebar)]` with: logo + wordmark ("Coralyn" `font-bold text-[var(--color-on-sidebar-strong)]` + "Gestionale lidi" eyebrow); **stabilimento switcher** card (`bg-[var(--color-sidebar-raised)] border-[var(--color-sidebar-border)]`, wave icon tile, name + "Stagione 2026", chevron-down); eyebrow "OPERATIVO"; nav items (`map/calendar/users/tag/chart`) — active = `bg-[var(--color-sidebar-raised)]` + coral dot (`<span class="size-1.5 rounded-full bg-[var(--color-brand)]">`), inactive hover `bg-white/5`; `mt-auto`: divider, **Console** (gated `Ruolo.Superuser`) with "super" pill, **user footer** (Avatar initials on `--color-brand`, email truncate, "Amministratore", settings/logout button → `session.logout()` + `router.push('/login')`).
-- [ ] **Step 3:** Use `<RouterLink>` for nav with `v-slot="{ isActive }"`. Run `typecheck` → PASS.
-- [ ] **Step 4: Commit** `git commit -am "feat(web-staff): AppShell + Sidebar teal Coralyn"`
+- [x] **Step 1: AppShell** — bare layout for `meta.bare` routes (render `<RouterView>` only); otherwise flex row: `<Sidebar>` + `<main class="flex min-w-0 flex-1 flex-col bg-[var(--color-bg)]"><Topbar/><div class="min-h-0 flex-1 overflow-auto"><RouterView/></div></main>`, wrapper `flex h-screen min-h-[620px] bg-[var(--color-canvas)] text-[var(--color-text)]`.
+- [x] **Step 2: Sidebar** — `aside w-[248px] flex-none bg-[var(--color-sidebar-bg)] text-[var(--color-on-sidebar)]` with: logo + wordmark ("Coralyn" `font-bold text-[var(--color-on-sidebar-strong)]` + "Gestionale lidi" eyebrow); **stabilimento switcher** card (`bg-[var(--color-sidebar-raised)] border-[var(--color-sidebar-border)]`, wave icon tile, name + "Stagione 2026", chevron-down); eyebrow "OPERATIVO"; nav items (`map/calendar/users/tag/chart`) — active = `bg-[var(--color-sidebar-raised)]` + coral dot (`<span class="size-1.5 rounded-full bg-[var(--color-brand)]">`), inactive hover `bg-white/5`; `mt-auto`: divider, **Console** (gated `Ruolo.Superuser`) with "super" pill, **user footer** (Avatar initials on `--color-brand`, email truncate, "Amministratore", settings/logout button → `session.logout()` + `router.push('/login')`).
+- [x] **Step 3:** Use `<RouterLink>` for nav with `v-slot="{ isActive }"`. Run `typecheck` → PASS.
+- [x] **Step 4: Commit** `git commit -am "feat(web-staff): AppShell + Sidebar teal Coralyn"`
 
 ### Task 16: Topbar
 
 **Files:** Modify `apps/web-staff/src/app/Topbar.vue`. Ref 120-139.
 
-- [ ] **Step 1:** `header flex-none flex items-center gap-[18px] px-[26px] py-4 border-b border-[var(--color-border)] bg-[var(--color-raised)]`. Left: title (`text-xl font-bold tracking-[-.015em] text-[var(--color-text)]`) + subtitle (`text-[12.5px] text-[var(--color-text-muted)]`) from `useRoute().meta`. Spacer. Date navigator pill (`bg-[var(--color-surface)] border rounded-full`, chevron-left/right buttons, date span `tabular-nums`, from `session.dataAttiva`). Search pill (`w-[236px]` placeholder). Bell button (`size-10 rounded-full border` + coral dot).
-- [ ] **Step 2:** Run `typecheck` → PASS. **Step 3: Commit** `git commit -am "feat(web-staff): Topbar Coralyn (titolo/data/ricerca/bell)"`
+- [x] **Step 1:** `header flex-none flex items-center gap-[18px] px-[26px] py-4 border-b border-[var(--color-border)] bg-[var(--color-raised)]`. Left: title (`text-xl font-bold tracking-[-.015em] text-[var(--color-text)]`) + subtitle (`text-[12.5px] text-[var(--color-text-muted)]`) from `useRoute().meta`. Spacer. Date navigator pill (`bg-[var(--color-surface)] border rounded-full`, chevron-left/right buttons, date span `tabular-nums`, from `session.dataAttiva`). Search pill (`w-[236px]` placeholder). Bell button (`size-10 rounded-full border` + coral dot).
+- [x] **Step 2:** Run `typecheck` → PASS. **Step 3: Commit** `git commit -am "feat(web-staff): Topbar Coralyn (titolo/data/ricerca/bell)"`
 
 ### Task 17: AuthLayout + Login + Registrazione
 
 **Files:** Create `apps/web-staff/src/app/AuthLayout.vue`; Create `apps/web-staff/src/features/auth/LoginView.vue`, `RegistrazioneView.vue`. Wire routes (Task 14). Ref login 745-780, register 785-820.
 
-- [ ] **Step 1: AuthLayout** — split: left panel `w-[44%] max-w-[540px]` gradient `linear-gradient(158deg,var(--color-teal-650),var(--color-teal-800) 52%,var(--color-teal-900))` with logo, `#headline`, `#bullets` slots + radial-glow decor (coral/teal); right panel centered `#form` slot. Background `var(--color-bg)`.
-- [ ] **Step 2: LoginView** — "Bentornato" h1 + sub; optional error alert (`--color-danger-*`); Email + Password fields; primary "Accedi" → `session.login(); router.push('/mappa')`; divider "oppure"; link "Registra il tuo stabilimento" → `/registrazione`.
-- [ ] **Step 3: RegistrazioneView** — "Crea il tuo stabilimento"; nome/email/password/conferma; "Crea stabilimento" → `session.login(); router.push('/mappa')`; link "Accedi" → `/login`. Left bullets: configurazione guidata; prenotazioni dal primo giorno.
-- [ ] **Step 4:** Run `typecheck` → PASS. **Step 5: Commit** `git commit -am "feat(web-staff): AuthLayout + Login + Registrazione"`
+- [x] **Step 1: AuthLayout** — split: left panel `w-[44%] max-w-[540px]` gradient `linear-gradient(158deg,var(--color-teal-650),var(--color-teal-800) 52%,var(--color-teal-900))` with logo, `#headline`, `#bullets` slots + radial-glow decor (coral/teal); right panel centered `#form` slot. Background `var(--color-bg)`.
+- [x] **Step 2: LoginView** — "Bentornato" h1 + sub; optional error alert (`--color-danger-*`); Email + Password fields; primary "Accedi" → `session.login(); router.push('/mappa')`; divider "oppure"; link "Registra il tuo stabilimento" → `/registrazione`.
+- [x] **Step 3: RegistrazioneView** — "Crea il tuo stabilimento"; nome/email/password/conferma; "Crea stabilimento" → `session.login(); router.push('/mappa')`; link "Accedi" → `/login`. Left bullets: configurazione guidata; prenotazioni dal primo giorno.
+- [x] **Step 4:** Run `typecheck` → PASS. **Step 5: Commit** `git commit -am "feat(web-staff): AuthLayout + Login + Registrazione"`
 
 ---
 
@@ -463,49 +465,49 @@ const open = defineModel<boolean>('open', { required: true });
 
 **Files:** Modify `apps/web-staff/src/features/mappa/MappaView.vue`; Test `MappaView.spec.ts` (existing). Ref 146-277.
 
-- [ ] **Step 1:** Header row: SegmentedControl settori (from `MappaGiornoDTO.settori`) + "Stato per fascia" hint with clock icon.
-- [ ] **Step 2:** Stage card: `bg-[linear-gradient(168deg,var(--color-warm-075),var(--color-warm-150))] border-[var(--color-warm-border-stage)] rounded-[var(--radius-xl)]`; "Mare" header band (gradient `--color-sea-*`, wave icon + label); rows of `OmbrelloneCell` (fila label + cells from `useMappaGiorno`); Speciali/Palme block; legend (Stato + Tipologia) — micro-labels uppercase.
-- [ ] **Step 3:** Selection opens an **inline side panel** (340px `Card`, `--shadow-drawer`): eyebrow "Ombrellone" + label (`text-2xl font-bold tabular-nums`), tipologia `Badge tone="accent"`, crumb, Mattina/Pomeriggio split boxes, booking detail (dashed dividers), payment status row (Saldato/Parziale/Non pagato via success/warning/danger tones), actions (primary "Nuova prenotazione" → opens Modal; secondary "Abbonamento"/"Presenza"; "Annulla prenotazione" danger link).
-- [ ] **Step 4:** Keep `MappaView.spec.ts` green (update any teal/token assertions). Run `pnpm --filter @driftly/web-staff test` → PASS.
-- [ ] **Step 5: Commit** `git commit -am "feat(web-staff): MappaView Coralyn (stage, celle, drawer)"`
+- [x] **Step 1:** Header row: SegmentedControl settori (from `MappaGiornoDTO.settori`) + "Stato per fascia" hint with clock icon.
+- [x] **Step 2:** Stage card: `bg-[linear-gradient(168deg,var(--color-warm-075),var(--color-warm-150))] border-[var(--color-warm-border-stage)] rounded-[var(--radius-xl)]`; "Mare" header band (gradient `--color-sea-*`, wave icon + label); rows of `OmbrelloneCell` (fila label + cells from `useMappaGiorno`); Speciali/Palme block; legend (Stato + Tipologia) — micro-labels uppercase.
+- [x] **Step 3:** Selection opens an **inline side panel** (340px `Card`, `--shadow-drawer`): eyebrow "Ombrellone" + label (`text-2xl font-bold tabular-nums`), tipologia `Badge tone="accent"`, crumb, Mattina/Pomeriggio split boxes, booking detail (dashed dividers), payment status row (Saldato/Parziale/Non pagato via success/warning/danger tones), actions (primary "Nuova prenotazione" → opens Modal; secondary "Abbonamento"/"Presenza"; "Annulla prenotazione" danger link).
+- [x] **Step 4:** Keep `MappaView.spec.ts` green (update any teal/token assertions). Run `pnpm --filter @driftly/web-staff test` → PASS.
+- [x] **Step 5: Commit** `git commit -am "feat(web-staff): MappaView Coralyn (stage, celle, drawer)"`
 
 ### Task 19: PrenotazioniView
 
 **Files:** Modify `apps/web-staff/src/features/prenotazioni/PrenotazioniView.vue`; MSW: add prenotazioni handler+seed if absent (`apps/web-staff/src/mocks/handlers.ts`, `data/seed.ts`). Ref 282-326.
 
-- [ ] **Step 1:** SegmentedControl (Tutte/Confermate/Bozze/Concluse) + secondary "Filtri" + primary "Nuova prenotazione". DataTable (Cliente w/ Avatar, Ombrellone, Pacchetto, Tipo, Periodo, Stato `Badge`, Incasso right tabular). Seed ~8 rows matching the canvas.
-- [ ] **Step 2:** Run `typecheck`+`test` → PASS. **Step 3: Commit** `git commit -am "feat(web-staff): PrenotazioniView Coralyn + mock"`
+- [x] **Step 1:** SegmentedControl (Tutte/Confermate/Bozze/Concluse) + secondary "Filtri" + primary "Nuova prenotazione". DataTable (Cliente w/ Avatar, Ombrellone, Pacchetto, Tipo, Periodo, Stato `Badge`, Incasso right tabular). Seed ~8 rows matching the canvas.
+- [x] **Step 2:** Run `typecheck`+`test` → PASS. **Step 3: Commit** `git commit -am "feat(web-staff): PrenotazioniView Coralyn + mock"`
 
 ### Task 20: ClientiView + ClienteDettaglioView
 
 **Files:** Modify `apps/web-staff/src/features/clienti/ClientiView.vue`, `ClienteDettaglioView.vue`; keep `useClienti`. Tests existing. Ref clienti 331-366; scheda 515-563.
 
-- [ ] **Step 1: ClientiView** — search pill + count + primary "Nuovo cliente" (opens Modal) + DataTable (Avatar+nome, telefono tabular, email, note truncate); row click → `/clienti/:id`.
-- [ ] **Step 2: ClienteDettaglioView** — back link; header card (Avatar lg, nome, phone/mail with icons, "Modifica" secondary); "Anagrafica e contatti" Card (grid nome/cognome/telefono/email/note); 3 "In arrivo" placeholder cards (`Badge tone="soon"`, dashed border, star/calendar/euro icons).
-- [ ] **Step 3:** Keep `ClientiView.spec.ts`, `ClienteDettaglioView.spec.ts`, `useClienti.spec.ts` green. Run `test` → PASS.
-- [ ] **Step 4: Commit** `git commit -am "feat(web-staff): Clienti + Scheda cliente Coralyn"`
+- [x] **Step 1: ClientiView** — search pill + count + primary "Nuovo cliente" (opens Modal) + DataTable (Avatar+nome, telefono tabular, email, note truncate); row click → `/clienti/:id`.
+- [x] **Step 2: ClienteDettaglioView** — back link; header card (Avatar lg, nome, phone/mail with icons, "Modifica" secondary); "Anagrafica e contatti" Card (grid nome/cognome/telefono/email/note); 3 "In arrivo" placeholder cards (`Badge tone="soon"`, dashed border, star/calendar/euro icons).
+- [x] **Step 3:** Keep `ClientiView.spec.ts`, `ClienteDettaglioView.spec.ts`, `useClienti.spec.ts` green. Run `test` → PASS.
+- [x] **Step 4: Commit** `git commit -am "feat(web-staff): Clienti + Scheda cliente Coralyn"`
 
 ### Task 21: ListinoView
 
 **Files:** Modify `apps/web-staff/src/features/listino/ListinoView.vue`; MSW seed if needed. Ref 372-432.
 
-- [ ] **Step 1:** Season selector button; primary "Nuova tariffa"; pacchetti grid (3 `Card`: nome, tag `Badge`, dotazione, prezzo `text-[22px] font-bold tabular-nums`); fasce chips (clock icon + nome + orario); tariffe DataTable (Posizione, Pacchetto, Fascia, Giornata/Settimana/Stagione right tabular).
-- [ ] **Step 2:** Run `typecheck`+`test` → PASS. **Step 3: Commit** `git commit -am "feat(web-staff): ListinoView Coralyn + mock"`
+- [x] **Step 1:** Season selector button; primary "Nuova tariffa"; pacchetti grid (3 `Card`: nome, tag `Badge`, dotazione, prezzo `text-[22px] font-bold tabular-nums`); fasce chips (clock icon + nome + orario); tariffe DataTable (Posizione, Pacchetto, Fascia, Giornata/Settimana/Stagione right tabular).
+- [x] **Step 2:** Run `typecheck`+`test` → PASS. **Step 3: Commit** `git commit -am "feat(web-staff): ListinoView Coralyn + mock"`
 
 ### Task 22: ReportView
 
 **Files:** Modify `apps/web-staff/src/features/report/ReportView.vue`. Ref 438-509.
 
-- [ ] **Step 1:** 4 `KpiCard` (incasso/presenze/occupazione/abbonamenti with icons+trend); `BarChart` "Incassi ultimi 7 giorni" (+ total); `StackedBar` "Stato ombrelloni" + legend; "Abbonamenti in scadenza" list (Avatar, nome, ombrellone+anzianità, scadenza, secondary "Rinnova" w/ renew icon). Static seed matching canvas values.
-- [ ] **Step 2:** Run `typecheck` → PASS. **Step 3: Commit** `git commit -am "feat(web-staff): ReportView Coralyn (KPI/chart)"`
+- [x] **Step 1:** 4 `KpiCard` (incasso/presenze/occupazione/abbonamenti with icons+trend); `BarChart` "Incassi ultimi 7 giorni" (+ total); `StackedBar` "Stato ombrelloni" + legend; "Abbonamenti in scadenza" list (Avatar, nome, ombrellone+anzianità, scadenza, secondary "Rinnova" w/ renew icon). Static seed matching canvas values.
+- [x] **Step 2:** Run `typecheck` → PASS. **Step 3: Commit** `git commit -am "feat(web-staff): ReportView Coralyn (KPI/chart)"`
 
 ### Task 23: StabilimentoView + ConsoleView reskin
 
 **Files:** Create `apps/web-staff/src/features/stabilimento/StabilimentoView.vue` (route from Task 14); Modify `apps/web-staff/src/features/console/ConsoleView.vue`. Ref stabilimento 569-630.
 
-- [ ] **Step 1: StabilimentoView** — header card (logo, "Lido Maestrale", admin/email/stagione, "Modifica"); grid: "Informazioni stabilimento" + "Struttura della spiaggia" (4 `StatTile`: 2 settori / 47 ombrelloni / 3 tipologie / 3 pacchetti, "Configura" link); "Utenti e ruoli" card (intro paragraph re Admin/Staff/Superuser, user rows with `Badge` ruolo + "Tu", "Inviti · in arrivo" `Badge tone="soon"`); "Sessione" card (shield tile, copy, danger "Esci").
-- [ ] **Step 2: ConsoleView** — minimal reskin onto `Card`/tokens for coherence (keep current content).
-- [ ] **Step 3:** Run `typecheck` → PASS. **Step 4: Commit** `git commit -am "feat(web-staff): StabilimentoView + Console reskin"`
+- [x] **Step 1: StabilimentoView** — header card (logo, "Lido Maestrale", admin/email/stagione, "Modifica"); grid: "Informazioni stabilimento" + "Struttura della spiaggia" (4 `StatTile`: 2 settori / 47 ombrelloni / 3 tipologie / 3 pacchetti, "Configura" link); "Utenti e ruoli" card (intro paragraph re Admin/Staff/Superuser, user rows with `Badge` ruolo + "Tu", "Inviti · in arrivo" `Badge tone="soon"`); "Sessione" card (shield tile, copy, danger "Esci").
+- [x] **Step 2: ConsoleView** — minimal reskin onto `Card`/tokens for coherence (keep current content).
+- [x] **Step 3:** Run `typecheck` → PASS. **Step 4: Commit** `git commit -am "feat(web-staff): StabilimentoView + Console reskin"`
 
 ---
 
@@ -515,12 +517,12 @@ const open = defineModel<boolean>('open', { required: true });
 
 **Files:** Modify `docs/design/design-system.md`, `docs/architecture/decisions/0027-coralyn-linguaggio-visivo.md`, `docs/architecture/decisions/0020-resa-mappa.md`, `docs/design/README.md`, `docs/architecture/decisions/0018-linguaggio-visivo.md`; copy canvas to `docs/design/mockups/Coralyn.dc.html`.
 
-- [ ] **Step 1:** `design-system.md` — replace all token tables/values with the actual Coralyn set (§4 of spec): coral `#E0795A`, teal sidebar `#0F3C49`, accent teal `#2F7281`, Inter incl. weight 700, radii 9/11/16/18, soft navy-tinted shadows, revised map-state colors; **icons section: Iconify/Lucide confirmed** (no sprite). Update §3.1 contrast table to new state fills.
-- [ ] **Step 2:** ADR-0027 — rewrite Decision/palette/typography sections to the real values; keep "supersedes ADR-0018 for palette+typography only"; explicitly state **icons unchanged (Iconify/Lucide, ADR-0018)**; update the semantic-delta table.
-- [ ] **Step 3:** ADR-0020 — add a short note: state fills updated to warm palette (Abbonato `#5E9AA6`, Giornaliero `#E89270`, Libero `#8FBF9E`, Prenotato `#F1C879`); AA re-confirmed.
-- [ ] **Step 4:** `design/README.md` — mockup pointer = `Coralyn.dc.html` (corrente); note bundle `Coralyn - Gestionale Lidi.html`. Copy the full canvas (`Redesign coralyn gestionale moderno/Coralyn.dc.html`) into `docs/design/mockups/Coralyn.dc.html` (overwrite the partial copy).
-- [ ] **Step 5:** ADR-0018 header already "Superseded by ADR-0027 (palette e tipografia)" — verify wording stays accurate (icons NOT superseded).
-- [ ] **Step 6: Commit** `git commit -am "docs: allinea design-system + ADR-0027/0020 al design Coralyn reale"`
+- [x] **Step 1:** `design-system.md` — replace all token tables/values with the actual Coralyn set (§4 of spec): coral `#E0795A`, teal sidebar `#0F3C49`, accent teal `#2F7281`, Inter incl. weight 700, radii 9/11/16/18, soft navy-tinted shadows, revised map-state colors; **icons section: Iconify/Lucide confirmed** (no sprite). Update §3.1 contrast table to new state fills.
+- [x] **Step 2:** ADR-0027 — rewrite Decision/palette/typography sections to the real values; keep "supersedes ADR-0018 for palette+typography only"; explicitly state **icons unchanged (Iconify/Lucide, ADR-0018)**; update the semantic-delta table.
+- [x] **Step 3:** ADR-0020 — add a short note: state fills updated to warm palette (Abbonato `#5E9AA6`, Giornaliero `#E89270`, Libero `#8FBF9E`, Prenotato `#F1C879`); AA re-confirmed.
+- [x] **Step 4:** `design/README.md` — mockup pointer = `Coralyn.dc.html` (corrente); note bundle `Coralyn - Gestionale Lidi.html`. Copy the full canvas (`Redesign coralyn gestionale moderno/Coralyn.dc.html`) into `docs/design/mockups/Coralyn.dc.html` (overwrite the partial copy).
+- [x] **Step 5:** ADR-0018 header already "Superseded by ADR-0027 (palette e tipografia)" — verify wording stays accurate (icons NOT superseded).
+- [x] **Step 6: Commit** `git commit -am "docs: allinea design-system + ADR-0027/0020 al design Coralyn reale"`
 
 ---
 
@@ -528,19 +530,19 @@ const open = defineModel<boolean>('open', { required: true });
 
 ### Task 25: Full verification
 
-- [ ] **Step 1:** `pnpm --filter @driftly/ui-kit test` → PASS. `pnpm --filter @driftly/web-staff test` → PASS.
-- [ ] **Step 2:** `pnpm --filter @driftly/web-staff typecheck` → PASS. `pnpm --filter @driftly/web-staff build` → success.
-- [ ] **Step 3:** Grep guard — no stray literal hex in components (allow tokens/gradients): `rg -n "#[0-9A-Fa-f]{6}" packages/ui-kit/src/components apps/web-staff/src` and confirm only intentional gradient stops / none. Fix leaks into tokens.
-- [ ] **Step 4:** `pnpm --filter @driftly/web-staff dev`, visually compare each screen against `Coralyn - Gestionale Lidi.html` at 1280px (Mappa+drawer, Prenotazioni, Clienti, Scheda, Listino, Report, Stabilimento, Login, Registrazione). Note diffs; fix.
-- [ ] **Step 5: Commit** any fixes `git commit -am "fix(web-staff): rifiniture fedeltà Coralyn"`
+- [x] **Step 1:** `pnpm --filter @driftly/ui-kit test` → PASS. `pnpm --filter @driftly/web-staff test` → PASS.
+- [x] **Step 2:** `pnpm --filter @driftly/web-staff typecheck` → PASS. `pnpm --filter @driftly/web-staff build` → success.
+- [x] **Step 3:** Grep guard — no stray literal hex in components (allow tokens/gradients): `rg -n "#[0-9A-Fa-f]{6}" packages/ui-kit/src/components apps/web-staff/src` and confirm only intentional gradient stops / none. Fix leaks into tokens.
+- [x] **Step 4:** `pnpm --filter @driftly/web-staff dev`, visually compare each screen against `Coralyn - Gestionale Lidi.html` at 1280px (Mappa+drawer, Prenotazioni, Clienti, Scheda, Listino, Report, Stabilimento, Login, Registrazione). Note diffs; fix.
+- [x] **Step 5: Commit** any fixes `git commit -am "fix(web-staff): rifiniture fedeltà Coralyn"`
 
 ### Task 26: Asset — Coralyn logo
 
 **Files:** Copy `Redesign coralyn gestionale moderno/assets/coralyn-logo.png` → `apps/web-staff/public/coralyn-logo.png`; reference in Sidebar/AuthLayout/Stabilimento (replace inline-SVG placeholder if used). Decide gitignore vs commit for root bundle + Redesign folder (recommend: keep mockup under `docs/design/mockups/`, gitignore the root export dump).
 
-- [ ] **Step 1:** Copy asset, update `<img src>` paths.
-- [ ] **Step 2:** Add `/Coralyn - Gestionale Lidi.html` and `/Redesign coralyn gestionale moderno/` to `.gitignore` (export dump; canonical mockup is versioned under docs/).
-- [ ] **Step 3: Commit** `git commit -am "chore(web-staff): logo Coralyn + ignore export dump"`
+- [x] **Step 1:** Copy asset, update `<img src>` paths.
+- [x] **Step 2:** Add `/Coralyn - Gestionale Lidi.html` and `/Redesign coralyn gestionale moderno/` to `.gitignore` (export dump; canonical mockup is versioned under docs/).
+- [x] **Step 3: Commit** `git commit -am "chore(web-staff): logo Coralyn + ignore export dump"`
 
 ---
 

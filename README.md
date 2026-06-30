@@ -8,8 +8,12 @@ Gestionale **SaaS** per la gestione di **lidi balneari** (stabilimenti balneari)
 mappa ombrelloni, prenotazioni e abbonamenti, cassa, e — in prospettiva — booking
 online per il cliente finale.
 
-Stato: **design del Core MVP completato e approvato**; **Piano 1 (backend) scritto**,
-implementazione e pianificazione del frontend in avvio.
+Stato: **design del Core MVP completato e approvato**. **Backend** — Core Foundation
+(Piano 1) e Incremento 1 (scheda cliente) implementati: API `/api/clienti` (CRUD)
+con isolamento multi-tenant RLS e migrazioni Prisma. **Frontend** — redesign
+**Coralyn** completato e integrato (app-shell, ui-kit, tutte le viste; scheda cliente
+end-to-end col backend reale). Containerizzazione locale via Docker Compose.
+Prossimo passo: **identità e autenticazione** (JWT) — branch `feat/api-identita-auth`.
 
 ## Documentazione
 
