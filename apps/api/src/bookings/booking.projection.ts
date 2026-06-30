@@ -16,5 +16,7 @@ export function toBookingDTO(b: Booking): BookingDTO {
     totalPrice: Number(b.totalPrice),
     paymentStatus: b.paymentStatus,
     amountCollected: Number(b.amountCollected),
+    paymentMethod: b.paymentMethod ?? undefined,
+    collectionDate: b.collectionDate ? formatDbDate(b.collectionDate) : undefined,
   };
 }

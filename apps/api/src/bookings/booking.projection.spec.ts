@@ -30,4 +30,22 @@ describe('toBookingDTO', () => {
       type: 'daily', status: 'confirmed', totalPrice: 28, paymentStatus: 'unpaid', amountCollected: 0,
     });
   });
+
+  it('mappa paymentMethod/collectionDate quando valorizzati', () => {
+    const dto = toBookingDTO({
+      ...row,
+      paymentStatus: 'paid' as const,
+      amountCollected: new Prisma.Decimal('28.00'),
+      paymentMethod: 'cash' as const,
+      collectionDate: new Date('2026-07-15T00:00:00Z'),
+    });
+    expect(dto.paymentMethod).toBe('cash');
+    expect(dto.collectionDate).toBe('2026-07-15');
+  });
+
+  it('mappa null → undefined per paymentMethod/collectionDate', () => {
+    const dto = toBookingDTO(row);
+    expect(dto.paymentMethod).toBeUndefined();
+    expect(dto.collectionDate).toBeUndefined();
+  });
 });
