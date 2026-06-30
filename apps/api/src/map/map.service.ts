@@ -11,9 +11,9 @@ export class MapService {
     private readonly tenant: TenantContext,
   ) {}
 
-  /** Map structure for a date (stateBySlot=free in this slice). */
   async getDayMap(date?: string): Promise<DayMapDTO> {
     const tenantId = this.tenant.require();
+    const day = resolveDate(date);
     const source: MapSource = await this.prisma.forTenant(tenantId, async (tx) => {
       const umbrellaTypes = await tx.umbrellaType.findMany({ orderBy: { sortOrder: 'asc' } });
       const timeSlots = await tx.timeSlot.findMany({ orderBy: { sortOrder: 'asc' } });
@@ -26,8 +26,14 @@ export class MapService {
           },
         },
       });
-      return { umbrellaTypes, timeSlots, sectors };
+      const dayDate = new Date(`${day}T00:00:00Z`);
+      const bookings = await tx.booking.findMany({
+        where: { status: 'confirmed', startDate: { lte: dayDate }, endDate: { gte: dayDate } },
+        orderBy: { createdAt: 'asc' },
+        select: { umbrellaId: true, timeSlotId: true, type: true },
+      });
+      return { umbrellaTypes, timeSlots, sectors, bookings };
     });
-    return projectDayMap(resolveDate(date), source);
+    return projectDayMap(day, source);
   }
 }

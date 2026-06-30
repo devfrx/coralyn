@@ -1,5 +1,6 @@
 import type { Row, Sector, TimeSlot, Umbrella, UmbrellaType } from '@prisma/client';
 import type {
+  BookingType,
   DayMapDTO,
   SectorDTO,
   SlotState,
@@ -7,40 +8,58 @@ import type {
   UmbrellaDTO,
   UmbrellaTypeDTO,
 } from '@coralyn/contracts';
+import { slotsOverlap } from '../bookings/booking.availability';
+import { todayInRome } from '../common/dates';
 
 type RowWithUmbrellas = Row & { umbrellas: Umbrella[] };
 type SectorWithRows = Sector & { rows: RowWithUmbrellas[] };
 
-/** Structure loaded from DB (output of the `forTenant` queries). */
+/** Prenotazione confermata che copre la data, pre-filtrata e ordinata (per createdAt) dal service. */
+export interface BookingForMap {
+  umbrellaId: string;
+  timeSlotId: string;
+  type: BookingType;
+}
+
 export interface MapSource {
   umbrellaTypes: UmbrellaType[];
   timeSlots: TimeSlot[];
   sectors: SectorWithRows[];
+  bookings: BookingForMap[];
 }
 
-/** Effective date: the requested one or, if absent, today (ISO yyyy-mm-dd, UTC). */
+/** Effective date: requested or today (Europe/Rome). ADR-0031. */
 export function resolveDate(date?: string): string {
-  return date ?? new Date().toISOString().slice(0, 10);
+  return date ?? todayInRome();
 }
 
-/**
- * Projects the map structure into the DTO shared with the FE.
- *
- * INCREMENT BOUNDARY: `stateBySlot` is `free` for EVERY time slot in this slice.
- * The real derivation (season/daily/booked) will arrive with bookings, which will
- * make this projection slot-aware. Do not invent other states here.
- */
+const STATE_BY_TYPE: Record<BookingType, SlotState> = {
+  daily: 'daily',
+  periodic: 'booked',
+  subscription: 'season',
+};
+
 export function projectDayMap(date: string, source: MapSource): DayMapDTO {
   const timeSlots: TimeSlotDTO[] = source.timeSlots.map((s) => ({ id: s.id, name: s.name, sortOrder: s.sortOrder }));
+  const slotById = new Map(source.timeSlots.map((s) => [s.id, s]));
   const umbrellaTypes: UmbrellaTypeDTO[] = source.umbrellaTypes.map((t) => ({
     id: t.id,
     name: t.name,
     sortOrder: t.sortOrder,
     icon: t.icon ?? undefined,
   }));
-  const freeState: Record<string, SlotState> = Object.fromEntries(
-    timeSlots.map((s) => [s.id, 'free' as SlotState]),
-  );
+
+  // stato di (umbrella, slot): la PRIMA prenotazione la cui fascia si sovrappone vince
+  // (le `bookings` arrivano già ordinate per createdAt dal service).
+  const stateFor = (umbrellaId: string, slot: TimeSlot): SlotState => {
+    for (const b of source.bookings) {
+      if (b.umbrellaId !== umbrellaId) continue;
+      const bookedSlot = slotById.get(b.timeSlotId);
+      if (bookedSlot && slotsOverlap(bookedSlot, slot)) return STATE_BY_TYPE[b.type];
+    }
+    return 'free';
+  };
+
   const sectors: SectorDTO[] = source.sectors.map((s) => ({
     id: s.id,
     name: s.name,
@@ -55,7 +74,7 @@ export function projectDayMap(date: string, source: MapSource): DayMapDTO {
           label: u.label,
           umbrellaTypeId: u.umbrellaTypeId,
           rowId: u.rowId,
-          stateBySlot: { ...freeState },
+          stateBySlot: Object.fromEntries(source.timeSlots.map((slot) => [slot.id, stateFor(u.id, slot)])),
         }),
       ),
     })),

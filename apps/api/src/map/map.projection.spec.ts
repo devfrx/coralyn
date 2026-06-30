@@ -1,10 +1,11 @@
 import { projectDayMap, resolveDate, type MapSource } from './map.projection';
+import { todayInRome } from '../common/dates';
 
 const source: MapSource = {
   umbrellaTypes: [{ id: 't1', establishmentId: 'e', name: 'Palma', sortOrder: 2, icon: 'palmtree' }],
   timeSlots: [
-    { id: 's1', establishmentId: 'e', name: 'Mattina', startTime: new Date(), endTime: new Date(), sortOrder: 1 },
-    { id: 's2', establishmentId: 'e', name: 'Pomeriggio', startTime: new Date(), endTime: new Date(), sortOrder: 2 },
+    { id: 's1', establishmentId: 'e', name: 'Mattina', startTime: new Date('1970-01-01T08:00:00Z'), endTime: new Date('1970-01-01T13:00:00Z'), sortOrder: 1 },
+    { id: 's2', establishmentId: 'e', name: 'Pomeriggio', startTime: new Date('1970-01-01T13:00:00Z'), endTime: new Date('1970-01-01T19:00:00Z'), sortOrder: 2 },
   ],
   sectors: [
     {
@@ -27,6 +28,7 @@ const source: MapSource = {
       ],
     },
   ],
+  bookings: [],
 };
 
 describe('projectDayMap', () => {
@@ -49,10 +51,31 @@ describe('projectDayMap', () => {
     expect(dto.sectors[0].rows[0].umbrellas[1].umbrellaTypeId).toBeNull();
   });
 
-  it('resolveDate: echoes if provided, defaults to today if absent', () => {
+  it('resolveDate: echoes if provided, defaults to today (Europe/Rome) if absent', () => {
     expect(resolveDate('2026-07-15')).toBe('2026-07-15');
-    const today = resolveDate(undefined);
-    expect(today).toMatch(/^\d{4}-\d{2}-\d{2}$/);
-    expect(today).toBe(new Date().toISOString().slice(0, 10));
+    expect(resolveDate(undefined)).toBe(todayInRome());
+  });
+
+  it('una prenotazione daily accende lo slot sovrapposto, gli altri restano free', () => {
+    const withBooking = {
+      ...source,
+      bookings: [{ umbrellaId: 'u1', timeSlotId: 's1', type: 'daily' as const }],
+    };
+    const dto = projectDayMap('2026-07-15', withBooking);
+    const u1 = dto.sectors[0].rows[0].umbrellas[0];
+    expect(u1.stateBySlot).toEqual({ s1: 'daily', s2: 'free' });
+    expect(dto.sectors[0].rows[0].umbrellas[1].stateBySlot).toEqual({ s1: 'free', s2: 'free' });
+  });
+
+  it('due confermate sullo stesso slot: stato deterministico (prima per createdAt)', () => {
+    const withBookings = {
+      ...source,
+      bookings: [
+        { umbrellaId: 'u1', timeSlotId: 's1', type: 'daily' as const },
+        { umbrellaId: 'u1', timeSlotId: 's1', type: 'subscription' as const },
+      ],
+    };
+    const dto = projectDayMap('2026-07-15', withBookings);
+    expect(dto.sectors[0].rows[0].umbrellas[0].stateBySlot.s1).toBe('daily');
   });
 });
