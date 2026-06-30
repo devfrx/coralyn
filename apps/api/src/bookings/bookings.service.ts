@@ -63,6 +63,10 @@ export class BookingsService {
       if (!slot || !umbrella || !customer) {
         throw new UnprocessableEntityException('Cliente, ombrellone o fascia non validi');
       }
+      if (input.packageId) {
+        const pkg = await tx.package.findFirst({ where: { id: input.packageId } });
+        if (!pkg) throw new UnprocessableEntityException('Pacchetto non valido');
+      }
 
       // Anti-overlap (ADR-0013): confermate stesso ombrellone, date intersecanti, fascia sovrapposta.
       const sameUmbrella = await tx.booking.findMany({
@@ -84,6 +88,7 @@ export class BookingsService {
           umbrellaId: input.umbrellaId,
           timeSlotId: input.timeSlotId,
           date: input.date,
+          packageId: input.packageId ?? null,
         }),
       );
 
@@ -98,6 +103,7 @@ export class BookingsService {
           type: 'daily',
           status: 'confirmed',
           totalPrice,
+          packageId: input.packageId ?? null,
         },
       });
     });

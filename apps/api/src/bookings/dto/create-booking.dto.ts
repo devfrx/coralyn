@@ -1,4 +1,4 @@
-import { Matches } from 'class-validator';
+import { IsOptional, Matches } from 'class-validator';
 import type { CreateBookingInput } from '@coralyn/contracts';
 import { IsCalendarDate } from './is-calendar-date';
 
@@ -20,4 +20,8 @@ export class CreateBookingDto implements CreateBookingInput {
 
   @IsCalendarDate()
   date!: string;
+
+  @IsOptional()
+  @Matches(UUID_SHAPE, { message: 'packageId must be a UUID' })
+  packageId?: string;
 }
