@@ -4,9 +4,10 @@ import {
   NotFoundException,
   UnprocessableEntityException,
 } from '@nestjs/common';
-import type { BookingDTO, CreateBookingInput, SettlePaymentInput } from '@coralyn/contracts';
+import type { BookingDTO, CreateBookingInput, QuoteBookingInput, SettlePaymentInput } from '@coralyn/contracts';
 import { PrismaService } from '../prisma/prisma.service';
 import { TenantContext } from '../tenant/tenant-context';
+import { CatalogService, type QuoteOutcome } from '../catalog/catalog.service';
 import { toBookingDTO } from './booking.projection';
 import { slotsOverlap, dateRangesOverlap } from './booking.availability';
 import { resolvePayment } from './booking.payment';
@@ -17,6 +18,7 @@ export class BookingsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly tenant: TenantContext,
+    private readonly catalog: CatalogService,
   ) {}
 
   /** Prenotazioni confermate del giorno. */
@@ -30,6 +32,22 @@ export class BookingsService {
       }),
     );
     return rows.map(toBookingDTO);
+  }
+
+  /** Mappa l'esito del pricing → prezzo, oppure lancia l'eccezione 422 col messaggio IT. */
+  private priceOrThrow(outcome: QuoteOutcome): number {
+    if (outcome.ok) return outcome.totalPrice;
+    if (outcome.reason === 'UMBRELLA_NOT_FOUND')
+      throw new UnprocessableEntityException('Ombrellone non valido');
+    if (outcome.reason === 'NO_SEASON')
+      throw new UnprocessableEntityException('Nessuna stagione attiva per questa data');
+    throw new UnprocessableEntityException('Nessuna tariffa applicabile: configurare il listino'); // NO_RATE
+  }
+
+  /** Preventivo per il modale FE (preview). */
+  async quote(input: QuoteBookingInput): Promise<{ totalPrice: number }> {
+    const totalPrice = this.priceOrThrow(await this.catalog.quote(input));
+    return { totalPrice };
   }
 
   /** Crea una prenotazione GIORNALIERA (type=daily, status=confirmed). */
@@ -60,6 +78,15 @@ export class BookingsService {
         throw new ConflictException('Fascia non disponibile per questo ombrellone');
       }
 
+      // Auto-pricing (A3.1): il prezzo è calcolato dall'engine nello stesso tenant/tx, mai dal client.
+      const totalPrice = this.priceOrThrow(
+        await this.catalog.priceWithin(tx, {
+          umbrellaId: input.umbrellaId,
+          timeSlotId: input.timeSlotId,
+          date: input.date,
+        }),
+      );
+
       return tx.booking.create({
         data: {
           establishmentId: tenantId,
@@ -70,7 +97,7 @@ export class BookingsService {
           endDate: day,
           type: 'daily',
           status: 'confirmed',
-          totalPrice: input.totalPrice,
+          totalPrice,
         },
       });
     });

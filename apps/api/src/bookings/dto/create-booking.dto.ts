@@ -1,4 +1,4 @@
-import { IsNumber, Matches, Max, Min } from 'class-validator';
+import { Matches } from 'class-validator';
 import type { CreateBookingInput } from '@coralyn/contracts';
 import { IsCalendarDate } from './is-calendar-date';
 
@@ -6,7 +6,7 @@ import { IsCalendarDate } from './is-calendar-date';
 // sviluppo e l'id del tenant (00000000-...-0001) usano UUID sintetici che Postgres accetta come
 // `uuid` ma che @IsUUID() rifiuterebbe. Validiamo la *forma* (evita 500 da cast Postgres su input
 // malformato) e lasciamo alla FK il controllo di esistenza nel tenant (→ 422).
-const UUID_SHAPE = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
+export const UUID_SHAPE = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
 
 export class CreateBookingDto implements CreateBookingInput {
   @Matches(UUID_SHAPE, { message: 'customerId must be a UUID' })
@@ -20,9 +20,4 @@ export class CreateBookingDto implements CreateBookingInput {
 
   @IsCalendarDate()
   date!: string;
-
-  @IsNumber({ maxDecimalPlaces: 2 })
-  @Min(0)
-  @Max(99_999_999.99)
-  totalPrice!: number;
 }

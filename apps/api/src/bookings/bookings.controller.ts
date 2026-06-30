@@ -1,7 +1,8 @@
 import { Body, Controller, Delete, Get, Param, Patch, Post, Query } from '@nestjs/common';
-import type { BookingDTO } from '@coralyn/contracts';
+import type { BookingDTO, BookingQuoteDTO } from '@coralyn/contracts';
 import { BookingsService } from './bookings.service';
 import { CreateBookingDto } from './dto/create-booking.dto';
+import { QuoteBookingDto } from './dto/quote-booking.dto';
 import { SettlePaymentDto } from './dto/settle-payment.dto';
 import { BookingsQueryDto } from './dto/bookings-query.dto';
 import { resolveDate } from '../common/dates';
@@ -9,6 +10,11 @@ import { resolveDate } from '../common/dates';
 @Controller('bookings')
 export class BookingsController {
   constructor(private readonly bookings: BookingsService) {}
+
+  @Get('quote')
+  quote(@Query() query: QuoteBookingDto): Promise<BookingQuoteDTO> {
+    return this.bookings.quote(query);
+  }
 
   @Get()
   list(@Query() query: BookingsQueryDto): Promise<BookingDTO[]> {
