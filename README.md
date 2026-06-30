@@ -22,7 +22,7 @@ persistito, reidratazione via `/me`, logout), scheda cliente e **`MappaView`** s
 ([ADR-0028](docs/architecture/decisions/0028-provisioning-tenant.md)):
 la pagina `/registrazione` è informativa ("attivazione su invito"), non self-service.
 Containerizzazione locale via Docker Compose.
-Prossimo passo: **prenotazioni** (che accenderanno gli `statoPerFascia` reali sulla mappa —
+Prossimo passo: **prenotazioni** (che accenderanno gli `stateBySlot` reali sulla mappa —
 oggi tutto `libero`) e **gestione utenti staff** ([D-025](docs/architecture/deferred.md)).
 
 ## Documentazione
