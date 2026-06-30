@@ -4,8 +4,10 @@
 > [ADR-0030](../architecture/decisions/0030-codice-e-db-in-inglese.md)). La prosa esplicativa
 > resta in italiano; la mappatura termine-di-dominio ↔ identificatore è nel
 > [glossario](../architecture/glossary.md). Le entità ancora **non implementate**
-> (`Package`, `Season`, `Pricing`, `Rate`, `Booking`, `Waitlist`, `AuditLog`) hanno nomi di
+> (`Package`, `Season`, `Pricing`, `Rate`, `Waitlist`, `AuditLog`) hanno nomi di
 > design, da confermare quando verranno realizzate.
+> `Booking` è **implementata** (slice A1 — solo `type=daily` attivo; `packageId` rinviato ad A3
+> quando esisterà `Package`).
 
 Fonte di verità del modello dati del Core operativo. Decisioni:
 [mappa](../architecture/decisions/0005-modello-mappa.md),

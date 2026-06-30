@@ -1,7 +1,10 @@
 # Prenotazioni — Slice A1 (giornaliera + mappa accesa) — Design Spec
 
 - **Data:** 2026-06-30
-- **Stato:** In revisione (slice A1 dell'increment Prenotazioni, opzione A dell'handoff
+- **Stato:** Implementata — slice A1 completata (vedere
+  [piano](../plans/2026-06-30-bookings-daily.md) e
+  [handoff](../handoff/2026-06-30-bookings-a1-done.md)); originariamente in revisione come slice A1
+  dell'increment Prenotazioni, opzione A dell'handoff
   [2026-06-30-stato-post-rename-inglese](../handoff/2026-06-30-stato-post-rename-inglese.md) §2)
 - **Convenzione:** codice e DB in **inglese**, nomi DB nativi (no `@@map`); UI e doc in **italiano**
   ([ADR-0030](../architecture/decisions/0030-codice-e-db-in-inglese.md)). Ponte IT↔EN nel
