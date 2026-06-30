@@ -4,7 +4,7 @@
     {
       "name": "web-staff",
       "runtimeExecutable": "pnpm",
-      "runtimeArgs": ["--filter", "@driftly/web-staff", "dev"],
+      "runtimeArgs": ["--filter", "@coralyn/web-staff", "dev"],
       "port": 5173
     }
   ]

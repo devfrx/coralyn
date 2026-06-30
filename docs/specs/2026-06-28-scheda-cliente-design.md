@@ -133,7 +133,7 @@ colonna `text` separata (annotazione dello staff, non un contatto).
 - Hooks (TanStack Query): `useClienti` (lista, esistente, esteso), `useCliente(id)` (**nuovo**, dettaglio),
   `useCreaCliente` (esteso), `useModificaCliente(id)` (**nuovo**, PATCH; invalida `['clienti']` + `['cliente', id]`).
 - Componenti: `ClienteDettaglioView` (scheda), header di sintesi, blocco anagrafica **editabile**,
-  blocchi placeholder "in arrivo". Riuso `@driftly/ui-kit` (`Card`, `Field`, `Input`, `Button`, `Badge`).
+  blocchi placeholder "in arrivo". Riuso `@coralyn/ui-kit` (`Card`, `Field`, `Input`, `Button`, `Badge`).
 
 ## 8. Privacy / GDPR
 

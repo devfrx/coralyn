@@ -102,7 +102,7 @@ async forTenant<T>(tenantId, fn) {
 
 ### A.5 Schema & seed
 - [`prisma/schema.prisma`](../../apps/api/prisma/schema.prisma): `Cliente {id, stabilimentoId, nome, cognome, …}`. **Aggiungi** `telefono String?`, `email String?`, `note String?` (nullable, additivo).
-- Migration: `pnpm --filter @driftly/api exec prisma migrate dev --name cliente_contatti` (in dev; **porta DB 5433** localmente — vedi §C). RLS resta valida (policy su `stabilimentoId`, non sui nuovi campi).
+- Migration: `pnpm --filter @coralyn/api exec prisma migrate dev --name cliente_contatti` (in dev; **porta DB 5433** localmente — vedi §C). RLS resta valida (policy su `stabilimentoId`, non sui nuovi campi).
 - Seed: [`prisma/seed.ts`](../../apps/api/prisma/seed.ts) upsert dello `Stabilimento` dev `00000000-0000-0000-0000-000000000001` (idempotente).
 
 ### A.6 Validazione input (affronta **D-022**)
@@ -119,7 +119,7 @@ Jest + supertest; setup crea due Stabilimenti `s1`/`s2`. Pattern da copiare per 
 await request(app.getHttpServer()).post('/api/clienti').set('X-Stabilimento-Id', s1).send({ nome:'Mario', cognome:'Rossi' }).expect(201);
 const r = await request(app.getHttpServer()).get('/api/clienti').set('X-Stabilimento-Id', s1).expect(200);
 ```
-Aggiungi: `GET /:id` (200 per s1; **404** per s2), `PATCH /:id` (aggiorna; **404** cross-tenant; email malformata → **400**), POST coi nuovi campi (ritornati nel DTO). Run: `pnpm --filter @driftly/api test:e2e`.
+Aggiungi: `GET /:id` (200 per s1; **404** per s2), `PATCH /:id` (aggiorna; **404** cross-tenant; email malformata → **400**), POST coi nuovi campi (ritornati nel DTO). Run: `pnpm --filter @coralyn/api test:e2e`.
 
 ### A.8 ADR-0023 + data-model + D-024
 - **ADR-0023** (`docs/architecture/decisions/0023-contatti-cliente-colonne-tipizzate.md`): contatti come **colonne tipizzate** (`telefono`, `email`) anziché `json contatti` — motiva (validazione, indici, query); aggiorna [data-model](../design/data-model.md) (`Cliente`: da `json contatti` a `telefono`/`email`/`note`).
@@ -134,12 +134,12 @@ Aggiungi: `GET /:id` (200 per s1; **404** per s2), `PATCH /:id` (aggiorna; **404
 Esegui **[docs/plans/2026-06-28-scheda-cliente-fe.md](../plans/2026-06-28-scheda-cliente-fe.md)** task-per-task (TDD, MSW). Punti di attenzione:
 
 ### B.1 Contracts (confine condiviso — **una volta sola**)
-Il **Task 1 del piano FE** estende `@driftly/contracts` (`ClienteDTO` += `telefono/email/note`; `CreaClienteInput`, `ModificaClienteInput`). **Lo stesso BE consuma questi tipi** (proiezione DTO, DTO class di validazione). Falla **una volta** all'inizio (la useranno entrambi); se inizi dal BE, considera il Task 1 FE già fatto.
+Il **Task 1 del piano FE** estende `@coralyn/contracts` (`ClienteDTO` += `telefono/email/note`; `CreaClienteInput`, `ModificaClienteInput`). **Lo stesso BE consuma questi tipi** (proiezione DTO, DTO class di validazione). Falla **una volta** all'inizio (la useranno entrambi); se inizi dal BE, considera il Task 1 FE già fatto.
 
 ### B.2 Esecuzione
 - Hooks `useCliente(id)` / `useModificaCliente(id)`; mock MSW `GET/PATCH /api/clienti/:id` ([server.ts](../../apps/web-staff/src/mocks/server.ts), **solo test**); `ClienteDettaglioView` (header + anagrafica editabile + placeholder "in arrivo"); rotta `/clienti/:id` (`props:true`); righe lista linkate.
 - **Non rompere** i mock MSW (test deterministici, `onUnhandledRequest:'error'`); `/api/mappa` resta mock.
-- Verifica: `pnpm --filter @driftly/web-staff test` + `typecheck` + `pnpm lint`.
+- Verifica: `pnpm --filter @coralyn/web-staff test` + `typecheck` + `pnpm lint`.
 
 ---
 
@@ -148,11 +148,11 @@ Il **Task 1 del piano FE** estende `@driftly/contracts` (`ClienteDTO` += `telefo
 ```bash
 docker compose up -d                  # DB; porta 5433 localmente (override gitignored), 5432 altrove
 # migra + seed (inietta DATABASE_URL; dotenv-cli può fallire il wrapping su Win — meglio settare l'env):
-#   PowerShell: $env:DATABASE_URL='postgresql://driftly_app:driftly_app@localhost:5433/driftly_dev?schema=public'
-pnpm --filter @driftly/api exec prisma migrate deploy
-pnpm --filter @driftly/api exec prisma db seed
-pnpm --filter @driftly/api exec nest start          # backend :3000 (UNA istanza)
-pnpm --filter @driftly/web-staff dev                # frontend :5173 (UNA istanza)
+#   PowerShell: $env:DATABASE_URL='postgresql://coralyn_app:coralyn_app@localhost:5433/coralyn_dev?schema=public'
+pnpm --filter @coralyn/api exec prisma migrate deploy
+pnpm --filter @coralyn/api exec prisma db seed
+pnpm --filter @coralyn/api exec nest start          # backend :3000 (UNA istanza)
+pnpm --filter @coralyn/web-staff dev                # frontend :5173 (UNA istanza)
 ```
 **Verifica browser** (`http://localhost:5173`): lista clienti → click su una riga → **scheda `/clienti/:id`** dal backend reale; modifica telefono/email/note → `PATCH` reale → rilettura aggiornata; sezioni "in arrivo" come placeholder; `/api/mappa` ancora mock. Sanity: `curl -H "X-Stabilimento-Id: 00000000-0000-0000-0000-000000000001" http://localhost:5173/api/clienti/<id>` → 200.
 

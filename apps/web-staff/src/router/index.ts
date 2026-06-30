@@ -1,5 +1,5 @@
 import { createRouter, createWebHistory, type RouteRecordRaw } from 'vue-router';
-import { Ruolo } from '@driftly/contracts';
+import { Ruolo } from '@coralyn/contracts';
 import { useSessionStore } from '@/stores/session';
 
 const routes: RouteRecordRaw[] = [

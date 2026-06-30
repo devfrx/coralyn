@@ -34,7 +34,7 @@ destinato alla vendita in abbonamento a più stabilimenti.
 - **Monorepo** (pnpm workspaces):
   - `apps/` → `api` (NestJS), `web-staff` (Vue), in futuro `web-booking`.
   - `packages/` → `contracts` (tipi/DTO condivisi FE/BE), comuni futuri.
-  - Scope dei package: `@driftly/*` (codename provvisorio; brand/dominio = [D-017](deferred.md)).
+  - Scope dei package: `@coralyn/*` (brand **Coralyn**, [ADR-0029](decisions/0029-brand-coralyn.md)).
 
 ## Moduli del prodotto (roadmap)
 
@@ -107,3 +107,4 @@ componenti) è la spec d'implementazione di `ui-kit` ([ADR-0017](decisions/0017-
 - [ADR-0026](decisions/0026-identita-rls-utente.md) — Identità, RLS, Utente
 - [ADR-0027](decisions/0027-coralyn-linguaggio-visivo.md) — Coralyn — aggiornamento linguaggio visivo (da-0 redesign)
 - [ADR-0028](decisions/0028-provisioning-tenant.md) — Provisioning dei tenant (fornitore + inviti, no self-registration aperta)
+- [ADR-0029](decisions/0029-brand-coralyn.md) — Brand definitivo Coralyn (rename scope `@coralyn/*` + identificatori infra; risolve D-017)

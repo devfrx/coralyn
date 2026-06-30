@@ -33,7 +33,7 @@ Adottiamo una **separazione esplicita tra stato del server e stato del client**:
   selezione, stato del drawer, contesto di sessione (incl. il tenant, vedi sotto), preferenze UI.
 - **Confine netto:** i componenti non chiamano `fetch` direttamente. Ogni risorsa ha i suoi
   **composable** (`useClienti`, `useCreaCliente`, `useMappaGiorno`, …) che incapsulano
-  query/mutation e **consumano i DTO di `@driftly/contracts`**; le **query key** sono centralizzate.
+  query/mutation e **consumano i DTO di `@coralyn/contracts`**; le **query key** sono centralizzate.
 - **Tenant:** un client HTTP unico inietta l'header provvisorio `X-Stabilimento-Id`
   ([ADR-0010](0010-isolamento-multi-tenant.md)); l'id tenant vive nello stato client (Pinia) e
   fa parte delle query key (così cambiare stabilimento invalida correttamente la cache).
@@ -86,6 +86,6 @@ Adottiamo una **separazione esplicita tra stato del server e stato del client**:
    coerente con TanStack Table già scelto ([ADR-0017](0017-design-system-frontend.md)) e con
    Pinia per il client ([ADR-0008](0008-stack-e-layout.md)).
 3. **Modularità** — confine esplicito server/client; risorse remote isolate in composable che
-   consumano `@driftly/contracts`; query key centralizzate.
+   consumano `@coralyn/contracts`; query key centralizzate.
 4. **Zero debito** — niente cache/fetch reinventati; l'unico compromesso (validazione runtime) è
    **tracciato** in [D-021](../deferred.md) con rientro additivo, non silenzioso.

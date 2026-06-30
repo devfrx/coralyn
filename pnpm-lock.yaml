@@ -26,7 +26,7 @@ importers:
 
   apps/api:
     dependencies:
-      '@driftly/contracts':
+      '@coralyn/contracts':
         specifier: workspace:*
         version: link:../../packages/contracts
       '@nestjs/common':
@@ -105,10 +105,10 @@ importers:
 
   apps/web-staff:
     dependencies:
-      '@driftly/contracts':
+      '@coralyn/contracts':
         specifier: workspace:*
         version: link:../../packages/contracts
-      '@driftly/ui-kit':
+      '@coralyn/ui-kit':
         specifier: workspace:*
         version: link:../../packages/ui-kit
       '@fontsource/inter':
@@ -181,7 +181,7 @@ importers:
 
   packages/ui-kit:
     dependencies:
-      '@driftly/contracts':
+      '@coralyn/contracts':
         specifier: workspace:*
         version: link:../contracts
       reka-ui:

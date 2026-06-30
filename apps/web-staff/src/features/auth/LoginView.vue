@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue';
 import { useRouter } from 'vue-router';
-import { Field, Input, Button } from '@driftly/ui-kit';
+import { Field, Input, Button } from '@coralyn/ui-kit';
 import { useSessionStore } from '@/stores/session';
 import AuthLayout from '@/app/AuthLayout.vue';
 const router = useRouter();

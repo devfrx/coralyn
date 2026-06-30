@@ -5,7 +5,7 @@
 > lavoro attuale: **sequenziale su branch** (niente worktree).
 
 - **Data:** 2026-06-28
-- **Scopo:** permettere a un nuovo agente, in sessione fresca, di riprendere *esattamente* da qui: pianificare con l'utente il **frontend** di Driftly in parallelo all'esecuzione del **Piano 1 (backend)**, senza introdurre incoerenze e rispettando i nostri principi.
+- **Scopo:** permettere a un nuovo agente, in sessione fresca, di riprendere *esattamente* da qui: pianificare con l'utente il **frontend** di Coralyn in parallelo all'esecuzione del **Piano 1 (backend)**, senza introdurre incoerenze e rispettando i nostri principi.
 
 ## 1. Missione del prossimo agente (in ordine)
 
@@ -15,7 +15,7 @@
 
 ## 2. Stato attuale (al 2026-06-28)
 
-- Codename **Driftly** (provvisorio; scope package `@driftly/*`; brand/dominio definitivo = D-017).
+- Codename **Coralyn** (provvisorio; scope package `@coralyn/*`; brand/dominio definitivo = D-017).
 - **Design del Core MVP completo, coerente e verificato**: spec **Approvato**, 15 ADR, `deferred.md`, diagrammi Mermaid, mockup.
 - **Piano 1 (backend) scritto e committato, NON eseguito**: foundation monorepo + NestJS + PostgreSQL/Prisma + **isolamento multi-tenant via RLS** (spike) + modulo `clienti`.
 - Repo git **pulito**, tutto committato. Tool presenti: **Node 24, pnpm 10, Docker 29**. Radice repo: `C:/Users/Jays/Desktop/new`.
@@ -35,7 +35,7 @@
 - **App a sezioni**: menù laterale (Mappa, Prenotazioni, Clienti, Listino, Report), **Mappa come home**, **drawer contestuale** al clic su un ombrellone. Direzione UI validata — mockup: [main-screen.html](../design/mockups/main-screen.html).
 - Stati mappa: **libero / abbonato / giornaliero / prenotato**; **fasce** intera/mezza giornata ([ADR-0013](../architecture/decisions/0013-granularita-disponibilita-a-slot.md)).
 - **Console superuser** come sezione separata, visibile solo al ruolo `superuser` ([ADR-0015](../architecture/decisions/0015-osservabilita-e-console-superuser.md)).
-- Il FE consuma l'**API REST** del backend tramite i **tipi condivisi** `@driftly/contracts` ([ADR-0008](../architecture/decisions/0008-stack-e-layout.md)).
+- Il FE consuma l'**API REST** del backend tramite i **tipi condivisi** `@coralyn/contracts` ([ADR-0008](../architecture/decisions/0008-stack-e-layout.md)).
 
 ## 5. Parallelizzazione e coerenza — IL PUNTO CHIAVE
 

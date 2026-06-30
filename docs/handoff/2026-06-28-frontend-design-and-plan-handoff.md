@@ -2,7 +2,7 @@
 
 - **Data:** 2026-06-28
 - **Scopo:** permettere a un nuovo agente, in sessione fresca, di riprendere **esattamente da
-  qui**: portare il design del frontend di Driftly alla **qualità di produzione**
+  qui**: portare il design del frontend di Coralyn alla **qualità di produzione**
   (`frontend-design`) e scrivere il **PIANO eseguibile di `apps/web-staff`**
   (`writing-plans`), **in parallelo** all'esecuzione del backend (Piano 1), con
   `packages/contracts` come confine. Il *design* del frontend (ADR + spec) è **già fatto e su
@@ -25,7 +25,7 @@
 
 ## 2. Stato attuale (al 2026-06-28)
 
-- **Backend:** Piano 1 **Task 1–2 completati** (monorepo `@driftly/*` + `packages/contracts`
+- **Backend:** Piano 1 **Task 1–2 completati** (monorepo `@coralyn/*` + `packages/contracts`
   skeleton) e committati su `main`; il backend ha anche aggiunto **[ADR-0016](../architecture/decisions/0016-tipologia-ombrellone.md)**
   (Tipologia ombrellone). Branch corrente **`main`**, working tree pulito. Tool: **Node 24,
   pnpm 10, Docker**. Radice repo: `C:/Users/Jays/Desktop/new`.
@@ -122,7 +122,7 @@
 - **Scope del primo slice FE** (parallelo al Piano 1, che espone `/clienti` + `/health`):
   raccomandazione da portare → **app-shell + `ui-kit` + Clienti (verticale su API reale) + Mappa
   mockata (MSW)**.
-- **Brand provvisorio in UI** ([D-017](../architecture/deferred.md)): wordmark "Driftly" o
+- **Brand provvisorio in UI** ([D-017](../architecture/deferred.md)): wordmark "Coralyn" o
   neutro/nome stabilimento.
 - **Dettaglio responsive/PWA**: breakpoint, `manifest`, scope del service worker (offline-light,
   [D-008](../architecture/deferred.md)).

@@ -4,7 +4,7 @@ import { LoginDto } from './dto/login.dto';
 import { Public } from './public.decorator';
 import { CurrentUser } from './current-user.decorator';
 import type { AuthUser } from './auth-user';
-import { LoginResponse, UtenteDTO } from '@driftly/contracts';
+import { LoginResponse, UtenteDTO } from '@coralyn/contracts';
 
 @Controller('auth')
 export class AuthController {

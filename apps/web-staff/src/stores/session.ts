@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
-import { Ruolo, type UtenteDTO, type LoginResponse } from '@driftly/contracts';
+import { Ruolo, type UtenteDTO, type LoginResponse } from '@coralyn/contracts';
 import { apiFetch } from '@/lib/http';
 import { getToken, setToken, clearToken } from '@/lib/authToken';
 

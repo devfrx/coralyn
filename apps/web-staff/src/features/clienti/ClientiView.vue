@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue';
 import { useRouter } from 'vue-router';
-import { Button, Avatar, DataTable, Modal, Field, Input, Textarea, Icon } from '@driftly/ui-kit';
+import { Button, Avatar, DataTable, Modal, Field, Input, Textarea, Icon } from '@coralyn/ui-kit';
 import { useClienti, useCreaCliente } from './useClienti';
 
 const router = useRouter();

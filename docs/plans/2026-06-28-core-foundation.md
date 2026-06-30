@@ -2,9 +2,9 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Mettere in piedi il monorepo `@driftly/*` con un backend NestJS funzionante, PostgreSQL via Prisma, e dimostrare con test l'isolamento multi-tenant tramite Row-Level Security (il rischio #1 dello spec).
+**Goal:** Mettere in piedi il monorepo `@coralyn/*` con un backend NestJS funzionante, PostgreSQL via Prisma, e dimostrare con test l'isolamento multi-tenant tramite Row-Level Security (il rischio #1 dello spec).
 
-**Architecture:** Monorepo pnpm (`apps/`, `packages/`). Backend NestJS API-first; PostgreSQL con RLS come rete di sicurezza dell'isolamento tenant ([ADR-0010](../architecture/decisions/0010-isolamento-multi-tenant.md)); tipi condivisi in `@driftly/contracts` ([ADR-0008](../architecture/decisions/0008-stack-e-layout.md)). Il tenant, in questo piano, è risolto provvisoriamente da un header `X-Stabilimento-Id` (sarà sostituito dall'auth nel Piano 2).
+**Architecture:** Monorepo pnpm (`apps/`, `packages/`). Backend NestJS API-first; PostgreSQL con RLS come rete di sicurezza dell'isolamento tenant ([ADR-0010](../architecture/decisions/0010-isolamento-multi-tenant.md)); tipi condivisi in `@coralyn/contracts` ([ADR-0008](../architecture/decisions/0008-stack-e-layout.md)). Il tenant, in questo piano, è risolto provvisoriamente da un header `X-Stabilimento-Id` (sarà sostituito dall'auth nel Piano 2).
 
 **Tech Stack:** pnpm 10, Node 24, TypeScript (strict), NestJS, Jest (default NestJS) + Supertest, Prisma, PostgreSQL 16 (Docker), ESLint + Prettier.
 
@@ -13,7 +13,7 @@
 **Scelte tattiche di questo piano (rubrica):**
 - **Test runner API = Jest** (default NestJS): minore attrito/più convenzionale del forzare Vitest lato server; il frontend (Piano 7) userà Vitest, default Vue.
 - **`contracts` buildato a `dist` con `tsc`** e consumato come pacchetto workspace: robusto, niente path-alias fragili a runtime.
-- **Ruolo DB applicativo non-superuser** (`driftly_app`): i superuser PostgreSQL bypassano la RLS, quindi l'app DEVE connettersi con un ruolo `NOSUPERUSER NOBYPASSRLS`, altrimenti l'isolamento non viene applicato.
+- **Ruolo DB applicativo non-superuser** (`coralyn_app`): i superuser PostgreSQL bypassano la RLS, quindi l'app DEVE connettersi con un ruolo `NOSUPERUSER NOBYPASSRLS`, altrimenti l'isolamento non viene applicato.
 - **Tenant via header provvisorio** ora; sostituito da JWT nel Piano 2, dietro `TenantContext` (i moduli di dominio non cambiano).
 
 ---
@@ -21,7 +21,7 @@
 ## File Structure
 
 ```
-driftly/
+coralyn/
   pnpm-workspace.yaml
   package.json                 # root, private, script comuni
   tsconfig.base.json           # config TS condivisa (strict)
@@ -87,12 +87,12 @@ packages:
 
 ```json
 {
-  "name": "@driftly/root",
+  "name": "@coralyn/root",
   "private": true,
   "packageManager": "pnpm@10.33.3",
   "engines": { "node": ">=22" },
   "scripts": {
-    "build:contracts": "pnpm --filter @driftly/contracts build",
+    "build:contracts": "pnpm --filter @coralyn/contracts build",
     "lint": "eslint .",
     "format": "prettier --write ."
   },
@@ -178,7 +178,7 @@ Expected: `pnpm install` completa senza errori (crea `pnpm-lock.yaml`).
 
 ---
 
-## Task 2: Pacchetto `@driftly/contracts`
+## Task 2: Pacchetto `@coralyn/contracts`
 
 **Files:**
 - Create: `packages/contracts/package.json`, `packages/contracts/tsconfig.json`, `packages/contracts/src/index.ts`
@@ -187,7 +187,7 @@ Expected: `pnpm install` completa senza errori (crea `pnpm-lock.yaml`).
 
 ```json
 {
-  "name": "@driftly/contracts",
+  "name": "@coralyn/contracts",
   "version": "0.0.0",
   "private": true,
   "type": "commonjs",
@@ -239,7 +239,7 @@ export interface ClienteDTO {
 
 Run:
 ```bash
-pnpm --filter @driftly/contracts build
+pnpm --filter @coralyn/contracts build
 git add -A && git commit -m "feat(contracts): shared types package skeleton (Ruolo, ClienteDTO)"
 ```
 Expected: crea `packages/contracts/dist/index.js` e `index.d.ts`, nessun errore TS.
@@ -255,7 +255,7 @@ Expected: crea `packages/contracts/dist/index.js` e `index.d.ts`, nessun errore 
 
 ```json
 {
-  "name": "@driftly/api",
+  "name": "@coralyn/api",
   "version": "0.0.0",
   "private": true,
   "scripts": {
@@ -265,7 +265,7 @@ Expected: crea `packages/contracts/dist/index.js` e `index.d.ts`, nessun errore 
     "test:e2e": "jest --config ./test/jest-e2e.json"
   },
   "dependencies": {
-    "@driftly/contracts": "workspace:*",
+    "@coralyn/contracts": "workspace:*",
     "@nestjs/common": "^10.4.4",
     "@nestjs/config": "^3.2.3",
     "@nestjs/core": "^10.4.4",
@@ -352,7 +352,7 @@ describe('HealthController', () => {
 
 - [ ] **Step 4: Esegui il test e verifica che fallisce**
 
-Run: `pnpm --filter @driftly/api test`
+Run: `pnpm --filter @coralyn/api test`
 Expected: FAIL — `Cannot find module './health.controller'`.
 
 - [ ] **Step 5: Implementazione minima**
@@ -398,7 +398,7 @@ void bootstrap();
 
 - [ ] **Step 6: Esegui il test e verifica che passa**
 
-Run: `pnpm --filter @driftly/api test`
+Run: `pnpm --filter @coralyn/api test`
 Expected: PASS (1 test).
 
 - [ ] **Step 7: Commit**
@@ -420,18 +420,18 @@ git add -A && git commit -m "feat(api): NestJS skeleton with health endpoint (TD
 services:
   db:
     image: postgres:16
-    container_name: driftly-db
+    container_name: coralyn-db
     environment:
-      POSTGRES_USER: driftly
-      POSTGRES_PASSWORD: driftly
-      POSTGRES_DB: driftly_dev
+      POSTGRES_USER: coralyn
+      POSTGRES_PASSWORD: coralyn
+      POSTGRES_DB: coralyn_dev
     ports:
       - "5432:5432"
     volumes:
-      - driftly-pgdata:/var/lib/postgresql/data
+      - coralyn-pgdata:/var/lib/postgresql/data
       - ./init:/docker-entrypoint-initdb.d
 volumes:
-  driftly-pgdata:
+  coralyn-pgdata:
 ```
 
 - [ ] **Step 2: Crea `init/01-app-role.sql`** (eseguito SOLO alla prima init del volume)
@@ -439,29 +439,29 @@ volumes:
 > I superuser PostgreSQL **bypassano** la RLS. L'app deve connettersi con un ruolo `NOSUPERUSER NOBYPASSRLS` (con `CREATEDB` per lo shadow DB di Prisma) e proprietario dello schema `public`, così le policy RLS vengono applicate anche a lui.
 
 ```sql
-CREATE ROLE driftly_app WITH LOGIN PASSWORD 'driftly_app' NOSUPERUSER NOBYPASSRLS CREATEDB;
+CREATE ROLE coralyn_app WITH LOGIN PASSWORD 'coralyn_app' NOSUPERUSER NOBYPASSRLS CREATEDB;
 
-GRANT ALL ON DATABASE driftly_dev TO driftly_app;
-ALTER SCHEMA public OWNER TO driftly_app;
+GRANT ALL ON DATABASE coralyn_dev TO coralyn_app;
+ALTER SCHEMA public OWNER TO coralyn_app;
 
-CREATE DATABASE driftly_test OWNER driftly_app;
-\connect driftly_test
-ALTER SCHEMA public OWNER TO driftly_app;
+CREATE DATABASE coralyn_test OWNER coralyn_app;
+\connect coralyn_test
+ALTER SCHEMA public OWNER TO coralyn_app;
 ```
 
-- [ ] **Step 3: Crea `.env`, `.env.test`, `.env.example`** (l'app usa `driftly_app`)
+- [ ] **Step 3: Crea `.env`, `.env.test`, `.env.example`** (l'app usa `coralyn_app`)
 
 `.env`:
 ```
-DATABASE_URL="postgresql://driftly_app:driftly_app@localhost:5432/driftly_dev?schema=public"
+DATABASE_URL="postgresql://coralyn_app:coralyn_app@localhost:5432/coralyn_dev?schema=public"
 ```
 `.env.test`:
 ```
-DATABASE_URL="postgresql://driftly_app:driftly_app@localhost:5432/driftly_test?schema=public"
+DATABASE_URL="postgresql://coralyn_app:coralyn_app@localhost:5432/coralyn_test?schema=public"
 ```
 `.env.example`:
 ```
-DATABASE_URL="postgresql://driftly_app:driftly_app@localhost:5432/driftly_dev?schema=public"
+DATABASE_URL="postgresql://coralyn_app:coralyn_app@localhost:5432/coralyn_dev?schema=public"
 ```
 
 - [ ] **Step 4: Avvia il database e verifica il ruolo**
@@ -469,9 +469,9 @@ DATABASE_URL="postgresql://driftly_app:driftly_app@localhost:5432/driftly_dev?sc
 Run:
 ```bash
 docker compose up -d
-docker exec driftly-db psql -U driftly -d driftly_dev -c "\du driftly_app"
+docker exec coralyn-db psql -U coralyn -d coralyn_dev -c "\du coralyn_app"
 ```
-Expected: container `driftly-db` attivo; il ruolo `driftly_app` esiste con attributo *Create DB*. (Se il volume esisteva già da prove precedenti, lo script init non rigira: `docker compose down -v` e ripeti.)
+Expected: container `coralyn-db` attivo; il ruolo `coralyn_app` esiste con attributo *Create DB*. (Se il volume esisteva già da prove precedenti, lo script init non rigira: `docker compose down -v` e ripeti.)
 
 - [ ] **Step 5: Commit**
 
@@ -521,9 +521,9 @@ model Cliente {
 
 Run (dalla radice):
 ```bash
-pnpm dlx dotenv-cli -e .env -- pnpm --filter @driftly/api exec prisma migrate dev --name init
+pnpm dlx dotenv-cli -e .env -- pnpm --filter @coralyn/api exec prisma migrate dev --name init
 ```
-Expected: crea `apps/api/prisma/migrations/<ts>_init/migration.sql`, applica al DB dev (`driftly_app`), genera il client.
+Expected: crea `apps/api/prisma/migrations/<ts>_init/migration.sql`, applica al DB dev (`coralyn_app`), genera il client.
 
 - [ ] **Step 3: Crea `apps/api/src/prisma/prisma.service.ts`**
 
@@ -576,10 +576,10 @@ export class AppModule {}
 
 Run (dalla radice):
 ```bash
-pnpm dlx dotenv-cli -e .env.test -- pnpm --filter @driftly/api exec prisma migrate deploy
+pnpm dlx dotenv-cli -e .env.test -- pnpm --filter @coralyn/api exec prisma migrate deploy
 git add -A && git commit -m "feat(api): prisma schema (Stabilimento, Cliente) + PrismaService"
 ```
-Expected: migrazione applicata anche su `driftly_test`.
+Expected: migrazione applicata anche su `coralyn_test`.
 
 ---
 
@@ -593,7 +593,7 @@ Expected: migrazione applicata anche su `driftly_test`.
 
 Run (dalla radice):
 ```bash
-pnpm dlx dotenv-cli -e .env -- pnpm --filter @driftly/api exec prisma migrate dev --create-only --name rls
+pnpm dlx dotenv-cli -e .env -- pnpm --filter @coralyn/api exec prisma migrate dev --create-only --name rls
 ```
 Expected: crea una cartella `..._rls/` con un `migration.sql` (vuoto, perché lo schema non è cambiato).
 
@@ -615,8 +615,8 @@ CREATE POLICY tenant_isolation ON "Cliente"
 
 Run (dalla radice):
 ```bash
-pnpm dlx dotenv-cli -e .env -- pnpm --filter @driftly/api exec prisma migrate dev
-pnpm dlx dotenv-cli -e .env.test -- pnpm --filter @driftly/api exec prisma migrate deploy
+pnpm dlx dotenv-cli -e .env -- pnpm --filter @coralyn/api exec prisma migrate dev
+pnpm dlx dotenv-cli -e .env.test -- pnpm --filter @coralyn/api exec prisma migrate deploy
 ```
 Expected: la policy `tenant_isolation` creata su entrambi i DB.
 
@@ -699,9 +699,9 @@ describe('PrismaService RLS isolation', () => {
 
 Run (dalla radice):
 ```bash
-pnpm dlx dotenv-cli -e .env.test -- pnpm --filter @driftly/api test -- prisma.service
+pnpm dlx dotenv-cli -e .env.test -- pnpm --filter @coralyn/api test -- prisma.service
 ```
-Expected: PASS (2 test). Dimostra che RLS isola i tenant e che senza tenant non si vede nulla. (Se entrambi i clienti compaiono, l'app si sta connettendo come superuser: verifica che `.env.test` usi `driftly_app`.)
+Expected: PASS (2 test). Dimostra che RLS isola i tenant e che senza tenant non si vede nulla. (Se entrambi i clienti compaiono, l'app si sta connettendo come superuser: verifica che `.env.test` usi `coralyn_app`.)
 
 - [ ] **Step 7: Commit**
 
@@ -783,7 +783,7 @@ export class TenantMiddleware implements NestMiddleware {
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { TenantContext } from '../tenant/tenant-context';
-import { ClienteDTO } from '@driftly/contracts';
+import { ClienteDTO } from '@coralyn/contracts';
 
 @Injectable()
 export class ClientiService {
@@ -812,7 +812,7 @@ export class ClientiService {
 ```ts
 import { Body, Controller, Get, Post } from '@nestjs/common';
 import { ClientiService } from './clienti.service';
-import { ClienteDTO } from '@driftly/contracts';
+import { ClienteDTO } from '@coralyn/contracts';
 
 @Controller('clienti')
 export class ClientiController {
@@ -934,7 +934,7 @@ describe('Clienti (e2e) isolamento per tenant', () => {
 
 Run (dalla radice):
 ```bash
-pnpm dlx dotenv-cli -e .env.test -- pnpm --filter @driftly/api test:e2e
+pnpm dlx dotenv-cli -e .env.test -- pnpm --filter @coralyn/api test:e2e
 ```
 Expected: PASS — il cliente di `s1` è visibile a `s1` (1) e invisibile a `s2` (0). Isolamento end-to-end via API.
 
@@ -949,7 +949,7 @@ git add -A && git commit -m "feat(api): tenant context (header) + clienti module
 ## Definition of Done (Piano 1)
 
 - `pnpm install` e build di `contracts` ok; `pnpm lint` pulito.
-- `docker compose up -d` avvia Postgres; init crea `driftly_app` (non-superuser) e `driftly_test`; migrazioni applicate su `driftly_dev` e `driftly_test`.
+- `docker compose up -d` avvia Postgres; init crea `coralyn_app` (non-superuser) e `coralyn_test`; migrazioni applicate su `coralyn_dev` e `coralyn_test`.
 - `GET /health` → `{ status: 'ok' }`.
 - Test RLS verdi: un tenant vede solo i propri clienti; senza tenant non si vede nulla.
 - Test e2e verde: isolamento per tenant attraverso l'API.

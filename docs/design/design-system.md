@@ -1,6 +1,6 @@
 # Design system del frontend — token e linguaggio dei componenti
 
-> **Fonte di verità visiva** del frontend Driftly (app staff). Questo documento porta il
+> **Fonte di verità visiva** del frontend Coralyn (app staff). Questo documento porta il
 > linguaggio visivo deciso negli ADR a livello di **specifica d'implementazione** per
 > `packages/ui-kit`: i valori esatti dei **token** e le regole dei **componenti**. È il
 > *cosa* corrente (come i diagrammi); il *perché* sta negli ADR
@@ -354,7 +354,7 @@ interattivi: **default / hover / active / focus-visible / disabled**; focus = `-
 Layout **a card su tela neutra** (`--color-canvas`), gutter `--shell-gutter`.
 
 - **Topbar** (`card`, `--color-brand`, `--z-sticky`): **brand = nome stabilimento** (es. "Lido
-  Sole", icona ombrellone) — il wordmark "Driftly" resta **discreto** (login/about), perché è un
+  Sole", icona ombrellone) — il wordmark "Coralyn" resta **discreto** (login/about), perché è un
   codename ([D-017](../architecture/deferred.md)) e lo staff si identifica col proprio lido ·
   **navigatore data** (pill `‹ Sab 27 giu 2026 ›`, `tabular-nums`) · **ricerca cliente** (campo
   chiaro) · **avatar** utente.

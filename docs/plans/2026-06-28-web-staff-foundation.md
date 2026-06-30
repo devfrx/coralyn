@@ -7,9 +7,9 @@
 > e `packages/contracts` **esistono già** su `main` (Opzione A confermata): questo piano **parte da
 > `apps/web-staff`**.
 
-**Goal:** Costruire il primo slice eseguibile dell'app staff — **app-shell + `@driftly/ui-kit` + Clienti (su API reale) + Mappa (mockata MSW)** — come *walking skeleton* del frontend, in parallelo al [Piano 1 backend](2026-06-28-core-foundation.md), con `packages/contracts` come confine.
+**Goal:** Costruire il primo slice eseguibile dell'app staff — **app-shell + `@coralyn/ui-kit` + Clienti (su API reale) + Mappa (mockata MSW)** — come *walking skeleton* del frontend, in parallelo al [Piano 1 backend](2026-06-28-core-foundation.md), con `packages/contracts` come confine.
 
-**Architecture:** Vue 3 + TS (strict) + Vite, **token-first** ([ADR-0017](../architecture/decisions/0017-design-system-frontend.md)): i token vivono in `@driftly/ui-kit` e alimentano Tailwind (v4, CSS-first `@theme`). **Server-state con TanStack Query, stato UI con Pinia** ([ADR-0021](../architecture/decisions/0021-server-state-frontend.md)); componenti accessibili su **Reka UI**; icone **Iconify bundled/offline** (unplugin-icons + Lucide). Il FE costruisce contro `contracts` + **API mockata (MSW)**: Clienti colpisce l'API reale (proxy Vite); la Mappa è mockata.
+**Architecture:** Vue 3 + TS (strict) + Vite, **token-first** ([ADR-0017](../architecture/decisions/0017-design-system-frontend.md)): i token vivono in `@coralyn/ui-kit` e alimentano Tailwind (v4, CSS-first `@theme`). **Server-state con TanStack Query, stato UI con Pinia** ([ADR-0021](../architecture/decisions/0021-server-state-frontend.md)); componenti accessibili su **Reka UI**; icone **Iconify bundled/offline** (unplugin-icons + Lucide). Il FE costruisce contro `contracts` + **API mockata (MSW)**: Clienti colpisce l'API reale (proxy Vite); la Mappa è mockata.
 
 **Tech Stack:** Vue 3.5, TypeScript ~5.6 (strict), Vite 6, Vitest + @vue/test-utils + jsdom, Pinia, Vue Router, @tanstack/vue-query, reka-ui, Tailwind CSS v4 (`@tailwindcss/vite`), unplugin-icons + @iconify-json/lucide, MSW v2, vite-plugin-pwa (Workbox). pnpm 10, Node 24.
 
@@ -41,7 +41,7 @@
 packages/
   contracts/src/index.ts        # MODIFY: + DTO mappa proposti (handshake)
   ui-kit/
-    package.json                # @driftly/ui-kit
+    package.json                # @coralyn/ui-kit
     tsconfig.json
     src/
       index.ts                  # public exports
@@ -53,7 +53,7 @@ packages/
       components/*.spec.ts       # test colocati
 apps/
   web-staff/
-    package.json                # @driftly/web-staff
+    package.json                # @coralyn/web-staff
     index.html  vite.config.ts  vitest.config.ts  tsconfig*.json
     src/
       main.ts  App.vue
@@ -104,7 +104,7 @@ pnpm create vite@latest apps/web-staff --template vue-ts
 ```
 Expected: crea `apps/web-staff/` con Vue 3 + TS (Vite). Non eseguire ancora l'install interno.
 
-- [ ] **Step 2: Rinomina il pacchetto** — in `apps/web-staff/package.json` imposta `"name": "@driftly/web-staff"` (lascia invariati `scripts`/`dependencies`/`devDependencies` generati; verranno estesi).
+- [ ] **Step 2: Rinomina il pacchetto** — in `apps/web-staff/package.json` imposta `"name": "@coralyn/web-staff"` (lascia invariati `scripts`/`dependencies`/`devDependencies` generati; verranno estesi).
 
 - [ ] **Step 3: Installa dal root** (il workspace include già `apps/*`)
 
@@ -113,7 +113,7 @@ Expected: `apps/web-staff` agganciato al workspace; nessun errore.
 
 - [ ] **Step 4: Avvia il dev server e verifica**
 
-Run: `pnpm --filter @driftly/web-staff dev`
+Run: `pnpm --filter @coralyn/web-staff dev`
 Expected: Vite serve su `http://localhost:5173` la pagina starter Vue. Ctrl-C.
 
 - [ ] **Step 5: Commit**
@@ -125,7 +125,7 @@ git commit -m "chore(web-staff): scaffold Vue 3 + TS + Vite app"
 
 ---
 
-## Task 2: `@driftly/ui-kit` — skeleton e token (`@theme`)
+## Task 2: `@coralyn/ui-kit` — skeleton e token (`@theme`)
 
 **Files:**
 - Create: `packages/ui-kit/package.json`, `packages/ui-kit/tsconfig.json`,
@@ -136,7 +136,7 @@ git commit -m "chore(web-staff): scaffold Vue 3 + TS + Vite app"
 
 ```json
 {
-  "name": "@driftly/ui-kit",
+  "name": "@coralyn/ui-kit",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -145,7 +145,7 @@ git commit -m "chore(web-staff): scaffold Vue 3 + TS + Vite app"
     "./styles/theme.css": "./src/styles/theme.css"
   },
   "peerDependencies": { "vue": "^3.5.0" },
-  "dependencies": { "reka-ui": "^2.0.0", "@driftly/contracts": "workspace:*" }
+  "dependencies": { "reka-ui": "^2.0.0", "@coralyn/contracts": "workspace:*" }
 }
 ```
 > Consumiamo il `ui-kit` come **sorgente** (no build step): Vite/Vitest compilano i `.vue`/`.ts`.
@@ -221,8 +221,8 @@ export {};
 
 - [ ] **Step 5: Aggiungi `ui-kit` come dipendenza di `web-staff`**
 
-Run: `pnpm --filter @driftly/web-staff add @driftly/ui-kit@workspace:*`
-Expected: in `apps/web-staff/package.json` compare `"@driftly/ui-kit": "workspace:*"`.
+Run: `pnpm --filter @coralyn/web-staff add @coralyn/ui-kit@workspace:*`
+Expected: in `apps/web-staff/package.json` compare `"@coralyn/ui-kit": "workspace:*"`.
 
 - [ ] **Step 6: Commit**
 
@@ -241,7 +241,7 @@ git commit -m "feat(ui-kit): package skeleton + design tokens (@theme)"
 
 - [ ] **Step 1: Installa Tailwind v4**
 
-Run: `pnpm --filter @driftly/web-staff add -D tailwindcss @tailwindcss/vite`
+Run: `pnpm --filter @coralyn/web-staff add -D tailwindcss @tailwindcss/vite`
 
 - [ ] **Step 2: `apps/web-staff/vite.config.ts`** (Vue + Tailwind + alias + proxy API)
 
@@ -267,7 +267,7 @@ export default defineConfig({
 
 ```css
 @import "tailwindcss";
-@import "@driftly/ui-kit/styles/theme.css";
+@import "@coralyn/ui-kit/styles/theme.css";
 /* Tailwind v4 deve scansionare anche i componenti del ui-kit per le classi usate */
 @source "../../../../packages/ui-kit/src";
 ```
@@ -287,13 +287,13 @@ createApp(App).mount('#app');
 ```vue
 <template>
   <main class="p-6">
-    <h1 class="text-2xl font-semibold text-[var(--color-brand)]">Driftly · web-staff</h1>
+    <h1 class="text-2xl font-semibold text-[var(--color-brand)]">Coralyn · web-staff</h1>
     <p class="text-[var(--color-text-muted)]">Tailwind sui token attivo.</p>
   </main>
 </template>
 ```
 
-- [ ] **Step 6: Verifica** — `pnpm --filter @driftly/web-staff dev`
+- [ ] **Step 6: Verifica** — `pnpm --filter @coralyn/web-staff dev`
 Expected: titolo teal (`#1F6F8B`), paragrafo grigio muto; nessun warning Tailwind. Ctrl-C.
 
 - [ ] **Step 7: Commit**
@@ -318,7 +318,7 @@ git commit -m "feat(web-staff): wire Tailwind v4 on ui-kit tokens"
 
 Run:
 ```bash
-pnpm --filter @driftly/web-staff add -D vitest @vue/test-utils jsdom unplugin-icons @iconify-json/lucide
+pnpm --filter @coralyn/web-staff add -D vitest @vue/test-utils jsdom unplugin-icons @iconify-json/lucide
 ```
 
 - [ ] **Step 2: `apps/web-staff/vitest.config.ts`**
@@ -373,7 +373,7 @@ describe('vitest', () => {
 }
 ```
 
-- [ ] **Step 6: verifica il runner** — `pnpm --filter @driftly/web-staff test`
+- [ ] **Step 6: verifica il runner** — `pnpm --filter @coralyn/web-staff test`
 Expected: PASS (1 test, sanity).
 
 - [ ] **Step 7: abilita unplugin-icons** — in `apps/web-staff/vite.config.ts` aggiungi
@@ -429,7 +429,7 @@ describe('Icon', () => {
 });
 ```
 
-- [ ] **Step 10: verifica fallimento** — `pnpm --filter @driftly/web-staff test -- Icon`
+- [ ] **Step 10: verifica fallimento** — `pnpm --filter @coralyn/web-staff test -- Icon`
 Expected: FAIL (`Icon.vue` assente).
 
 - [ ] **Step 11: `packages/ui-kit/src/components/Icon.vue`**
@@ -459,7 +459,7 @@ export { default as Icon } from './components/Icon.vue';
 export { icons, FALLBACK_ICON } from './icons/registry';
 ```
 
-- [ ] **Step 13: verifica successo** — `pnpm --filter @driftly/web-staff test`
+- [ ] **Step 13: verifica successo** — `pnpm --filter @coralyn/web-staff test`
 Expected: PASS (sanity + Icon = 3 test).
 
 - [ ] **Step 14: Commit**
@@ -498,7 +498,7 @@ describe('Button', () => {
 });
 ```
 
-- [ ] **Step 2: verifica fallimento** — `pnpm --filter @driftly/web-staff test -- Button`
+- [ ] **Step 2: verifica fallimento** — `pnpm --filter @coralyn/web-staff test -- Button`
 Expected: FAIL (`Button.vue` assente).
 
 - [ ] **Step 3: `packages/ui-kit/src/components/Button.vue`**
@@ -573,7 +573,7 @@ export { default as Field } from './components/Field.vue';
 export { default as Input } from './components/Input.vue';
 ```
 
-- [ ] **Step 6: verifica** — `pnpm --filter @driftly/web-staff test`
+- [ ] **Step 6: verifica** — `pnpm --filter @coralyn/web-staff test`
 Expected: PASS (sanity + Icon + Button = 5 test).
 
 - [ ] **Step 7: Commit**
@@ -594,14 +594,14 @@ git commit -m "feat(ui-kit): base components (Button, Card, Badge, Field, Input)
 
 - [ ] **Step 1: Installa router + pinia**
 
-Run: `pnpm --filter @driftly/web-staff add vue-router pinia`
+Run: `pnpm --filter @coralyn/web-staff add vue-router pinia`
 
 - [ ] **Step 2: `apps/web-staff/src/stores/session.ts`** (tenant, data attiva, ruolo)
 
 ```ts
 import { defineStore } from 'pinia';
 import { ref } from 'vue';
-import { Ruolo } from '@driftly/contracts';
+import { Ruolo } from '@coralyn/contracts';
 
 const TENANT_DEV = '00000000-0000-0000-0000-000000000001';
 
@@ -628,7 +628,7 @@ export const useSessionStore = defineStore('session', () => {
 
 ```ts
 import { createRouter, createWebHistory, type RouteRecordRaw } from 'vue-router';
-import { Ruolo } from '@driftly/contracts';
+import { Ruolo } from '@coralyn/contracts';
 import { useSessionStore } from '@/stores/session';
 
 const routes: RouteRecordRaw[] = [
@@ -654,8 +654,8 @@ router.beforeEach((to) => {
 
 ```vue
 <script setup lang="ts">
-import { Icon } from '@driftly/ui-kit';
-import { Ruolo } from '@driftly/contracts';
+import { Icon } from '@coralyn/ui-kit';
+import { Ruolo } from '@coralyn/contracts';
 import { useSessionStore } from '@/stores/session';
 const session = useSessionStore();
 const items = [
@@ -688,7 +688,7 @@ const items = [
 
 ```vue
 <script setup lang="ts">
-import { Icon } from '@driftly/ui-kit';
+import { Icon } from '@coralyn/ui-kit';
 import { useSessionStore } from '@/stores/session';
 const session = useSessionStore();
 </script>
@@ -748,7 +748,7 @@ createApp(App).use(createPinia()).use(router).mount('#app');
 ```
 > TanStack Query (Task 7) e MSW (Task 9) estenderanno `main.ts`.
 
-- [ ] **Step 9: Verifica** — `pnpm --filter @driftly/web-staff dev`
+- [ ] **Step 9: Verifica** — `pnpm --filter @coralyn/web-staff dev`
 Expected: app-shell con topbar teal (nome stabilimento) e sidebar navy a 5 voci; il routing
 funziona; la voce **Console NON compare** (ruolo Staff). Ctrl-C.
 
@@ -769,7 +769,7 @@ git commit -m "feat(web-staff): session store + app-shell (topbar, sidebar, rout
 
 - [ ] **Step 1: Installa TanStack Query**
 
-Run: `pnpm --filter @driftly/web-staff add @tanstack/vue-query`
+Run: `pnpm --filter @coralyn/web-staff add @tanstack/vue-query`
 
 - [ ] **Step 2: test che fallisce — `apps/web-staff/src/lib/http.spec.ts`**
 
@@ -797,7 +797,7 @@ describe('apiFetch', () => {
 });
 ```
 
-- [ ] **Step 3: verifica fallimento** — `pnpm --filter @driftly/web-staff test -- http`
+- [ ] **Step 3: verifica fallimento** — `pnpm --filter @coralyn/web-staff test -- http`
 Expected: FAIL (`apiFetch` non esiste).
 
 - [ ] **Step 4: `apps/web-staff/src/lib/http.ts`**
@@ -819,7 +819,7 @@ export async function apiFetch<T>(path: string, { tenantId, headers, ...init }: 
 }
 ```
 
-- [ ] **Step 5: verifica successo** — `pnpm --filter @driftly/web-staff test -- http`
+- [ ] **Step 5: verifica successo** — `pnpm --filter @coralyn/web-staff test -- http`
 Expected: PASS (2 test).
 
 - [ ] **Step 6: `apps/web-staff/src/lib/queryKeys.ts`**
@@ -858,7 +858,7 @@ git commit -m "feat(web-staff): http client (tenant header) + TanStack Query wir
 
 ---
 
-## Task 8: Handshake DTO — estendi `@driftly/contracts` con i DTO mappa (proposta FE)
+## Task 8: Handshake DTO — estendi `@coralyn/contracts` con i DTO mappa (proposta FE)
 
 **Files:**
 - Modify: `packages/contracts/src/index.ts`
@@ -916,7 +916,7 @@ export interface MappaGiornoDTO {
 
 - [ ] **Step 2: builda i contracts**
 
-Run: `pnpm --filter @driftly/contracts build`
+Run: `pnpm --filter @coralyn/contracts build`
 Expected: nessun errore TS; `dist` rigenerato.
 
 - [ ] **Step 3: Commit** (segnala la natura di proposta/handshake)
@@ -940,15 +940,15 @@ git commit -m "feat(contracts): propose map DTOs (Settore/Fila/Ombrellone/Tipolo
 
 Run:
 ```bash
-pnpm --filter @driftly/web-staff add -D msw
-pnpm --filter @driftly/web-staff exec msw init public/ --save
+pnpm --filter @coralyn/web-staff add -D msw
+pnpm --filter @coralyn/web-staff exec msw init public/ --save
 ```
 Expected: crea `apps/web-staff/public/mockServiceWorker.js`.
 
 - [ ] **Step 2: `apps/web-staff/src/mocks/data/seed.ts`** (usa i DTO del Task 8)
 
 ```ts
-import type { MappaGiornoDTO } from '@driftly/contracts';
+import type { MappaGiornoDTO } from '@coralyn/contracts';
 
 export const mappaSeed: MappaGiornoDTO = {
   data: '2026-06-27',
@@ -1012,7 +1012,7 @@ export const worker = setupWorker(...handlers);
 import { setupServer } from 'msw/node';
 import { http, HttpResponse } from 'msw';
 import { handlers } from './handlers';
-import type { ClienteDTO } from '@driftly/contracts';
+import type { ClienteDTO } from '@coralyn/contracts';
 
 const clienti: ClienteDTO[] = [{ id: 'c-1', nome: 'Mario', cognome: 'Rossi' }];
 
@@ -1053,7 +1053,7 @@ afterEach(() => server.resetHandlers());
 afterAll(() => server.close());
 ```
 
-- [ ] **Step 8: verifica** — `pnpm --filter @driftly/web-staff test`
+- [ ] **Step 8: verifica** — `pnpm --filter @coralyn/web-staff test`
 Expected: i test esistenti restano verdi (MSW server attivo senza romperli).
 
 - [ ] **Step 9: Commit**
@@ -1093,7 +1093,7 @@ export function mountApp<C extends Component>(comp: C, options: ComponentMountin
 
 ```ts
 import { useQuery, useMutation, useQueryClient } from '@tanstack/vue-query';
-import type { ClienteDTO } from '@driftly/contracts';
+import type { ClienteDTO } from '@coralyn/contracts';
 import { apiFetch } from '@/lib/http';
 import { queryKeys } from '@/lib/queryKeys';
 import { useSessionStore } from '@/stores/session';
@@ -1135,7 +1135,7 @@ describe('ClientiView', () => {
 });
 ```
 
-- [ ] **Step 4: verifica fallimento** — `pnpm --filter @driftly/web-staff test -- ClientiView`
+- [ ] **Step 4: verifica fallimento** — `pnpm --filter @coralyn/web-staff test -- ClientiView`
 Expected: FAIL (la view è placeholder).
 
 - [ ] **Step 5: `apps/web-staff/src/features/clienti/ClientiView.vue`**
@@ -1143,7 +1143,7 @@ Expected: FAIL (la view è placeholder).
 ```vue
 <script setup lang="ts">
 import { ref } from 'vue';
-import { Button, Card, Field, Input } from '@driftly/ui-kit';
+import { Button, Card, Field, Input } from '@coralyn/ui-kit';
 import { useClienti, useCreaCliente } from './useClienti';
 
 const { data: clienti, isLoading } = useClienti();
@@ -1188,7 +1188,7 @@ function submit() {
 > TanStack Table (ordinamento/paginazione) arriverà nello slice 2; per l'elenco semplice basta una
 > tabella token-driven (YAGNI).
 
-- [ ] **Step 6: verifica successo** — `pnpm --filter @driftly/web-staff test -- ClientiView`
+- [ ] **Step 6: verifica successo** — `pnpm --filter @coralyn/web-staff test -- ClientiView`
 Expected: PASS.
 
 - [ ] **Step 7: Commit**
@@ -1239,7 +1239,7 @@ describe('OmbrelloneCell', () => {
 });
 ```
 
-- [ ] **Step 2: verifica fallimento** — `pnpm --filter @driftly/web-staff test -- OmbrelloneCell`
+- [ ] **Step 2: verifica fallimento** — `pnpm --filter @coralyn/web-staff test -- OmbrelloneCell`
 Expected: FAIL (componente assente).
 
 - [ ] **Step 3: `packages/ui-kit/src/components/OmbrelloneCell.vue`**
@@ -1247,7 +1247,7 @@ Expected: FAIL (componente assente).
 ```vue
 <script setup lang="ts">
 import { computed } from 'vue';
-import type { StatoSlot } from '@driftly/contracts';
+import type { StatoSlot } from '@coralyn/contracts';
 import Icon from './Icon.vue';
 
 const props = withDefaults(defineProps<{
@@ -1294,7 +1294,7 @@ const color = computed(() => (isSplit.value ? 'var(--color-cool-900)' : ink[prop
 </template>
 ```
 
-- [ ] **Step 4: verifica successo** — `pnpm --filter @driftly/web-staff test -- OmbrelloneCell`
+- [ ] **Step 4: verifica successo** — `pnpm --filter @coralyn/web-staff test -- OmbrelloneCell`
 Expected: PASS (3 test).
 
 - [ ] **Step 5: `packages/ui-kit/src/components/Drawer.vue`** (su Reka UI Dialog)
@@ -1332,13 +1332,13 @@ export { default as Drawer } from './components/Drawer.vue';
 - [ ] **Step 7: assicura `reka-ui` installato e risolto**
 
 Run: `pnpm install`
-Expected: `reka-ui` (dipendenza di `@driftly/ui-kit`, Task 2) presente nel workspace.
+Expected: `reka-ui` (dipendenza di `@coralyn/ui-kit`, Task 2) presente nel workspace.
 
 - [ ] **Step 8: `apps/web-staff/src/features/mappa/useMappaGiorno.ts`**
 
 ```ts
 import { useQuery } from '@tanstack/vue-query';
-import type { MappaGiornoDTO } from '@driftly/contracts';
+import type { MappaGiornoDTO } from '@coralyn/contracts';
 import { apiFetch } from '@/lib/http';
 import { queryKeys } from '@/lib/queryKeys';
 import { useSessionStore } from '@/stores/session';
@@ -1357,8 +1357,8 @@ export function useMappaGiorno() {
 ```vue
 <script setup lang="ts">
 import { ref, computed } from 'vue';
-import { OmbrelloneCell, Drawer, Badge } from '@driftly/ui-kit';
-import type { OmbrelloneDTO } from '@driftly/contracts';
+import { OmbrelloneCell, Drawer, Badge } from '@coralyn/ui-kit';
+import type { OmbrelloneDTO } from '@coralyn/contracts';
 import { useMappaGiorno } from './useMappaGiorno';
 
 const { data: mappa, isLoading } = useMappaGiorno();
@@ -1417,12 +1417,12 @@ function apri(o: OmbrelloneDTO) { selezionato.value = o; open.value = true; }
 </template>
 ```
 
-- [ ] **Step 10: verifica dev** — `pnpm --filter @driftly/web-staff dev`
+- [ ] **Step 10: verifica dev** — `pnpm --filter @coralyn/web-staff dev`
 Expected: la **Mappa** (home) mostra il settore Centro + Speciali dal mock MSW; l'8 è split
 (mattina/pomeriggio); marcatori tipologia su 1/2 (foglia) e P1 (palma); clic su una cella apre il
 **drawer** "Ombrellone «etichetta»". Ctrl-C.
 
-- [ ] **Step 11: esegui tutti i test** — `pnpm --filter @driftly/web-staff test`
+- [ ] **Step 11: esegui tutti i test** — `pnpm --filter @coralyn/web-staff test`
 Expected: PASS (sanity, Icon, Button, http, ClientiView, OmbrelloneCell).
 
 - [ ] **Step 12: Commit**
@@ -1442,7 +1442,7 @@ git commit -m "feat(web-staff): map render (OmbrelloneCell, drawer) on mocked AP
 
 - [ ] **Step 1: Installa vite-plugin-pwa**
 
-Run: `pnpm --filter @driftly/web-staff add -D vite-plugin-pwa`
+Run: `pnpm --filter @coralyn/web-staff add -D vite-plugin-pwa`
 
 - [ ] **Step 2: aggiungi le icone** in `apps/web-staff/public/` (`pwa-192.png`, `pwa-512.png`, `favicon.svg`).
 Placeholder accettabili in slice 1 (ombrellone teal su sfondo chiaro), da rifinire col brand ([D-017](../architecture/deferred.md)).
@@ -1457,8 +1457,8 @@ VitePWA({
   devOptions: { enabled: false }, // in dev il SW attivo è quello di MSW
   workbox: { globPatterns: ['**/*.{js,css,html,svg,png,woff2}'] },
   manifest: {
-    name: 'Driftly · Staff',
-    short_name: 'Driftly',
+    name: 'Coralyn · Staff',
+    short_name: 'Coralyn',
     lang: 'it',
     theme_color: '#1F6F8B',
     background_color: '#E9EFF2',
@@ -1474,9 +1474,9 @@ VitePWA({
 
 - [ ] **Step 4: build e verifica generazione SW**
 
-Run: `pnpm --filter @driftly/web-staff build`
+Run: `pnpm --filter @coralyn/web-staff build`
 Expected: build ok; in `apps/web-staff/dist/` compaiono il service worker (`sw.js`) e
-`manifest.webmanifest`. `pnpm --filter @driftly/web-staff preview` → l'app è installabile.
+`manifest.webmanifest`. `pnpm --filter @coralyn/web-staff preview` → l'app è installabile.
 
 - [ ] **Step 5: Commit**
 
@@ -1492,17 +1492,17 @@ git commit -m "feat(web-staff): installable PWA with shell precache (offline-lig
 **Files:**
 - Modify: `eslint.config.mjs` (root) se serve includere i `.vue`
 
-- [ ] **Step 1: typecheck** — `pnpm --filter @driftly/web-staff typecheck`
+- [ ] **Step 1: typecheck** — `pnpm --filter @coralyn/web-staff typecheck`
 Expected: nessun errore TS (strict).
 
 - [ ] **Step 2: lint** (dalla radice) — `pnpm lint`
 Expected: pulito. Se ESLint non conosce i `.vue`, aggiungi `eslint-plugin-vue` + `vue-eslint-parser`
 al config root con un override mirato per `apps/web-staff/**/*.vue`, poi rilancia.
 
-- [ ] **Step 3: test completi** — `pnpm --filter @driftly/web-staff test`
+- [ ] **Step 3: test completi** — `pnpm --filter @coralyn/web-staff test`
 Expected: tutti verdi.
 
-- [ ] **Step 4: build del workspace** — `pnpm --filter @driftly/contracts build && pnpm --filter @driftly/web-staff build`
+- [ ] **Step 4: build del workspace** — `pnpm --filter @coralyn/contracts build && pnpm --filter @coralyn/web-staff build`
 Expected: build verdi.
 
 - [ ] **Step 5: Commit (se ci sono modifiche di config)**
@@ -1516,7 +1516,7 @@ git commit -m "chore(web-staff): lint/typecheck wiring + DoD green"
 
 ## Definition of Done (slice 1)
 
-- `pnpm install` ok; `@driftly/ui-kit` e `@driftly/web-staff` agganciati al workspace.
+- `pnpm install` ok; `@coralyn/ui-kit` e `@coralyn/web-staff` agganciati al workspace.
 - **App-shell**: topbar (nome stabilimento), sidebar a 5 sezioni + **Console gated** (non visibile a non-superuser); routing per sezione; layout a card sui token.
 - **ui-kit token-first**: token in `@theme`, Tailwind v4 sui token; componenti base + `Icon` (offline) + `OmbrelloneCell`.
 - **Clienti**: elenco + creazione verso `/api/clienti` (proxy all'**API reale**), invalidazione cache dopo create (TanStack Query); **verificato via MSW** finché il backend non espone `/clienti` (Piano 1 Task 3–7).

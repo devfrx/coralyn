@@ -1,4 +1,4 @@
-import { Ruolo } from '@driftly/contracts';
+import { Ruolo } from '@coralyn/contracts';
 
 /** Forma di `req.user` dopo la guard. */
 export interface AuthUser {

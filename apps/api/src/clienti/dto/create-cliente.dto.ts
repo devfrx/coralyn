@@ -1,5 +1,5 @@
 import { IsEmail, IsNotEmpty, IsOptional, IsString } from 'class-validator';
-import type { CreaClienteInput } from '@driftly/contracts';
+import type { CreaClienteInput } from '@coralyn/contracts';
 import { NormalizeContatto } from './normalize';
 
 export class CreateClienteDto implements CreaClienteInput {

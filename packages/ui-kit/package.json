@@ -1,5 +1,5 @@
 {
-  "name": "@driftly/ui-kit",
+  "name": "@coralyn/ui-kit",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -11,7 +11,7 @@
     "vue": "^3.5.0"
   },
   "dependencies": {
-    "@driftly/contracts": "workspace:*",
+    "@coralyn/contracts": "workspace:*",
     "reka-ui": "^2.0.0"
   },
   "scripts": {

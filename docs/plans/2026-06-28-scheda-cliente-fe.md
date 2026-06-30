@@ -4,9 +4,9 @@
 
 **Goal:** Trasformare la vista Clienti di `apps/web-staff` in una scheda cliente a 360° (struttura A): lista → dettaglio `/clienti/:id` con header di sintesi, anagrafica editabile (telefono/email/note) e sezioni "in arrivo" come placeholder.
 
-**Architecture:** Frontend-first contro **MSW** (come lo slice 1): si estende `@driftly/contracts` in modo **additivo**, si mockano `GET /api/clienti/:id` e `PATCH /api/clienti/:id` per i test, e si costruisce la scheda. L'**integrazione runtime** col backend reale (endpoint `:id`/PATCH) è *gated* dalla delega Backend (la scheda dettaglio nel browser funzionerà quando il BE li esporrà; i test restano deterministici su MSW). Spec: [docs/specs/2026-06-28-scheda-cliente-design.md](../specs/2026-06-28-scheda-cliente-design.md).
+**Architecture:** Frontend-first contro **MSW** (come lo slice 1): si estende `@coralyn/contracts` in modo **additivo**, si mockano `GET /api/clienti/:id` e `PATCH /api/clienti/:id` per i test, e si costruisce la scheda. L'**integrazione runtime** col backend reale (endpoint `:id`/PATCH) è *gated* dalla delega Backend (la scheda dettaglio nel browser funzionerà quando il BE li esporrà; i test restano deterministici su MSW). Spec: [docs/specs/2026-06-28-scheda-cliente-design.md](../specs/2026-06-28-scheda-cliente-design.md).
 
-**Tech Stack:** Vue 3 (`<script setup>`) + TypeScript, TanStack Vue Query, Pinia, vue-router, MSW v2, Vitest + @vue/test-utils, `@driftly/ui-kit`.
+**Tech Stack:** Vue 3 (`<script setup>`) + TypeScript, TanStack Vue Query, Pinia, vue-router, MSW v2, Vitest + @vue/test-utils, `@coralyn/ui-kit`.
 
 ---
 
@@ -59,7 +59,7 @@ export type ModificaClienteInput = Partial<CreaClienteInput>;
 
 - [ ] **Step 2: Buildare i contratti**
 
-Run: `pnpm --filter @driftly/contracts build`
+Run: `pnpm --filter @coralyn/contracts build`
 Expected: build OK (i campi sono additivi, nessun consumer si rompe).
 
 - [ ] **Step 3: Commit**
@@ -88,7 +88,7 @@ export const queryKeys = {
 
 - [ ] **Step 2: Typecheck**
 
-Run: `pnpm --filter @driftly/web-staff typecheck`
+Run: `pnpm --filter @coralyn/web-staff typecheck`
 Expected: PASS.
 
 - [ ] **Step 3: Commit**
@@ -111,7 +111,7 @@ git commit -m "feat(web-staff): add cliente detail query key"
 import { setupServer } from 'msw/node';
 import { http, HttpResponse } from 'msw';
 import { handlers } from './handlers';
-import type { ClienteDTO } from '@driftly/contracts';
+import type { ClienteDTO } from '@coralyn/contracts';
 
 const INITIAL_CLIENTI: ClienteDTO[] = [
   { id: 'c-1', nome: 'Mario', cognome: 'Rossi', telefono: '+39 333 1111111', email: 'mario.rossi@email.it', note: '' },
@@ -144,7 +144,7 @@ export const server = setupServer(
 
 - [ ] **Step 2: Eseguire la suite per confermare che resta verde**
 
-Run: `pnpm --filter @driftly/web-staff test`
+Run: `pnpm --filter @coralyn/web-staff test`
 Expected: PASS (i test esistenti continuano a passare; `c-1` ora ha contatti).
 
 - [ ] **Step 3: Commit**
@@ -186,7 +186,7 @@ export function mountApp<C extends Component>(comp: C, options: ComponentMountin
 
 - [ ] **Step 2: Eseguire la suite (deve restare verde)**
 
-Run: `pnpm --filter @driftly/web-staff test`
+Run: `pnpm --filter @coralyn/web-staff test`
 Expected: PASS.
 
 - [ ] **Step 3: Commit**
@@ -232,7 +232,7 @@ describe('useCliente', () => {
 
 - [ ] **Step 2: Eseguire il test (deve fallire)**
 
-Run: `pnpm --filter @driftly/web-staff test useClienti`
+Run: `pnpm --filter @coralyn/web-staff test useClienti`
 Expected: FAIL ("useCliente is not exported"/non definita).
 
 - [ ] **Step 3: Implementare l'hook**
@@ -251,7 +251,7 @@ export function useCliente(id: string) {
 
 - [ ] **Step 4: Eseguire il test (deve passare)**
 
-Run: `pnpm --filter @driftly/web-staff test useClienti`
+Run: `pnpm --filter @coralyn/web-staff test useClienti`
 Expected: PASS.
 
 - [ ] **Step 5: Commit**
@@ -299,12 +299,12 @@ it('modifica il cliente e invalida il dettaglio', async () => {
 
 - [ ] **Step 2: Eseguire (deve fallire)**
 
-Run: `pnpm --filter @driftly/web-staff test useClienti`
+Run: `pnpm --filter @coralyn/web-staff test useClienti`
 Expected: FAIL ("useModificaCliente is not exported").
 
 - [ ] **Step 3: Implementare l'hook**
 
-Aggiungere a `useClienti.ts` (importare `useMutation`, `useQueryClient` già presenti, e `ModificaClienteInput` da `@driftly/contracts`):
+Aggiungere a `useClienti.ts` (importare `useMutation`, `useQueryClient` già presenti, e `ModificaClienteInput` da `@coralyn/contracts`):
 
 ```ts
 export function useModificaCliente(id: string) {
@@ -323,7 +323,7 @@ export function useModificaCliente(id: string) {
 
 - [ ] **Step 4: Eseguire (deve passare)**
 
-Run: `pnpm --filter @driftly/web-staff test useClienti`
+Run: `pnpm --filter @coralyn/web-staff test useClienti`
 Expected: PASS.
 
 - [ ] **Step 5: Commit**
@@ -375,14 +375,14 @@ describe('ClienteDettaglioView', () => {
 
 - [ ] **Step 2: Eseguire (deve fallire)**
 
-Run: `pnpm --filter @driftly/web-staff test ClienteDettaglioView`
+Run: `pnpm --filter @coralyn/web-staff test ClienteDettaglioView`
 Expected: FAIL (file non esiste).
 
 - [ ] **Step 3: Implementare la vista (sola lettura; la modifica arriva nel Task 8)**
 
 ```vue
 <script setup lang="ts">
-import { Card, Badge } from '@driftly/ui-kit';
+import { Card, Badge } from '@coralyn/ui-kit';
 import { useCliente } from './useClienti';
 
 const props = defineProps<{ id: string }>();
@@ -428,7 +428,7 @@ const inArrivo = ['Abbonamento e anzianità', 'Storico prenotazioni', 'Pagamenti
 
 - [ ] **Step 4: Eseguire (deve passare)**
 
-Run: `pnpm --filter @driftly/web-staff test ClienteDettaglioView`
+Run: `pnpm --filter @coralyn/web-staff test ClienteDettaglioView`
 Expected: PASS (entrambi i test).
 
 - [ ] **Step 5: Commit**
@@ -462,7 +462,7 @@ it('modifica il telefono e lo rilegge aggiornato', async () => {
 
 - [ ] **Step 2: Eseguire (deve fallire)**
 
-Run: `pnpm --filter @driftly/web-staff test ClienteDettaglioView`
+Run: `pnpm --filter @coralyn/web-staff test ClienteDettaglioView`
 Expected: FAIL (nessun `form`/`input[name="telefono"]`).
 
 - [ ] **Step 3: Sostituire il blocco Anagrafica con un form editabile**
@@ -471,7 +471,7 @@ Nel `<script setup>` aggiungere stato e submit:
 
 ```ts
 import { ref, watch } from 'vue';
-import { Card, Badge, Button, Field, Input } from '@driftly/ui-kit';
+import { Card, Badge, Button, Field, Input } from '@coralyn/ui-kit';
 import { useCliente, useModificaCliente } from './useClienti';
 
 const props = defineProps<{ id: string }>();
@@ -510,7 +510,7 @@ Sostituire la `Card` "Anagrafica" con:
 
 - [ ] **Step 4: Eseguire (deve passare)**
 
-Run: `pnpm --filter @driftly/web-staff test ClienteDettaglioView`
+Run: `pnpm --filter @coralyn/web-staff test ClienteDettaglioView`
 Expected: PASS (tutti e tre i test).
 
 - [ ] **Step 5: Commit**
@@ -552,7 +552,7 @@ it('ogni riga linka alla scheda del cliente', async () => {
 
 - [ ] **Step 3: Eseguire (deve fallire)**
 
-Run: `pnpm --filter @driftly/web-staff test ClientiView`
+Run: `pnpm --filter @coralyn/web-staff test ClientiView`
 Expected: FAIL (nessun `<a>` nella tabella).
 
 - [ ] **Step 4: Rendere il cognome un `RouterLink` nella riga**
@@ -569,7 +569,7 @@ In `ClientiView.vue`, sostituire la cella cognome:
 
 - [ ] **Step 5: Eseguire (deve passare)**
 
-Run: `pnpm --filter @driftly/web-staff test ClientiView`
+Run: `pnpm --filter @coralyn/web-staff test ClientiView`
 Expected: PASS (lo stub `RouterLink` rende `<a>Rossi</a>`).
 
 - [ ] **Step 6: Commit**
@@ -587,12 +587,12 @@ git commit -m "feat(web-staff): route /clienti/:id and link rows to detail"
 
 - [ ] **Step 1: Suite completa**
 
-Run: `pnpm --filter @driftly/web-staff test`
+Run: `pnpm --filter @coralyn/web-staff test`
 Expected: PASS (tutti i file, inclusi i nuovi `useClienti.spec`, `ClienteDettaglioView.spec`, `ClientiView.spec`).
 
 - [ ] **Step 2: Typecheck + lint**
 
-Run: `pnpm --filter @driftly/web-staff typecheck` poi `pnpm lint`
+Run: `pnpm --filter @coralyn/web-staff typecheck` poi `pnpm lint`
 Expected: entrambi PULITI.
 
 - [ ] **Step 3: Nota d'integrazione (non bloccante)**
@@ -610,6 +610,6 @@ git commit -m "chore(web-staff): scheda cliente FE slice complete"
 
 ## Note di integrazione FE↔BE
 
-- L'estensione di `@driftly/contracts` (Task 1) è **additiva** e **condivisa**: la delega Backend consuma `ClienteDTO`/`CreaClienteInput`/`ModificaClienteInput` per `POST`/`PATCH`/validazione. Se BE e FE procedono in parallelo, Task 1 va fatto una volta sola (confine `contracts`).
+- L'estensione di `@coralyn/contracts` (Task 1) è **additiva** e **condivisa**: la delega Backend consuma `ClienteDTO`/`CreaClienteInput`/`ModificaClienteInput` per `POST`/`PATCH`/validazione. Se BE e FE procedono in parallelo, Task 1 va fatto una volta sola (confine `contracts`).
 - I mock MSW (Task 3) **non** vanno rimossi: restano la rete di sicurezza deterministica dei test ([test/setup.ts](../../apps/web-staff/src/test/setup.ts) usa `onUnhandledRequest: 'error'`).
 - `/api/mappa` resta mock; nessuna modifica al proxy Vite (già corretto).

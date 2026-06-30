@@ -53,7 +53,7 @@ model Cliente {
   tutti i campi (anche vuoti) non incappa in un falso `@IsEmail('')` → **400**; (b) **svuotare**
   un contatto e salvare lo **cancella** (`NULL` in DB), coerente con la proiezione `null → undefined`;
   (c) niente stringhe vuote sporche in DB. `@IsOptional` salta poi la validazione sui `null`.
-- Il confine FE/BE resta `@driftly/contracts`: `ClienteDTO` espone i campi come
+- Il confine FE/BE resta `@coralyn/contracts`: `ClienteDTO` espone i campi come
   `telefono?/email?/note?` (additivo), `CreaClienteInput`/`ModificaClienteInput` per gli input.
 - La proiezione DTO nel service mappa `null → undefined` in **tutti** i metodi
   (`list`, `getById`, `create`, `update`), così il confine tipizzato non espone `null`.
@@ -96,7 +96,7 @@ Questa è una **divergenza consapevole** dal [data-model](../design/data-model.m
 1. **Professionalità** — colonne tipizzate + validazione dichiarativa sono prassi standard
    per dati strutturati e noti; email validata al bordo dell'API.
 2. **Convenzioni** — Prisma per lo schema, `class-validator` + `ValidationPipe` idiomatici in
-   NestJS; confine FE/BE su `@driftly/contracts` come per le altre entità.
+   NestJS; confine FE/BE su `@coralyn/contracts` come per le altre entità.
 3. **Modularità** — la proiezione `toDTO` centralizza il mapping `null→undefined`; i DTO di
    validazione isolano le regole di input dal service.
 4. **Zero debito** — risolve [D-022](../deferred.md) (validazione) invece di rinviarla;

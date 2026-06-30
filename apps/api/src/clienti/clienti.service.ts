@@ -2,7 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import type { Cliente } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { TenantContext } from '../tenant/tenant-context';
-import { ClienteDTO, CreaClienteInput, ModificaClienteInput } from '@driftly/contracts';
+import { ClienteDTO, CreaClienteInput, ModificaClienteInput } from '@coralyn/contracts';
 
 @Injectable()
 export class ClientiService {

@@ -28,8 +28,8 @@ function mountLogin() {
 describe('LoginView', () => {
   it('login valido autentica la sessione e naviga a /mappa', async () => {
     const w = mountLogin();
-    await w.find('input[type="email"]').setValue('admin@driftly.dev');
-    await w.find('input[type="password"]').setValue('driftly-admin');
+    await w.find('input[type="email"]').setValue('admin@coralyn.dev');
+    await w.find('input[type="password"]').setValue('coralyn-admin');
     await w.find('form').trigger('submit.prevent');
     await flushPromises();
 
@@ -39,7 +39,7 @@ describe('LoginView', () => {
 
   it('credenziali errate mostrano un errore e non navigano', async () => {
     const w = mountLogin();
-    await w.find('input[type="email"]').setValue('admin@driftly.dev');
+    await w.find('input[type="email"]').setValue('admin@coralyn.dev');
     await w.find('input[type="password"]').setValue('sbagliata');
     await w.find('form').trigger('submit.prevent');
     await flushPromises();

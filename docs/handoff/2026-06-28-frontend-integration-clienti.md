@@ -93,7 +93,7 @@ I test (`vitest`) girano in **Node con MSW `server.ts`**, che mocka `/api/client
 del **proxy** riguarda **solo il runtime browser (dev)**, non i test. Quindi:
 - **NON rimuovere** i mock `/api/clienti` da `server.ts`: servono ai test unit/component
   ([`features/clienti/ClientiView.spec.ts`](../../apps/web-staff/src/features/clienti/ClientiView.spec.ts)).
-- Dopo il fix del proxy, esegui `pnpm --filter @driftly/web-staff test` e verifica che resti **verde**.
+- Dopo il fix del proxy, esegui `pnpm --filter @coralyn/web-staff test` e verifica che resti **verde**.
 
 Se decidi di aggiungere un test d'integrazione *reale* (browser ↔ backend), fallo come prova manuale o
 e2e separato — **non** sostituendo i mock unit (che devono restare deterministici e senza DB).
@@ -103,15 +103,15 @@ e2e separato — **non** sostituendo i mock unit (che devono restare determinist
 ```bash
 # 1) Database (porta 5433 su questa macchina via docker-compose.override.yml gitignored; 5432 altrove)
 docker compose up -d
-pnpm dlx dotenv-cli -e .env -- pnpm --filter @driftly/api exec prisma migrate deploy   # dev
-pnpm dlx dotenv-cli -e .env -- pnpm --filter @driftly/api exec prisma db seed           # Stabilimento dev 00..001
+pnpm dlx dotenv-cli -e .env -- pnpm --filter @coralyn/api exec prisma migrate deploy   # dev
+pnpm dlx dotenv-cli -e .env -- pnpm --filter @coralyn/api exec prisma db seed           # Stabilimento dev 00..001
 
 # 2) Backend (porta 3000). In dev, watch:
-pnpm dlx dotenv-cli -e .env -- pnpm --filter @driftly/api exec nest start
+pnpm dlx dotenv-cli -e .env -- pnpm --filter @coralyn/api exec nest start
 #   (oppure build + node: il bundle è in apps/api/dist/src/main.js — NON dist/main.js)
 
 # 3) Frontend (Vite, porta 5173)
-pnpm --filter @driftly/web-staff dev
+pnpm --filter @coralyn/web-staff dev
 ```
 
 **Verifica nel browser** (`http://localhost:5173`): apri la vista Clienti →
@@ -126,7 +126,7 @@ http://localhost:3000/api/clienti` → 200.
 
 - **SÌ**: fix del proxy Vite + verifica integrazione `/api/clienti` + test FE verdi.
 - **NO**: non toccare `/api/mappa` (resta mock), non implementare auth/JWT (l'header dev resta), non
-  modificare `apps/api`, non rinominare/rimuovere export di `@driftly/contracts` (solo additivo).
+  modificare `apps/api`, non rinominare/rimuovere export di `@coralyn/contracts` (solo additivo).
 - **Coerenza del contratto: già verificata** — `ClienteDTO {id,nome,cognome}`, `POST {nome,cognome}`→201,
   header `X-Stabilimento-Id`, dev tenant `00..001` (seedato): **nessun mismatch**. L'unico disallineamento
   era il proxy (§4).
@@ -140,7 +140,7 @@ Possiedi **`apps/web-staff`** (e, se serve un tipo nuovo, **solo aggiunte** a `p
 ## 9. Definition of Done
 
 - Proxy Vite corretto; nel browser la vista Clienti legge/scrive dal backend reale; `/api/mappa` ancora mock.
-- `pnpm --filter @driftly/web-staff test` verde; `pnpm lint` pulito.
+- `pnpm --filter @coralyn/web-staff test` verde; `pnpm lint` pulito.
 - Se prendi una decisione di design non coperta → **ADR-0023** o **deferred**, mai silenziosa.
 - Tutto committato, working tree pulita. Aggiorna `MEMORY.md` se cambia lo stato.
 

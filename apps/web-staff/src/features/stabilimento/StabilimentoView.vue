@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { useRouter } from 'vue-router';
-import { Card, StatTile, Badge, Button, Avatar, Icon } from '@driftly/ui-kit';
+import { Card, StatTile, Badge, Button, Avatar, Icon } from '@coralyn/ui-kit';
 import { useSessionStore } from '@/stores/session';
 const session = useSessionStore();
 const router = useRouter();

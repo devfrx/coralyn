@@ -1,5 +1,5 @@
 import { JwtService } from '@nestjs/jwt';
-import { Ruolo } from '@driftly/contracts';
+import { Ruolo } from '@coralyn/contracts';
 import { TokenService } from './token.service';
 
 describe('TokenService', () => {

@@ -6,9 +6,9 @@
 
 **Architecture:** NestJS + Prisma + PostgreSQL RLS. Ogni query passa per `tenant.require()` (→400 se manca l'header `X-Stabilimento-Id`) e `prisma.forTenant(tenantId, tx => …)` (imposta la GUC `app.current_tenant`, le policy RLS filtrano). I contatti sono **colonne tipizzate** nullable (ADR-0023), non un `json`. La proiezione DTO mappa `null → undefined` e include i nuovi campi in *tutti* i metodi del service. La validazione usa `class-validator` + `ValidationPipe({ whitelist, transform })`. TDD via e2e (Jest + supertest).
 
-**Tech Stack:** NestJS 10, Prisma 5, PostgreSQL (RLS), `class-validator` + `class-transformer`, Jest + supertest, `@driftly/contracts`.
+**Tech Stack:** NestJS 10, Prisma 5, PostgreSQL (RLS), `class-validator` + `class-transformer`, Jest + supertest, `@coralyn/contracts`.
 
-**Pre-requisito (fuori da questo piano):** `@driftly/contracts` già esteso in modo additivo (`ClienteDTO += telefono?/email?/note?`, `CreaClienteInput`, `ModificaClienteInput`) e buildato. È il confine condiviso FE/BE: fatto una volta sola prima del Task 1.
+**Pre-requisito (fuori da questo piano):** `@coralyn/contracts` già esteso in modo additivo (`ClienteDTO += telefono?/email?/note?`, `CreaClienteInput`, `ModificaClienteInput`) e buildato. È il confine condiviso FE/BE: fatto una volta sola prima del Task 1.
 
 ---
 
@@ -59,14 +59,14 @@ model Cliente {
 Imposta l'env (PowerShell), poi genera. Le colonne nullable non rompono i dati esistenti; la RLS resta valida (policy su `stabilimentoId`).
 
 ```bash
-# PowerShell: $env:DATABASE_URL='postgresql://driftly_app:driftly_app@localhost:5433/driftly_dev?schema=public'
-pnpm --filter @driftly/api exec prisma migrate dev --name cliente_contatti
+# PowerShell: $env:DATABASE_URL='postgresql://coralyn_app:coralyn_app@localhost:5433/coralyn_dev?schema=public'
+pnpm --filter @coralyn/api exec prisma migrate dev --name cliente_contatti
 ```
 Expected: nuova cartella `prisma/migrations/<ts>_cliente_contatti/` con `ALTER TABLE "Cliente" ADD COLUMN ...`; client Prisma rigenerato.
 
 - [ ] **Step 3: Verificare che gli e2e esistenti restino verdi**
 
-Run: `pnpm --filter @driftly/api test:e2e`
+Run: `pnpm --filter @coralyn/api test:e2e`
 Expected: PASS (il test "crea un cliente per s1 e non lo mostra a s2" resta verde).
 
 - [ ] **Step 4: Commit**
@@ -115,7 +115,7 @@ it('crea un cliente coi contatti e li ritorna nel DTO', async () => {
 
 - [ ] **Step 2: Eseguire (deve fallire)**
 
-Run: `pnpm --filter @driftly/api test:e2e`
+Run: `pnpm --filter @coralyn/api test:e2e`
 Expected: FAIL (il DTO ritornato non contiene `telefono/email/note` — la proiezione li scarta).
 
 - [ ] **Step 3: Estendere il service con helper `toDTO` e `create` esteso**
@@ -127,7 +127,7 @@ import { Injectable } from '@nestjs/common';
 import type { Cliente } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { TenantContext } from '../tenant/tenant-context';
-import { ClienteDTO, CreaClienteInput } from '@driftly/contracts';
+import { ClienteDTO, CreaClienteInput } from '@coralyn/contracts';
 
 @Injectable()
 export class ClientiService {
@@ -171,7 +171,7 @@ In `apps/api/src/clienti/clienti.controller.ts` aggiorna l'import e la `create`:
 ```ts
 import { Body, Controller, Get, Post } from '@nestjs/common';
 import { ClientiService } from './clienti.service';
-import { ClienteDTO, CreaClienteInput } from '@driftly/contracts';
+import { ClienteDTO, CreaClienteInput } from '@coralyn/contracts';
 
 @Controller('clienti')
 export class ClientiController {
@@ -191,7 +191,7 @@ export class ClientiController {
 
 - [ ] **Step 5: Eseguire (deve passare)**
 
-Run: `pnpm --filter @driftly/api test:e2e`
+Run: `pnpm --filter @coralyn/api test:e2e`
 Expected: PASS (POST ritorna i contatti; il test di isolamento resta verde).
 
 - [ ] **Step 6: Commit**
@@ -236,7 +236,7 @@ it('GET /:id ritorna il cliente al proprietario e 404 ad altro tenant', async ()
 
 - [ ] **Step 2: Eseguire (deve fallire)**
 
-Run: `pnpm --filter @driftly/api test:e2e`
+Run: `pnpm --filter @coralyn/api test:e2e`
 Expected: FAIL (rotta `GET /:id` inesistente → 404 anche per s1, oppure 200 con body vuoto).
 
 - [ ] **Step 3: Aggiungere `getById` al service**
@@ -275,7 +275,7 @@ getById(@Param('id') id: string): Promise<ClienteDTO> {
 
 - [ ] **Step 5: Eseguire (deve passare)**
 
-Run: `pnpm --filter @driftly/api test:e2e`
+Run: `pnpm --filter @coralyn/api test:e2e`
 Expected: PASS.
 
 - [ ] **Step 6: Commit**
@@ -326,7 +326,7 @@ it('PATCH /:id aggiorna i contatti del proprietario e 404 ad altro tenant', asyn
 
 - [ ] **Step 2: Eseguire (deve fallire)**
 
-Run: `pnpm --filter @driftly/api test:e2e`
+Run: `pnpm --filter @coralyn/api test:e2e`
 Expected: FAIL (rotta `PATCH /:id` inesistente → 404 anche per s1).
 
 - [ ] **Step 3: Aggiungere `update` al service**
@@ -334,7 +334,7 @@ Expected: FAIL (rotta `PATCH /:id` inesistente → 404 anche per s1).
 In `apps/api/src/clienti/clienti.service.ts` aggiungi l'import del tipo input e il metodo:
 
 ```ts
-import { ClienteDTO, CreaClienteInput, ModificaClienteInput } from '@driftly/contracts';
+import { ClienteDTO, CreaClienteInput, ModificaClienteInput } from '@coralyn/contracts';
 ```
 
 ```ts
@@ -365,11 +365,11 @@ update(@Param('id') id: string, @Body() body: ModificaClienteInput): Promise<Cli
 }
 ```
 
-(aggiungi `ModificaClienteInput` all'import da `@driftly/contracts` nel controller)
+(aggiungi `ModificaClienteInput` all'import da `@coralyn/contracts` nel controller)
 
 - [ ] **Step 5: Eseguire (deve passare)**
 
-Run: `pnpm --filter @driftly/api test:e2e`
+Run: `pnpm --filter @coralyn/api test:e2e`
 Expected: PASS.
 
 - [ ] **Step 6: Commit**
@@ -394,7 +394,7 @@ git commit -m "feat(api): PATCH /clienti/:id with tenant isolation (404 cross-te
 - [ ] **Step 1: Installare `class-validator` + `class-transformer`**
 
 ```bash
-pnpm --filter @driftly/api add class-validator class-transformer
+pnpm --filter @coralyn/api add class-validator class-transformer
 ```
 Expected: aggiunte alle `dependencies` di `apps/api/package.json`.
 
@@ -412,7 +412,7 @@ it('rifiuta email malformata con 400', async () => {
 
 - [ ] **Step 3: Eseguire (deve fallire)**
 
-Run: `pnpm --filter @driftly/api test:e2e`
+Run: `pnpm --filter @coralyn/api test:e2e`
 Expected: FAIL (senza `ValidationPipe` l'email malformata viene accettata → 201).
 
 - [ ] **Step 4: Creare i DTO class**
@@ -421,7 +421,7 @@ Expected: FAIL (senza `ValidationPipe` l'email malformata viene accettata → 20
 
 ```ts
 import { IsEmail, IsNotEmpty, IsOptional, IsString } from 'class-validator';
-import type { CreaClienteInput } from '@driftly/contracts';
+import type { CreaClienteInput } from '@coralyn/contracts';
 
 export class CreateClienteDto implements CreaClienteInput {
   @IsString()
@@ -450,7 +450,7 @@ export class CreateClienteDto implements CreaClienteInput {
 
 ```ts
 import { IsEmail, IsOptional, IsString } from 'class-validator';
-import type { ModificaClienteInput } from '@driftly/contracts';
+import type { ModificaClienteInput } from '@coralyn/contracts';
 
 export class UpdateClienteDto implements ModificaClienteInput {
   @IsOptional()
@@ -482,7 +482,7 @@ In `apps/api/src/clienti/clienti.controller.ts` usa le DTO class (è ciò che at
 ```ts
 import { Body, Controller, Get, Param, Patch, Post } from '@nestjs/common';
 import { ClientiService } from './clienti.service';
-import { ClienteDTO } from '@driftly/contracts';
+import { ClienteDTO } from '@coralyn/contracts';
 import { CreateClienteDto } from './dto/create-cliente.dto';
 import { UpdateClienteDto } from './dto/update-cliente.dto';
 
@@ -544,7 +544,7 @@ app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
 
 - [ ] **Step 8: Eseguire l'intera suite (deve passare)**
 
-Run: `pnpm --filter @driftly/api test:e2e`
+Run: `pnpm --filter @coralyn/api test:e2e`
 Expected: PASS (email malformata → 400; tutti i test precedenti verdi).
 
 - [ ] **Step 9: Commit**
@@ -592,12 +592,12 @@ git commit -m "docs(adr): ADR-0023 contatti tipizzati; resolve D-022; open D-024
 
 - [ ] **Step 1: Suite e2e completa**
 
-Run: `pnpm --filter @driftly/api test:e2e`
+Run: `pnpm --filter @coralyn/api test:e2e`
 Expected: PASS (isolamento, contatti su POST, GET/:id 200+404, PATCH 200+404, email 400).
 
 - [ ] **Step 2: Build/typecheck**
 
-Run: `pnpm --filter @driftly/api build`
+Run: `pnpm --filter @coralyn/api build`
 Expected: build OK (nessun errore TS).
 
 ---

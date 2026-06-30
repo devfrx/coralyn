@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref } from 'vue';
-import { SegmentedControl, Button, Badge, Avatar, DataTable, Icon } from '@driftly/ui-kit';
+import { SegmentedControl, Button, Badge, Avatar, DataTable, Icon } from '@coralyn/ui-kit';
 
 const filtro = ref('tutte');
 const filtri = [

@@ -5,14 +5,14 @@ set -e
 cd /app
 
 echo "[entrypoint] prisma migrate deploy..."
-pnpm --filter @driftly/api exec prisma migrate deploy
+pnpm --filter @coralyn/api exec prisma migrate deploy
 
 if [ "${SEED_ON_START:-false}" = "true" ]; then
   echo "[entrypoint] seed tenant di sviluppo + admin..."
   # Il seed ha una guardia che blocca NODE_ENV=production; l'immagine gira in
   # production ma SEED_ON_START e' una comodita' DEV esplicita -> forziamo
   # NODE_ENV=development solo per il comando di seed.
-  NODE_ENV=development pnpm --filter @driftly/api exec prisma db seed || echo "[entrypoint] seed saltato/errore non bloccante"
+  NODE_ENV=development pnpm --filter @coralyn/api exec prisma db seed || echo "[entrypoint] seed saltato/errore non bloccante"
 fi
 
 echo "[entrypoint] avvio API su :${PORT:-3000}"

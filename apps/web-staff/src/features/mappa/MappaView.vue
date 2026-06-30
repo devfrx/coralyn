@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue';
-import { OmbrelloneCell, SegmentedControl, Badge, Button, Modal, Icon } from '@driftly/ui-kit';
-import type { OmbrelloneDTO, StatoSlot } from '@driftly/contracts';
+import { OmbrelloneCell, SegmentedControl, Badge, Button, Modal, Icon } from '@coralyn/ui-kit';
+import type { OmbrelloneDTO, StatoSlot } from '@coralyn/contracts';
 import { useMappaGiorno } from './useMappaGiorno';
 
 const { data: mappa, isLoading } = useMappaGiorno();

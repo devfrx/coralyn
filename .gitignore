@@ -14,7 +14,7 @@ Thumbs.db
 # File di lavoro del companion visivo (brainstorming)
 .superpowers/
 
-# Dipendenze / build — monorepo pnpm (@driftly/*), vedi ADR-0008
+# Dipendenze / build — monorepo pnpm (@coralyn/*), vedi ADR-0008
 node_modules/
 **/dist/
 build/
