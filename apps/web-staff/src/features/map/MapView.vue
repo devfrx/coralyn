@@ -71,6 +71,13 @@ const currentBooking = computed<BookingDTO | null>(() => {
   ) ?? null;
 });
 
+const currentCustomerName = computed<string>(() => {
+  const b = currentBooking.value;
+  if (!b) return '';
+  const c = (customers.value ?? []).find((x) => x.id === b.customerId);
+  return c ? `${c.firstName} ${c.lastName}` : b.customerId;
+});
+
 const customerId = ref<string>('');
 const price = ref<number>(0);
 
@@ -201,7 +208,7 @@ const freeSlotOptions = computed(() =>
         </div>
         <template v-if="currentBooking">
           <div class="mt-3 text-[12.5px]">
-            <div class="flex justify-between border-b border-dashed border-[var(--color-border-row)] py-2"><span class="text-[var(--color-text-muted)]">Cliente</span><span class="font-semibold text-[var(--color-text)]">{{ currentBooking.customerId }}</span></div>
+            <div class="flex justify-between border-b border-dashed border-[var(--color-border-row)] py-2"><span class="text-[var(--color-text-muted)]">Cliente</span><span class="font-semibold text-[var(--color-text)]">{{ currentCustomerName }}</span></div>
             <div class="flex justify-between py-2"><span class="text-[var(--color-text-muted)]">Importo</span><span class="font-semibold tabular-nums text-[var(--color-text)]">€ {{ currentBooking.totalPrice }}</span></div>
           </div>
           <button type="button" @click="onCancel" class="mt-2.5 self-start p-0.5 text-xs font-semibold text-[var(--color-danger)] focus-visible:outline-none focus-visible:[box-shadow:var(--ring-focus)]">Annulla prenotazione</button>
