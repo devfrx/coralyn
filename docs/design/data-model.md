@@ -172,9 +172,12 @@ erDiagram
   Security** PostgreSQL come rete di sicurezza
   ([ADR-0007](../architecture/decisions/0007-stile-architetturale.md),
   [ADR-0010](../architecture/decisions/0010-isolamento-multi-tenant.md)).
-- **Incasso base**: lo stato di pagamento vive sulla `Booking`
-  ([ADR-0011](../architecture/decisions/0011-incasso-base-nel-core.md)); l'entità
-  `Payment` completa arriverà con la Cassa ([D-009](../architecture/deferred.md)).
+- **Incasso base** (slice A2, **implementato**): lo stato di pagamento vive sulla `Booking`
+  ([ADR-0011](../architecture/decisions/0011-incasso-base-nel-core.md)). `paymentStatus`
+  (`unpaid`/`partial`/`paid`) è **derivato server-side** da `amountCollected` vs `totalPrice`
+  (mai input) via `PATCH /api/bookings/:id/payment`; `paymentMethod`/`collectionDate` completano
+  il record. L'entità `Payment` ricca (acconti multipli, ricevute, storni) arriverà con la Cassa
+  ([D-009](../architecture/deferred.md)).
 - **Rinnovo / anzianità**: `previousBookingId` collega un abbonamento a quello
   della stagione precedente; la catena dà storico e anzianità
   ([ADR-0012](../architecture/decisions/0012-gestione-abbonamenti.md)). Prelazione

@@ -15,20 +15,24 @@ Stato: **design del Core MVP completato e approvato**. **Backend** — Core Foun
 giornaliere** (slice A1) implementati:
 API `/api/customers` (CRUD), `/api/auth` (login/me), `/api/map` (lettura della struttura
 ombrelloni per data con stati reali) e `/api/bookings` (crea/elenca/cancella prenotazioni
-giornaliere) con isolamento multi-tenant RLS e migrazioni Prisma. Le 5 entità mappa
+giornaliere), più la **registrazione incasso base** (slice A2: `PATCH /api/bookings/:id/payment`,
+stato di pagamento `unpaid`/`partial`/`paid` derivato server-side, ADR-0011), con isolamento
+multi-tenant RLS e migrazioni Prisma. Le 5 entità mappa
 (`Settore`/`Fila`/`Ombrellone`/`Tipologia`/`Fascia`) sono tenant-scoped con RLS e una struttura
 demo seedata. **Frontend** — redesign **Coralyn** completato e integrato (app-shell, ui-kit,
 tutte le viste); **login reale end-to-end** (`LoginView` → `/api/auth/login`, token Bearer
 persistito, reidratazione via `/me`, logout), scheda cliente e **`MapView`** sul backend reale
 (sganciata dal mock MSW); il modale "Nuova prenotazione" e il drawer della `MapView` sono
 collegati al backend reale (prenotazione giornaliera, selezione cliente, slot, prezzo manuale;
-`BookingsView` resta mockato — slice A2). La proiezione mappa (`projectDayMap`) è ora
+la **`BookingsView`** mostra le prenotazioni reali del giorno con stato di pagamento, filtro e
+azione "Registra incasso" (slice A2), e il drawer della `MapView` consente di registrare l'incasso.
+La proiezione mappa (`projectDayMap`) è ora
 slot-aware e riflette gli stati reali (`free`/`daily`) dalle prenotazioni confermate.
 Il provisioning è **fornitore + inviti**
 ([ADR-0028](docs/architecture/decisions/0028-provisioning-tenant.md)):
 la pagina `/registrazione` è informativa ("attivazione su invito"), non self-service.
 Containerizzazione locale via Docker Compose.
-Prossimi passi: **A2** (incasso base), **A3** (pricing engine / `Package`), **A4**
+Prossimi passi: **A3** (pricing engine / `Package`), **A4**
 (prenotazioni periodiche/abbonamenti) e **gestione utenti staff**
 ([D-025](docs/architecture/deferred.md)).
 
