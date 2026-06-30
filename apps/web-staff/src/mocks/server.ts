@@ -63,4 +63,18 @@ export const server = setupServer(
     );
   }),
   http.delete('/api/bookings/:id', () => new HttpResponse(null, { status: 200 })),
+  http.patch('/api/bookings/:id/payment', async ({ params, request }) => {
+    const b = (await request.json()) as { amountCollected: number; paymentMethod?: string; collectionDate?: string };
+    const paid = b.amountCollected > 0;
+    return HttpResponse.json(
+      {
+        id: params.id, customerId: 'c-1', umbrellaId: 'u1', timeSlotId: 's1',
+        startDate: '2026-07-15', endDate: '2026-07-15', type: 'daily', status: 'confirmed',
+        totalPrice: b.amountCollected, paymentStatus: paid ? 'paid' : 'unpaid', amountCollected: b.amountCollected,
+        paymentMethod: paid ? (b.paymentMethod ?? 'cash') : undefined,
+        collectionDate: paid ? (b.collectionDate ?? '2026-07-15') : undefined,
+      },
+      { status: 200 },
+    );
+  }),
 );
