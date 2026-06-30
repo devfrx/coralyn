@@ -4,6 +4,7 @@
 - **Data:** 2026-06-28
 - **Decisori:** Team di progetto
 - **ADR correlati:** [ADR-0008](0008-stack-e-layout.md) (stack FE: Vue 3 + Pinia), [ADR-0017](0017-design-system-frontend.md) (TanStack Table già adottato), [ADR-0010](0010-isolamento-multi-tenant.md) (tenant via header), [ADR-0007](0007-stile-architetturale.md) (API-first), [D-021](../deferred.md) (validazione runtime rimandata)
+- **Aggiornamento (2026-06-30):** il riferimento all'header provvisorio `X-Stabilimento-Id` (sotto) è superato dall'auth JWT ([ADR-0024](0024-strategia-auth.md)/[ADR-0026](0026-identita-rls-utente.md)): il client HTTP inietta ora `Authorization: Bearer` e il tenant è dedotto dal token. La decisione su **TanStack Query + Pinia** (e le query key per-stabilimento) resta invariata.
 
 ## Context
 

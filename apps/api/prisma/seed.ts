@@ -3,8 +3,8 @@ import * as argon2 from 'argon2';
 
 const prisma = new PrismaClient();
 
-// Stabilimento di sviluppo con id fisso, allineato all'header X-Stabilimento-Id
-// di dev del frontend, così potrà girare contro il backend reale.
+// Stabilimento di sviluppo con id fisso: è lo `stabilimentoId` dell'admin seedato,
+// quindi il JWT emesso al login lo porta nelle richieste (tenant dal token, ADR-0026).
 const DEV_STABILIMENTO_ID = '00000000-0000-0000-0000-000000000001';
 
 async function main(): Promise<void> {

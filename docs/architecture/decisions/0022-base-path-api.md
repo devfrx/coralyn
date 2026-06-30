@@ -4,6 +4,7 @@
 - **Data:** 2026-06-28
 - **Decisori:** Team di progetto (esecuzione Plan 1 — backend)
 - **ADR correlati:** [ADR-0008](0008-stack-e-layout.md), [ADR-0010](0010-isolamento-multi-tenant.md), [ADR-0021](0021-server-state-frontend.md)
+- **Aggiornamento (2026-06-30):** il dettaglio sull'header `X-Stabilimento-Id` (§Context) è superato dall'auth JWT ([ADR-0024](0024-strategia-auth.md)/[ADR-0026](0026-identita-rls-utente.md)): il FE invia ora `Authorization: Bearer` e il tenant è dedotto dal token. La decisione sul **base path `/api`** (con `/health` a root) resta invariata.
 
 ## Context
 
