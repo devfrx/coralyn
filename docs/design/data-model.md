@@ -4,10 +4,16 @@
 > [ADR-0030](../architecture/decisions/0030-codice-e-db-in-inglese.md)). La prosa esplicativa
 > resta in italiano; la mappatura termine-di-dominio ↔ identificatore è nel
 > [glossario](../architecture/glossary.md). Le entità ancora **non implementate**
-> (`Package`, `Season`, `Pricing`, `Rate`, `Waitlist`, `AuditLog`) hanno nomi di
-> design, da confermare quando verranno realizzate.
-> `Booking` è **implementata** (slice A1 — solo `type=daily` attivo; `packageId` rinviato ad A3
-> quando esisterà `Package`).
+> (`Waitlist`, `AuditLog`) hanno nomi di design, da confermare quando verranno realizzate.
+> `Booking` è **implementata** (slice A1 — solo `type=daily` attivo; `packageId` presente e nullable
+> da A3.1). `Package`, `Season`, `Pricing` e `Rate` sono **implementate** (slice A3.1, con RLS
+> `tenant_isolation` FORCE e vincolo di non-ambiguità sulla firma delle dimensioni).
+>
+> **Refinement A3.1 rispetto al design originale:** `Rate.period` (json) → due colonne tipizzate
+> `periodStart`/`periodEnd` (`@db.Date`); `Rate.scope "sector/row"` → FK nullable `sectorId`/`rowId`
+> (coerente con [ADR-0023](../architecture/decisions/0023-contatti-cliente-colonne-tipizzate.md));
+> `Rate` porta `establishmentId` direttamente (per RLS sulla tabella, coerente con tutte le entità
+> tenant-scoped); `Booking.packageId` nullable è ora presente (selettore Pacchetto in A3.2).
 
 Fonte di verità del modello dati del Core operativo. Decisioni:
 [mappa](../architecture/decisions/0005-modello-mappa.md),
@@ -111,14 +117,17 @@ erDiagram
     }
     RATE {
         uuid id PK
+        uuid establishmentId FK "tenant (per RLS diretta)"
         uuid pricingId FK
-        string type "daily|periodic|subscription"
-        string scope "sector/row"
-        uuid packageId FK
-        uuid timeSlotId FK "slot (intera/mattina/pomeriggio)"
-        json period "intervallo/stagione"
+        string type "daily|periodic|subscription; nullable = wildcard"
+        uuid sectorId FK "nullable = wildcard (posizione Settore)"
+        uuid rowId FK "nullable = wildcard (posizione Fila, più specifica)"
+        uuid packageId FK "nullable = wildcard"
+        uuid timeSlotId FK "nullable = wildcard (fascia)"
+        date periodStart "nullable = tutta la stagione"
+        date periodEnd "nullable = tutta la stagione"
         decimal price
-        string unit "giorno|periodo"
+        string unit "day (× giorni) | period (forfait)"
     }
     BOOKING {
         uuid id PK
@@ -194,10 +203,15 @@ erDiagram
   si sovrappongano sullo stesso `Umbrella` per intervalli di date intersecanti **e
   `TimeSlot` uguale o sovrapposto**. Mattina e pomeriggio sullo stesso ombrellone/giorno
   non si sovrappongono ([ADR-0013](../architecture/decisions/0013-granularita-disponibilita-a-slot.md)).
-- **Risoluzione prezzo**: il pricing engine seleziona la `Rate` applicabile a una
-  `Booking` combinando {tipo, ambito posizione, pacchetto, **fascia**, periodo},
-  dalla regola più specifica alla più generica. Le dimensioni della `Rate` possono
-  essere generiche (non specificate) per fungere da regola di default.
+- **Risoluzione prezzo** (slice A3.1, **implementato**): il pricing engine puro (`resolvePrice`)
+  seleziona la `Rate` applicabile secondo la **precedenza esplicita lessicografica**
+  periodo › fila › settore › pacchetto › fascia › tipo ([ADR-0032](../architecture/decisions/0032-pricing-engine-precedenza.md)).
+  Ogni dimensione null è wildcard; una `Rate` catch-all (tutte le dimensioni null) è la rete di
+  default obbligatoria di un listino ben formato. No-match → **422** (mai €0 silenzioso); nessuna
+  stagione attiva → **422** (NO_SEASON). `UmbrellaType` esclusa dal pricing ([D-018](../architecture/deferred.md)).
+  Ambiguità impossibile per costruzione: `@@unique` sulla firma delle dimensioni con
+  `NULLS NOT DISTINCT`. Il `totalPrice` è **calcolato dal server** (non accettato dal client):
+  `POST /api/bookings` richiama `CatalogService.quote(...)` nella stessa transazione.
 - **Posizione**: `logicalOrder` governa l'ordinamento nella fila;
   `presentationPosition` è un layer visivo opzionale (porta aperta alla planimetria,
   [D-005](../architecture/deferred.md)).

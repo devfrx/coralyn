@@ -19,11 +19,19 @@ giornaliere), più la **registrazione incasso base** (slice A2: `PATCH /api/book
 stato di pagamento `unpaid`/`partial`/`paid` derivato server-side, ADR-0011), con isolamento
 multi-tenant RLS e migrazioni Prisma. Le 5 entità mappa
 (`Settore`/`Fila`/`Ombrellone`/`Tipologia`/`Fascia`) sono tenant-scoped con RLS e una struttura
-demo seedata. **Frontend** — redesign **Coralyn** completato e integrato (app-shell, ui-kit,
+demo seedata. **Slice A3.1 — pricing engine** implementato: catalogo
+(`Package`/`Season`/`Pricing`/`Rate`, tenant-scoped con RLS) + **engine puro a precedenze
+esplicite** (`resolvePrice`, precedenza periodo › fila › settore › pacchetto › fascia › tipo,
+[ADR-0032](docs/architecture/decisions/0032-pricing-engine-precedenza.md)) + **auto-pricing su
+`POST /api/bookings`** (il server calcola il `totalPrice`; niente più prezzo digitato a mano) +
+endpoint **`GET /api/bookings/quote`** (preventivo prezzo prima di confermare); listino
+**seeded** (editor CRUD rinviato, [D-032](docs/architecture/deferred.md)).
+**Frontend** — redesign **Coralyn** completato e integrato (app-shell, ui-kit,
 tutte le viste); **login reale end-to-end** (`LoginView` → `/api/auth/login`, token Bearer
 persistito, reidratazione via `/me`, logout), scheda cliente e **`MapView`** sul backend reale
 (sganciata dal mock MSW); il modale "Nuova prenotazione" e il drawer della `MapView` sono
-collegati al backend reale (prenotazione giornaliera, selezione cliente, slot, prezzo manuale;
+collegati al backend reale (prenotazione giornaliera, selezione cliente, slot; il **prezzo è
+calcolato dal server** e mostrato in sola lettura nel modale, slice A3.1);
 la **`BookingsView`** mostra le prenotazioni reali del giorno con stato di pagamento, filtro e
 azione "Registra incasso" (slice A2), e il drawer della `MapView` consente di registrare l'incasso.
 La proiezione mappa (`projectDayMap`) è ora
@@ -32,7 +40,7 @@ Il provisioning è **fornitore + inviti**
 ([ADR-0028](docs/architecture/decisions/0028-provisioning-tenant.md)):
 la pagina `/registrazione` è informativa ("attivazione su invito"), non self-service.
 Containerizzazione locale via Docker Compose.
-Prossimi passi: **A3** (pricing engine / `Package`), **A4**
+Prossimi passi: **A3.2** (selettore Pacchetto + ricalcolo nel modale), **A4**
 (prenotazioni periodiche/abbonamenti) e **gestione utenti staff**
 ([D-025](docs/architecture/deferred.md)).
 

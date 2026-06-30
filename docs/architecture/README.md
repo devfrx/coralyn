@@ -109,3 +109,5 @@ componenti) è la spec d'implementazione di `ui-kit` ([ADR-0017](decisions/0017-
 - [ADR-0028](decisions/0028-provisioning-tenant.md) — Provisioning dei tenant (fornitore + inviti, no self-registration aperta)
 - [ADR-0029](decisions/0029-brand-coralyn.md) — Brand definitivo Coralyn (rename scope `@coralyn/*` + identificatori infra; risolve D-017)
 - [ADR-0030](decisions/0030-codice-e-db-in-inglese.md) — Codice e DB interamente in inglese (supera ADR-0003)
+- [ADR-0031](decisions/0031-fuso-orario-e-date-operative.md) — Fuso orario e date operative (calendario nel fuso dello Stabilimento)
+- [ADR-0032](decisions/0032-pricing-engine-precedenza.md) — Pricing engine — dimensioni e precedenza esplicita
