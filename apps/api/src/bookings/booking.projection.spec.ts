@@ -8,6 +8,7 @@ const row = {
   umbrellaId: 'u1',
   timeSlotId: 's1',
   previousBookingId: null,
+  packageId: null,
   startDate: new Date('2026-07-15T00:00:00Z'),
   endDate: new Date('2026-07-15T00:00:00Z'),
   type: 'daily' as const,
@@ -47,5 +48,10 @@ describe('toBookingDTO', () => {
     const dto = toBookingDTO(row);
     expect(dto.paymentMethod).toBeUndefined();
     expect(dto.collectionDate).toBeUndefined();
+  });
+
+  it('mappa packageId quando valorizzato e null → undefined', () => {
+    expect(toBookingDTO({ ...row, packageId: 'pkg-1' }).packageId).toBe('pkg-1');
+    expect(toBookingDTO(row).packageId).toBeUndefined();
   });
 });
