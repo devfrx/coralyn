@@ -281,7 +281,7 @@ const freeSlotOptions = computed(() =>
         </div>
         <div class="flex justify-end gap-2.5 pt-2">
           <Button variant="secondary" @click="modalBooking = false">Annulla</Button>
-          <Button @click="confirmBooking">Conferma prenotazione</Button>
+          <Button :disabled="quoteError || quoteLoading" @click="confirmBooking">Conferma prenotazione</Button>
         </div>
       </div>
     </Modal>
