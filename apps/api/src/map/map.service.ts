@@ -2,7 +2,8 @@ import { Injectable } from '@nestjs/common';
 import type { DayMapDTO } from '@coralyn/contracts';
 import { PrismaService } from '../prisma/prisma.service';
 import { TenantContext } from '../tenant/tenant-context';
-import { projectDayMap, resolveDate, type MapSource } from './map.projection';
+import { projectDayMap, type MapSource } from './map.projection';
+import { resolveDate } from '../common/dates';
 
 @Injectable()
 export class MapService {

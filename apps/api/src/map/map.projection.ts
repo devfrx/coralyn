@@ -9,7 +9,6 @@ import type {
   UmbrellaTypeDTO,
 } from '@coralyn/contracts';
 import { slotsOverlap } from '../bookings/booking.availability';
-import { todayInRome } from '../common/dates';
 
 type RowWithUmbrellas = Row & { umbrellas: Umbrella[] };
 type SectorWithRows = Sector & { rows: RowWithUmbrellas[] };
@@ -26,11 +25,6 @@ export interface MapSource {
   timeSlots: TimeSlot[];
   sectors: SectorWithRows[];
   bookings: BookingForMap[];
-}
-
-/** Effective date: requested or today (Europe/Rome). ADR-0031. */
-export function resolveDate(date?: string): string {
-  return date ?? todayInRome();
 }
 
 const STATE_BY_TYPE: Record<BookingType, SlotState> = {

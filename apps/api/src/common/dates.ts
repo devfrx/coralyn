@@ -21,3 +21,8 @@ export function formatDbDate(d: Date): string {
 export function toDbDate(s: string): Date {
   return new Date(`${s}T00:00:00Z`);
 }
+
+/** Data effettiva: quella richiesta oppure oggi in Europe/Rome (ADR-0031). */
+export function resolveDate(date?: string): string {
+  return date ?? todayInRome();
+}

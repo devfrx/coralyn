@@ -1,5 +1,5 @@
-import { projectDayMap, resolveDate, type MapSource } from './map.projection';
-import { todayInRome } from '../common/dates';
+import { projectDayMap, type MapSource } from './map.projection';
+import { todayInRome, resolveDate } from '../common/dates';
 
 const source: MapSource = {
   umbrellaTypes: [{ id: 't1', establishmentId: 'e', name: 'Palma', sortOrder: 2, icon: 'palmtree' }],

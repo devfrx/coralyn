@@ -3,7 +3,7 @@ import type { BookingDTO } from '@coralyn/contracts';
 import { BookingsService } from './bookings.service';
 import { CreateBookingDto } from './dto/create-booking.dto';
 import { BookingsQueryDto } from './dto/bookings-query.dto';
-import { resolveDate } from '../map/map.projection';
+import { resolveDate } from '../common/dates';
 
 @Controller('bookings')
 export class BookingsController {
