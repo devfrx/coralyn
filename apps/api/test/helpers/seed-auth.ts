@@ -1,21 +1,21 @@
 import type { INestApplication } from '@nestjs/common';
-import { Ruolo } from '@prisma/client';
+import { Role } from '@prisma/client';
 import * as argon2 from 'argon2';
 import request from 'supertest';
 import type { PrismaService } from '../../src/prisma/prisma.service';
 
-/** Crea un Utente con password hashata (accesso diretto: Utente non ha RLS). */
-export async function createUtente(
+/** Crea un User con password hashata (accesso diretto: User non ha RLS). */
+export async function createUser(
   prisma: PrismaService,
-  params: { email: string; password: string; ruolo: Ruolo; stabilimentoId: string | null },
+  params: { email: string; password: string; role: Role; establishmentId: string | null },
 ): Promise<void> {
   const passwordHash = await argon2.hash(params.password, { type: argon2.argon2id });
-  await prisma.utente.create({
+  await prisma.user.create({
     data: {
       email: params.email,
       passwordHash,
-      ruolo: params.ruolo,
-      stabilimentoId: params.stabilimentoId,
+      role: params.role,
+      establishmentId: params.establishmentId,
     },
   });
 }

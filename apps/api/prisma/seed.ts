@@ -1,120 +1,120 @@
-import { PrismaClient, Ruolo } from '@prisma/client';
+import { PrismaClient, Role } from '@prisma/client';
 import * as argon2 from 'argon2';
 
 const prisma = new PrismaClient();
 
-// Stabilimento di sviluppo con id fisso: è lo `stabilimentoId` dell'admin seedato,
+// Establishment di sviluppo con id fisso: è l'`establishmentId` dell'admin seedato,
 // quindi il JWT emesso al login lo porta nelle richieste (tenant dal token, ADR-0026).
-const DEV_STABILIMENTO_ID = '00000000-0000-0000-0000-000000000001';
+const DEV_ESTABLISHMENT_ID = '00000000-0000-0000-0000-000000000001';
 
 async function main(): Promise<void> {
   if (process.env.NODE_ENV === 'production') {
     throw new Error('Seed non può girare in produzione');
   }
 
-  await prisma.stabilimento.upsert({
-    where: { id: DEV_STABILIMENTO_ID },
+  await prisma.establishment.upsert({
+    where: { id: DEV_ESTABLISHMENT_ID },
     update: {},
-    create: { id: DEV_STABILIMENTO_ID, nome: 'Lido di Sviluppo' },
+    create: { id: DEV_ESTABLISHMENT_ID, name: 'Lido di Sviluppo' },
   });
 
   // Primo admin di sviluppo (per login locale). Password hashata con argon2id.
   const email = process.env.DEV_ADMIN_EMAIL ?? 'admin@coralyn.dev';
   const password = process.env.DEV_ADMIN_PASSWORD ?? 'coralyn-admin';
   const passwordHash = await argon2.hash(password, { type: argon2.argon2id });
-  await prisma.utente.upsert({
+  await prisma.user.upsert({
     where: { email },
     update: { passwordHash },
-    create: { email, passwordHash, ruolo: Ruolo.admin, stabilimentoId: DEV_STABILIMENTO_ID },
+    create: { email, passwordHash, role: Role.admin, establishmentId: DEV_ESTABLISHMENT_ID },
   });
 
-  // --- Mappa demo (idempotente) per il tenant dev. Forma allineata a mappaSeed FE. ---
-  // Le 5 tabelle mappa hanno RLS FORCE: gli upsert devono girare con la GUC
+  // --- Map demo (idempotente) per il tenant dev. Forma allineata a mapSeed FE. ---
+  // Le tabelle map hanno RLS FORCE: gli upsert devono girare con la GUC
   // app.current_tenant impostata, dentro UNA transazione (come PrismaService.forTenant).
   const u = (prefix: number, n: number): string =>
     `${prefix}0000000-0000-0000-0000-${String(n).padStart(12, '0')}`;
   const t = (hhmm: string): Date => new Date(`1970-01-01T${hhmm}:00Z`);
-  const SID = DEV_STABILIMENTO_ID;
-  const TIP_MINI = u(1, 1);
-  const TIP_PALMA = u(1, 2);
-  const FILA_PALME = u(4, 9);
+  const EID = DEV_ESTABLISHMENT_ID;
+  const TYPE_MINI = u(1, 1);
+  const TYPE_PALM = u(1, 2);
+  const ROW_PALMS = u(4, 9);
 
   await prisma.$transaction(async (tx) => {
-    await tx.$executeRaw`SELECT set_config('app.current_tenant', ${SID}, true)`;
+    await tx.$executeRaw`SELECT set_config('app.current_tenant', ${EID}, true)`;
 
-    const tipologie = [
-      { id: TIP_MINI, nome: 'Mini-palma', ordine: 1, icona: 'leaf' },
-      { id: TIP_PALMA, nome: 'Palma', ordine: 2, icona: 'palmtree' },
+    const umbrellaTypes = [
+      { id: TYPE_MINI, name: 'Mini-palma', sortOrder: 1, icon: 'leaf' },
+      { id: TYPE_PALM, name: 'Palma', sortOrder: 2, icon: 'palmtree' },
     ];
-    for (const x of tipologie) {
-      await tx.tipologia.upsert({
+    for (const x of umbrellaTypes) {
+      await tx.umbrellaType.upsert({
         where: { id: x.id },
-        update: { nome: x.nome, ordine: x.ordine, icona: x.icona },
-        create: { stabilimentoId: SID, ...x },
+        update: { name: x.name, sortOrder: x.sortOrder, icon: x.icon },
+        create: { establishmentId: EID, ...x },
       });
     }
 
-    const fasce = [
-      { id: u(2, 1), nome: 'Mattina', oraInizio: t('08:00'), oraFine: t('13:00'), ordine: 1 },
-      { id: u(2, 2), nome: 'Pomeriggio', oraInizio: t('13:00'), oraFine: t('19:00'), ordine: 2 },
+    const timeSlots = [
+      { id: u(2, 1), name: 'Mattina', startTime: t('08:00'), endTime: t('13:00'), sortOrder: 1 },
+      { id: u(2, 2), name: 'Pomeriggio', startTime: t('13:00'), endTime: t('19:00'), sortOrder: 2 },
     ];
-    for (const x of fasce) {
-      await tx.fascia.upsert({
+    for (const x of timeSlots) {
+      await tx.timeSlot.upsert({
         where: { id: x.id },
-        update: { nome: x.nome, oraInizio: x.oraInizio, oraFine: x.oraFine, ordine: x.ordine },
-        create: { stabilimentoId: SID, ...x },
+        update: { name: x.name, startTime: x.startTime, endTime: x.endTime, sortOrder: x.sortOrder },
+        create: { establishmentId: EID, ...x },
       });
     }
 
-    const settori = [
-      { id: u(3, 1), nome: 'Centro', ordine: 1 },
-      { id: u(3, 2), nome: 'Speciali', ordine: 99 },
+    const sectors = [
+      { id: u(3, 1), name: 'Centro', sortOrder: 1 },
+      { id: u(3, 2), name: 'Speciali', sortOrder: 99 },
     ];
-    for (const x of settori) {
-      await tx.settore.upsert({
+    for (const x of sectors) {
+      await tx.sector.upsert({
         where: { id: x.id },
-        update: { nome: x.nome, ordine: x.ordine },
-        create: { stabilimentoId: SID, ...x },
+        update: { name: x.name, sortOrder: x.sortOrder },
+        create: { establishmentId: EID, ...x },
       });
     }
 
-    const file = [
-      { id: u(4, 1), settoreId: u(3, 1), etichetta: 'Fila 1', ordine: 1 },
-      { id: u(4, 2), settoreId: u(3, 1), etichetta: 'Fila 2', ordine: 2 },
-      { id: u(4, 3), settoreId: u(3, 1), etichetta: 'Fila 3', ordine: 3 },
-      { id: FILA_PALME, settoreId: u(3, 2), etichetta: 'Palme', ordine: 1 },
+    const rows = [
+      { id: u(4, 1), sectorId: u(3, 1), label: 'Fila 1', sortOrder: 1 },
+      { id: u(4, 2), sectorId: u(3, 1), label: 'Fila 2', sortOrder: 2 },
+      { id: u(4, 3), sectorId: u(3, 1), label: 'Fila 3', sortOrder: 3 },
+      { id: ROW_PALMS, sectorId: u(3, 2), label: 'Palme', sortOrder: 1 },
     ];
-    for (const x of file) {
-      await tx.fila.upsert({
+    for (const x of rows) {
+      await tx.row.upsert({
         where: { id: x.id },
-        update: { settoreId: x.settoreId, etichetta: x.etichetta, ordine: x.ordine },
-        create: { stabilimentoId: SID, ...x },
+        update: { sectorId: x.sectorId, label: x.label, sortOrder: x.sortOrder },
+        create: { establishmentId: EID, ...x },
       });
     }
 
-    // Ombrelloni: Fila 1/2 = Mini-palma (1..20), Fila 3 = Normale (21..30), Palme = Palma (P1..P4).
-    type OmbDef = {
+    // Umbrellas: Fila 1/2 = Mini-palma (1..20), Fila 3 = Normale (21..30), Palme = Palma (P1..P4).
+    type UmbrellaDef = {
       id: string;
-      filaId: string;
-      tipologiaId: string | null;
-      etichetta: string;
-      ordineLogico: number;
+      rowId: string;
+      umbrellaTypeId: string | null;
+      label: string;
+      logicalOrder: number;
     };
-    const ombrelloni: OmbDef[] = [];
+    const umbrellas: UmbrellaDef[] = [];
     let k = 0;
-    const push = (filaId: string, tipologiaId: string | null, etichetta: string, ordineLogico: number): void => {
-      ombrelloni.push({ id: u(5, ++k), filaId, tipologiaId, etichetta, ordineLogico });
+    const push = (rowId: string, umbrellaTypeId: string | null, label: string, logicalOrder: number): void => {
+      umbrellas.push({ id: u(5, ++k), rowId, umbrellaTypeId, label, logicalOrder });
     };
-    for (let i = 1; i <= 10; i++) push(u(4, 1), TIP_MINI, String(i), i);
-    for (let i = 11; i <= 20; i++) push(u(4, 2), TIP_MINI, String(i), i - 10);
+    for (let i = 1; i <= 10; i++) push(u(4, 1), TYPE_MINI, String(i), i);
+    for (let i = 11; i <= 20; i++) push(u(4, 2), TYPE_MINI, String(i), i - 10);
     for (let i = 21; i <= 30; i++) push(u(4, 3), null, String(i), i - 20);
-    for (let i = 1; i <= 4; i++) push(FILA_PALME, TIP_PALMA, `P${i}`, i);
+    for (let i = 1; i <= 4; i++) push(ROW_PALMS, TYPE_PALM, `P${i}`, i);
 
-    for (const x of ombrelloni) {
-      await tx.ombrellone.upsert({
+    for (const x of umbrellas) {
+      await tx.umbrella.upsert({
         where: { id: x.id },
-        update: { filaId: x.filaId, tipologiaId: x.tipologiaId, etichetta: x.etichetta, ordineLogico: x.ordineLogico },
-        create: { stabilimentoId: SID, ...x },
+        update: { rowId: x.rowId, umbrellaTypeId: x.umbrellaTypeId, label: x.label, logicalOrder: x.logicalOrder },
+        create: { establishmentId: EID, ...x },
       });
     }
   });

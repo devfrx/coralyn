@@ -3,18 +3,18 @@ import { ConfigModule } from '@nestjs/config';
 import { HealthController } from './health/health.controller';
 import { PrismaModule } from './prisma/prisma.module';
 import { TenantModule } from './tenant/tenant.module';
-import { ClientiModule } from './clienti/clienti.module';
-import { MappaModule } from './mappa/mappa.module';
-import { IdentitaModule } from './identita/identita.module';
+import { CustomersModule } from './customers/customers.module';
+import { MapModule } from './map/map.module';
+import { IdentityModule } from './identity/identity.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
     PrismaModule,
     TenantModule,
-    IdentitaModule,
-    ClientiModule,
-    MappaModule,
+    IdentityModule,
+    CustomersModule,
+    MapModule,
   ],
   controllers: [HealthController],
 })

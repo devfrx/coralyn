@@ -7,32 +7,32 @@ describe('PrismaService RLS isolation', () => {
 
   beforeAll(async () => {
     await prisma.$connect();
-    // Gli Stabilimento NON sono tenant-scoped: creazione libera (registro tenant).
-    s1 = (await prisma.stabilimento.create({ data: { nome: 'Lido A' } })).id;
-    s2 = (await prisma.stabilimento.create({ data: { nome: 'Lido B' } })).id;
+    // Gli Establishment NON sono tenant-scoped: creazione libera (registro tenant).
+    s1 = (await prisma.establishment.create({ data: { name: 'Lido A' } })).id;
+    s2 = (await prisma.establishment.create({ data: { name: 'Lido B' } })).id;
     await prisma.forTenant(s1, (tx) =>
-      tx.cliente.create({ data: { stabilimentoId: s1, nome: 'Mario', cognome: 'Rossi' } }),
+      tx.customer.create({ data: { establishmentId: s1, firstName: 'Mario', lastName: 'Rossi' } }),
     );
     await prisma.forTenant(s2, (tx) =>
-      tx.cliente.create({ data: { stabilimentoId: s2, nome: 'Anna', cognome: 'Verdi' } }),
+      tx.customer.create({ data: { establishmentId: s2, firstName: 'Anna', lastName: 'Verdi' } }),
     );
   });
 
   afterAll(async () => {
-    await prisma.forTenant(s1, (tx) => tx.cliente.deleteMany({}));
-    await prisma.forTenant(s2, (tx) => tx.cliente.deleteMany({}));
-    await prisma.stabilimento.deleteMany({ where: { id: { in: [s1, s2] } } });
+    await prisma.forTenant(s1, (tx) => tx.customer.deleteMany({}));
+    await prisma.forTenant(s2, (tx) => tx.customer.deleteMany({}));
+    await prisma.establishment.deleteMany({ where: { id: { in: [s1, s2] } } });
     await prisma.$disconnect();
   });
 
   it('un tenant vede solo i propri clienti', async () => {
-    const clientiS1 = await prisma.forTenant(s1, (tx) => tx.cliente.findMany());
-    expect(clientiS1).toHaveLength(1);
-    expect(clientiS1[0].nome).toBe('Mario');
+    const customersS1 = await prisma.forTenant(s1, (tx) => tx.customer.findMany());
+    expect(customersS1).toHaveLength(1);
+    expect(customersS1[0].firstName).toBe('Mario');
   });
 
   it('senza tenant impostato non vede nulla', async () => {
-    const clienti = await prisma.cliente.findMany();
-    expect(clienti).toHaveLength(0);
+    const customers = await prisma.customer.findMany();
+    expect(customers).toHaveLength(0);
   });
 });

@@ -7,110 +7,110 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model Stabilimento {
-  id         String       @id @default(uuid()) @db.Uuid
-  nome       String
-  clienti    Cliente[]
-  utenti     Utente[]
-  settori    Settore[]
-  file       Fila[]
-  ombrelloni Ombrellone[]
-  tipologie  Tipologia[]
-  fasce      Fascia[]
+model Establishment {
+  id        String     @id @default(uuid()) @db.Uuid
+  name      String
+  customers Customer[]
+  users     User[]
+  sectors   Sector[]
+  rows      Row[]
+  umbrellas Umbrella[]
+  types     UmbrellaType[]
+  timeSlots TimeSlot[]
 }
 
-model Cliente {
-  id             String       @id @default(uuid()) @db.Uuid
-  stabilimentoId String       @db.Uuid
-  nome           String
-  cognome        String
-  telefono       String?
-  email          String?
-  note           String?
-  stabilimento   Stabilimento @relation(fields: [stabilimentoId], references: [id])
+model Customer {
+  id              String        @id @default(uuid()) @db.Uuid
+  establishmentId String        @db.Uuid
+  firstName       String
+  lastName        String
+  phone           String?
+  email           String?
+  notes           String?
+  establishment   Establishment @relation(fields: [establishmentId], references: [id])
 
-  @@index([stabilimentoId])
+  @@index([establishmentId])
 }
 
-enum Ruolo {
+enum Role {
   admin
   staff
   superuser
 }
 
-model Utente {
-  id             String        @id @default(uuid()) @db.Uuid
-  stabilimentoId String?       @db.Uuid // null = superuser di piattaforma (cross-tenant)
-  email          String        @unique // unica globale: identifica l'utente al login
-  passwordHash   String // argon2id; mai esposto nei DTO
-  ruolo          Ruolo
-  stabilimento   Stabilimento? @relation(fields: [stabilimentoId], references: [id])
+model User {
+  id              String         @id @default(uuid()) @db.Uuid
+  establishmentId String?        @db.Uuid // null = platform superuser (cross-tenant)
+  email           String         @unique // globally unique: identifies the user at login
+  passwordHash    String // argon2id; never exposed in DTOs
+  role            Role
+  establishment   Establishment? @relation(fields: [establishmentId], references: [id])
 
-  @@index([stabilimentoId])
+  @@index([establishmentId])
 }
 
-model Tipologia {
-  id             String       @id @default(uuid()) @db.Uuid
-  stabilimentoId String       @db.Uuid
-  nome           String
-  ordine         Int
-  icona          String? // chiave del registry icone ui-kit (ADR-0020); null = nessun marker
-  stabilimento   Stabilimento @relation(fields: [stabilimentoId], references: [id])
-  ombrelloni     Ombrellone[]
+model UmbrellaType {
+  id              String        @id @default(uuid()) @db.Uuid
+  establishmentId String        @db.Uuid
+  name            String
+  sortOrder       Int
+  icon            String? // ui-kit icon-registry key (ADR-0020); null = no marker
+  establishment   Establishment @relation(fields: [establishmentId], references: [id])
+  umbrellas       Umbrella[]
 
-  @@index([stabilimentoId])
+  @@index([establishmentId])
 }
 
-model Fascia {
-  id             String       @id @default(uuid()) @db.Uuid
-  stabilimentoId String       @db.Uuid
-  nome           String
-  oraInizio      DateTime     @db.Time(0) // non esposta nel DTO (ADR-0013)
-  oraFine        DateTime     @db.Time(0)
-  ordine         Int
-  stabilimento   Stabilimento @relation(fields: [stabilimentoId], references: [id])
+model TimeSlot {
+  id              String        @id @default(uuid()) @db.Uuid
+  establishmentId String        @db.Uuid
+  name            String
+  startTime       DateTime      @db.Time(0) // not exposed in the DTO (ADR-0013)
+  endTime         DateTime      @db.Time(0)
+  sortOrder       Int
+  establishment   Establishment @relation(fields: [establishmentId], references: [id])
 
-  @@index([stabilimentoId])
+  @@index([establishmentId])
 }
 
-model Settore {
-  id             String       @id @default(uuid()) @db.Uuid
-  stabilimentoId String       @db.Uuid
-  nome           String
-  ordine         Int
-  stabilimento   Stabilimento @relation(fields: [stabilimentoId], references: [id])
-  file           Fila[]
+model Sector {
+  id              String        @id @default(uuid()) @db.Uuid
+  establishmentId String        @db.Uuid
+  name            String
+  sortOrder       Int
+  establishment   Establishment @relation(fields: [establishmentId], references: [id])
+  rows            Row[]
 
-  @@index([stabilimentoId])
+  @@index([establishmentId])
 }
 
-model Fila {
-  id             String       @id @default(uuid()) @db.Uuid
-  stabilimentoId String       @db.Uuid
-  settoreId      String       @db.Uuid
-  etichetta      String
-  ordine         Int
-  stabilimento   Stabilimento @relation(fields: [stabilimentoId], references: [id])
-  settore        Settore      @relation(fields: [settoreId], references: [id])
-  ombrelloni     Ombrellone[]
+model Row {
+  id              String        @id @default(uuid()) @db.Uuid
+  establishmentId String        @db.Uuid
+  sectorId        String        @db.Uuid
+  label           String
+  sortOrder       Int
+  establishment   Establishment @relation(fields: [establishmentId], references: [id])
+  sector          Sector        @relation(fields: [sectorId], references: [id])
+  umbrellas       Umbrella[]
 
-  @@index([stabilimentoId])
-  @@index([settoreId])
+  @@index([establishmentId])
+  @@index([sectorId])
 }
 
-model Ombrellone {
-  id                     String       @id @default(uuid()) @db.Uuid
-  stabilimentoId         String       @db.Uuid
-  filaId                 String       @db.Uuid
-  tipologiaId            String?      @db.Uuid // null = Normale (ADR-0016)
-  etichetta              String // numero fisico reale, unico per Stabilimento (ADR-0016)
-  ordineLogico           Int
-  posizionePresentazione Json?        @db.JsonB // layer visivo (D-005): modellato, inutilizzato in questo slice
-  stabilimento           Stabilimento @relation(fields: [stabilimentoId], references: [id])
-  fila                   Fila         @relation(fields: [filaId], references: [id])
-  tipologia              Tipologia?   @relation(fields: [tipologiaId], references: [id])
+model Umbrella {
+  id                   String        @id @default(uuid()) @db.Uuid
+  establishmentId      String        @db.Uuid
+  rowId                String        @db.Uuid
+  umbrellaTypeId       String?       @db.Uuid // null = Normal (ADR-0016)
+  label                String // real physical number, unique per Establishment (ADR-0016)
+  logicalOrder         Int
+  presentationPosition Json?         @db.JsonB // visual layer (D-005): modeled, unused in this slice
+  establishment        Establishment @relation(fields: [establishmentId], references: [id])
+  row                  Row           @relation(fields: [rowId], references: [id])
+  type                 UmbrellaType? @relation(fields: [umbrellaTypeId], references: [id])
 
-  @@unique([stabilimentoId, etichetta])
-  @@index([stabilimentoId])
-  @@index([filaId])
+  @@unique([establishmentId, label])
+  @@index([establishmentId])
+  @@index([rowId])
 }

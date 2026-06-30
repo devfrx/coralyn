@@ -23,11 +23,11 @@
   /* stage eyebrows (su sabbia) */
   --color-stage-1: #8A6E3F; --color-stage-2: #B79A63; --color-stage-3: #9A8460;
   /* ===== PRIMITIVE — Stati mappa ===== */
-  --color-state-libero: #8FBF9E; --color-state-libero-ink: #1E3A16;
-  --color-state-abbonato: #5E9AA6; --color-state-abbonato-ink: #102945;
-  --color-state-giornaliero: #E89270; --color-state-giornaliero-ink: #3A1E08;
-  --color-state-prenotato: #F1C879; --color-state-prenotato-ink: #4A3711;
-  --color-state-normale-mark: #D8CDBB;
+  --color-state-free: #8FBF9E; --color-state-free-ink: #1E3A16;
+  --color-state-season: #5E9AA6; --color-state-season-ink: #102945;
+  --color-state-daily: #E89270; --color-state-daily-ink: #3A1E08;
+  --color-state-booked: #F1C879; --color-state-booked-ink: #4A3711;
+  --color-state-normal-mark: #D8CDBB;
   /* Mare */
   --color-sea-1: #E0EFF3; --color-sea-2: #BEDDE8; --color-sea-3: #A8D0DE; --color-sea-ink: #2E6B81;
   /* ===== PRIMITIVE — Feedback (bg/ink) ===== */

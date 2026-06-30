@@ -1,15 +1,15 @@
 import { Test } from '@nestjs/testing';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
-import { Ruolo } from '@prisma/client';
+import { Role } from '@prisma/client';
 import request from 'supertest';
 import { AppModule } from '../src/app.module';
 import { PrismaService } from '../src/prisma/prisma.service';
-import { createUtente, login } from './helpers/seed-auth';
+import { createUser, login } from './helpers/seed-auth';
 
 describe('Auth (e2e)', () => {
   let app: INestApplication;
   let prisma: PrismaService;
-  let stabId: string;
+  let estId: string;
 
   beforeAll(async () => {
     const moduleRef = await Test.createTestingModule({ imports: [AppModule] }).compile();
@@ -18,41 +18,41 @@ describe('Auth (e2e)', () => {
     app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
     await app.init();
     prisma = app.get(PrismaService);
-    stabId = (await prisma.stabilimento.create({ data: { nome: 'Auth E2E' } })).id;
-    await createUtente(prisma, {
+    estId = (await prisma.establishment.create({ data: { name: 'Auth E2E' } })).id;
+    await createUser(prisma, {
       email: 'admin.auth@e2e.test',
       password: 'segreto-1',
-      ruolo: Ruolo.admin,
-      stabilimentoId: stabId,
+      role: Role.admin,
+      establishmentId: estId,
     });
-    await createUtente(prisma, {
+    await createUser(prisma, {
       email: 'super.auth@e2e.test',
       password: 'segreto-2',
-      ruolo: Ruolo.superuser,
-      stabilimentoId: null,
+      role: Role.superuser,
+      establishmentId: null,
     });
   });
 
   afterAll(async () => {
-    await prisma.utente.deleteMany({
+    await prisma.user.deleteMany({
       where: { email: { in: ['admin.auth@e2e.test', 'super.auth@e2e.test'] } },
     });
-    await prisma.stabilimento.deleteMany({ where: { id: stabId } });
+    await prisma.establishment.deleteMany({ where: { id: estId } });
     await app.close();
   });
 
-  it('login valido → 200 con accessToken e utente senza passwordHash', async () => {
+  it('login valido → 200 con accessToken e user senza passwordHash', async () => {
     const res = await request(app.getHttpServer())
       .post('/api/auth/login')
       .send({ email: 'admin.auth@e2e.test', password: 'segreto-1' })
       .expect(200);
     expect(typeof res.body.accessToken).toBe('string');
-    expect(res.body.utente).toMatchObject({
+    expect(res.body.user).toMatchObject({
       email: 'admin.auth@e2e.test',
-      ruolo: 'admin',
-      stabilimentoId: stabId,
+      role: 'admin',
+      establishmentId: estId,
     });
-    expect(res.body.utente.passwordHash).toBeUndefined();
+    expect(res.body.user.passwordHash).toBeUndefined();
   });
 
   it('password errata → 401 generico', async () => {
@@ -82,7 +82,7 @@ describe('Auth (e2e)', () => {
       .get('/api/auth/me')
       .set('Authorization', `Bearer ${token}`)
       .expect(200)
-      .expect((r) => expect(r.body).toMatchObject({ email: 'admin.auth@e2e.test', ruolo: 'admin' }));
+      .expect((r) => expect(r.body).toMatchObject({ email: 'admin.auth@e2e.test', role: 'admin' }));
 
     await request(app.getHttpServer()).get('/api/auth/me').expect(401);
     await request(app.getHttpServer())
@@ -91,16 +91,16 @@ describe('Auth (e2e)', () => {
       .expect(401);
   });
 
-  it('superuser: token con stabilimentoId null; endpoint tenant-scoped → 400', async () => {
+  it('superuser: token con establishmentId null; endpoint tenant-scoped → 400', async () => {
     const token = await login(app, 'super.auth@e2e.test', 'segreto-2');
     await request(app.getHttpServer())
       .get('/api/auth/me')
       .set('Authorization', `Bearer ${token}`)
       .expect(200)
-      .expect((r) => expect(r.body.stabilimentoId).toBeNull());
+      .expect((r) => expect(r.body.establishmentId).toBeNull());
 
     await request(app.getHttpServer())
-      .get('/api/clienti')
+      .get('/api/customers')
       .set('Authorization', `Bearer ${token}`)
       .expect(400);
   });

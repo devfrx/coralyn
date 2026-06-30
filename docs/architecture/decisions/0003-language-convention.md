@@ -1,6 +1,11 @@
 # ADR-0003: Convenzione linguistica — codice EN, dominio IT, docs IT
 
-- **Status:** Accepted
+> ⚠️ **SUPERATO da [ADR-0030](0030-codice-e-db-in-inglese.md)** (2026-06-30): codice e DB sono
+> ora **interamente in inglese** (niente più entità/attributi di dominio in italiano). Restano
+> in italiano solo la **UI a video** e la **documentazione**. Questo ADR è conservato come
+> record storico. Per la convenzione corrente vedi ADR-0030 e il [glossario](../glossary.md).
+
+- **Status:** Superseded by [ADR-0030](0030-codice-e-db-in-inglese.md)
 - **Data:** 2026-06-27
 - **Decisori:** Team di progetto
 - **ADR correlati:** [ADR-0002](0002-decision-rubric.md), [glossario](../glossary.md)

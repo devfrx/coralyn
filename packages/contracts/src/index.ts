@@ -1,95 +1,95 @@
-/** Ruoli applicativi. Vedi ADR-0015 (superuser di piattaforma). */
-export enum Ruolo {
+/** Application roles. See ADR-0015 (platform superuser). */
+export enum Role {
   Admin = 'admin',
   Staff = 'staff',
   Superuser = 'superuser',
 }
 
-/** DTO di un Cliente (il bagnante). Condiviso FE/BE. Contatti opzionali (ADR-0023). */
-export interface ClienteDTO {
+/** DTO of a Customer (the bather). Shared FE/BE. Optional contacts (ADR-0023). */
+export interface CustomerDTO {
   id: string;
-  nome: string;
-  cognome: string;
-  telefono?: string;
+  firstName: string;
+  lastName: string;
+  phone?: string;
   email?: string;
-  note?: string;
+  notes?: string;
 }
 
-/** Input di creazione di un Cliente (contatti opzionali). */
-export interface CreaClienteInput {
-  nome: string;
-  cognome: string;
-  telefono?: string;
+/** Input to create a Customer (optional contacts). */
+export interface CreateCustomerInput {
+  firstName: string;
+  lastName: string;
+  phone?: string;
   email?: string;
-  note?: string;
+  notes?: string;
 }
 
-/** Input di modifica anagrafica: tutti i campi opzionali. */
-export type ModificaClienteInput = Partial<CreaClienteInput>;
+/** Input to edit a Customer: all fields optional. */
+export type UpdateCustomerInput = Partial<CreateCustomerInput>;
 
-/** Stato di uno slot (ombrellone, data, fascia). Derivato dal backend. ADR-0013/0020. */
-export type StatoSlot = 'libero' | 'abbonato' | 'giornaliero' | 'prenotato';
+/** State of a slot (umbrella, date, time slot). Derived from the backend. ADR-0013/0020. */
+export type SlotState = 'free' | 'season' | 'daily' | 'booked';
 
-/** Tipologia ombrellone (ADR-0016). `icona` = nome del registry icone (additivo, ADR-0020). */
-export interface TipologiaDTO {
+/** Umbrella type (ADR-0016). `icon` = icon-registry key (additive, ADR-0020). */
+export interface UmbrellaTypeDTO {
   id: string;
-  nome: string;
-  ordine: number;
-  icona?: string; // fallback FE finché il backend non la espone
+  name: string;
+  sortOrder: number;
+  icon?: string; // FE fallback until the backend exposes it
 }
 
-export interface FasciaDTO {
+export interface TimeSlotDTO {
   id: string;
-  nome: string;
-  ordine: number;
+  name: string;
+  sortOrder: number;
 }
 
-export interface OmbrelloneDTO {
+export interface UmbrellaDTO {
   id: string;
-  etichetta: string;               // numero fisico reale (ADR-0016)
-  tipologiaId: string | null;      // null = Normale
-  filaId: string;
-  statoPerFascia: Record<string, StatoSlot>; // chiave = FasciaDTO.id
+  label: string;                  // real physical number (ADR-0016)
+  umbrellaTypeId: string | null;  // null = Normal
+  rowId: string;
+  stateBySlot: Record<string, SlotState>; // key = TimeSlotDTO.id
 }
 
-export interface FilaDTO {
+export interface RowDTO {
   id: string;
-  etichetta: string;
-  ordine: number;
-  ombrelloni: OmbrelloneDTO[];
+  label: string;
+  sortOrder: number;
+  umbrellas: UmbrellaDTO[];
 }
 
-export interface SettoreDTO {
+export interface SectorDTO {
   id: string;
-  nome: string;
-  ordine: number;
-  file: FilaDTO[];
+  name: string;
+  sortOrder: number;
+  rows: RowDTO[];
 }
 
-/** Vista della mappa per una data (ADR-0020). Proposta FE da allineare col backend. */
-export interface MappaGiornoDTO {
-  data: string; // ISO yyyy-mm-dd
-  tipologie: TipologiaDTO[];
-  fasce: FasciaDTO[];
-  settori: SettoreDTO[];
+/** Map view for a date (ADR-0020). FE proposal aligned with the backend. */
+export interface DayMapDTO {
+  date: string; // ISO yyyy-mm-dd
+  umbrellaTypes: UmbrellaTypeDTO[];
+  timeSlots: TimeSlotDTO[];
+  sectors: SectorDTO[];
 }
 
-/** Profilo dell'utente staff. `stabilimentoId` null = superuser di piattaforma. */
-export interface UtenteDTO {
+/** Staff user profile. `establishmentId` null = platform superuser. */
+export interface UserDTO {
   id: string;
   email: string;
-  ruolo: Ruolo;
-  stabilimentoId: string | null;
+  role: Role;
+  establishmentId: string | null;
 }
 
-/** Credenziali di login. */
+/** Login credentials. */
 export interface LoginInput {
   email: string;
   password: string;
 }
 
-/** Risposta del login: token di accesso + profilo. */
+/** Login response: access token + profile. */
 export interface LoginResponse {
   accessToken: string;
-  utente: UtenteDTO;
+  user: UserDTO;
 }
