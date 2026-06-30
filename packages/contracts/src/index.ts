@@ -97,6 +97,30 @@ export interface LoginResponse {
 /** Tipo di prenotazione (ADR-0006). A1 usa solo `daily`. */
 export type BookingType = 'daily' | 'periodic' | 'subscription';
 
+/** Pacchetto/dotazione prenotabile (ADR-0006). */
+export interface PackageDTO {
+  id: string;
+  name: string;
+  equipment: Record<string, number>; // es. { sunbeds: 2, deckchairs: 1 }
+}
+
+/** Unità di prezzo di una Tariffa (ADR-0006). */
+export type RateUnit = 'day' | 'period';
+
+/** Input del preventivo di prezzo (pricing engine, ADR-0006/ADR-0032). */
+export interface QuoteBookingInput {
+  umbrellaId: string;
+  timeSlotId: string;
+  date: string;          // ISO yyyy-mm-dd
+  packageId?: string;    // A3.1: assente (nessun pacchetto)
+  type?: BookingType;    // default 'daily'
+}
+
+/** Preventivo calcolato dall'engine. */
+export interface BookingQuoteDTO {
+  totalPrice: number;    // EUR, 2 decimali
+}
+
 /** Stato del ciclo di vita. A1: `confirmed` alla creazione, `cancelled` all'annullo. */
 export type BookingStatus = 'confirmed' | 'cancelled';
 
@@ -121,15 +145,15 @@ export interface BookingDTO {
   amountCollected: number;
   paymentMethod?: PaymentMethod; // A2 (additivo): assente finché non si incassa
   collectionDate?: string;       // A2 (additivo): ISO yyyy-mm-dd, assente finché non si incassa
+  packageId?: string;            // A3.1 (additivo): assente finché non si sceglie (A3.2)
 }
 
-/** Input per creare una prenotazione giornaliera (prezzo digitato a mano in A1). */
+/** Input per creare una prenotazione giornaliera. Il prezzo è calcolato dal pricing engine (A3.1). */
 export interface CreateBookingInput {
   customerId: string;
   umbrellaId: string;
   timeSlotId: string;
   date: string; // ISO yyyy-mm-dd
-  totalPrice: number;
 }
 
 /** Input per registrare l'incasso base (ADR-0011). Lo stato è derivato server-side. */
