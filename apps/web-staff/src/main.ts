@@ -10,7 +10,7 @@ import './styles/main.css';
 async function enableMocking() {
   if (!import.meta.env.DEV) return;
   const { worker } = await import('./mocks/browser');
-  // Mappa mockata; /api/auth/* e /api/clienti non gestiti -> backend reale via proxy.
+  // Nessun mock in dev (handlers vuoto): tutte le /api passano al backend reale via proxy.
   await worker.start({ onUnhandledRequest: 'bypass' });
 }
 
