@@ -1,0 +1,8 @@
+# Normalizzazione line endings. core.autocrlf=true su Windows convertirebbe gli
+# script shell a CRLF al checkout, rompendo lo shebang dentro i container Docker.
+# Forziamo LF sui file che vengono eseguiti/serviti dai container.
+*.sh        text eol=lf
+Dockerfile  text eol=lf
+*.dockerfile text eol=lf
+nginx.conf  text eol=lf
+docker-entrypoint.sh text eol=lf
