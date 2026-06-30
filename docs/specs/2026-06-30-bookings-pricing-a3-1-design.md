@@ -315,7 +315,9 @@ Query `QuoteBookingDto` (class-validator):
 
 Il body `CreateBookingDto` **perde `totalPrice`**. Il `BookingsService.create`, dentro la **stessa
 transazione** `forTenant`, dopo i controlli FK e **prima** dell'anti-overlap (o dopo — indifferente, ma
-nella stessa tx): chiama `CatalogService.quote(...)` per ottenere il `totalPrice` **autoritativo** (il
+nella stessa tx): chiama `CatalogService.priceWithin(tx, ...)` — la variante che **riusa la transazione
+corrente** (per non annidare transazioni Prisma; `quote()` apre invece la propria ed è usata dall'endpoint
+`GET /bookings/quote`) — per ottenere il `totalPrice` **autoritativo** (il
 server **ricalcola**, non si fida di un quote passato dal client → niente prezzo manomesso/stale), poi
 `create` con quel prezzo. Errori pricing (NO_SEASON/NO_RATE) → **422** (la prenotazione non si crea senza
 un prezzo valido). Anti-overlap → 409 invariato. `packageId`: salvato `null` in A3.1.

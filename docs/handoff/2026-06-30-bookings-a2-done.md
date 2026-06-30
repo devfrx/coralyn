@@ -12,6 +12,9 @@
 
 ## 0. Situazione GIT
 
+> **AGGIORNAMENTO 2026-06-30 — MERGIATA:** l'intera catena A1→A2→A3.1 è stata integrata su `main`
+> in fast-forward (nessun conflitto). Lo stato qui sotto è **storico** (com'era a fine slice A2).
+
 - **Branch corrente: `feat/bookings-payment`**, creato da `feat/bookings-daily` (A1 **non** ancora
   mergiata in `main`). Commit per layer; elenco con `git log --oneline feat/bookings-daily..HEAD`.
 - Pronto per review/merge. **Dipende da A1**: va mergiato dopo (o insieme a) `feat/bookings-daily`.

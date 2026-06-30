@@ -15,6 +15,9 @@
 
 ## 0. Situazione GIT
 
+> **AGGIORNAMENTO 2026-06-30 — MERGIATA:** l'intera catena A1→A2→A3.1 è stata integrata su `main`
+> in fast-forward (nessun conflitto). Lo stato qui sotto è **storico** (com'era a fine slice A1).
+
 - **Branch corrente: `feat/bookings-daily`**, diversi commit avanti rispetto a `main`
   (commit per layer; elenco con `git log --oneline origin/main..HEAD`).
 - `main` è a `60e38c5` (doc aggiornati prima della slice). Il branch è **pronto per

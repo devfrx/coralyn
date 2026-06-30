@@ -13,11 +13,12 @@
 
 ## 0. Situazione GIT
 
-- **Branch corrente: `feat/bookings-pricing`**, creato da `feat/bookings-payment` (A2 **non** ancora
-  mergiata in `main`). Commit per layer; elenco con `git log --oneline feat/bookings-payment..HEAD`.
-- Pronto per review/merge. **Dipende dalla catena A1 → A2**: va mergiato dopo (o insieme a)
-  `feat/bookings-daily` e `feat/bookings-payment`, in quell'ordine.
-- Pushato su `origin/feat/bookings-pricing`.
+- **MERGIATA su `main`** (2026-06-30, **fast-forward**, nessun conflitto): l'intera catena
+  **A1 (`feat/bookings-daily`) → A2 (`feat/bookings-payment`) → A3.1 (`feat/bookings-pricing`)**
+  è integrata su `main`. I branch feature sono ora ancestor di `main` (interamente contenuti).
+- Storico per layer della catena bookings: `git log --oneline 60e38c5..main`
+  (`60e38c5` = tip di `main` prima delle prenotazioni).
+- Anche `feat/api-identita-auth` e `feat/coralyn-redesign-fe` risultavano già integrati in `main`.
 
 ---
 
@@ -28,7 +29,7 @@
 - **Nuove tabelle** con RLS `tenant_isolation` FORCE (SQL grezzo): `Package`, `Season`, `Pricing`,
   `Rate` — tutte tenant-scoped (`establishmentId`).
 - **Nuovo enum DB** `RateUnit { day period }`.
-- **Vincolo di non-ambiguità sulla firma `Rate`**: `@@unique([pricingId, type, sectorId, rowId, packageId, timeSlotId, periodStart, periodEnd])` con `NULLS NOT DISTINCT` — ambiguità impossibile per costruzione.
+- **Vincolo di non-ambiguità sulla firma `Rate`**: indice unico raw `Rate_signature_key` su `(pricingId, type, sectorId, rowId, packageId, timeSlotId, periodStart, periodEnd)` con `NULLS NOT DISTINCT` (Postgres 16; SQL grezzo in migrazione, perché Prisma `@@unique` non emette `NULLS NOT DISTINCT`) — ambiguità impossibile per costruzione.
 - **`Booking.packageId`** — FK nullable additiva su `Package` (era rinviata da A1; null in A3.1,
   selettore in A3.2).
 - **Refinement del data-model**: `Rate.period` (json) → due colonne `periodStart`/`periodEnd`
@@ -46,8 +47,9 @@
   `Rate`, costruzione `PricingContext`, chiamata engine. Gestione difensiva >1 stagioni attive:
   deterministico + log (stessa logica della proiezione A1).
 - **Auto-pricing su `POST /api/bookings`**: `CreateBookingDto` **non accetta più `totalPrice`**
-  (calcolato dal server); il `BookingsService.create` chiama `CatalogService.quote(...)` nella
-  stessa transazione.
+  (calcolato dal server); il `BookingsService.create` chiama `CatalogService.priceWithin(tx, ...)`
+  dentro la **propria** transazione `forTenant` (NIENTE transazione annidata). `CatalogService.quote(...)`
+  apre invece la propria transazione ed è usato solo dall'endpoint `GET /bookings/quote`.
 - **`GET /api/bookings/quote`**: preventivo prezzo prima di confermare (`QuoteBookingDto` →
   `BookingQuoteDTO { totalPrice }`); 422 se NO_SEASON/NO_RATE/FK invalida.
 - **Dipendenza unidirezionale**: `bookings → catalog`, mai il contrario.
@@ -80,17 +82,14 @@ precedenza). UUID sintetici coerenti col pattern del seed esistente.
 
 ## 2. Test e build
 
-Target A3.1 (da non regredire + nuovi):
+Conteggi **verificati** sul DoD post-merge (`pnpm -r build` + `eslint .` verdi):
 
-| Suite | Prima di A3.1 | Target A3.1 | Δ |
+| Suite | Prima di A3.1 | A3.1 (verificato) | Δ |
 |---|---|---|---|
 | ui-kit | 14 | 14 | — |
-| web-staff | 43 | ~45 | +2 (quote + create senza prezzo) |
-| api unit | 46 | ~58 | +12 (engine × ~11 + proiezione ×1) |
-| api e2e | 40 | ~50 | ~+10 (pricing e2e a 2 tenant) |
-
-> I conteggi definitivi vengono verificati dal coordinatore nel DoD (`pnpm -r test`). Le righe sopra
-> sono i target di progettazione della spec A3.1 §7.
+| web-staff | 43 | 43 | — (`MapView.spec` aggiornato: prezzo da quote + create senza prezzo) |
+| api unit | 46 | 59 | +13 (engine ×12 + proiezione `packageId` ×1) |
+| api e2e | 40 | 47 | +7 (pricing e2e a 2 tenant: quote/precedenza/no-season/isolamento) |
 
 Nuovi unit: `pricing.engine.spec.ts` (precedenza, wildcard, unit, no-match, centesimi); proiezione
 `toPackageDTO`/`toBookingDTO packageId`.
@@ -146,7 +145,7 @@ Nuovi web-staff: `MapView.spec` — modale mostra prezzo da quote (MSW), create 
 
 - **A3.2 — Selettore Pacchetto + ricalcolo nel modale**: scelta del `Package` reale nel modale
   "Nuova prenotazione", re-quote al cambio pacchetto/fascia, colonna Pacchetto reale in
-  `BookingsView`. Branch da `feat/bookings-pricing` (questo). Additivo, nessun cambio all'engine.
+  `BookingsView`. **Branch da `main`** (A3.1 è mergiata). Additivo, nessun cambio all'engine.
 - **A4 — Periodiche/abbonamenti** ([ADR-0012](../architecture/decisions/0012-gestione-abbonamenti.md)):
   `type=periodic`→`booked`, `type=subscription`→`season`, rinnovo `previousBookingId`. L'engine
   A3.1 è già pronto per i casi multi-giorno e `unit=period`.
