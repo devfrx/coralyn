@@ -34,6 +34,7 @@ async function main(): Promise<void> {
   const u = (prefix: number, n: number): string =>
     `${prefix}0000000-0000-0000-0000-${String(n).padStart(12, '0')}`;
   const t = (hhmm: string): Date => new Date(`1970-01-01T${hhmm}:00Z`);
+  const t2 = (ymd: string): Date => new Date(`${ymd}T00:00:00Z`);
   const EID = DEV_ESTABLISHMENT_ID;
   const TYPE_MINI = u(1, 1);
   const TYPE_PALM = u(1, 2);
@@ -117,6 +118,43 @@ async function main(): Promise<void> {
         create: { establishmentId: EID, ...x },
       });
     }
+
+    // --- Listino demo (A3.1): Package + Season + Pricing + Rate (catch-all + pomeriggio). ---
+    const PKG_STANDARD = u(6, 1);
+    await tx.package.upsert({
+      where: { id: PKG_STANDARD },
+      update: { name: 'Standard', equipment: { sunbeds: 2, deckchairs: 1 } },
+      create: { id: PKG_STANDARD, establishmentId: EID, name: 'Standard', equipment: { sunbeds: 2, deckchairs: 1 } },
+    });
+
+    const SEASON = u(7, 1);
+    await tx.season.upsert({
+      where: { id: SEASON },
+      update: { name: 'Estate 2026', startDate: t2('2026-05-01'), endDate: t2('2026-09-30') },
+      create: { id: SEASON, establishmentId: EID, name: 'Estate 2026', startDate: t2('2026-05-01'), endDate: t2('2026-09-30') },
+    });
+
+    const PRICING = u(8, 1);
+    await tx.pricing.upsert({
+      where: { id: PRICING },
+      update: { seasonId: SEASON },
+      create: { id: PRICING, establishmentId: EID, seasonId: SEASON },
+    });
+
+    // Catch-all (tutte le dimensioni null): rete del listino, prezzo base giornaliero.
+    const RATE_BASE = u(9, 1);
+    await tx.rate.upsert({
+      where: { id: RATE_BASE },
+      update: { price: 28, unit: 'day' },
+      create: { id: RATE_BASE, establishmentId: EID, pricingId: PRICING, price: 28, unit: 'day' },
+    });
+    // Pomeriggio (fascia u(2,2)) piu caro: dimostra la precedenza per fascia.
+    const RATE_PM = u(9, 2);
+    await tx.rate.upsert({
+      where: { id: RATE_PM },
+      update: { timeSlotId: u(2, 2), price: 40, unit: 'day' },
+      create: { id: RATE_PM, establishmentId: EID, pricingId: PRICING, timeSlotId: u(2, 2), price: 40, unit: 'day' },
+    });
   });
 }
 
