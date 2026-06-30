@@ -1,5 +1,12 @@
 # Modello dati del Core (ER)
 
+> ⚠️ **Nomenclatura:** questo ER usa i **termini di dominio in italiano** (livello concettuale).
+> Da [ADR-0030](../architecture/decisions/0030-codice-e-db-in-inglese.md) i corrispondenti
+> identificatori di **codice e DB sono in inglese** (es. `Stabilimento→Establishment`,
+> `Ombrellone→Umbrella`, `Fila→Row`, `Fascia→TimeSlot`, `Cliente→Customer`,
+> `stabilimento_id→establishmentId`): la mappatura completa IT↔EN è nel
+> [glossario](../architecture/glossary.md).
+
 Fonte di verità del modello dati del Core operativo. Termini di dominio in italiano
 ([ADR-0003](../architecture/decisions/0003-language-convention.md)). Decisioni:
 [mappa](../architecture/decisions/0005-modello-mappa.md),

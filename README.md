@@ -12,7 +12,7 @@ online per il cliente finale.
 Stato: **design del Core MVP completato e approvato**. **Backend** — Core Foundation
 (Piano 1), Incremento 1 (scheda cliente), **modulo identità & auth** (login JWT,
 `JwtAuthGuard` globale, RLS Utente) e **modulo mappa** (modello + lettura) implementati:
-API `/api/clienti` (CRUD), `/api/auth` (login/me) e `/api/mappa` (lettura della struttura
+API `/api/customers` (CRUD), `/api/auth` (login/me) e `/api/map` (lettura della struttura
 ombrelloni per data) con isolamento multi-tenant RLS e migrazioni Prisma. Le 5 entità mappa
 (`Settore`/`Fila`/`Ombrellone`/`Tipologia`/`Fascia`) sono tenant-scoped con RLS e una struttura
 demo seedata. **Frontend** — redesign **Coralyn** completato e integrato (app-shell, ui-kit,
