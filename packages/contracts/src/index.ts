@@ -154,6 +154,7 @@ export interface CreateBookingInput {
   umbrellaId: string;
   timeSlotId: string;
   date: string; // ISO yyyy-mm-dd
+  packageId?: string; // A3.2 (additivo): pacchetto scelto; assente = nessun pacchetto (tariffa base)
 }
 
 /** Input per registrare l'incasso base (ADR-0011). Lo stato è derivato server-side. */
