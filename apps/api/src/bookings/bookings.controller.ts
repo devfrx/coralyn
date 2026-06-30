@@ -1,0 +1,26 @@
+import { Body, Controller, Delete, Get, Param, Post, Query } from '@nestjs/common';
+import type { BookingDTO } from '@coralyn/contracts';
+import { BookingsService } from './bookings.service';
+import { CreateBookingDto } from './dto/create-booking.dto';
+import { BookingsQueryDto } from './dto/bookings-query.dto';
+import { resolveDate } from '../map/map.projection';
+
+@Controller('bookings')
+export class BookingsController {
+  constructor(private readonly bookings: BookingsService) {}
+
+  @Get()
+  list(@Query() query: BookingsQueryDto): Promise<BookingDTO[]> {
+    return this.bookings.listByDate(resolveDate(query.date));
+  }
+
+  @Post()
+  create(@Body() body: CreateBookingDto): Promise<BookingDTO> {
+    return this.bookings.create(body);
+  }
+
+  @Delete(':id')
+  cancel(@Param('id') id: string): Promise<BookingDTO> {
+    return this.bookings.cancel(id);
+  }
+}
