@@ -14,7 +14,6 @@ const base = {
   umbrellaId: SEED_UMBRELLA,
   timeSlotId: SEED_SLOT,
   date: '2026-08-20',
-  totalPrice: 20,
 };
 
 const errorsFor = async (payload: Record<string, unknown>): Promise<string[]> => {
@@ -37,9 +36,8 @@ describe('CreateBookingDto', () => {
     expect(errs).toContain('umbrellaId');
   });
 
-  it('rifiuta prezzo negativo e data non calendariale', async () => {
-    const errs = await errorsFor({ ...base, totalPrice: -1, date: '2026-13-40' });
-    expect(errs).toContain('totalPrice');
+  it('rifiuta data non calendariale (il prezzo non è più input: lo calcola l’engine, A3.1)', async () => {
+    const errs = await errorsFor({ ...base, date: '2026-13-40' });
     expect(errs).toContain('date');
   });
 });
