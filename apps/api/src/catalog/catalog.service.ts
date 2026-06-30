@@ -1,10 +1,11 @@
 import { Injectable, Logger } from '@nestjs/common';
 import type { Prisma, Rate } from '@prisma/client';
-import type { BookingType } from '@coralyn/contracts';
+import type { BookingType, PackageDTO } from '@coralyn/contracts';
 import { PrismaService } from '../prisma/prisma.service';
 import { TenantContext } from '../tenant/tenant-context';
 import { formatDbDate, toDbDate } from '../common/dates';
 import { resolvePrice, type RateRow } from './pricing.engine';
+import { toPackageDTO } from './package.projection';
 
 export interface QuoteContext {
   umbrellaId: string;
@@ -40,6 +41,13 @@ export class CatalogService {
     private readonly prisma: PrismaService,
     private readonly tenant: TenantContext,
   ) {}
+
+  /** Lista dei pacchetti del tenant (read-only, per il selettore FE). */
+  async listPackages(): Promise<PackageDTO[]> {
+    const tenantId = this.tenant.require();
+    const rows = await this.prisma.forTenant(tenantId, (tx) => tx.package.findMany());
+    return rows.map(toPackageDTO);
+  }
 
   /** Preventivo standalone (endpoint GET /bookings/quote): apre la propria transazione tenant. */
   async quote(ctx: QuoteContext): Promise<QuoteOutcome> {
