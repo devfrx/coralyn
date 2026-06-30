@@ -8,10 +8,15 @@ datasource db {
 }
 
 model Stabilimento {
-  id      String    @id @default(uuid()) @db.Uuid
-  nome    String
-  clienti Cliente[]
-  utenti  Utente[]
+  id         String       @id @default(uuid()) @db.Uuid
+  nome       String
+  clienti    Cliente[]
+  utenti     Utente[]
+  settori    Settore[]
+  file       Fila[]
+  ombrelloni Ombrellone[]
+  tipologie  Tipologia[]
+  fasce      Fascia[]
 }
 
 model Cliente {
@@ -42,4 +47,70 @@ model Utente {
   stabilimento   Stabilimento? @relation(fields: [stabilimentoId], references: [id])
 
   @@index([stabilimentoId])
+}
+
+model Tipologia {
+  id             String       @id @default(uuid()) @db.Uuid
+  stabilimentoId String       @db.Uuid
+  nome           String
+  ordine         Int
+  icona          String? // chiave del registry icone ui-kit (ADR-0020); null = nessun marker
+  stabilimento   Stabilimento @relation(fields: [stabilimentoId], references: [id])
+  ombrelloni     Ombrellone[]
+
+  @@index([stabilimentoId])
+}
+
+model Fascia {
+  id             String       @id @default(uuid()) @db.Uuid
+  stabilimentoId String       @db.Uuid
+  nome           String
+  oraInizio      DateTime     @db.Time(0) // non esposta nel DTO (ADR-0013)
+  oraFine        DateTime     @db.Time(0)
+  ordine         Int
+  stabilimento   Stabilimento @relation(fields: [stabilimentoId], references: [id])
+
+  @@index([stabilimentoId])
+}
+
+model Settore {
+  id             String       @id @default(uuid()) @db.Uuid
+  stabilimentoId String       @db.Uuid
+  nome           String
+  ordine         Int
+  stabilimento   Stabilimento @relation(fields: [stabilimentoId], references: [id])
+  file           Fila[]
+
+  @@index([stabilimentoId])
+}
+
+model Fila {
+  id             String       @id @default(uuid()) @db.Uuid
+  stabilimentoId String       @db.Uuid
+  settoreId      String       @db.Uuid
+  etichetta      String
+  ordine         Int
+  stabilimento   Stabilimento @relation(fields: [stabilimentoId], references: [id])
+  settore        Settore      @relation(fields: [settoreId], references: [id])
+  ombrelloni     Ombrellone[]
+
+  @@index([stabilimentoId])
+  @@index([settoreId])
+}
+
+model Ombrellone {
+  id                     String       @id @default(uuid()) @db.Uuid
+  stabilimentoId         String       @db.Uuid
+  filaId                 String       @db.Uuid
+  tipologiaId            String?      @db.Uuid // null = Normale (ADR-0016)
+  etichetta              String // numero fisico reale, unico per Stabilimento (ADR-0016)
+  ordineLogico           Int
+  posizionePresentazione Json?        @db.JsonB // layer visivo (D-005): modellato, inutilizzato in questo slice
+  stabilimento           Stabilimento @relation(fields: [stabilimentoId], references: [id])
+  fila                   Fila         @relation(fields: [filaId], references: [id])
+  tipologia              Tipologia?   @relation(fields: [tipologiaId], references: [id])
+
+  @@unique([stabilimentoId, etichetta])
+  @@index([stabilimentoId])
+  @@index([filaId])
 }
