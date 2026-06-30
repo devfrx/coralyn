@@ -1,3 +1,12 @@
+# Coralyn / Driftly — orchestrazione locale.
+#
+# Profili:
+#   (default)      solo `db`  → workflow di sviluppo: app in locale via `pnpm dev`.
+#                  Avvio:  docker compose up -d
+#   --profile full db + api + web → l'intero programma in container.
+#                  Avvio:  docker compose --profile full up -d --build
+#                  Web:    http://localhost:8080   (proxy /api -> api)
+#                  API:    http://localhost:3000   (/api, /health)
 services:
   db:
     image: postgres:16
@@ -11,5 +20,43 @@ services:
     volumes:
       - driftly-pgdata:/var/lib/postgresql/data
       - ./init:/docker-entrypoint-initdb.d
+    healthcheck:
+      # `driftly_app` esiste solo dopo gli script di init: provarlo garantisce che
+      # il ruolo applicativo (non-superuser, per la RLS) sia pronto prima di api.
+      test: ["CMD-SHELL", "pg_isready -U driftly_app -d driftly_dev"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  api:
+    profiles: ["full"]
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    container_name: driftly-api
+    environment:
+      DATABASE_URL: "postgresql://driftly_app:driftly_app@db:5432/driftly_dev?schema=public"
+      PORT: "3000"
+      # Seed del tenant di sviluppo (00000000-...-0001) al primo avvio, così il FE
+      # può chiamare /api/clienti con l'header X-Stabilimento-Id di dev.
+      SEED_ON_START: "true"
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "3000:3000"
+
+  web:
+    profiles: ["full"]
+    build:
+      context: .
+      dockerfile: apps/web-staff/Dockerfile
+    container_name: driftly-web
+    depends_on:
+      api:
+        condition: service_healthy
+    ports:
+      - "8080:80"
+
 volumes:
   driftly-pgdata:

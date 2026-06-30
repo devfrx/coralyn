@@ -1,0 +1,35 @@
+# Dipendenze / build (rigenerate dentro l'immagine)
+node_modules
+**/node_modules
+**/dist
+*.tsbuildinfo
+
+# Git / editor
+.git
+.gitignore
+.idea
+.vscode
+*.swp
+
+# Ambiente locale (le immagini ricevono le env da docker-compose)
+.env
+.env.*
+!.env.example
+
+# Docker (non serve nel contesto di build)
+Dockerfile
+**/Dockerfile
+.dockerignore
+docker-compose.yml
+docker-compose.override.yml
+
+# Dump del design tool e mockup pesanti
+/Coralyn - Gestionale Lidi.html
+/Redesign coralyn gestionale moderno/
+
+# Log e temporanei
+*.log
+*.tmp
+.superpowers/
+.DS_Store
+Thumbs.db
