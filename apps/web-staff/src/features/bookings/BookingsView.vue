@@ -36,7 +36,7 @@ const prenotazioni: { ini: string; cliente: string; ombrellone: string; pacchett
     </div>
     <DataTable :columns="cols">
       <tr v-for="(p, i) in prenotazioni" :key="i" class="cursor-pointer hover:bg-[var(--color-raised)]">
-        <td class="border-b border-[var(--color-border-row)] px-[18px] py-3.5"><div class="flex items-center gap-2.5"><Avatar :iniziali="p.ini" size="sm" /><span class="font-semibold text-[var(--color-text)]">{{ p.cliente }}</span></div></td>
+        <td class="border-b border-[var(--color-border-row)] px-[18px] py-3.5"><div class="flex items-center gap-2.5"><Avatar :initials="p.ini" size="sm" /><span class="font-semibold text-[var(--color-text)]">{{ p.cliente }}</span></div></td>
         <td class="border-b border-[var(--color-border-row)] px-3.5 py-3.5 tabular-nums text-[var(--color-text-2nd)]">{{ p.ombrellone }}</td>
         <td class="border-b border-[var(--color-border-row)] px-3.5 py-3.5 text-[var(--color-text-2nd)]">{{ p.pacchetto }}</td>
         <td class="border-b border-[var(--color-border-row)] px-3.5 py-3.5 text-[var(--color-text-2nd)]">{{ p.tipo }}</td>

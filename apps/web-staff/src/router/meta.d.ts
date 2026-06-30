@@ -1,11 +1,11 @@
 import 'vue-router';
-import type { Ruolo } from '@coralyn/contracts';
+import type { Role } from '@coralyn/contracts';
 declare module 'vue-router' {
   interface RouteMeta {
     title?: string;
     subtitle?: string;
     public?: boolean;
     bare?: boolean;
-    ruolo?: Ruolo;
+    role?: Role;
   }
 }

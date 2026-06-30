@@ -2,27 +2,27 @@ import { describe, it, expect } from 'vitest';
 import { defineComponent, h } from 'vue';
 import { flushPromises } from '@vue/test-utils';
 import { mountApp } from '@/test/utils';
-import { useCliente, useModificaCliente } from './useClienti';
+import { useCustomer, useUpdateCustomer } from './useCustomers';
 
 const Probe = defineComponent({
   setup() {
-    const q = useCliente('c-1');
-    return () => h('div', q.data.value ? `${q.data.value.nome} ${q.data.value.cognome}` : 'loading');
+    const q = useCustomer('c-1');
+    return () => h('div', q.data.value ? `${q.data.value.firstName} ${q.data.value.lastName}` : 'loading');
   },
 });
 
 const EditProbe = defineComponent({
   setup() {
-    const q = useCliente('c-1');
-    const m = useModificaCliente('c-1');
+    const q = useCustomer('c-1');
+    const m = useUpdateCustomer('c-1');
     return () => h('div', [
-      h('span', q.data.value?.telefono ?? '-'),
-      h('button', { onClick: () => m.mutate({ telefono: '+39 000' }) }, 'save'),
+      h('span', q.data.value?.phone ?? '-'),
+      h('button', { onClick: () => m.mutate({ phone: '+39 000' }) }, 'save'),
     ]);
   },
 });
 
-describe('useCliente', () => {
+describe('useCustomer', () => {
   it('legge il cliente per id dal mock', async () => {
     const w = mountApp(Probe);
     await flushPromises();

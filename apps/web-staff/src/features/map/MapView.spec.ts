@@ -1,11 +1,11 @@
 import { describe, it, expect } from 'vitest';
 import { flushPromises } from '@vue/test-utils';
 import { mountApp } from '@/test/utils';
-import MappaView from './MappaView.vue';
+import MapView from './MapView.vue';
 
-describe('MappaView', () => {
+describe('MapView', () => {
   it('rende settori e ombrelloni dal mock MSW', async () => {
-    const w = mountApp(MappaView);
+    const w = mountApp(MapView);
     await flushPromises();
     await new Promise((r) => setTimeout(r, 0));
     await flushPromises();

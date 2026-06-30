@@ -1,7 +1,7 @@
 import { afterAll, afterEach, beforeAll, beforeEach } from 'vitest';
-import { server, resetClientiSeed } from '@/mocks/server';
+import { server, resetCustomersSeed } from '@/mocks/server';
 
 beforeAll(() => server.listen({ onUnhandledRequest: 'error' }));
-beforeEach(() => resetClientiSeed());
+beforeEach(() => resetCustomersSeed());
 afterEach(() => server.resetHandlers());
 afterAll(() => server.close());

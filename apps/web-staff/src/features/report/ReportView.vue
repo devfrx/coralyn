@@ -61,7 +61,7 @@ const scadenze = [
         </div>
         <div class="flex flex-col">
           <div v-for="r in scadenze" :key="r.nome" class="flex items-center gap-3 border-b border-[var(--color-border-row)] py-2.5 last:border-0">
-            <Avatar :iniziali="r.ini" size="sm" />
+            <Avatar :initials="r.ini" size="sm" />
             <div class="min-w-0 flex-1">
               <div class="text-[13px] font-semibold text-[var(--color-text)]">{{ r.nome }}</div>
               <div class="text-[11.5px] tabular-nums text-[var(--color-text-muted)]">Ombrellone {{ r.ombrellone }} · {{ r.anzianita }} stagioni</div>

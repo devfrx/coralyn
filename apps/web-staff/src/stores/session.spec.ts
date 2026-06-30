@@ -13,16 +13,16 @@ describe('session store', () => {
   it('parte non autenticato', () => {
     const s = useSessionStore();
     expect(s.authenticated).toBe(false);
-    expect(s.utente).toBeNull();
+    expect(s.user).toBeNull();
   });
 
-  it('login salva token + utente e popola i derivati', async () => {
+  it('login salva token + user e popola i derivati', async () => {
     const s = useSessionStore();
     await s.login('admin@coralyn.dev', 'coralyn-admin');
     expect(s.authenticated).toBe(true);
     expect(getToken()).toBe(MOCK_TOKEN);
-    expect(s.utenteEmail).toBe('admin@coralyn.dev');
-    expect(s.stabilimentoId).toBe('00000000-0000-0000-0000-000000000001');
+    expect(s.userEmail).toBe('admin@coralyn.dev');
+    expect(s.establishmentId).toBe('00000000-0000-0000-0000-000000000001');
   });
 
   it('login errato propaga 401 e resta non autenticato', async () => {
@@ -45,7 +45,7 @@ describe('session store', () => {
     const s = useSessionStore();
     await s.rehydrate();
     expect(s.authenticated).toBe(true);
-    expect(s.utenteEmail).toBe('admin@coralyn.dev');
+    expect(s.userEmail).toBe('admin@coralyn.dev');
   });
 
   it('rehydrate con token invalido fa logout', async () => {

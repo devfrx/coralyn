@@ -1,7 +1,6 @@
 import type { Row, Sector, TimeSlot, Umbrella, UmbrellaType } from '@prisma/client';
 import type {
   DayMapDTO,
-  RowDTO,
   SectorDTO,
   SlotState,
   TimeSlotDTO,

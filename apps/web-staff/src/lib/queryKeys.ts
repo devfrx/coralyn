@@ -1,5 +1,5 @@
 export const queryKeys = {
-  clienti: (tenantId: string) => ['clienti', tenantId] as const,
-  cliente: (tenantId: string, id: string) => ['cliente', tenantId, id] as const,
-  mappaGiorno: (tenantId: string, data: string) => ['mappa', tenantId, data] as const,
+  customers: (tenantId: string) => ['customers', tenantId] as const,
+  customer: (tenantId: string, id: string) => ['customer', tenantId, id] as const,
+  dayMap: (tenantId: string, date: string) => ['map', tenantId, date] as const,
 };
