@@ -4,12 +4,13 @@ import {
   NotFoundException,
   UnprocessableEntityException,
 } from '@nestjs/common';
-import type { BookingDTO, CreateBookingInput } from '@coralyn/contracts';
+import type { BookingDTO, CreateBookingInput, SettlePaymentInput } from '@coralyn/contracts';
 import { PrismaService } from '../prisma/prisma.service';
 import { TenantContext } from '../tenant/tenant-context';
 import { toBookingDTO } from './booking.projection';
 import { slotsOverlap, dateRangesOverlap } from './booking.availability';
-import { toDbDate } from '../common/dates';
+import { resolvePayment } from './booking.payment';
+import { toDbDate, todayInRome } from '../common/dates';
 
 @Injectable()
 export class BookingsService {
@@ -87,5 +88,37 @@ export class BookingsService {
     });
     if (!updated) throw new NotFoundException('Prenotazione non trovata');
     return toBookingDTO(updated);
+  }
+
+  /** Registra l'incasso base (ADR-0011). Stato derivato; idempotente (set assoluto). */
+  async settlePayment(id: string, input: SettlePaymentInput): Promise<BookingDTO> {
+    const tenantId = this.tenant.require();
+    const outcome = await this.prisma.forTenant(tenantId, async (tx) => {
+      const existing = await tx.booking.findFirst({ where: { id } });
+      if (!existing) return { error: 'NOT_FOUND' as const };
+      if (existing.status === 'cancelled') return { error: 'CANCELLED' as const };
+      const res = resolvePayment(input, Number(existing.totalPrice), todayInRome());
+      if (!res.ok) return { error: res.reason };
+      const row = await tx.booking.update({
+        where: { id },
+        data: {
+          amountCollected: res.fields.amountCollected,
+          paymentStatus: res.fields.paymentStatus,
+          paymentMethod: res.fields.paymentMethod,
+          collectionDate: res.fields.collectionDate ? toDbDate(res.fields.collectionDate) : null,
+        },
+      });
+      return { row };
+    });
+
+    if ('error' in outcome) {
+      const e = outcome.error;
+      if (e === 'NOT_FOUND') throw new NotFoundException('Prenotazione non trovata');
+      if (e === 'CANCELLED')
+        throw new ConflictException('Impossibile incassare una prenotazione annullata');
+      if (e === 'OVER_TOTAL') throw new UnprocessableEntityException('Importo superiore al totale');
+      throw new UnprocessableEntityException('Metodo di pagamento richiesto'); // METHOD_REQUIRED
+    }
+    return toBookingDTO(outcome.row);
   }
 }

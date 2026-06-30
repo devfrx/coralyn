@@ -1,7 +1,8 @@
-import { Body, Controller, Delete, Get, Param, Post, Query } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Post, Query } from '@nestjs/common';
 import type { BookingDTO } from '@coralyn/contracts';
 import { BookingsService } from './bookings.service';
 import { CreateBookingDto } from './dto/create-booking.dto';
+import { SettlePaymentDto } from './dto/settle-payment.dto';
 import { BookingsQueryDto } from './dto/bookings-query.dto';
 import { resolveDate } from '../common/dates';
 
@@ -22,5 +23,10 @@ export class BookingsController {
   @Delete(':id')
   cancel(@Param('id') id: string): Promise<BookingDTO> {
     return this.bookings.cancel(id);
+  }
+
+  @Patch(':id/payment')
+  settle(@Param('id') id: string, @Body() body: SettlePaymentDto): Promise<BookingDTO> {
+    return this.bookings.settlePayment(id, body);
   }
 }
