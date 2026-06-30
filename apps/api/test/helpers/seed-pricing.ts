@@ -38,6 +38,15 @@ export async function seedPricingTenant(
         unit: RateUnit.day,
       },
     });
+    await tx.rate.create({
+      data: {
+        establishmentId,
+        pricingId: pricing.id,
+        packageId: pkg.id,
+        price: 60,
+        unit: RateUnit.day,
+      },
+    });
     return { seasonId: season.id, pricingId: pricing.id, packageId: pkg.id };
   });
 }

@@ -18,6 +18,7 @@ describe('Bookings (e2e)', () => {
   let superToken: string;
   let ids: MapSeedIds;
   let customerId: string;
+  let packageId: string;
   const D = '2026-07-15';
 
   const bearer = (t: string): [string, string] => ['Authorization', `Bearer ${t}`];
@@ -38,7 +39,7 @@ describe('Bookings (e2e)', () => {
     token2 = await login(app, 'admin.b2@e2e.test', 'pw2');
     superToken = await login(app, 'super.b@e2e.test', 'pws');
     ids = await seedMapTenant(prisma, s1);
-    await seedPricingTenant(prisma, s1, { afternoonSlotId: ids.slotAfternoon });
+    packageId = (await seedPricingTenant(prisma, s1, { afternoonSlotId: ids.slotAfternoon })).packageId;
     customerId = (
       await prisma.forTenant(s1, (tx) =>
         tx.customer.create({ data: { establishmentId: s1, firstName: 'Mario', lastName: 'Rossi' } }),
@@ -115,6 +116,21 @@ describe('Bookings (e2e)', () => {
       .send(body({ umbrellaId: ids.u2, date: '2027-01-10' })).expect(422);
   });
 
+  it('create con packageId valido → 201, prezzo dalla rate pacchetto (60) e lo persiste', async () => {
+    const res = await request(app.getHttpServer()).post('/api/bookings').set(...bearer(token1))
+      .send(body({ umbrellaId: ids.u2, date: '2026-07-21', packageId })).expect(201);
+    expect(res.body.totalPrice).toBe(60);
+    expect(res.body.packageId).toBe(packageId);
+
+    const get = await request(app.getHttpServer()).get(`/api/bookings?date=2026-07-21`).set(...bearer(token1)).expect(200);
+    expect(get.body.find((b: { id: string }) => b.id === res.body.id).packageId).toBe(packageId);
+  });
+
+  it('create con packageId inesistente nel tenant → 422', async () => {
+    await request(app.getHttpServer()).post('/api/bookings').set(...bearer(token1))
+      .send(body({ umbrellaId: ids.u2, date: '2026-07-22', packageId: '00000000-0000-0000-0000-0000000000ff' })).expect(422);
+  });
+
   describe('GET /bookings/quote', () => {
     it('senza token → 401', async () => {
       await request(app.getHttpServer()).get(`/api/bookings/quote?umbrellaId=${ids.u1}&timeSlotId=${ids.slotMorning}&date=${D}`).expect(401);
@@ -132,6 +148,25 @@ describe('Bookings (e2e)', () => {
     });
     it('isolamento: s2 quota un ombrellone di s1 → 422', async () => {
       await request(app.getHttpServer()).get(`/api/bookings/quote?umbrellaId=${ids.u1}&timeSlotId=${ids.slotMorning}&date=${D}`).set(...bearer(token2)).expect(422);
+    });
+  });
+
+  describe('GET /packages', () => {
+    it('senza token → 401', async () => {
+      await request(app.getHttpServer()).get('/api/packages').expect(401);
+    });
+    it('con token → 200, lista i pacchetti del tenant', async () => {
+      const res = await request(app.getHttpServer()).get('/api/packages').set(...bearer(token1)).expect(200);
+      expect(Array.isArray(res.body)).toBe(true);
+      expect(res.body.some((p: { id: string; name: string }) => p.id === packageId && p.name === 'Standard')).toBe(true);
+      expect(res.body[0].establishmentId).toBeUndefined();
+    });
+    it('isolamento: s2 non vede i pacchetti di s1', async () => {
+      const res = await request(app.getHttpServer()).get('/api/packages').set(...bearer(token2)).expect(200);
+      expect(res.body).toEqual([]);
+    });
+    it('superuser (no tenant) → 400', async () => {
+      await request(app.getHttpServer()).get('/api/packages').set(...bearer(superToken)).expect(400);
     });
   });
 
