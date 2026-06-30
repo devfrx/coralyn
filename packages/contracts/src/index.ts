@@ -93,3 +93,39 @@ export interface LoginResponse {
   accessToken: string;
   user: UserDTO;
 }
+
+/** Tipo di prenotazione (ADR-0006). A1 usa solo `daily`. */
+export type BookingType = 'daily' | 'periodic' | 'subscription';
+
+/** Stato del ciclo di vita. A1: `confirmed` alla creazione, `cancelled` all'annullo. */
+export type BookingStatus = 'confirmed' | 'cancelled';
+
+/** Stato incasso base (ADR-0011). A1: sempre `unpaid`. */
+export type PaymentStatus = 'unpaid' | 'partial' | 'paid';
+
+/** Metodo di pagamento (ADR-0011). A1: null. */
+export type PaymentMethod = 'cash' | 'card' | 'transfer' | 'other';
+
+/** DTO di una prenotazione. Date ISO yyyy-mm-dd. */
+export interface BookingDTO {
+  id: string;
+  customerId: string;
+  umbrellaId: string;
+  timeSlotId: string;
+  startDate: string;
+  endDate: string;
+  type: BookingType;
+  status: BookingStatus;
+  totalPrice: number;
+  paymentStatus: PaymentStatus;
+  amountCollected: number;
+}
+
+/** Input per creare una prenotazione giornaliera (prezzo digitato a mano in A1). */
+export interface CreateBookingInput {
+  customerId: string;
+  umbrellaId: string;
+  timeSlotId: string;
+  date: string; // ISO yyyy-mm-dd
+  totalPrice: number;
+}
