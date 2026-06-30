@@ -6,6 +6,7 @@ import { AppModule } from '../src/app.module';
 import { PrismaService } from '../src/prisma/prisma.service';
 import { createUser, login } from './helpers/seed-auth';
 import { cleanMapTenant, seedMapTenant, type MapSeedIds } from './helpers/seed-map';
+import { seedPricingTenant, cleanPricingTenant } from './helpers/seed-pricing';
 
 describe('Bookings (e2e)', () => {
   let app: INestApplication;
@@ -37,6 +38,7 @@ describe('Bookings (e2e)', () => {
     token2 = await login(app, 'admin.b2@e2e.test', 'pw2');
     superToken = await login(app, 'super.b@e2e.test', 'pws');
     ids = await seedMapTenant(prisma, s1);
+    await seedPricingTenant(prisma, s1, { afternoonSlotId: ids.slotAfternoon });
     customerId = (
       await prisma.forTenant(s1, (tx) =>
         tx.customer.create({ data: { establishmentId: s1, firstName: 'Mario', lastName: 'Rossi' } }),
@@ -47,6 +49,7 @@ describe('Bookings (e2e)', () => {
   afterAll(async () => {
     await prisma.forTenant(s1, (tx) => tx.booking.deleteMany({}));
     await prisma.forTenant(s1, (tx) => tx.customer.deleteMany({}));
+    await cleanPricingTenant(prisma, s1);
     await cleanMapTenant(prisma, s1);
     await cleanMapTenant(prisma, s2);
     await prisma.user.deleteMany({ where: { email: { in: ['admin.b1@e2e.test', 'admin.b2@e2e.test', 'super.b@e2e.test'] } } });
@@ -55,7 +58,7 @@ describe('Bookings (e2e)', () => {
   });
 
   const body = (over: Partial<Record<string, unknown>> = {}) => ({
-    customerId, umbrellaId: ids.u1, timeSlotId: ids.slotMorning, date: D, totalPrice: 28, ...over,
+    customerId, umbrellaId: ids.u1, timeSlotId: ids.slotMorning, date: D, ...over,
   });
 
   it('senza token → 401', async () => {
@@ -97,9 +100,39 @@ describe('Bookings (e2e)', () => {
     await request(app.getHttpServer()).post('/api/bookings').set(...bearer(superToken)).send(body({ date: '2026-07-17' })).expect(400);
   });
 
-  it('validazione: data calendariale impossibile → 400; prezzo negativo → 400', async () => {
+  it('validazione: data calendariale impossibile → 400', async () => {
     await request(app.getHttpServer()).post('/api/bookings').set(...bearer(token1)).send(body({ date: '2026-13-40' })).expect(400);
-    await request(app.getHttpServer()).post('/api/bookings').set(...bearer(token1)).send(body({ totalPrice: -5, date: '2026-07-18' })).expect(400);
+  });
+
+  it('prezzo calcolato dal listino: pomeriggio usa la tariffa specifica (40)', async () => {
+    const res = await request(app.getHttpServer()).post('/api/bookings').set(...bearer(token1))
+      .send(body({ umbrellaId: ids.u2, timeSlotId: ids.slotAfternoon, date: '2026-07-20' })).expect(201);
+    expect(res.body.totalPrice).toBe(40);
+  });
+
+  it('data fuori stagione → 422 (nessuna stagione)', async () => {
+    await request(app.getHttpServer()).post('/api/bookings').set(...bearer(token1))
+      .send(body({ umbrellaId: ids.u2, date: '2027-01-10' })).expect(422);
+  });
+
+  describe('GET /bookings/quote', () => {
+    it('senza token → 401', async () => {
+      await request(app.getHttpServer()).get(`/api/bookings/quote?umbrellaId=${ids.u1}&timeSlotId=${ids.slotMorning}&date=${D}`).expect(401);
+    });
+    it('mattina → 28 (catch-all)', async () => {
+      const res = await request(app.getHttpServer()).get(`/api/bookings/quote?umbrellaId=${ids.u1}&timeSlotId=${ids.slotMorning}&date=${D}`).set(...bearer(token1)).expect(200);
+      expect(res.body.totalPrice).toBe(28);
+    });
+    it('pomeriggio → 40 (precedenza fascia)', async () => {
+      const res = await request(app.getHttpServer()).get(`/api/bookings/quote?umbrellaId=${ids.u1}&timeSlotId=${ids.slotAfternoon}&date=${D}`).set(...bearer(token1)).expect(200);
+      expect(res.body.totalPrice).toBe(40);
+    });
+    it('fuori stagione → 422', async () => {
+      await request(app.getHttpServer()).get(`/api/bookings/quote?umbrellaId=${ids.u1}&timeSlotId=${ids.slotMorning}&date=2027-01-10`).set(...bearer(token1)).expect(422);
+    });
+    it('isolamento: s2 quota un ombrellone di s1 → 422', async () => {
+      await request(app.getHttpServer()).get(`/api/bookings/quote?umbrellaId=${ids.u1}&timeSlotId=${ids.slotMorning}&date=${D}`).set(...bearer(token2)).expect(422);
+    });
   });
 
   it('DELETE annulla → la mappa torna free e si può ricreare', async () => {
@@ -117,18 +150,18 @@ describe('Bookings (e2e)', () => {
 
     beforeAll(async () => {
       const res = await request(app.getHttpServer()).post('/api/bookings').set(...bearer(token1))
-        .send(body({ umbrellaId: ids.u1, timeSlotId: ids.slotMorning, date: settle, totalPrice: 50 })).expect(201);
+        .send(body({ umbrellaId: ids.u1, timeSlotId: ids.slotMorning, date: settle })).expect(201);
       bId = res.body.id;
     });
 
     it('senza token → 401', async () => {
-      await request(app.getHttpServer()).patch(`/api/bookings/${bId}/payment`).send({ amountCollected: 50, paymentMethod: 'cash' }).expect(401);
+      await request(app.getHttpServer()).patch(`/api/bookings/${bId}/payment`).send({ amountCollected: 28, paymentMethod: 'cash' }).expect(401);
     });
 
     it('salda tutto → paid e GET riflette', async () => {
       const res = await request(app.getHttpServer()).patch(`/api/bookings/${bId}/payment`).set(...bearer(token1))
-        .send({ amountCollected: 50, paymentMethod: 'cash' }).expect(200);
-      expect(res.body).toMatchObject({ paymentStatus: 'paid', amountCollected: 50, paymentMethod: 'cash' });
+        .send({ amountCollected: 28, paymentMethod: 'cash' }).expect(200);
+      expect(res.body).toMatchObject({ paymentStatus: 'paid', amountCollected: 28, paymentMethod: 'cash' });
       expect(res.body.collectionDate).toMatch(/^\d{4}-\d{2}-\d{2}$/);
       const get = await request(app.getHttpServer()).get(`/api/bookings?date=${settle}`).set(...bearer(token1)).expect(200);
       expect(get.body.find((b: { id: string }) => b.id === bId).paymentStatus).toBe('paid');
@@ -165,7 +198,7 @@ describe('Bookings (e2e)', () => {
 
     it('prenotazione annullata → 409', async () => {
       const created = await request(app.getHttpServer()).post('/api/bookings').set(...bearer(token1))
-        .send(body({ umbrellaId: ids.u2, date: '2026-08-02', totalPrice: 30 })).expect(201);
+        .send(body({ umbrellaId: ids.u2, date: '2026-08-02' })).expect(201);
       await request(app.getHttpServer()).delete(`/api/bookings/${created.body.id}`).set(...bearer(token1)).expect(200);
       await request(app.getHttpServer()).patch(`/api/bookings/${created.body.id}/payment`).set(...bearer(token1))
         .send({ amountCollected: 30, paymentMethod: 'cash' }).expect(409);
