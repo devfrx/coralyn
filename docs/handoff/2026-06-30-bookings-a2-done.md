@@ -95,6 +95,15 @@
 - **Rebuild api Docker dopo modifiche BE**: `docker compose --profile full up -d --build api`,
   altrimenti il dev FE (proxy Vite `/api`) prende 404 dall'immagine vecchia. Login dev:
   `admin@coralyn.dev` / `coralyn-admin-8473`.
+- **Dev server FE**: `corepack pnpm --filter @coralyn/web-staff dev` → Vite su **:5173** (proxy
+  `/api` → `http://localhost:3000`, l'api dockerizzata). Non esiste uno script `dev` di root.
+  Se la **5173 è occupata** Vite passa a 5174/5175… → tenere **una sola istanza** (più istanze
+  confondono su quale serva cosa). In dev il SW attivo è quello di MSW (PWA off), ma gli handler
+  MSW sono vuoti (`handlers.ts`) → tutte le `/api` colpiscono il backend reale.
+- **Verifica live A2 (eseguita)**: stack `--profile full` (db/api/web su :3000/:8080); smoke API
+  login → `POST /customers` → `POST /bookings` (umbrella seed `50000000-…-0001`, fascia Mattina
+  `20000000-…-0001`) → `PATCH …/payment` → `paymentStatus=paid`; `amount>totale` → 422. Il seed
+  crea la mappa demo ma **nessun cliente/prenotazione**.
 
 ---
 
