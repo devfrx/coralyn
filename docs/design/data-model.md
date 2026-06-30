@@ -214,3 +214,10 @@ erDiagram
   [ADR-0023](../architecture/decisions/0023-contatti-cliente-colonne-tipizzate.md);
   cancellazione/anonimizzazione del Cliente (GDPR) rimandata a
   [D-024](../architecture/deferred.md).
+- **Identità & RLS**: `Utente` porta `stabilimento_id` **nullable** (null = superuser di
+  piattaforma) e il `ruolo` è un **enum DB** (`admin|staff|superuser`). A differenza delle altre
+  tabelle tenant-scoped, `Utente` **non** abilita la policy RLS `tenant_isolation`: il login è
+  pre-tenant e l'accesso è mediato solo da `IdentitaService`
+  ([ADR-0026](../architecture/decisions/0026-identita-rls-utente.md)). Il tenant delle richieste
+  è ricavato dal **JWT** dalla `JwtAuthGuard`, che popola `req.tenantId`
+  ([ADR-0024](../architecture/decisions/0024-strategia-auth.md)).
