@@ -15,11 +15,11 @@
 
 ## 0. Situazione GIT
 
-- **Branch corrente: `feat/bookings-daily`, 16 commit avanti rispetto a `main`.**
+- **Branch corrente: `feat/bookings-daily`**, diversi commit avanti rispetto a `main`
+  (commit per layer; elenco con `git log --oneline origin/main..HEAD`).
 - `main` è a `60e38c5` (doc aggiornati prima della slice). Il branch è **pronto per
-  review/merge** su main via PR.
-- Non è ancora stato pushato nella sessione corrente — verificare con `git push origin
-  feat/bookings-daily` prima di aprire la PR.
+  review/merge** su main via PR, con build/lint/test verdi.
+- Verificare il push con `git push -u origin feat/bookings-daily` prima di aprire la PR.
 
 ---
 
@@ -36,8 +36,8 @@
 - `packageId` volutamente omesso: verrà aggiunto con `Package` in A3 (FK non può
   esistere prima dell'entità referenziata).
 - 4 nuovi enum DB: `BookingType` (daily/periodic/subscription), `BookingStatus`
-  (confirmed/cancelled/pending), `PaymentStatus` (paid/unpaid/partial),
-  `PaymentMethod` (cash/card/transfer).
+  (confirmed/cancelled), `PaymentStatus` (unpaid/partial/paid),
+  `PaymentMethod` (cash/card/transfer/other).
 
 ### Invariante anti-overlap (BE)
 
@@ -113,6 +113,18 @@ Tutti sotto `JwtAuthGuard` globale (tenant dal JWT):
   incasso a cassa) rinviato ad A2 ([ADR-0011](../architecture/decisions/0011-incasso-base-nel-core.md)).
 
 ---
+
+## 3bis. Follow-up minori (da code review, rinviati ad A2)
+
+Emersi dalla review finale, non bloccanti, volutamente rinviati per non gonfiare A1:
+
+- **Log dell'anomalia "doppia confermata sullo stesso slot"**: la proiezione mappa è
+  già deterministica (prima per `createdAt`), ma non logga l'anomalia come da spec §5.
+  Aggiungere il log fuori dalla funzione pura `projectDayMap` (es. nel `MapService`) per
+  non introdurre side-effect nella proiezione.
+- **`onCancel` non chiude il drawer**: dopo l'annullo il drawer resta aperto
+  sull'ombrellone (ora libero); il bottone "Annulla" sparisce correttamente. Valutare se
+  chiudere il drawer o lasciarlo aperto per un re-booking immediato (scelta UX).
 
 ## 4. Prossimi slice
 
