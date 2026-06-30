@@ -12,7 +12,8 @@
   (incasso base — **modellato, comportamento rinviato ad A2**),
   [ADR-0012](../architecture/decisions/0012-gestione-abbonamenti.md) (rinnovo self-link — colonna
   presente, logica rinviata ad A4), [ADR-0010](../architecture/decisions/0010-isolamento-multi-tenant.md)
-  (RLS), [ADR-0026](../architecture/decisions/0026-identita-rls-utente.md) (tenant dal JWT).
+  (RLS), [ADR-0026](../architecture/decisions/0026-identita-rls-utente.md) (tenant dal JWT),
+  [ADR-0031](../architecture/decisions/0031-fuso-orario-e-date-operative.md) (fuso/date di calendario).
 
 ## 1. Obiettivo e confini
 
@@ -123,9 +124,11 @@ Tutte le query passano da `PrismaService.forTenant(tenantId, …)`.
 
 **Invariante (forma generale):** non esistono due `Booking` con `status=confirmed` che condividano
 lo **stesso `umbrellaId`**, con **intervalli di date `[startDate, endDate]` intersecanti** **e**
-**fasce sovrapposte**. Due fasce si sovrappongono se i loro intervalli orari
+**fasce sovrapposte**. Due fasce si sovrappongono se i loro intervalli orari **semiaperti**
 `[startTime, endTime)` si intersecano (non basta l'uguaglianza dell'`id`: così una futura
-"Giornata intera" che copre Mattina **e** Pomeriggio è gestita senza riscrittura).
+"Giornata intera" che copre Mattina **e** Pomeriggio è gestita senza riscrittura). Per
+`[start, end)` semiaperto, fasce **contigue** (Mattina 08–13 / Pomeriggio 13–19) **non**
+collidono al bordo delle 13:00 ([ADR-0031](../architecture/decisions/0031-fuso-orario-e-date-operative.md)).
 
 **Enforcement (A1):** controllo applicativo dentro la transazione `forTenant` prima della
 `create`. Si caricano le `Booking` confermate dello stesso `umbrellaId` con date intersecanti, si
@@ -133,11 +136,11 @@ risolve l'intervallo orario della loro `TimeSlot` e di quella richiesta, e se du
 → **`409 Conflict`** (`ConflictException`, messaggio IT). La giornaliera ha
 `startDate == endDate == data`.
 
-> **Decisione aperta (per la revisione):** l'enforcement applicativo lascia una finestra di
-> *race* teorica fra due create concorrenti. L'alternativa robusta è un **exclusion constraint**
-> Postgres (`btree_gist` su `umbrellaId` + `daterange` + range orario). Per l'MVP interno
-> propongo l'**enforcement applicativo** ora e di **tracciare** l'exclusion constraint come
-> hardening additivo (nuova voce deferred). Confermare in revisione.
+> **Decisione (chiusa):** enforcement **applicativo-in-transazione** in A1. La finestra di
+> *race* fra due create concorrenti sullo stesso slot è accettata per il deploy interno
+> mono-operatore; l'**exclusion constraint** Postgres (`btree_gist` su `umbrellaId` +
+> `daterange` + range orario) è tracciato come hardening additivo in
+> [D-030](../architecture/deferred.md).
 
 ## 4. Endpoint `bookings`
 
@@ -147,12 +150,16 @@ protetti dalla `JwtAuthGuard` globale (no `@Public()`); il tenant arriva dal JWT
 `ValidationPipe` globale.
 
 - **`POST /api/bookings`** — body `CreateBookingDto`: `customerId` (UUID), `umbrellaId` (UUID),
-  `timeSlotId` (UUID), `date` (`/^\d{4}-\d{2}-\d{2}$/`), `totalPrice` (number ≥ 0). Il service:
-  forza `type=daily`, `status=confirmed`, `startDate=endDate=date`; verifica che
-  customer/umbrella/timeSlot appartengano al tenant (RLS garantisce l'isolamento, ma una FK
-  inesistente → **404/422**); applica l'invariante (§3) → 409; crea. Risposta `201` + `BookingDTO`.
+  `timeSlotId` (UUID), `date` (forma `/^\d{4}-\d{2}-\d{2}$/` **+ validità di calendario**: la
+  regex da sola accetta `2026-13-40`, va respinta come **400**), `totalPrice` (number ≥ 0, max 2
+  decimali, ≤ 99 999 999,99). Il service: forza `type=daily`, `status=confirmed`,
+  `startDate=endDate=date`; verifica che customer/umbrella/timeSlot appartengano al tenant (RLS
+  garantisce l'isolamento, ma una FK inesistente → **422**); applica l'invariante (§3) → 409;
+  crea. Risposta `201` + `BookingDTO`.
 - **`GET /api/bookings?date=YYYY-MM-DD`** — `BookingDTO[]` delle prenotazioni **confermate** del
-  giorno (per il drawer e la verifica). `date` opzionale → oggi. Ordinate per `createdAt`.
+  giorno (per il drawer e la verifica). `date` opzionale → **oggi in `Europe/Rome`**
+  ([ADR-0031](../architecture/decisions/0031-fuso-orario-e-date-operative.md)), non UTC. Ordinate
+  per `createdAt`.
 - **`DELETE /api/bookings/:id`** — annulla (`status=cancelled`); idempotente sul già annullato;
   inesistente → 404. Risposta `200`/`204`. (Soft via stato, non hard-delete: conserva lo storico,
   coerente con [D-024](../architecture/deferred.md).)
@@ -178,6 +185,12 @@ la cui `TimeSlot` **si sovrappone** allo `slot` corrente (stesso criterio d'inte
 
 In A1, con sole `daily`, la mappa mostra `free`/`daily`. La funzione resta **pura e
 unit-testabile**; il commento "INCREMENT BOUNDARY" attuale va sostituito con la logica reale.
+
+**Difensivo (caso "non deve accadere"):** l'invariante (§3) garantisce **una** sola confermata
+per `(umbrella, fascia)`. Se per bug/race ne arrivassero due, la proiezione è deterministica —
+prende la **prima per `createdAt`** — e il punto di lettura **logga l'anomalia** invece di
+crashare. Il caricamento delle date intersecanti usa il confronto UTC su `@db.Date`
+([ADR-0031](../architecture/decisions/0031-fuso-orario-e-date-operative.md)): mai metodi locali.
 
 ## 6. Contratti (`@coralyn/contracts`) — additivi
 
@@ -223,16 +236,22 @@ annullarla. La pagina `BookingsView` resta mockata (A2).
   (query, `queryKey` tenant+date), `useCreateBooking()` e `useCancelBooking()` (mutation che
   invalidano `dayMap` **e** `bookings` del giorno).
 - **Modale "Nuova prenotazione"** ([MapView.vue:180](../../apps/web-staff/src/features/map/MapView.vue)):
-  - **Cliente**: ricerca/selezione fra i `Customer` reali (riusa la query clienti).
+  - **Cliente**: ricerca/selezione fra i `Customer` reali (riusa la query clienti). Se la lista è
+    **vuota / nessun risultato**, mostra un percorso per **creare il cliente** (link a `/customers`).
   - **Fascia**: opzioni da `map.timeSlots` **reali** (non più hardcoded `Giornata/Mattina/Pomeriggio`).
+    **Pre-seleziona la fascia libera** dell'ombrellone e **disabilita** quelle già occupate, così
+    l'utente non sceglie una fascia che darebbe 409 garantito.
   - **Prezzo**: input numerico (digitato a mano).
-  - **Data**: `session.activeDate`.
+  - **Data**: `session.activeDate`, **inviata sempre esplicita**
+    ([ADR-0031](../architecture/decisions/0031-fuso-orario-e-date-operative.md)).
   - Il selettore **Pacchetto** è **rimosso/nascosto** in A1 (nessun `Package` finché A3).
   - "Conferma" → `useCreateBooking`; errore 409 → messaggio "fascia non disponibile".
 - **Drawer ombrellone**: sostituire il `booking` mockato
   ([MapView.vue:54-58](../../apps/web-staff/src/features/map/MapView.vue)) con il dato reale
   ricavato da `useDayBookings` filtrato per `umbrellaId` + fascia selezionata (mostra cliente,
-  fascia, prezzo, stato). "Annulla prenotazione" → `useCancelBooking`.
+  fascia, prezzo, stato). Il dettaglio è **per-fascia**: un ombrellone con mattina occupata e
+  pomeriggio libero mostra la prenotazione solo sulla fascia pertinente. "Annulla prenotazione" →
+  `useCancelBooking`.
 - **MSW**: handler `/api/bookings` **solo nei test** (`mocks/server.ts`); in dev il worker fa
   bypass sul backend reale. `mapSeed` resta ma le prenotazioni non sono più mock nel drawer.
 
@@ -247,11 +266,17 @@ annullarla. La pagina `BookingsView` resta mockata (A2).
     201 (mattina e pomeriggio non collidono).
   - **isolamento**: tenant s2 non vede le prenotazioni di s1; create di s2 su un `umbrellaId` di
     s1 → fallisce (FK fuori tenant).
-  - `DELETE /bookings/:id` → la mappa torna `free`.
+  - `DELETE /bookings/:id` → la mappa torna `free`; ri-create sullo stesso slot dopo l'annullo → 201
+    (una `cancelled` non blocca).
+  - **validazione**: `date` calendariale impossibile (`2026-13-40`) → 400; `totalPrice` negativo → 400.
+  - **superuser** (JWT con `establishmentId` null) su `POST /bookings` → respinto (403), non crea.
   - Applicare le migrazioni a `coralyn_test` (`migrate deploy` o `migrate reset --skip-seed`).
 - **api unit**: `projectDayMap` puro — nessuna prenotazione ⇒ tutto `free`; una `daily` ⇒ `daily`
-  sulla fascia sovrapposta e `free` sulle altre; chiavi `stateBySlot` = id delle fasce ritornate.
-  Unit dell'invariante (sovrapposizione fasce per intervallo orario).
+  sulla fascia sovrapposta e `free` sulle altre; chiavi `stateBySlot` = id delle fasce ritornate;
+  **due confermate sullo stesso slot** ⇒ stato deterministico (prima per `createdAt`).
+  Unit dell'invariante: sovrapposizione fasce per intervallo orario; fasce **contigue** al bordo
+  (13:00) **non** collidono; intervalli di date intersecanti. Unit della utility data: "oggi" in
+  `Europe/Rome` a cavallo della mezzanotte (no off-by-one); round-trip `@db.Date` in UTC.
 
 ## 9. Verifica / DoD
 
@@ -263,14 +288,48 @@ annullarla. La pagina `BookingsView` resta mockata (A2).
 - FE: dev worker sul backend reale; `MapView.spec` aggiornata verde; `typecheck` OK; pulizia
   `apps/web-staff/node_modules/.vite` dopo il cambio contratti.
 - Doc: aggiornare `README.md` (stato) e `data-model.md` (`Booking` ora **implementata**, nota
-  `packageId` differita); nuova voce deferred per l'exclusion constraint se confermata in §3;
-  handoff successivo. Glossario: già copre Booking/Prenotazione.
+  `packageId` differita); allineare il `resolveDate` della mappa ad [ADR-0031](../architecture/decisions/0031-fuso-orario-e-date-operative.md);
+  handoff successivo. Già fatti in questo spec: [ADR-0031](../architecture/decisions/0031-fuso-orario-e-date-operative.md),
+  voci deferred [D-030](../architecture/deferred.md)/[D-031](../architecture/deferred.md).
+  Glossario: già copre Booking/Prenotazione.
 
-## 10. Decisioni aperte (da chiudere in revisione)
+## 10. Casi limite e regole d'integrità
 
-1. **Enforcement anti-overlap**: applicativo-in-transazione ora + exclusion constraint tracciato
-   (proposto), oppure exclusion constraint Postgres subito (più robusto, più complesso). Vedi §3.
-2. **`status` minimale `confirmed|cancelled`** (proposto) vs includere `draft` già ora. La
-   `BookingsView` mock mostra "Bozza": propongo di rinviare `draft` ad A2.
-3. **Scope FE**: collegare **solo** la `MapView` in A1 (proposto), lasciando `BookingsView`
-   mockata ad A2.
+Regole rese esplicite per non lasciarle all'improvvisazione (riepilogo dei punti emersi in
+revisione; i test relativi sono in §8).
+
+- **Fuso/date** ([ADR-0031](../architecture/decisions/0031-fuso-orario-e-date-operative.md)): "oggi"
+  in `Europe/Rome`, non UTC; round-trip `@db.Date`/`@db.Time` in UTC; il FE invia `activeDate`
+  esplicita. Evita l'off-by-one a mezzanotte (oggi presente nel `resolveDate` della mappa).
+- **Validazione `date`**: forma `YYYY-MM-DD` **+** validità calendariale reale (no `2026-13-40`).
+- **`totalPrice`**: `Decimal(10,2)`, ≥ 0, max 2 decimali, ≤ 99 999 999,99.
+- **FK fuori tenant**: customer/umbrella/timeSlot inesistenti nel tenant → 422 (RLS non li trova).
+- **Superuser** (`establishmentId` null nel JWT): respinto sugli endpoint tenant-scoped (403), mai
+  create con tenant nullo.
+- **Solo create + cancel in A1** (niente PATCH): per correggere cliente/fascia/prezzo si **annulla
+  e si ricrea**. La modifica in-place è additiva, rinviata ad A2.
+- **Anti-overlap = unica guardia**; doppio-click sullo stesso slot → la seconda create va in 409
+  (idempotenza di fatto). Due confermate sullo stesso slot "non devono accadere": proiezione
+  difensiva deterministica + log (§5).
+- **Fasce semiaperte** `[start, end)`: contigue non collidono; fascia con `end < start`
+  (oltre mezzanotte) **non supportata** in A1.
+- **Prenotazione `unpaid` occupa comunque lo slot**: lo stato mappa dipende da `type`/`status`,
+  non dal pagamento (semantica confermata; l'incasso è A2).
+
+### Adiacenti — tracciati, fuori A1
+
+- **Mutazione mappa con prenotazioni esistenti** (sposto un `Umbrella`, cambio gli orari di una
+  `TimeSlot`): impatta retroattivamente le sovrapposizioni. Da affrontare col CRUD mappa (opzione B).
+- **Audit** (chi crea/annulla): non tracciato in A1 ([D-016](../architecture/deferred.md)/ADR-0015).
+- **Catena rinnovo** (annullare una `Booking` che è `previousBookingId` di un'altra): con A4.
+- **Tenant vuoto** (senza fasce/ombrelloni): mappa vuota, create impossibile — atteso.
+- **Walk-in "Presenza" / "Sposta prenotazione"**: bottoni mock nel drawer, non modellati.
+
+## 11. Decisioni chiuse
+
+1. **Enforcement anti-overlap**: applicativo-in-transazione in A1; exclusion constraint Postgres
+   tracciato in [D-030](../architecture/deferred.md). (§3)
+2. **`status` = `confirmed|cancelled`**; `draft` (la "Bozza" della `BookingsView` mock) rinviato ad A2.
+3. **Scope FE**: solo la `MapView` in A1; `BookingsView` resta mockata fino ad A2.
+4. **Fuso/date**: promosso ad [ADR-0031](../architecture/decisions/0031-fuso-orario-e-date-operative.md)
+   (fuso `Europe/Rome` fisso, per-tenant in [D-031](../architecture/deferred.md)).
