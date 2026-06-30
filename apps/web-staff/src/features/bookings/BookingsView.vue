@@ -6,6 +6,7 @@ import type { BookingDTO, PaymentStatus } from '@coralyn/contracts';
 import { storeToRefs } from 'pinia';
 import { useSessionStore } from '@/stores/session';
 import { useDayBookings } from './useBookings';
+import { usePackages } from './usePackages';
 import { useCustomers } from '@/features/customers/useCustomers';
 import { useDayMap } from '@/features/map/useDayMap';
 import SettlePaymentModal from './SettlePaymentModal.vue';
@@ -16,6 +17,7 @@ const { activeDate } = storeToRefs(session);
 const { data: bookings } = useDayBookings(activeDate);
 const { data: customers } = useCustomers();
 const { data: map } = useDayMap();
+const { data: packages } = usePackages();
 
 const filtro = ref<'all' | PaymentStatus>('all');
 const filtri = [
@@ -44,10 +46,17 @@ const umbrellaLabel = computed(() => {
 const initials = (name: string): string =>
   name.split(' ').map((p) => p[0]).slice(0, 2).join('').toUpperCase();
 
+const packageName = computed(() => {
+  const m = new Map<string, string>();
+  for (const p of packages.value ?? []) m.set(p.id, p.name);
+  return m;
+});
+
 const cols = [
   { key: 'cliente', label: 'Cliente' },
   { key: 'ombrellone', label: 'Ombrellone' },
   { key: 'tipo', label: 'Tipo' },
+  { key: 'pacchetto', label: 'Pacchetto' },
   { key: 'periodo', label: 'Periodo' },
   { key: 'stato', label: 'Stato' },
   { key: 'incasso', label: 'Incasso', align: 'right' as const },
@@ -84,6 +93,7 @@ function openSettle(b: BookingDTO): void {
         </td>
         <td class="border-b border-[var(--color-border-row)] px-3.5 py-3.5 tabular-nums text-[var(--color-text-2nd)]">{{ umbrellaLabel.get(b.umbrellaId) ?? '—' }}</td>
         <td class="border-b border-[var(--color-border-row)] px-3.5 py-3.5 text-[var(--color-text-2nd)]">Giornaliero</td>
+        <td class="border-b border-[var(--color-border-row)] px-3.5 py-3.5 text-[var(--color-text-2nd)]">{{ b.packageId ? (packageName.get(b.packageId) ?? '—') : '—' }}</td>
         <td class="border-b border-[var(--color-border-row)] px-3.5 py-3.5 tabular-nums text-[var(--color-text-2nd)]">{{ b.startDate }}</td>
         <td class="border-b border-[var(--color-border-row)] px-3.5 py-3.5"><Badge :tone="PAY_TONE[b.paymentStatus]">{{ PAY_LABEL[b.paymentStatus] }}</Badge></td>
         <td class="border-b border-[var(--color-border-row)] px-[18px] py-3.5 text-right">

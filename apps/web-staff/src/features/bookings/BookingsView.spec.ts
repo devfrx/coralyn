@@ -42,4 +42,32 @@ describe('BookingsView', () => {
     expect(w.text()).toContain('Saldato');
     expect(w.text()).toContain('Da incassare');
   });
+
+  it('colonna Pacchetto: nome risolto da packageId, "—" se assente', async () => {
+    server.use(
+      http.get('/api/packages', () =>
+        HttpResponse.json([{ id: 'pkg-1', name: 'Standard', equipment: { sunbeds: 2 } }]),
+      ),
+      http.get('/api/bookings', () =>
+        HttpResponse.json([
+          {
+            id: 'bk-1', customerId: 'c-1', umbrellaId: 'u1', timeSlotId: 's1',
+            startDate: '2026-07-15', endDate: '2026-07-15', type: 'daily', status: 'confirmed',
+            totalPrice: 60, paymentStatus: 'unpaid', amountCollected: 0, packageId: 'pkg-1',
+          },
+          {
+            id: 'bk-2', customerId: 'c-1', umbrellaId: 'u2', timeSlotId: 's1',
+            startDate: '2026-07-15', endDate: '2026-07-15', type: 'daily', status: 'confirmed',
+            totalPrice: 28, paymentStatus: 'unpaid', amountCollected: 0,
+          },
+        ]),
+      ),
+    );
+    const w = mountApp(BookingsView);
+    await flushPromises();
+    await tick();
+    await flushPromises();
+    expect(w.text()).toContain('Pacchetto'); // header colonna
+    expect(w.text()).toContain('Standard'); // risolto per bk-1
+  });
 });
