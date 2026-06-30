@@ -54,10 +54,16 @@ export const server = setupServer(
     customers[i] = { ...customers[i], ...patch };
     return HttpResponse.json(customers[i]);
   }),
+  http.get('/api/packages', () =>
+    HttpResponse.json([{ id: 'pkg-1', name: 'Standard', equipment: { sunbeds: 2 } }]),
+  ),
   http.get('/api/bookings', () => HttpResponse.json([])),
-  http.get('/api/bookings/quote', () => HttpResponse.json({ totalPrice: 28 })),
+  http.get('/api/bookings/quote', ({ request }) => {
+    const hasPkg = new URL(request.url).searchParams.has('packageId');
+    return HttpResponse.json({ totalPrice: hasPkg ? 35 : 28 });
+  }),
   http.post('/api/bookings', async ({ request }) => {
-    const b = (await request.json()) as { customerId: string; umbrellaId: string; timeSlotId: string; date: string };
+    const b = (await request.json()) as { customerId: string; umbrellaId: string; timeSlotId: string; date: string; packageId?: string };
     return HttpResponse.json(
       { id: 'bk-1', ...b, startDate: b.date, endDate: b.date, type: 'daily', status: 'confirmed', totalPrice: 28, paymentStatus: 'unpaid', amountCollected: 0 },
       { status: 201 },

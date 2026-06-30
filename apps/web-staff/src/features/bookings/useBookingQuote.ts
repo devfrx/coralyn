@@ -8,6 +8,7 @@ export interface QuoteParams {
   umbrellaId: string;
   timeSlotId: string;
   date: string;
+  packageId?: string; // A3.2: opzionale (nessun pacchetto = assente)
 }
 
 /** Preventivo di prezzo per il modale (abilitato solo quando i parametri sono completi). */
@@ -20,11 +21,13 @@ export function useBookingQuote(params: Ref<QuoteParams | null>) {
       params.value?.umbrellaId ?? '',
       params.value?.timeSlotId ?? '',
       params.value?.date ?? '',
+      params.value?.packageId ?? '',
     ]),
     queryFn: () => {
       const p = params.value!;
+      const pkg = p.packageId ? `&packageId=${p.packageId}` : '';
       return apiFetch<BookingQuoteDTO>(
-        `/bookings/quote?umbrellaId=${p.umbrellaId}&timeSlotId=${p.timeSlotId}&date=${p.date}`,
+        `/bookings/quote?umbrellaId=${p.umbrellaId}&timeSlotId=${p.timeSlotId}&date=${p.date}${pkg}`,
       );
     },
     enabled: computed(

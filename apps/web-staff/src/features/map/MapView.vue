@@ -5,6 +5,7 @@ import type { UmbrellaDTO, SlotState, BookingDTO } from '@coralyn/contracts';
 import { useDayMap } from './useDayMap';
 import { useDayBookings, useCreateBooking, useCancelBooking } from '@/features/bookings/useBookings';
 import { useBookingQuote } from '@/features/bookings/useBookingQuote';
+import { usePackages } from '@/features/bookings/usePackages';
 import SettlePaymentModal from '@/features/bookings/SettlePaymentModal.vue';
 import { useCustomers } from '@/features/customers/useCustomers';
 import { useSessionStore } from '@/stores/session';
@@ -16,6 +17,7 @@ const session = useSessionStore();
 const { activeDate } = storeToRefs(session);
 const { data: bookings } = useDayBookings(activeDate);
 const { data: customers } = useCustomers();
+const { data: packages } = usePackages();
 const createBooking = useCreateBooking();
 const cancelBooking = useCancelBooking();
 
@@ -98,6 +100,7 @@ const currentCustomerName = computed<string>(() => {
 });
 
 const customerId = ref<string>('');
+const packageId = ref<string>('');
 
 function slotIsBusy(slotId: string): boolean {
   return sel.value ? (liveU.value.stateBySlot[slotId] ?? 'free') !== 'free' : false;
@@ -111,6 +114,7 @@ function firstFreeSlot(): string {
 function openModal(): void {
   selectedSlotId.value = firstFreeSlot();
   customerId.value = '';
+  packageId.value = '';
   modalBooking.value = true;
 }
 async function confirmBooking(): Promise<void> {
@@ -120,6 +124,7 @@ async function confirmBooking(): Promise<void> {
     umbrellaId: sel.value.u.id,
     timeSlotId: selectedSlotId.value,
     date: activeDate.value,
+    packageId: packageId.value || undefined,
   });
   modalBooking.value = false;
 }
@@ -130,7 +135,12 @@ async function onCancel(): Promise<void> {
 const modalBooking = ref(false);
 const quoteParams = computed(() =>
   modalBooking.value && sel.value && selectedSlotId.value
-    ? { umbrellaId: sel.value.u.id, timeSlotId: selectedSlotId.value, date: activeDate.value }
+    ? {
+        umbrellaId: sel.value.u.id,
+        timeSlotId: selectedSlotId.value,
+        date: activeDate.value,
+        packageId: packageId.value || undefined,
+      }
     : null,
 );
 const { data: quote, isError: quoteError, isFetching: quoteLoading } = useBookingQuote(quoteParams);
@@ -272,6 +282,13 @@ const freeSlotOptions = computed(() =>
         <div v-if="freeSlotOptions.length">
           <label class="mb-1.5 block text-[12.5px] font-semibold text-[var(--color-text-2nd)]">Fascia</label>
           <SegmentedControl v-model="selectedSlotId" :options="freeSlotOptions" />
+        </div>
+        <div>
+          <label class="mb-1.5 block text-[12.5px] font-semibold text-[var(--color-text-2nd)]">Pacchetto</label>
+          <select v-model="packageId" class="w-full rounded-[11px] border-[1.5px] border-[var(--color-border-input)] bg-[var(--color-surface)] px-3.5 py-3 text-[13.5px] text-[var(--color-text)] focus:outline-none">
+            <option value="">Nessun pacchetto</option>
+            <option v-for="p in (packages ?? [])" :key="p.id" :value="p.id">{{ p.name }}</option>
+          </select>
         </div>
         <div>
           <label class="mb-1.5 block text-[12.5px] font-semibold text-[var(--color-text-2nd)]">Prezzo</label>

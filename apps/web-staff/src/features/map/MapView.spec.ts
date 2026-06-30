@@ -47,6 +47,21 @@ describe('MapView', () => {
     await flushPromises();
     expect(document.body.textContent).toContain('28');
 
+    // Il selettore Pacchetto è presente con l'opzione di default e quella del MSW.
+    const select = Array.from(document.body.querySelectorAll('select')).find((s) =>
+      s.textContent?.includes('Nessun pacchetto'),
+    ) as HTMLSelectElement | undefined;
+    expect(select).toBeTruthy();
+    expect(select!.textContent).toContain('Standard');
+
+    // Scegliendo il pacchetto, il prezzo si ricalcola (MSW: 35 col pacchetto).
+    select!.value = 'pkg-1';
+    select!.dispatchEvent(new Event('change'));
+    await flushPromises();
+    await new Promise((r) => setTimeout(r, 0));
+    await flushPromises();
+    expect(document.body.textContent).toContain('35');
+
     w.unmount();
   });
 });
