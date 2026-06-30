@@ -269,7 +269,8 @@ annullarla. La pagina `BookingsView` resta mockata (A2).
   - `DELETE /bookings/:id` → la mappa torna `free`; ri-create sullo stesso slot dopo l'annullo → 201
     (una `cancelled` non blocca).
   - **validazione**: `date` calendariale impossibile (`2026-13-40`) → 400; `totalPrice` negativo → 400.
-  - **superuser** (JWT con `establishmentId` null) su `POST /bookings` → respinto (403), non crea.
+  - **superuser** (JWT con `establishmentId` null) su `POST /bookings` → respinto **400**
+    (`TenantContext.require()` → "Tenant non risolto"), non crea.
   - Applicare le migrazioni a `coralyn_test` (`migrate deploy` o `migrate reset --skip-seed`).
 - **api unit**: `projectDayMap` puro — nessuna prenotazione ⇒ tutto `free`; una `daily` ⇒ `daily`
   sulla fascia sovrapposta e `free` sulle altre; chiavi `stateBySlot` = id delle fasce ritornate;
@@ -304,8 +305,8 @@ revisione; i test relativi sono in §8).
 - **Validazione `date`**: forma `YYYY-MM-DD` **+** validità calendariale reale (no `2026-13-40`).
 - **`totalPrice`**: `Decimal(10,2)`, ≥ 0, max 2 decimali, ≤ 99 999 999,99.
 - **FK fuori tenant**: customer/umbrella/timeSlot inesistenti nel tenant → 422 (RLS non li trova).
-- **Superuser** (`establishmentId` null nel JWT): respinto sugli endpoint tenant-scoped (403), mai
-  create con tenant nullo.
+- **Superuser** (`establishmentId` null nel JWT): respinto sugli endpoint tenant-scoped (**400**,
+  `TenantContext.require()` → "Tenant non risolto"), mai create con tenant nullo.
 - **Solo create + cancel in A1** (niente PATCH): per correggere cliente/fascia/prezzo si **annulla
   e si ricrea**. La modifica in-place è additiva, rinviata ad A2.
 - **Anti-overlap = unica guardia**; doppio-click sullo stesso slot → la seconda create va in 409
