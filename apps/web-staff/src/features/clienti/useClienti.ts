@@ -1,6 +1,6 @@
 import { computed } from 'vue';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/vue-query';
-import type { ClienteDTO, CreaClienteInput, ModificaClienteInput } from '@driftly/contracts';
+import type { ClienteDTO, CreaClienteInput, ModificaClienteInput } from '@coralyn/contracts';
 import { apiFetch } from '@/lib/http';
 import { queryKeys } from '@/lib/queryKeys';
 import { useSessionStore } from '@/stores/session';

@@ -1,12 +1,12 @@
 # syntax=docker/dockerfile:1
 #
-# Immagine del backend NestJS (@driftly/api) per il monorepo pnpm.
+# Immagine del backend NestJS (@coralyn/api) per il monorepo pnpm.
 # Il contesto di build è la ROOT del repo (vedi docker-compose.yml) così da avere
 # accesso a pnpm-workspace.yaml, al lockfile e a packages/contracts (workspace dep).
 #
 # Sequenza critica (scoperta in fase di setup):
-#   1. install filtrato a @driftly/api... (api + sue dipendenze, incl. contracts)
-#   2. build di @driftly/contracts (CJS, consumato da api via dist)
+#   1. install filtrato a @coralyn/api... (api + sue dipendenze, incl. contracts)
+#   2. build di @coralyn/contracts (CJS, consumato da api via dist)
 #   3. prisma generate  ← OBBLIGATORIO prima della build, altrimenti i tipi del
 #      client Prisma non esistono e `nest build` fallisce con TS7006 (implicit any)
 #   4. nest build  → dist/src/main.js
@@ -31,11 +31,11 @@ COPY . .
 # `pnpm rebuild argon2`: argon2 e' un modulo nativo (hashing password, ADR-0025);
 # con --ignore-scripts il suo binding non viene installato -> lo ricostruiamo a mano,
 # altrimenti `require('argon2')` fallirebbe a runtime.
-RUN pnpm install --frozen-lockfile --ignore-scripts --filter "@driftly/api..." \
+RUN pnpm install --frozen-lockfile --ignore-scripts --filter "@coralyn/api..." \
  && pnpm rebuild argon2 \
- && pnpm --filter @driftly/contracts build \
- && pnpm --filter @driftly/api exec prisma generate \
- && pnpm --filter @driftly/api build
+ && pnpm --filter @coralyn/contracts build \
+ && pnpm --filter @coralyn/api exec prisma generate \
+ && pnpm --filter @coralyn/api build
 
 RUN chmod +x apps/api/docker-entrypoint.sh
 

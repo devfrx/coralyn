@@ -1,5 +1,5 @@
 import 'vue-router';
-import type { Ruolo } from '@driftly/contracts';
+import type { Ruolo } from '@coralyn/contracts';
 declare module 'vue-router' {
   interface RouteMeta {
     title?: string;

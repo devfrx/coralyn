@@ -19,8 +19,8 @@ async function main(): Promise<void> {
   });
 
   // Primo admin di sviluppo (per login locale). Password hashata con argon2id.
-  const email = process.env.DEV_ADMIN_EMAIL ?? 'admin@driftly.dev';
-  const password = process.env.DEV_ADMIN_PASSWORD ?? 'driftly-admin';
+  const email = process.env.DEV_ADMIN_EMAIL ?? 'admin@coralyn.dev';
+  const password = process.env.DEV_ADMIN_PASSWORD ?? 'coralyn-admin';
   const passwordHash = await argon2.hash(password, { type: argon2.argon2id });
   await prisma.utente.upsert({
     where: { email },

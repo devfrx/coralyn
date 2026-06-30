@@ -1,10 +1,10 @@
 {
-  "name": "@driftly/root",
+  "name": "@coralyn/root",
   "private": true,
   "packageManager": "pnpm@11.9.0",
   "engines": { "node": ">=22" },
   "scripts": {
-    "build:contracts": "pnpm --filter @driftly/contracts build",
+    "build:contracts": "pnpm --filter @coralyn/contracts build",
     "prepare": "pnpm run build:contracts",
     "lint": "eslint .",
     "format": "prettier --write ."

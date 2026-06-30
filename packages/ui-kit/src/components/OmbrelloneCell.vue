@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue';
-import type { StatoSlot } from '@driftly/contracts';
+import type { StatoSlot } from '@coralyn/contracts';
 import Icon from './Icon.vue';
 
 const props = withDefaults(defineProps<{

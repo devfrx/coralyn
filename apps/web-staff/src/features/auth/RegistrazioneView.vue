@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Icon } from '@driftly/ui-kit';
+import { Icon } from '@coralyn/ui-kit';
 import AuthLayout from '@/app/AuthLayout.vue';
 // Coralyn è un servizio B2B a contratto: l'attivazione avviene SU INVITO, non con
 // self-registration aperta (vedi ADR-0028 e D-002). Questa pagina è informativa:

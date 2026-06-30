@@ -1,4 +1,4 @@
-import type { MappaGiornoDTO } from '@driftly/contracts';
+import type { MappaGiornoDTO } from '@coralyn/contracts';
 
 export const mappaSeed: MappaGiornoDTO = {
   data: '2026-06-27',

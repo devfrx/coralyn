@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue';
-import { Card, Avatar, Badge, Button, Field, Input, Textarea, Icon } from '@driftly/ui-kit';
+import { Card, Avatar, Badge, Button, Field, Input, Textarea, Icon } from '@coralyn/ui-kit';
 import { useCliente, useModificaCliente } from './useClienti';
 
 const props = defineProps<{ id: string }>();

@@ -1,6 +1,6 @@
 import { computed } from 'vue';
 import { useQuery } from '@tanstack/vue-query';
-import type { MappaGiornoDTO } from '@driftly/contracts';
+import type { MappaGiornoDTO } from '@coralyn/contracts';
 import { apiFetch } from '@/lib/http';
 import { queryKeys } from '@/lib/queryKeys';
 import { useSessionStore } from '@/stores/session';

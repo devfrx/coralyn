@@ -3,7 +3,7 @@ import type { Utente } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { PasswordHasher } from './password-hasher';
 import { TokenService } from './token.service';
-import { LoginInput, LoginResponse, Ruolo, UtenteDTO } from '@driftly/contracts';
+import { LoginInput, LoginResponse, Ruolo, UtenteDTO } from '@coralyn/contracts';
 
 @Injectable()
 export class IdentitaService {

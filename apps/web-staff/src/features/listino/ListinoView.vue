@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Button, Badge, Card, DataTable, Icon } from '@driftly/ui-kit';
+import { Button, Badge, Card, DataTable, Icon } from '@coralyn/ui-kit';
 
 type Tone = 'accent' | 'brand' | 'neutral';
 // Mock seam: dati demo statici — da sostituire con useQuery quando il backend espone l'endpoint.

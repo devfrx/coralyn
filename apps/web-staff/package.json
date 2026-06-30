@@ -1,5 +1,5 @@
 {
-  "name": "@driftly/web-staff",
+  "name": "@coralyn/web-staff",
   "private": true,
   "version": "0.0.0",
   "type": "module",
@@ -12,8 +12,8 @@
     "typecheck": "vue-tsc -b --noEmit"
   },
   "dependencies": {
-    "@driftly/contracts": "workspace:*",
-    "@driftly/ui-kit": "workspace:*",
+    "@coralyn/contracts": "workspace:*",
+    "@coralyn/ui-kit": "workspace:*",
     "@fontsource/inter": "^5.2.8",
     "@tanstack/vue-query": "^5.101.1",
     "pinia": "^3.0.4",

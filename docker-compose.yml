@@ -1,4 +1,4 @@
-# Coralyn / Driftly — orchestrazione locale.
+# Coralyn — orchestrazione locale.
 #
 # Profili:
 #   (default)      solo `db`  → workflow di sviluppo: app in locale via `pnpm dev`.
@@ -10,20 +10,20 @@
 services:
   db:
     image: postgres:16
-    container_name: driftly-db
+    container_name: coralyn-db
     environment:
-      POSTGRES_USER: driftly
-      POSTGRES_PASSWORD: driftly
-      POSTGRES_DB: driftly_dev
+      POSTGRES_USER: coralyn
+      POSTGRES_PASSWORD: coralyn
+      POSTGRES_DB: coralyn_dev
     ports:
       - "5432:5432"
     volumes:
-      - driftly-pgdata:/var/lib/postgresql/data
+      - coralyn-pgdata:/var/lib/postgresql/data
       - ./init:/docker-entrypoint-initdb.d
     healthcheck:
-      # `driftly_app` esiste solo dopo gli script di init: provarlo garantisce che
+      # `coralyn_app` esiste solo dopo gli script di init: provarlo garantisce che
       # il ruolo applicativo (non-superuser, per la RLS) sia pronto prima di api.
-      test: ["CMD-SHELL", "pg_isready -U driftly_app -d driftly_dev"]
+      test: ["CMD-SHELL", "pg_isready -U coralyn_app -d coralyn_dev"]
       interval: 5s
       timeout: 5s
       retries: 20
@@ -33,16 +33,16 @@ services:
     build:
       context: .
       dockerfile: apps/api/Dockerfile
-    container_name: driftly-api
+    container_name: coralyn-api
     environment:
-      DATABASE_URL: "postgresql://driftly_app:driftly_app@db:5432/driftly_dev?schema=public"
+      DATABASE_URL: "postgresql://coralyn_app:coralyn_app@db:5432/coralyn_dev?schema=public"
       PORT: "3000"
       # Identità & auth (ADR-0024/0025). Valori DEV-ONLY: in produzione passare
       # secret reali via env/secret manager, mai questi.
       JWT_SECRET: "dev-secret-change-me-at-least-32-characters-long"
       JWT_EXPIRES_IN: "8h"
-      DEV_ADMIN_EMAIL: "admin@driftly.dev"
-      DEV_ADMIN_PASSWORD: "driftly-admin"
+      DEV_ADMIN_EMAIL: "admin@coralyn.dev"
+      DEV_ADMIN_PASSWORD: "coralyn-admin-8473"
       # Seed al primo avvio: Stabilimento dev (00000000-...-0001) + primo admin,
       # così si può fare login reale (POST /api/auth/login) sul backend dockerizzato.
       SEED_ON_START: "true"
@@ -57,7 +57,7 @@ services:
     build:
       context: .
       dockerfile: apps/web-staff/Dockerfile
-    container_name: driftly-web
+    container_name: coralyn-web
     depends_on:
       api:
         condition: service_healthy
@@ -65,4 +65,4 @@ services:
       - "8080:80"
 
 volumes:
-  driftly-pgdata:
+  coralyn-pgdata:

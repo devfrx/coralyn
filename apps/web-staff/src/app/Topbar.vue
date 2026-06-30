@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import { useRoute } from 'vue-router';
-import { Icon } from '@driftly/ui-kit';
+import { Icon } from '@coralyn/ui-kit';
 import { useSessionStore } from '@/stores/session';
 const route = useRoute();
 const session = useSessionStore();

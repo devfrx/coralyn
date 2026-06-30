@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Card, Badge, Icon } from '@driftly/ui-kit';
+import { Card, Badge, Icon } from '@coralyn/ui-kit';
 </script>
 <template>
   <section class="px-[26px] pb-[30px] pt-[22px]">

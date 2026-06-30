@@ -1,6 +1,6 @@
 import { Body, Controller, Get, Param, Patch, Post } from '@nestjs/common';
 import { ClientiService } from './clienti.service';
-import { ClienteDTO } from '@driftly/contracts';
+import { ClienteDTO } from '@coralyn/contracts';
 import { CreateClienteDto } from './dto/create-cliente.dto';
 import { UpdateClienteDto } from './dto/update-cliente.dto';
 

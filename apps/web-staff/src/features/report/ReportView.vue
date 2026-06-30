@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { KpiCard, BarChart, StackedBar, Card, Avatar, Button, Icon } from '@driftly/ui-kit';
+import { KpiCard, BarChart, StackedBar, Card, Avatar, Button, Icon } from '@coralyn/ui-kit';
 
 // Mock seam: dati demo statici — da sostituire con useQuery quando il backend espone l'endpoint.
 const kpi = [
