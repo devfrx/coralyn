@@ -54,4 +54,13 @@ export const server = setupServer(
     customers[i] = { ...customers[i], ...patch };
     return HttpResponse.json(customers[i]);
   }),
+  http.get('/api/bookings', () => HttpResponse.json([])),
+  http.post('/api/bookings', async ({ request }) => {
+    const b = (await request.json()) as { customerId: string; umbrellaId: string; timeSlotId: string; date: string; totalPrice: number };
+    return HttpResponse.json(
+      { id: 'bk-1', ...b, startDate: b.date, endDate: b.date, type: 'daily', status: 'confirmed', paymentStatus: 'unpaid', amountCollected: 0 },
+      { status: 201 },
+    );
+  }),
+  http.delete('/api/bookings/:id', () => new HttpResponse(null, { status: 200 })),
 );

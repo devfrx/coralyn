@@ -1,10 +1,21 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue';
 import { UmbrellaCell, SegmentedControl, Badge, Button, Modal, Icon } from '@coralyn/ui-kit';
-import type { UmbrellaDTO, SlotState } from '@coralyn/contracts';
+import type { UmbrellaDTO, SlotState, BookingDTO } from '@coralyn/contracts';
 import { useDayMap } from './useDayMap';
+import { useDayBookings, useCreateBooking, useCancelBooking } from '@/features/bookings/useBookings';
+import { useCustomers } from '@/features/customers/useCustomers';
+import { useSessionStore } from '@/stores/session';
+import { storeToRefs } from 'pinia';
 
 const { data: map, isLoading } = useDayMap();
+
+const session = useSessionStore();
+const { activeDate } = storeToRefs(session);
+const { data: bookings } = useDayBookings(activeDate);
+const { data: customers } = useCustomers();
+const createBooking = useCreateBooking();
+const cancelBooking = useCancelBooking();
 
 const STATE_COLOR: Record<SlotState, string> = {
   free: 'var(--color-state-free)', season: 'var(--color-state-season)',
@@ -47,21 +58,59 @@ function close() { sel.value = null; }
 
 const morning = computed<SlotState>(() => (sel.value ? slotState(sel.value.u, 0) : 'free'));
 const afternoon = computed<SlotState>(() => (sel.value ? slotState(sel.value.u, 1) : 'free'));
-const isFree = computed(() => morning.value === 'free' && afternoon.value === 'free');
 function tintBg(s: SlotState) { return `color-mix(in srgb, ${STATE_COLOR[s]} 18%, var(--color-surface))`; }
 function tintBorder(s: SlotState) { return `color-mix(in srgb, ${STATE_COLOR[s]} 40%, var(--color-surface))`; }
 
-// Mock seam: dettaglio prenotazione/pagamento non ancora esposto dal backend per slot.
-const booking = computed(() =>
-  !sel.value || isFree.value ? null
-    : { cliente: 'Mario Rossi', pacchetto: 'Comfort', periodo: '27 giu – 4 lug 2026', pay: 'Saldato', importo: '€ 240,00' },
-);
+const selectedSlotId = ref<string>('');
+watch(timeSlots, (list) => { if (!selectedSlotId.value && list.length) selectedSlotId.value = list[0].id; }, { immediate: true });
+
+const currentBooking = computed<BookingDTO | null>(() => {
+  if (!sel.value) return null;
+  return (bookings.value ?? []).find(
+    (b) => b.umbrellaId === sel.value!.u.id && b.timeSlotId === selectedSlotId.value,
+  ) ?? null;
+});
+
+const customerId = ref<string>('');
+const price = ref<number>(0);
+
+function slotIsBusy(slotId: string): boolean {
+  return sel.value ? (sel.value.u.stateBySlot[slotId] ?? 'free') !== 'free' : false;
+}
+function firstFreeSlot(): string {
+  if (!sel.value) return timeSlots.value[0]?.id ?? '';
+  const u = sel.value.u;
+  const free = timeSlots.value.find((s) => (u.stateBySlot[s.id] ?? 'free') === 'free');
+  return free?.id ?? timeSlots.value[0]?.id ?? '';
+}
+function openModal(): void {
+  selectedSlotId.value = firstFreeSlot();
+  customerId.value = '';
+  price.value = 0;
+  modalBooking.value = true;
+}
+async function confirmBooking(): Promise<void> {
+  if (!sel.value || !customerId.value) return;
+  await createBooking.mutateAsync({
+    customerId: customerId.value,
+    umbrellaId: sel.value.u.id,
+    timeSlotId: selectedSlotId.value,
+    date: activeDate.value,
+    totalPrice: price.value,
+  });
+  modalBooking.value = false;
+}
+async function onCancel(): Promise<void> {
+  if (currentBooking.value) await cancelBooking.mutateAsync(currentBooking.value.id);
+}
 
 const modalBooking = ref(false);
-const packSel = ref('Comfort');
-const slotSel = ref('Giornata');
-const packOpts = [{ value: 'Base', label: 'Base' }, { value: 'Comfort', label: 'Comfort' }, { value: 'Prestige', label: 'Prestige' }];
-const slotOpts = [{ value: 'Giornata', label: 'Giornata' }, { value: 'Mattina', label: 'Mattina' }, { value: 'Pomeriggio', label: 'Pomeriggio' }];
+// Fascia options for modal: only free slots (SegmentedControl has no disabled-option API)
+const freeSlotOptions = computed(() =>
+  timeSlots.value
+    .filter((s) => !slotIsBusy(s.id))
+    .map((s) => ({ value: s.id, label: s.name })),
+);
 </script>
 
 <template>
@@ -150,25 +199,18 @@ const slotOpts = [{ value: 'Giornata', label: 'Giornata' }, { value: 'Mattina', 
             <span class="text-[13px] font-semibold" :style="{ color: STATE_COLOR[afternoon] }">{{ STATE_LABEL[afternoon] }}</span>
           </div>
         </div>
-        <template v-if="booking">
+        <template v-if="currentBooking">
           <div class="mt-3 text-[12.5px]">
-            <div class="flex justify-between border-b border-dashed border-[var(--color-border-row)] py-2"><span class="text-[var(--color-text-muted)]">Cliente</span><span class="font-semibold text-[var(--color-text)]">{{ booking.cliente }}</span></div>
-            <div class="flex justify-between border-b border-dashed border-[var(--color-border-row)] py-2"><span class="text-[var(--color-text-muted)]">Pacchetto</span><span class="font-semibold text-[var(--color-text)]">{{ booking.pacchetto }}</span></div>
-            <div class="flex justify-between py-2"><span class="text-[var(--color-text-muted)]">Periodo</span><span class="font-semibold tabular-nums text-[var(--color-text)]">{{ booking.periodo }}</span></div>
+            <div class="flex justify-between border-b border-dashed border-[var(--color-border-row)] py-2"><span class="text-[var(--color-text-muted)]">Cliente</span><span class="font-semibold text-[var(--color-text)]">{{ currentBooking.customerId }}</span></div>
+            <div class="flex justify-between py-2"><span class="text-[var(--color-text-muted)]">Importo</span><span class="font-semibold tabular-nums text-[var(--color-text)]">€ {{ currentBooking.totalPrice }}</span></div>
           </div>
-          <div class="mt-3 flex items-center gap-2 rounded-[11px] bg-[var(--color-success-bg)] p-3">
-            <span class="size-2.5 rounded-full bg-[var(--color-success)]"></span>
-            <span class="text-[12.5px] font-semibold text-[var(--color-success-ink)]">{{ booking.pay }}</span>
-            <span class="flex-1"></span>
-            <span class="text-[12.5px] font-bold tabular-nums text-[var(--color-success-ink)]">{{ booking.importo }}</span>
-          </div>
-          <button type="button" class="mt-2.5 self-start p-0.5 text-xs font-semibold text-[var(--color-danger)] focus-visible:outline-none focus-visible:[box-shadow:var(--ring-focus)]">Annulla prenotazione</button>
+          <button type="button" @click="onCancel" class="mt-2.5 self-start p-0.5 text-xs font-semibold text-[var(--color-danger)] focus-visible:outline-none focus-visible:[box-shadow:var(--ring-focus)]">Annulla prenotazione</button>
         </template>
         <div v-else class="mt-3.5 rounded-xl border border-dashed border-[var(--color-warm-border-seg)] bg-[var(--color-warm-075)] p-4 text-center text-[12.5px] leading-relaxed text-[var(--color-text-muted)]">
           Postazione disponibile<br />per l'intera giornata.
         </div>
         <div class="mt-auto flex flex-col gap-2 pt-4">
-          <Button @click="modalBooking = true"><Icon name="plus" :size="17" />Nuova prenotazione</Button>
+          <Button @click="openModal"><Icon name="plus" :size="17" />Nuova prenotazione</Button>
           <div class="flex gap-2">
             <Button variant="secondary" class="flex-1"><Icon name="star" :size="15" />Abbonamento</Button>
             <Button variant="secondary" class="flex-1"><Icon name="check" :size="15" />Presenza</Button>
@@ -181,19 +223,25 @@ const slotOpts = [{ value: 'Giornata', label: 'Giornata' }, { value: 'Mattina', 
       <div class="flex flex-col gap-[18px]">
         <div>
           <label class="mb-1.5 block text-[12.5px] font-semibold text-[var(--color-text-2nd)]">Cliente</label>
-          <div class="flex items-center gap-2.5 rounded-[11px] border-[1.5px] border-[var(--color-border-input)] px-3.5 py-3 text-[var(--color-placeholder)]"><Icon name="search" :size="16" /><span class="text-[13.5px]">Cerca un cliente…</span></div>
+          <select v-model="customerId" class="w-full rounded-[11px] border-[1.5px] border-[var(--color-border-input)] bg-[var(--color-surface)] px-3.5 py-3 text-[13.5px] text-[var(--color-text)] focus:outline-none">
+            <option value="" disabled>Seleziona un cliente…</option>
+            <option v-for="c in (customers ?? [])" :key="c.id" :value="c.id">{{ c.firstName }} {{ c.lastName }}</option>
+          </select>
+          <p v-if="(customers ?? []).length === 0" class="mt-1.5 text-[11.5px] text-[var(--color-text-muted)]">
+            Nessun cliente. <router-link to="/customers" class="font-semibold text-[var(--color-accent)]">Crea un cliente</router-link>.
+          </p>
         </div>
-        <div>
-          <label class="mb-1.5 block text-[12.5px] font-semibold text-[var(--color-text-2nd)]">Pacchetto</label>
-          <SegmentedControl v-model="packSel" :options="packOpts" />
-        </div>
-        <div>
+        <div v-if="freeSlotOptions.length">
           <label class="mb-1.5 block text-[12.5px] font-semibold text-[var(--color-text-2nd)]">Fascia</label>
-          <SegmentedControl v-model="slotSel" :options="slotOpts" />
+          <SegmentedControl v-model="selectedSlotId" :options="freeSlotOptions" />
+        </div>
+        <div>
+          <label class="mb-1.5 block text-[12.5px] font-semibold text-[var(--color-text-2nd)]">Prezzo (€)</label>
+          <input type="number" min="0" step="0.01" v-model.number="price" class="w-full rounded-[11px] border-[1.5px] border-[var(--color-border-input)] bg-[var(--color-surface)] px-3.5 py-3 text-[13.5px] text-[var(--color-text)] focus:outline-none" />
         </div>
         <div class="flex justify-end gap-2.5 pt-2">
           <Button variant="secondary" @click="modalBooking = false">Annulla</Button>
-          <Button @click="modalBooking = false">Conferma prenotazione</Button>
+          <Button @click="confirmBooking">Conferma prenotazione</Button>
         </div>
       </div>
     </Modal>
