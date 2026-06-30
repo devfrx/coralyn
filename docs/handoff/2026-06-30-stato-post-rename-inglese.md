@@ -17,20 +17,17 @@
 
 ---
 
-## 0. Situazione GIT (leggere per prima — c'è una scelta da fare)
+## 0. Situazione GIT
 
-- `main` → `cd86fdf` (solo fino al merge rename Driftly→Coralyn). Contiene: identità & auth,
-  scheda cliente, redesign FE, login reale. **NON** contiene mappa né il rename inglese.
-- `feat/mappa-be` → 8 commit sopra `main`: il **modulo mappa** (modello + lettura). **Non mergiato.**
-- **`chore/english-naming` → 13 commit sopra `main` (BRANCH CORRENTE, è il TIP):** contiene
-  `feat/mappa-be` **+** il **rename totale codice/DB in inglese** (ADR-0030) + allineamento doc.
-  **Non mergiato, solo locale.**
+- **`main` → `a26eab8`, pushato su `origin/main` (allineato).** Contiene **tutto** il lavoro:
+  identità & auth, scheda cliente, redesign FE, **modulo mappa** (modello + lettura) e il
+  **rename totale codice/DB in inglese** (ADR-0030) + doc allineati.
+- I branch locali `feat/mappa-be` e `chore/english-naming` sono **completamente contenuti in
+  `main`** (ridondanti): si possono eliminare (`git branch -d feat/mappa-be chore/english-naming`).
+  `feat/coralyn-redesign-fe` su origin è un branch vecchio, ignorabile.
 
-➡️ **Prima cosa da concordare con l'utente:** `chore/english-naming` è il lavoro buono e
-include tutto. Opzioni: (a) **merge `chore/english-naming` → `main`** e ripartire da `main`
-pulito (consigliato: `feat/mappa-be` è incluso, quindi diventa ridondante); (b) continuare a
-lavorare su un nuovo branch partendo da `chore/english-naming`. Nessuna delle due è stata fatta:
-l'utente sceglierà. (Esiste anche `feat/coralyn-redesign-fe` su origin: branch vecchio, ignorabile.)
+➡️ **Punto di partenza per il prossimo increment: `main` (aggiornato e pushato).** Crea un
+**nuovo branch dedicato** dal `main` per il lavoro che decidi con l'utente (vedi §2).
 
 ---
 
