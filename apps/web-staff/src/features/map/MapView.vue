@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue';
-import { UmbrellaCell, SegmentedControl, Badge, Button, Modal, Icon } from '@coralyn/ui-kit';
+import { UmbrellaCell, SegmentedControl, Badge, Button, Modal, Icon, Select, ModalFooter, formatEuro } from '@coralyn/ui-kit';
 import type { UmbrellaDTO, SlotState, BookingDTO, BookingType } from '@coralyn/contracts';
+import { PAY_LABEL, PAY_TONE } from '@/lib/statusMaps';
 import { useDayMap } from './useDayMap';
 import { useDayBookings, useCreateBooking, useCancelBooking } from '@/features/bookings/useBookings';
 import { useBookingQuote, type QuoteParams } from '@/features/bookings/useBookingQuote';
@@ -252,9 +253,7 @@ const freeSlotOptions = computed(() =>
             <div class="flex justify-between border-b border-dashed border-[var(--color-border-row)] py-2"><span class="text-[var(--color-text-muted)]">Cliente</span><span class="font-semibold text-[var(--color-text)]">{{ currentCustomerName }}</span></div>
             <div class="flex justify-between border-b border-dashed border-[var(--color-border-row)] py-2"><span class="text-[var(--color-text-muted)]">Importo</span><span class="font-semibold tabular-nums text-[var(--color-text)]">€ {{ currentBooking.totalPrice }}</span></div>
             <div class="flex items-center justify-between py-2"><span class="text-[var(--color-text-muted)]">Pagamento</span>
-              <Badge :tone="currentBooking.paymentStatus === 'paid' ? 'success' : currentBooking.paymentStatus === 'partial' ? 'warning' : 'neutral'">
-                {{ currentBooking.paymentStatus === 'paid' ? 'Saldato' : currentBooking.paymentStatus === 'partial' ? 'Parziale' : 'Da incassare' }}
-              </Badge>
+              <Badge :tone="PAY_TONE[currentBooking.paymentStatus]">{{ PAY_LABEL[currentBooking.paymentStatus] }}</Badge>
             </div>
           </div>
           <div class="mt-2.5 flex items-center gap-3">
@@ -279,18 +278,18 @@ const freeSlotOptions = computed(() =>
       <div class="flex flex-col gap-[18px]">
         <div>
           <label class="mb-1.5 block text-[12.5px] font-semibold text-[var(--color-text-2nd)]">Tipo</label>
-          <select v-model="bookingType" class="w-full rounded-[11px] border-[1.5px] border-[var(--color-border-input)] bg-[var(--color-surface)] px-3.5 py-3 text-[13.5px] text-[var(--color-text)] focus:outline-none">
+          <Select v-model="bookingType">
             <option value="daily">Giornaliera</option>
             <option value="periodic">Periodica</option>
             <option value="subscription">Abbonamento</option>
-          </select>
+          </Select>
         </div>
         <div>
           <label class="mb-1.5 block text-[12.5px] font-semibold text-[var(--color-text-2nd)]">Cliente</label>
-          <select v-model="customerId" class="w-full rounded-[11px] border-[1.5px] border-[var(--color-border-input)] bg-[var(--color-surface)] px-3.5 py-3 text-[13.5px] text-[var(--color-text)] focus:outline-none">
+          <Select v-model="customerId">
             <option value="" disabled>Seleziona un cliente…</option>
             <option v-for="c in (customers ?? [])" :key="c.id" :value="c.id">{{ c.firstName }} {{ c.lastName }}</option>
-          </select>
+          </Select>
           <p v-if="(customers ?? []).length === 0" class="mt-1.5 text-[11.5px] text-[var(--color-text-muted)]">
             Nessun cliente. <router-link to="/customers" class="font-semibold text-[var(--color-accent)]">Crea un cliente</router-link>.
           </p>
@@ -306,21 +305,18 @@ const freeSlotOptions = computed(() =>
         <p v-else-if="bookingType === 'subscription'" class="text-[12.5px] text-[var(--color-text-muted)]">Durata: stagione intera.</p>
         <div>
           <label class="mb-1.5 block text-[12.5px] font-semibold text-[var(--color-text-2nd)]">Pacchetto</label>
-          <select v-model="packageId" class="w-full rounded-[11px] border-[1.5px] border-[var(--color-border-input)] bg-[var(--color-surface)] px-3.5 py-3 text-[13.5px] text-[var(--color-text)] focus:outline-none">
+          <Select v-model="packageId">
             <option value="">Nessun pacchetto</option>
             <option v-for="p in (packages ?? [])" :key="p.id" :value="p.id">{{ p.name }}</option>
-          </select>
+          </Select>
         </div>
         <div>
           <label class="mb-1.5 block text-[12.5px] font-semibold text-[var(--color-text-2nd)]">Prezzo</label>
           <p v-if="quoteLoading" class="text-[13.5px] text-[var(--color-text-muted)]">Calcolo…</p>
           <p v-else-if="quoteError" class="text-[13.5px] text-[var(--color-danger)]">Prezzo non disponibile: listino non configurato.</p>
-          <p v-else class="text-lg font-bold tabular-nums text-[var(--color-text)]">€ {{ (quote?.totalPrice ?? 0).toFixed(2) }}</p>
+          <p v-else class="text-lg font-bold tabular-nums text-[var(--color-text)]">{{ formatEuro(quote?.totalPrice ?? 0) }}</p>
         </div>
-        <div class="flex justify-end gap-2.5 pt-2">
-          <Button variant="secondary" @click="modalBooking = false">Annulla</Button>
-          <Button :disabled="quoteError || quoteLoading" @click="confirmBooking">Conferma prenotazione</Button>
-        </div>
+        <ModalFooter class="pt-2" submit-label="Conferma prenotazione" :submit-disabled="quoteError || quoteLoading" @cancel="modalBooking = false" @submit="confirmBooking" />
       </div>
     </Modal>
 
