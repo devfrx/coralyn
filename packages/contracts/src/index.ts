@@ -147,6 +147,7 @@ export interface BookingDTO {
   paymentMethod?: PaymentMethod; // A2 (additivo): assente finché non si incassa
   collectionDate?: string;       // A2 (additivo): ISO yyyy-mm-dd, assente finché non si incassa
   packageId?: string;            // A3.1 (additivo): valorizzato dal selettore Pacchetto (A3.2); assente = nessun pacchetto
+  previousBookingId?: string;    // A4.2 (additivo): valorizzato per i rinnovi (link al precedente)
 }
 
 /** Input per creare una prenotazione. Prezzo e (per subscription) durata sono server-autoritativi (A4.1). */
@@ -158,6 +159,26 @@ export interface CreateBookingInput {
   startDate: string;   // ISO. daily: il giorno · periodic: inizio · subscription: data che identifica la Stagione
   endDate?: string;    // ISO. periodic: OBBLIGATORIO (≥ startDate) · daily: omesso (=startDate) · subscription: VIETATO
   packageId?: string;  // opzionale (null = tariffa base)
+}
+
+/** Input per rinnovare un abbonamento (A4.2). L'unico input è la stagione di destinazione; tutto il
+ *  resto è COPIATO dalla sorgente (server-autoritativo). Prezzo ricalcolato sul nuovo listino. */
+export interface RenewBookingInput {
+  startDate: string;   // ISO yyyy-mm-dd: una data DENTRO la stagione di destinazione (identifica la Season)
+}
+
+/** Voce dell'elenco abbonati di una stagione (campagna rinnovi, A4.2). */
+export interface SubscriptionListItemDTO {
+  id: string;
+  customerId: string;
+  umbrellaId: string;
+  timeSlotId: string;
+  packageId?: string;
+  startDate: string;   // = season.startDate
+  endDate: string;     // = season.endDate
+  totalPrice: number;
+  seniority: number;   // lunghezza catena dei rinnovi (derivata, >= 1)
+  renewed: boolean;    // esiste già un rinnovo CONFERMATO di questo abbonamento
 }
 
 /** Input per registrare l'incasso base (ADR-0011). Lo stato è derivato server-side. */
