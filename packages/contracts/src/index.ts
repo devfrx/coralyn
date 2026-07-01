@@ -187,3 +187,64 @@ export interface SettlePaymentInput {
   paymentMethod?: PaymentMethod; // obbligatorio se amountCollected > 0
   collectionDate?: string;       // ISO yyyy-mm-dd; default oggi Europe/Rome
 }
+
+// --- Listino / editor (D-032) -----------------------------------------------
+
+/** Stagione operativa dello Stabilimento (ADR-0031). Date ISO yyyy-mm-dd. */
+export interface SeasonDTO {
+  id: string;
+  name: string;
+  startDate: string; // ISO yyyy-mm-dd
+  endDate: string;   // ISO yyyy-mm-dd
+}
+
+/** Input per creare una stagione (il Pricing 1:1 lo crea il backend). */
+export interface CreateSeasonInput {
+  name: string;
+  startDate: string;
+  endDate: string;
+}
+
+/** Tariffa (Rate): regola di prezzo multi-dimensione. Ogni dimensione assente = wildcard.
+ *  Esposta al FE con `seasonId` (non `pricingId`): `Pricing` è plumbing interno. */
+export interface RateDTO {
+  id: string;
+  seasonId: string;
+  type?: BookingType;
+  sectorId?: string;
+  rowId?: string;
+  packageId?: string;
+  timeSlotId?: string;
+  periodStart?: string; // ISO yyyy-mm-dd
+  periodEnd?: string;   // ISO yyyy-mm-dd
+  price: number;        // EUR, max 2 decimali
+  unit: RateUnit;
+}
+
+/** Input creazione tariffa: come RateDTO senza `id` (include `seasonId`). */
+export type CreateRateInput = Omit<RateDTO, 'id'>;
+
+/** Input modifica tariffa: tutte le dimensioni/prezzo opzionali; `seasonId` non modificabile.
+ *  Le dimensioni accettano esplicitamente `null` per azzerare il vincolo (wildcard): `undefined`
+ *  = campo non toccato, `null` = campo svuotato. `JSON.stringify` droppa `undefined` ma preserva
+ *  `null`, quindi il FE deve inviare `null` per cancellare una dimensione in modifica. */
+export interface UpdateRateInput {
+  type?: BookingType | null;
+  sectorId?: string | null;
+  rowId?: string | null;
+  packageId?: string | null;
+  timeSlotId?: string | null;
+  periodStart?: string | null;
+  periodEnd?: string | null;
+  price?: number;
+  unit?: RateUnit;
+}
+
+/** Input creazione pacchetto. */
+export interface CreatePackageInput {
+  name: string;
+  equipment: Record<string, number>;
+}
+
+/** Input modifica pacchetto: tutti i campi opzionali. */
+export type UpdatePackageInput = Partial<CreatePackageInput>;
