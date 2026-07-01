@@ -123,8 +123,15 @@ export class BookingsService {
     const dbEnd = toDbDate(p.endDate);
 
     // Anti-overlap su intervallo (ADR-0013): stesso ombrellone, date intersecanti, fascia sovrapposta.
+    // Un rinnovo non confligge mai con la propria sorgente (`previousBookingId`, ancora `confirmed`): la
+    // si esclude, così una stagione di destinazione adiacente a quella della sorgente non produce un 409
+    // spurio contro sé stessa. Per la create (`previousBookingId=null`) l'esclusione è un no-op.
     const sameUmbrella = await tx.booking.findMany({
-      where: { umbrellaId: p.umbrellaId, status: 'confirmed' },
+      where: {
+        umbrellaId: p.umbrellaId,
+        status: 'confirmed',
+        ...(p.previousBookingId ? { id: { not: p.previousBookingId } } : {}),
+      },
       include: { timeSlot: true },
     });
     const conflict = sameUmbrella.some(
@@ -210,7 +217,10 @@ export class BookingsService {
         throw new UnprocessableEntityException('Impossibile rinnovare un abbonamento annullato');
 
       // 2) No doppio rinnovo.
-      const already = await tx.booking.findFirst({ where: { previousBookingId: id, status: 'confirmed' } });
+      const already = await tx.booking.findFirst({
+        where: { previousBookingId: id, status: 'confirmed' },
+        select: { id: true },
+      });
       if (already) throw new ConflictException('Abbonamento già rinnovato');
 
       // 3) Nuova stagione (semantica subscription), diversa da quella della sorgente.
