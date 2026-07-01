@@ -17,22 +17,22 @@
 
 ---
 
-## 0. Situazione GIT (leggere con attenzione — c'è lavoro non mergiato)
+## 0. Situazione GIT
 
-- **`main`** è fermo a `ccf739a` in locale, **avanti di 2 commit rispetto a `origin/main` non
-  pushati** (fix rotte login `9b74b80` + autoPort dev-server `ccf739a`). **Non fare hard reset**:
-  un `merge --ff-only origin/main` è sicuro, un reset distruttivo perde quei 2 commit.
-- **`feat/d032-pricing-editor`** = `main` + **4 commit D-032** (`813e2d9` contratti · `782a2ed`
-  backend · `ad8cbab` frontend · `0713fe9` docs), **NON mergiato** (l'utente ha scelto "tieni il
-  branch così"). Verde su tutti i test, verificato live. `deferred.md` già lo segna Risolto.
-- **D-011 NON dipende da D-032** (estende A4.2, che è già su `main`). Due opzioni per iniziare,
-  **chiedi all'utente**:
-  1. Se l'utente nel frattempo ha mergiato D-032 su `main` → branch D-011 da `main`.
-  2. Altrimenti → branch D-011 **da `main`** comunque (D-011 non tocca il listino), lasciando
-     `feat/d032-pricing-editor` in attesa. Evita di partire da `feat/d032-pricing-editor` (porteresti
-     dentro D-032 non ancora deciso).
-- **Nessuna migrazione pendente.** Container `coralyn-api` e `coralyn-db` erano UP e freschi
-  (rebuild del 2026-07-01 ~14:58).
+- **D-032 è MERGIATO (fast-forward) su `main` e PUSHATO a `origin/main`.** HEAD di `main` =
+  `ec8e654`. Il push ha portato `origin/main` da `5023771` a `ec8e654` (8 commit: i 2
+  login/autoPort già locali + i 6 di D-032/layout/docs: `813e2d9` contratti · `782a2ed` backend ·
+  `ad8cbab` frontend · `0713fe9` docs · `7667815` questo handoff · `ec8e654` rifinitura layout
+  PricingView). `deferred.md` segna D-032 Risolto. Tutto verde, verificato live.
+- Il branch **`feat/d032-pricing-editor`** è ora ridondante (== `main` dopo il FF): eliminabile
+  (`git branch -d feat/d032-pricing-editor`) o ignorabile.
+- **All'avvio della prossima sessione** basta il sync standard §8 (`git fetch --all --prune` +
+  `git checkout main && git merge --ff-only origin/main`): `main` e `origin/main` sono allineati.
+- **D-011 NON dipende da D-032** ma parte comunque **da `main`** (che ora include D-032). Nessun
+  branch pendente da gestire.
+- **Nessuna migrazione pendente.** Container `coralyn-api`/`coralyn-db` UP e freschi (rebuild del
+  2026-07-01 ~14:58). ⚠️ **Il container API NON ha il codice D-032 finché non lo rebuildi**
+  (`docker compose --profile full up -d --build api`) — vedi §5, primo gotcha.
 
 ## 1. Cosa ha prodotto QUESTA sessione (D-032)
 
@@ -166,10 +166,10 @@ prossimo libero è **0034**; D-032 non ne ha richiesti, ma D-011 con scheduling/
   anti-overlap su rinnovo) — non regredire.
 
 ## 7. Stato test da preservare
-Sul branch D-011 (partendo da `main` senza D-032): ui-kit **41** · web-staff **83** · api unit **68**
-· e2e **73**. Se D-032 verrà mergiato prima: ui-kit **41** · web-staff **93** · api unit **77** ·
-e2e **90**. **Riverifica dal vivo** la baseline effettiva del branch di partenza. `corepack pnpm -r
-build` + `corepack pnpm eslint .` verdi. Prossimo ADR libero: **0034** (probabile per D-011, vedi §4).
+D-032 è su `main`, quindi la baseline da NON regredire è: ui-kit **41** · web-staff **93** (31 file,
+include ui-kit) · api unit **77** (15 suite) · api e2e **90** (8 suite). **Riverifica dal vivo**
+all'avvio. `corepack pnpm -r build` + `corepack pnpm eslint .` verdi. Prossimo ADR libero: **0034**
+(probabile per D-011, vedi §4).
 
 ## 8. Macchina "zagor" / "Jays" (sync)
 All'avvio esegui SEMPRE `git fetch --all --prune` poi `git checkout main && git merge --ff-only
@@ -184,14 +184,13 @@ non pushati e D-032 vive su `feat/d032-pricing-editor` non mergiato — non dist
 > Continua il progetto Coralyn (C:\Users\zagor\Desktop\coralyn; su un'altra macchina può essere
 > C:\Users\Jays\Desktop\new).
 >
-> STATO: D-032 (editor CRUD del listino) è COMPLETO ma su un branch NON mergiato
-> (`feat/d032-pricing-editor`, 4 commit: contratti→backend→frontend→docs). Verde su tutti i test
-> (api unit 77 · e2e 90 · web-staff 93 · ui-kit 41), verificato live. `main` è fermo a ccf739a,
-> avanti di 2 commit non pushati (login/autoPort). Nessun altro branch pendente.
+> STATO: D-032 (editor CRUD del listino) è COMPLETO, MERGIATO su `main` (HEAD `ec8e654`) e PUSHATO
+> a `origin/main`. Verde su tutti i test (api unit 77 · e2e 90 · web-staff 93 · ui-kit 41),
+> verificato live. Nessun branch pendente (`feat/d032-pricing-editor` è ridondante col main).
 >
 > MACCHINA: esegui SEMPRE `git fetch --all --prune` poi `git checkout main && git merge --ff-only
-> origin/main` prima di fidarti del tree o creare un branch. NON distruggere i 2 commit non pushati
-> di main né il branch `feat/d032-pricing-editor`.
+> origin/main` prima di fidarti del tree o creare un branch. ⚠️ Rebuilda il container API prima di
+> testare in dev (non ha ancora il codice D-032): `docker compose --profile full up -d --build api`.
 >
 > PRIMA COSA (ADR-0009): leggi TUTTA la documentazione, in particolare l'handoff
 > `docs/handoff/2026-07-01-d011-prelazione-delegation.md` (questo doc — contiene le decisioni di
