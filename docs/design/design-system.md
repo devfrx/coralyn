@@ -342,10 +342,27 @@ interattivi: **default / hover / active / focus-visible / disabled**; focus = `-
   mail, refresh-cw, pencil, log-out, building-2, layers, filter, chevron-down, ecc.);
   nessuno sprite custom. `currentColor`, `stroke-width` 1.75, dimensioni 14/16/20/24.
   **Niente icone fuori dal wrapper.**
-- **DataTable** — su **TanStack Table** (headless) skinnata sui token: header `10.5px`
-  maiuscolo `--tracking-caps` `--color-text-muted`, bg header `--color-raised`, righe `13px`,
-  divisori `--color-border-row`, numeri `tabular-nums` a destra, riga cliccabile (hover).
-  Per Clienti/Prenotazioni.
+- **DataTable** — componente `ui-kit` skinnato sui token: header `10.5px` maiuscolo
+  `--tracking-caps` `--color-text-muted`, bg header `--color-raised`, righe `13px`, divisori
+  `--color-border-row`, numeri `tabular-nums` a destra, riga cliccabile (hover). Due API,
+  retro-compatibili ([ADR-0033](../architecture/decisions/0033-astrazione-componenti-frontend.md)):
+  **a slot** (il chiamante scrive `<tr>/<td>` a mano nel body — usata dove servono celle molto
+  particolari o comportamenti custom come il click-riga di Clienti) e **data-driven** (prop
+  opzionali `rows`/`rowKey`; genera le righe con le classi cella standard `TD`/`TD_FIRST`/
+  `TD_RIGHT`/`TD_NUM`, slot `#cell-<key>` per celle ricche). Per Clienti/Prenotazioni/Rinnovi.
+- **EmptyState** — blocco vuoto ("Nessun/a…"): `--radius-lg`, bordo tratteggiato
+  `--color-border`, testo `--color-text-2nd`. Prop `message`; slot `#default` per contenuto
+  ricco (es. icona). Usato da liste (Prenotazioni, Rinnovi).
+- **Select** — `<select>` stilizzato gemello di `Input.vue` (stesso raggio/bordo/focus),
+  usabile dentro `Field`. `v-model` + `props.options` **o** slot `#default` per `<option>`
+  custom (gruppi, opzioni disabilitate). Passthrough attributi nativi.
+- **ModalFooter** — coppia bottoni Annulla (secondary) / Conferma (`submitVariant`, default
+  primary) in fondo ai modali. Prop `submitLabel` (obbligatoria), `cancelLabel`/
+  `submitDisabled`/`submitVariant` opzionali, slot `#extra`; emit `cancel`/`submit`. La classe
+  `pt-1` di default è sovrascrivibile dal chiamante (`class="pt-2"`) dove serve.
+- **PageToolbar** — header di lista: slot `#left` + spacer `flex-1` + slot `#right`/`#actions`.
+  Wrapper `mb-4 flex flex-wrap items-center gap-3`. Per Prenotazioni/Clienti (non adottato dove
+  il contenitore ha classi di padding incompatibili, es. Mappa).
 - **Drawer** — su primitivo dialog/drawer Reka UI: focus trap, ESC, ARIA. `--color-surface`,
   `--radius-lg`, `--shadow-drawer`; scrim `--z-overlay`. Vedi §13.4.
 
