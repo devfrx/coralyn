@@ -1,11 +1,8 @@
 import { IsIn, IsOptional, Matches } from 'class-validator';
 import type { BookingType, CreateBookingInput } from '@coralyn/contracts';
-import { IsCalendarDate } from './is-calendar-date';
-
-// UUID in forma canonica 8-4-4-4-12, SENZA vincolo di versione/variante RFC-4122: il seed di
-// sviluppo e l'id del tenant usano UUID sintetici che Postgres accetta come `uuid` ma che @IsUUID()
-// rifiuterebbe. Validiamo la *forma* e lasciamo alla FK il controllo di esistenza nel tenant (→ 422).
-export const UUID_SHAPE = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
+import { IsCalendarDate } from '../../common/is-calendar-date';
+export { UUID_SHAPE } from '../../common/uuid';
+import { UUID_SHAPE } from '../../common/uuid';
 
 export const TYPES: BookingType[] = ['daily', 'periodic', 'subscription'];
 

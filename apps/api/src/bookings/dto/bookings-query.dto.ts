@@ -1,5 +1,5 @@
 import { IsOptional } from 'class-validator';
-import { IsCalendarDate } from './is-calendar-date';
+import { IsCalendarDate } from '../../common/is-calendar-date';
 
 export class BookingsQueryDto {
   @IsOptional()

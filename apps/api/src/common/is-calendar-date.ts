@@ -1,5 +1,5 @@
 import { registerDecorator, ValidationOptions } from 'class-validator';
-import { isValidCalendarDate } from '../../common/dates';
+import { isValidCalendarDate } from './dates';
 
 /** Valida 'yyyy-mm-dd' come data di calendario reale (no 2026-13-40). */
 export function IsCalendarDate(options?: ValidationOptions) {

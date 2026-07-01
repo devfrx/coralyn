@@ -1,6 +1,6 @@
 import { IsIn, IsOptional, Matches } from 'class-validator';
 import type { BookingType, QuoteBookingInput } from '@coralyn/contracts';
-import { IsCalendarDate } from './is-calendar-date';
+import { IsCalendarDate } from '../../common/is-calendar-date';
 import { TYPES, UUID_SHAPE } from './create-booking.dto';
 
 export class QuoteBookingDto implements QuoteBookingInput {

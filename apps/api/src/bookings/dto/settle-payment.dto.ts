@@ -1,6 +1,6 @@
 import { IsIn, IsNumber, IsOptional, Max, Min } from 'class-validator';
 import type { PaymentMethod, SettlePaymentInput } from '@coralyn/contracts';
-import { IsCalendarDate } from './is-calendar-date';
+import { IsCalendarDate } from '../../common/is-calendar-date';
 
 const METHODS: PaymentMethod[] = ['cash', 'card', 'transfer', 'other'];
 

@@ -1,6 +1,6 @@
-import { Injectable, Logger } from '@nestjs/common';
-import type { Prisma, Rate } from '@prisma/client';
-import type { BookingType, PackageDTO } from '@coralyn/contracts';
+import { ConflictException, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { Prisma, type Rate } from '@prisma/client';
+import type { BookingType, CreatePackageInput, PackageDTO, UpdatePackageInput } from '@coralyn/contracts';
 import { PrismaService } from '../prisma/prisma.service';
 import { TenantContext } from '../tenant/tenant-context';
 import { formatDbDate, toDbDate } from '../common/dates';
@@ -106,5 +106,57 @@ export class CatalogService {
     );
     if (!result.ok) return { ok: false, reason: 'NO_RATE' };
     return { ok: true, totalPrice: result.totalPrice };
+  }
+
+  /** Crea un pacchetto per il tenant corrente. */
+  async createPackage(input: CreatePackageInput): Promise<PackageDTO> {
+    const tenantId = this.tenant.require();
+    const p = await this.prisma.forTenant(tenantId, (tx) =>
+      tx.package.create({ data: { establishmentId: tenantId, name: input.name, equipment: input.equipment } }),
+    );
+    return toPackageDTO(p);
+  }
+
+  /** Aggiorna nome/equipment di un pacchetto del tenant corrente; 404 se non trovato (anche cross-tenant). */
+  async updatePackage(id: string, input: UpdatePackageInput): Promise<PackageDTO> {
+    const tenantId = this.tenant.require();
+    const p = await this.prisma.forTenant(tenantId, async (tx) => {
+      const existing = await tx.package.findFirst({ where: { id } });
+      if (!existing) return null;
+      return tx.package.update({
+        where: { id },
+        data: {
+          ...(input.name !== undefined ? { name: input.name } : {}),
+          ...(input.equipment !== undefined ? { equipment: input.equipment } : {}),
+        },
+      });
+    });
+    if (!p) throw new NotFoundException('Pacchetto non trovato');
+    return toPackageDTO(p);
+  }
+
+  /**
+   * Elimina un pacchetto del tenant corrente e lo ritorna; 409 se referenziato da tariffe/prenotazioni.
+   * NB: `Rate_packageId_fkey` e `Booking_packageId_fkey` sono ON DELETE SET NULL (non RESTRICT): senza
+   * questa guardia esplicita la delete riuscirebbe silenziosamente, azzerando il packageId su tariffe
+   * (prezzo server-autoritativo alterato) e prenotazioni. Guardia pre-delete dentro la stessa transazione.
+   */
+  async deletePackage(id: string): Promise<PackageDTO> {
+    const tenantId = this.tenant.require();
+    const p = await this.prisma.forTenant(tenantId, async (tx) => {
+      const existing = await tx.package.findFirst({ where: { id } });
+      if (!existing) return null;
+      const [rateCount, bookingCount] = await Promise.all([
+        tx.rate.count({ where: { packageId: id } }),
+        tx.booking.count({ where: { packageId: id } }),
+      ]);
+      if (rateCount > 0 || bookingCount > 0) {
+        throw new ConflictException('Pacchetto in uso da tariffe o prenotazioni: non eliminabile.');
+      }
+      await tx.package.delete({ where: { id } });
+      return existing;
+    });
+    if (!p) throw new NotFoundException('Pacchetto non trovato');
+    return toPackageDTO(p);
   }
 }

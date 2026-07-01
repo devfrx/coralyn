@@ -7,6 +7,7 @@ import { CustomersModule } from './customers/customers.module';
 import { MapModule } from './map/map.module';
 import { BookingsModule } from './bookings/bookings.module';
 import { IdentityModule } from './identity/identity.module';
+import { CatalogModule } from './catalog/catalog.module';
 
 @Module({
   imports: [
@@ -16,6 +17,7 @@ import { IdentityModule } from './identity/identity.module';
     IdentityModule,
     CustomersModule,
     MapModule,
+    CatalogModule,
     BookingsModule,
   ],
   controllers: [HealthController],
