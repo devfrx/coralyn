@@ -17,8 +17,9 @@
 
 - Branch **`feat/bookings-periodic-subscription`**, creato da `main` al commit `c452914` (merge-base
   confermato: `git merge-base main HEAD` → `c452914`).
-- **NON ancora mergiata/pushata**: l'integrazione su `main` è una decisione dell'umano, non presa in questa
-  sessione. `git push` non è stato eseguito.
+- **MERGIATA (fast-forward) su `main` e pushata su `origin/main`**: `c452914..18c5740 main -> main`. La
+  suite completa è stata ri-verificata verde sull'esatto commit mergiato (build + eslint + 14/45/64/63).
+  Branch feature locale eliminato dopo il merge (pattern A1/A2/A3.1/A3.2).
 - Catena per layer (`git log main..HEAD --oneline --reverse`):
   1. `a5158da` — docs(specs): design spec A4.1
   2. `ebff0e9` — docs(specs,deferred): periodica cross-stagione → 422 esplicito + D-033
