@@ -23,15 +23,17 @@
   proprio** oltre le relazioni), `Rate` (dimensioni **tutte nullable**: `type`, `sectorId`,
   `rowId`, `packageId`, `timeSlotId`, `periodStart`/`periodEnd`, più `price Decimal(10,2)` e
   `unit RateUnit`), `Package` (`name`, `equipment Json`). Tutti con RLS (`establishmentId`).
-- **⚠️ Gap critico:** ADR-0032 prescrive un vincolo di **non-ambiguità** sulle combinazioni di
-  dimensioni di `Rate` (`@@unique` su tutte le colonne dimensione con semantica *NULLS NOT
-  DISTINCT*, Postgres 16+) — **il vincolo non è presente nello schema attuale**. Il motore
-  prezzo (`pricing.engine.ts`) assume implicitamente che non esistano due `Rate` con la stessa
-  combinazione esatta di dimensioni (altrimenti `compareSpecificity` potrebbe restituire un
-  pareggio non gestito). **Questo editor introduce per la prima volta una via applicativa per
-  scrivere `Rate`**: senza il vincolo DB, un bug applicativo potrebbe creare ambiguità silenziose.
-  **Task 0 di questo lavoro: aggiungere la migrazione con l'`@@unique` mancante**, prima di
-  qualunque endpoint di scrittura.
+- **✅ Vincolo di non-ambiguità già presente** (verificato in DB, non solo in `schema.prisma`):
+  la migrazione `20260630203447_pricing` crea un **indice raw** `Rate_signature_key` — `CREATE
+  UNIQUE INDEX ... ON "Rate" ("pricingId","type","sectorId","rowId","packageId","timeSlotId",
+  "periodStart","periodEnd") NULLS NOT DISTINCT` — perché `@@unique` di Prisma non emette
+  `NULLS NOT DISTINCT` (commento nella migrazione lo spiega esplicitamente). **Non compare in
+  `schema.prisma`** (Prisma non ha una sintassi dichiarativa per questa clausola), il che
+  inizialmente ha fatto sembrare il vincolo assente — **confermato invece vivo in produzione**
+  con `psql \d Rate` / `pg_indexes`. **Nessuna nuova migrazione serve.** L'unico lavoro
+  applicativo: mappare la violazione Postgres (codice `23505` su `Rate_signature_key`) a un
+  **409** con messaggio utile, quando l'editor scrive una `Rate` duplicata (stesso pattern già
+  usato per l'anti-overlap dei rinnovi, A4.2 review).
 - **Motore prezzo** (`apps/api/src/catalog/pricing.engine.ts`): puro, testato, **non va
   toccato**. Precedenza (dalla più specifica): `periodStart` → `rowId` → `sectorId` →
   `packageId` → `timeSlotId` → `type`. `unit: 'day'` moltiplica per giorni inclusivi;
@@ -80,27 +82,27 @@ automaticamente insieme alla `Season`** — nessun `PricingController` dedicato.
   check anti-overlap dei rinnovi (A4.2 review: "escludi la sorgente dall'anti-overlap; select id
   nel check anti-doppio").
 
-## 3. Modifiche allo schema (Task 0 — prerequisito)
+## 3. Vincolo di non-ambiguità — nessuna migrazione, solo mapping applicativo
 
-Migrazione Prisma che aggiunge il vincolo mancante:
+**Nessuna modifica allo schema serve.** Il vincolo esiste già in DB (verificato con
+`pg_indexes`, non solo letto da `schema.prisma`):
 
-```prisma
-model Rate {
-  // … campi esistenti invariati …
-  @@unique([pricingId, type, sectorId, rowId, packageId, timeSlotId, periodStart, periodEnd])
-}
+```sql
+-- apps/api/prisma/migrations/20260630203447_pricing/migration.sql:134
+CREATE UNIQUE INDEX "Rate_signature_key" ON "Rate"
+  ("pricingId", "type", "sectorId", "rowId", "packageId", "timeSlotId", "periodStart", "periodEnd")
+  NULLS NOT DISTINCT;
 ```
 
-> Postgres di default tratta `NULL` come *distinct* in un `UNIQUE` (due righe con più colonne
-> `NULL` non collidono) — è il comportamento **richiesto** qui (i.e. due catch-all "vuoti" per
-> `Pricing` diversi non collidono, ma **non impedisce due catch-all identici sulla stessa
-> `Pricing`**, che è invece il bug che vogliamo prevenire). Verificare in fase di piano se la
-> versione Postgres del progetto supporta `NULLS NOT DISTINCT` (PG 15+): se sì, aggiungerla
-> esplicitamente nel constraint; se il progetto è su una versione precedente, il vincolo DB da
-> solo **non basta** per il caso "tutto NULL" e serve un check applicativo aggiuntivo
-> (select-then-insert nella stessa transazione, come già fatto per l'anti-overlap A4.2) — **il
-> piano deve verificare la versione Postgres effettiva** (`docker exec coralyn-db psql --version`
-> o equivalente) e scegliere di conseguenza.
+> Non compare come `@@unique` in `schema.prisma` perché Prisma non emette `NULLS NOT DISTINCT`
+> da quella sintassi (commento della migrazione stessa lo spiega) — è stato scritto a mano come
+> indice raw nella migrazione A3.1. **Non toccare `schema.prisma` per questo**: aggiungere un
+> `@@unique` lì rischierebbe di generare in `prisma migrate dev` un **secondo** indice ridondante
+> (senza `NULLS NOT DISTINCT`, quindi più permissivo e inutile) invece di riconoscere quello
+> esistente. Il lavoro di questo task è **solo applicativo**: nel service che scrive `Rate`,
+> catturare l'errore Postgres `23505` (unique_violation) sul constraint `Rate_signature_key` e
+> tradurlo in un **409** con messaggio "Esiste già una tariffa con queste dimensioni per questa
+> stagione." (stesso pattern try/catch già usato per l'anti-overlap dei rinnovi, A4.2 review).
 
 ## 4. Contratti da aggiungere (`packages/contracts/src/index.ts`)
 
@@ -150,9 +152,12 @@ diretto: tenant-scoped via `forTenant`, DTO projection, `class-validator` DTO pe
 - `GET /seasons` — lista stagioni del tenant.
 - `POST /seasons` — crea `Season` **e** la sua `Pricing` 1:1 in una transazione (l'admin non
   vede mai `Pricing`).
-- `DELETE /seasons/:id` — elimina `Season` (cascade su `Pricing`→`Rate`, verificare `onDelete`
-  nello schema — se assente, aggiungere `onDelete: Cascade` sulle relazioni `Pricing.season` e
-  `Rate.pricing` in questa stessa migrazione).
+- `DELETE /seasons/:id` — elimina `Season`. **Le FK sono `ON DELETE RESTRICT`** (verificato:
+  `Pricing_seasonId_fkey` e `Rate_pricingId_fkey`, migrazione `20260630203447_pricing` righe
+  86/92) — **niente cascade a livello DB**. Il service deve cancellare esplicitamente, in una
+  transazione, prima tutte le `Rate` della `Pricing`, poi la `Pricing`, poi la `Season`
+  (cascade **applicativo**, non DB) — stesso stile transazionale già usato altrove nel modulo
+  map (`tx.$executeRaw` per il tenant GUC, vedi `PrismaService.forTenant`).
 - `POST /packages`, `PATCH /packages/:id`, `DELETE /packages/:id` — aggiunte a
   `PackagesController` esistente (che ha già `GET`).
 - `GET /rates?seasonId=` — lista tariffe di una stagione (risolve `seasonId`→`pricingId`
@@ -187,11 +192,13 @@ diretto: tenant-scoped via `forTenant`, DTO projection, `class-validator` DTO pe
 
 ## 7. Rischi e mitigazioni
 
-- **Ambiguità silenziosa di `Rate`** → vincolo DB (§3) + check applicativo 409 prima
-  dell'insert, stesso pattern anti-overlap A4.2.
-- **`onDelete` mancante su `Pricing`/`Rate`** → verificare in fase di piano; se assente, Prisma
-  rifiuta la delete con FK violation invece di fare cascade — decidere esplicitamente
-  (cascade vs blocco con messaggio "Elimina prima le tariffe di questa stagione").
+- **Ambiguità silenziosa di `Rate`** → il vincolo DB esiste già (`Rate_signature_key`, §3);
+  catturare `23505` e mappare a 409 al momento della scrittura.
+- **`ON DELETE RESTRICT` su `Pricing`/`Rate`** (confermato, non un'ipotesi) → `DELETE
+  /seasons/:id` cancella esplicitamente `Rate` → `Pricing` → `Season` in una transazione
+  (cascade applicativo). Se in futuro servisse impedire la cancellazione di stagioni con
+  prenotazioni collegate (`Booking` non referenzia `Season` direttamente, quindi non è un
+  vincolo bloccante oggi), rivalutare.
 - **`CatalogModule` non esplicito in `AppModule`** → aggiungerlo esplicitamente (nessun rischio,
   solo pulizia — non bloccante se il piano decide di lasciarlo transitivo, ma consigliato).
 - **Redesign delle colonne tariffa** → se il piano normalizza le colonne per usare `DataTable`
@@ -201,25 +208,30 @@ diretto: tenant-scoped via `forTenant`, DTO projection, `class-validator` DTO pe
 
 ## 8. Fasi (indicative — il piano dettagliato le espande in step TDD)
 
-1. **Migrazione DB**: vincolo non-ambiguità `Rate` + (se necessario) `onDelete` cascade.
-2. **Contratti**: `SeasonDTO`/`RateDTO`/input di scrittura (§4).
-3. **Backend Seasons**: `GET`/`POST`/`DELETE /seasons` (+ Pricing 1:1 automatico).
-4. **Backend Packages**: aggiungere `POST`/`PATCH`/`DELETE` a `PackagesController` esistente.
-5. **Backend Rates**: `GET`/`POST`/`PATCH`/`DELETE /rates`, check non-ambiguità → 409.
-6. **Frontend composables**: `useSeasons`, estendere `usePackages`, `useRates` (sopra
+1. **Contratti**: `SeasonDTO`/`RateDTO`/input di scrittura (§4). Nessuna migrazione DB richiesta.
+2. **Backend Seasons**: `GET`/`POST`/`DELETE /seasons` (+ Pricing 1:1 automatico; delete a
+   cascata applicativa Rate→Pricing→Season).
+3. **Backend Packages**: aggiungere `POST`/`PATCH`/`DELETE` a `PackagesController` esistente.
+4. **Backend Rates**: `GET`/`POST`/`PATCH`/`DELETE /rates`, mapping violazione
+   `Rate_signature_key` (23505) → 409.
+5. **Frontend composables**: `useSeasons`, estendere `usePackages`, `useRates` (sopra
    `useQueryResource`).
-7. **Frontend `PricingView`**: sostituire mock con dati reali + modali crea/modifica/elimina per
+6. **Frontend `PricingView`**: sostituire mock con dati reali + modali crea/modifica/elimina per
    le 3 entità, riusando i componenti `ui-kit` del refactor precedente.
-8. **E2E**: almeno un test e2e per il flusso "crea stagione → crea tariffa → GET quote la usa"
+7. **E2E**: almeno un test e2e per il flusso "crea stagione → crea tariffa → GET quote la usa"
    (chiude il cerchio con `BookingsService`/`pricing.engine.ts` già esistenti).
 
 ## 9. Decisioni chiuse
 
 1. **`Pricing` non esposto**: creato/eliminato automaticamente con `Season`, nessun
    `PricingController`. (§2, §5)
-2. **Vincolo di non-ambiguità mancante viene aggiunto** come prerequisito (Task 0), non come
-   scope opzionale. (§3)
-3. **`Season` non ha `update`**: si cancella e ricrea. (§2)
+2. **Il vincolo di non-ambiguità esiste già** (indice raw `Rate_signature_key`, `NULLS NOT
+   DISTINCT`, dalla migrazione A3.1) — **nessuna nuova migrazione**; solo mapping applicativo
+   dell'errore Postgres a 409. **Correzione rispetto a una bozza precedente di questa spec**, che
+   erroneamente lo dava per assente basandosi solo su `schema.prisma` (che non può esprimere
+   `NULLS NOT DISTINCT`) senza verificare la migrazione raw / il DB vivo — vedi §3. (§3)
+3. **`Season` non ha `update`**: si cancella e ricrea (cascata applicativa, FK sono RESTRICT).
+   (§2, §5)
 4. **Redesign delle colonne tariffa è permesso** (a differenza del refactor ADR-0033, qui non
    c'è vincolo di fedeltà pixel al mock attuale, solo al linguaggio visivo). (§6, §7)
 5. **Nessun nuovo ADR**: incremento CRUD su architettura già decisa (ADR-0032 per il motore
