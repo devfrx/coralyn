@@ -99,7 +99,7 @@ A4.1 **non tocca lo schema**. Tutti i campi necessari esistono già:
 
 ---
 
-## 3. Contratti (`@coralyn/contracts`) — breaking additivo (pre-release, lockstep)
+## 3. Contratti (`@coralyn/contracts`) — cambio breaking ammesso (pre-release, lockstep)
 
 Scelta **zero-debito**: il contratto adotta il **vocabolario del dominio** (`startDate`/`endDate` come su
 `Booking` e `PricingContext`) e rende il **tipo esplicito**. Si abbandona l'overloading di `date` (un
@@ -169,9 +169,12 @@ export interface QuoteContext {
 > che sfora il sotto-periodo semplicemente non matcha quella rate e ricade sulla catch-all.
 
 > **Periodico a cavallo di due stagioni** (`endDate` oltre la stagione di `startDate`): la stagione è
-> risolta da `startDate`; se l'intervallo eccede `season.endDate`, nessuna `Rate` `unit=day` copre i
-> giorni fuori stagione a livello di *dominio*. **Decisione:** validazione esplicita in `create` →
-> **422** "Il periodo supera la stagione" (vedi §5). Niente prezzo parziale silenzioso.
+> risolta da `startDate`; se l'intervallo eccede `season.endDate`, nessuna `Rate` copre i giorni fuori
+> stagione a livello di *dominio*. **Decisione (zero-debito):** validazione esplicita in `create` →
+> **422** "Il periodo supera la stagione" (vedi §5), **mai** prezzo parziale/€0 silenzioso. Lo split
+> pricing multi-stagione è un caso atipico (le stagioni non sono contigue nell'anno operativo) ed è
+> tracciato come debito consapevole → **[D-033](../architecture/deferred.md)** (non silenzioso: ADR-0002
+> filtro 4).
 
 ### `quote(ctx)` vs `priceWithin(tx, ctx)`
 
@@ -335,7 +338,8 @@ Target da **non** regredire: **ui-kit 14 · web-staff 44 · api unit 61 · api e
   `admin@coralyn.dev` / `coralyn-admin-8473`.
 - **Doc:** aggiornare `README.md` (stato: A4.1 periodiche+abbonamenti), `data-model.md`
   (`Booking.type`: tutti e tre attivi; `previousBookingId` ancora inutilizzato → A4.2), `glossary.md`
-  (togliere "(A1: solo daily)" dove presente); **handoff A4.1**. Nessun ADR nuovo (0033 resta libero).
+  (togliere "(A1: solo daily)" dove presente); **handoff A4.1**. `deferred.md` **[D-033]** aggiunto con la
+  spec (periodica multi-stagione). Nessun ADR nuovo (0033 resta libero).
 
 ---
 
@@ -360,7 +364,8 @@ Target da **non** regredire: **ui-kit 14 · web-staff 44 · api unit 61 · api e
    (breaking pre-release, lockstep — precedente A3.1/`totalPrice`). (§3)
 3. **Subscription server-autoritativa:** durata = stagione risolta dal server; `endDate` dal client →
    422. (§4, §5)
-4. **Stagione guidata da `startDate`; periodo oltre la stagione → 422** (niente pro-rata/parziale). (§4, §5)
+4. **Stagione guidata da `startDate`; periodo oltre la stagione → 422** (niente pro-rata/parziale); split
+   pricing multi-stagione tracciato come debito consapevole **[D-033]**. (§4, §5)
 5. **`status` invariato** (`confirmed`/`cancelled`); stati mappa derivati dal `type`. (§7, §12)
 6. **Nessuna migrazione, engine e mappa invariati** (fondamenta A1/A3.1 già generali). (§2, §4, §7)
 7. **Listino resta seeded** ([D-032]); +1 rate `subscription`/`period` per esercitare il forfait. (§9)
