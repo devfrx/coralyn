@@ -22,6 +22,7 @@ import { toSubscriptionListItemDTO } from './subscription.projection';
 import { slotsOverlap, dateRangesOverlap } from './booking.availability';
 import { resolvePayment } from './booking.payment';
 import { toDbDate, formatDbDate, todayInRome } from '../common/dates';
+import { computeSeniority } from './seniority';
 
 @Injectable()
 export class BookingsService {
@@ -259,7 +260,7 @@ export class BookingsService {
       });
       if (subs.length === 0) return [];
       const ids = subs.map((b) => b.id);
-      const seniorityById = await this.computeSeniority(tx, ids);
+      const seniorityById = await computeSeniority(tx, ids);
       const renewedIds = new Set(
         (
           await tx.booking.findMany({
@@ -272,45 +273,6 @@ export class BookingsService {
         toSubscriptionListItemDTO(b, seniorityById.get(b.id) ?? 1, renewedIds.has(b.id)),
       );
     });
-  }
-
-  /**
-   * Anzianità = lunghezza catena `previousBookingId`. Risalita iterativa per generazioni con la query
-   * API Prisma (RLS via forTenant, niente SQL raw — coerente col resto del codebase). Query bounded dalla
-   * profondità della catena (piccola: 1 per stagione), non dal numero di abbonati.
-   */
-  private async computeSeniority(
-    tx: Prisma.TransactionClient,
-    ids: string[],
-  ): Promise<Map<string, number>> {
-    if (ids.length === 0) return new Map();
-    const parentOf = new Map<string, string | null>();
-    let toLoad = ids;
-    while (toLoad.length > 0) {
-      const gen = await tx.booking.findMany({
-        where: { id: { in: toLoad } },
-        select: { id: true, previousBookingId: true },
-      });
-      for (const r of gen) parentOf.set(r.id, r.previousBookingId);
-      toLoad = gen
-        .map((r) => r.previousBookingId)
-        .filter((x): x is string => x !== null && !parentOf.has(x));
-    }
-    // Risali da ogni id contando gli antenati (guardia anti-ciclo difensiva: i cicli sono impossibili
-    // per costruzione — ogni rinnovo linka un booking preesistente).
-    const seniority = new Map<string, number>();
-    for (const id of ids) {
-      let depth = 1;
-      let cur = parentOf.get(id) ?? null;
-      const seen = new Set<string>([id]);
-      while (cur !== null && parentOf.has(cur) && !seen.has(cur)) {
-        seen.add(cur);
-        depth += 1;
-        cur = parentOf.get(cur) ?? null;
-      }
-      seniority.set(id, depth);
-    }
-    return seniority;
   }
 
   /** Annulla (soft, status=cancelled). Idempotente sul già annullato. */

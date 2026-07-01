@@ -21,7 +21,7 @@ export type QuoteOutcome =
   | { ok: false; reason: 'UMBRELLA_NOT_FOUND' | 'NO_SEASON' | 'NO_RATE' };
 
 export type SeasonRange =
-  | { ok: true; startDate: string; endDate: string }
+  | { ok: true; id: string; startDate: string; endDate: string }
   | { ok: false; reason: 'NO_SEASON' };
 
 function toRateRow(r: Rate): RateRow {
@@ -65,7 +65,12 @@ export class CatalogService {
     if (seasons.length > 1) {
       this.logger.warn(`Stagioni sovrapposte per ${date}: uso la prima (${seasons[0].id}).`);
     }
-    return { ok: true, startDate: formatDbDate(seasons[0].startDate), endDate: formatDbDate(seasons[0].endDate) };
+    return {
+      ok: true,
+      id: seasons[0].id,
+      startDate: formatDbDate(seasons[0].startDate),
+      endDate: formatDbDate(seasons[0].endDate),
+    };
   }
 
   /**
