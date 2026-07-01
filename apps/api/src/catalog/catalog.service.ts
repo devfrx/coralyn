@@ -10,14 +10,19 @@ import { toPackageDTO } from './package.projection';
 export interface QuoteContext {
   umbrellaId: string;
   timeSlotId: string;
-  date: string;
+  startDate: string;
+  endDate: string;
   packageId?: string | null;
-  type?: BookingType;
+  type: BookingType;
 }
 
 export type QuoteOutcome =
   | { ok: true; totalPrice: number }
   | { ok: false; reason: 'UMBRELLA_NOT_FOUND' | 'NO_SEASON' | 'NO_RATE' };
+
+export type SeasonRange =
+  | { ok: true; startDate: string; endDate: string }
+  | { ok: false; reason: 'NO_SEASON' };
 
 function toRateRow(r: Rate): RateRow {
   return {
@@ -49,10 +54,18 @@ export class CatalogService {
     return rows.map(toPackageDTO);
   }
 
-  /** Preventivo standalone (endpoint GET /bookings/quote): apre la propria transazione tenant. */
-  async quote(ctx: QuoteContext): Promise<QuoteOutcome> {
-    const tenantId = this.tenant.require();
-    return this.prisma.forTenant(tenantId, (tx) => this.priceWithin(tx, ctx));
+  /** Risolve la stagione attiva per una data e ne ritorna l'intervallo (single source della risoluzione stagione). */
+  async resolveSeasonWithin(tx: Prisma.TransactionClient, date: string): Promise<SeasonRange> {
+    const day = toDbDate(date);
+    const seasons = await tx.season.findMany({
+      where: { startDate: { lte: day }, endDate: { gte: day } },
+      orderBy: { startDate: 'asc' },
+    });
+    if (seasons.length === 0) return { ok: false, reason: 'NO_SEASON' };
+    if (seasons.length > 1) {
+      this.logger.warn(`Stagioni sovrapposte per ${date}: uso la prima (${seasons[0].id}).`);
+    }
+    return { ok: true, startDate: formatDbDate(seasons[0].startDate), endDate: formatDbDate(seasons[0].endDate) };
   }
 
   /**
@@ -66,14 +79,14 @@ export class CatalogService {
     });
     if (!umbrella) return { ok: false, reason: 'UMBRELLA_NOT_FOUND' };
 
-    const day = toDbDate(ctx.date);
+    const day = toDbDate(ctx.startDate);
     const seasons = await tx.season.findMany({
       where: { startDate: { lte: day }, endDate: { gte: day } },
       orderBy: { startDate: 'asc' },
     });
     if (seasons.length === 0) return { ok: false, reason: 'NO_SEASON' };
     if (seasons.length > 1) {
-      this.logger.warn(`Stagioni sovrapposte per ${ctx.date}: uso la prima (${seasons[0].id}).`);
+      this.logger.warn(`Stagioni sovrapposte per ${ctx.startDate}: uso la prima (${seasons[0].id}).`);
     }
     const pricing = await tx.pricing.findFirst({ where: { seasonId: seasons[0].id } });
     if (!pricing) return { ok: false, reason: 'NO_SEASON' };
@@ -81,13 +94,13 @@ export class CatalogService {
     const rates = await tx.rate.findMany({ where: { pricingId: pricing.id } });
     const result = resolvePrice(
       {
-        type: ctx.type ?? 'daily',
+        type: ctx.type,
         sectorId: umbrella.row.sectorId,
         rowId: umbrella.rowId,
         packageId: ctx.packageId ?? null,
         timeSlotId: ctx.timeSlotId,
-        startDate: ctx.date,
-        endDate: ctx.date,
+        startDate: ctx.startDate,
+        endDate: ctx.endDate,
       },
       rates.map(toRateRow),
     );

@@ -4,7 +4,8 @@ import {
   NotFoundException,
   UnprocessableEntityException,
 } from '@nestjs/common';
-import type { BookingDTO, CreateBookingInput, QuoteBookingInput, SettlePaymentInput } from '@coralyn/contracts';
+import type { Prisma } from '@prisma/client';
+import type { BookingDTO, BookingType, CreateBookingInput, QuoteBookingInput, SettlePaymentInput } from '@coralyn/contracts';
 import { PrismaService } from '../prisma/prisma.service';
 import { TenantContext } from '../tenant/tenant-context';
 import { CatalogService, type QuoteOutcome } from '../catalog/catalog.service';
@@ -44,19 +45,63 @@ export class BookingsService {
     throw new UnprocessableEntityException('Nessuna tariffa applicabile: configurare il listino'); // NO_RATE
   }
 
-  /** Preventivo per il modale FE (preview). */
+  /** Preventivo per il modale FE (preview). Deriva l'intervallo dal tipo come la create (single source). */
   async quote(input: QuoteBookingInput): Promise<{ totalPrice: number }> {
-    const totalPrice = this.priceOrThrow(await this.catalog.quote(input));
+    const tenantId = this.tenant.require();
+    const totalPrice = await this.prisma.forTenant(tenantId, async (tx) => {
+      const { startDate, endDate } = await this.deriveInterval(tx, input);
+      return this.priceOrThrow(
+        await this.catalog.priceWithin(tx, {
+          umbrellaId: input.umbrellaId,
+          timeSlotId: input.timeSlotId,
+          startDate,
+          endDate,
+          type: input.type,
+          packageId: input.packageId ?? null,
+        }),
+      );
+    });
     return { totalPrice };
   }
 
-  /** Crea una prenotazione GIORNALIERA (type=daily, status=confirmed). */
+  /**
+   * Deriva e valida l'intervallo [startDate, endDate] dal tipo (server-autoritativo). Le regole di dominio
+   * lanciano 422. Per periodic/subscription risolve la stagione una volta (single source: resolveSeasonWithin).
+   */
+  private async deriveInterval(
+    tx: Prisma.TransactionClient,
+    input: { type: BookingType; startDate: string; endDate?: string },
+  ): Promise<{ startDate: string; endDate: string }> {
+    if (input.type === 'daily') {
+      if (input.endDate) throw new UnprocessableEntityException('Giornaliera: non specificare la data di fine');
+      return { startDate: input.startDate, endDate: input.startDate };
+    }
+    const season = await this.catalog.resolveSeasonWithin(tx, input.startDate);
+    if (!season.ok) throw new UnprocessableEntityException('Nessuna stagione attiva per questa data');
+    if (input.type === 'subscription') {
+      if (input.endDate)
+        throw new UnprocessableEntityException('Abbonamento: la durata è la stagione, non specificare la data di fine');
+      return { startDate: season.startDate, endDate: season.endDate };
+    }
+    // periodic
+    if (!input.endDate) throw new UnprocessableEntityException('Periodica: specificare la data di fine');
+    if (input.endDate < input.startDate)
+      throw new UnprocessableEntityException('La data di fine precede l’inizio');
+    if (input.endDate > season.endDate) throw new UnprocessableEntityException('Il periodo supera la stagione');
+    return { startDate: input.startDate, endDate: input.endDate };
+  }
+
+  /** Crea una prenotazione (daily / periodic / subscription; status=confirmed). Prezzo e durata server-autoritativi. */
   async create(input: CreateBookingInput): Promise<BookingDTO> {
     const tenantId = this.tenant.require();
-    const day = toDbDate(input.date);
 
     const created = await this.prisma.forTenant(tenantId, async (tx) => {
-      // FK nel tenant (RLS: fuori tenant → null → 422)
+      // 1) Intervallo dal tipo (422 di dominio dentro deriveInterval).
+      const { startDate, endDate } = await this.deriveInterval(tx, input);
+      const dbStart = toDbDate(startDate);
+      const dbEnd = toDbDate(endDate);
+
+      // 2) FK nel tenant (RLS: fuori tenant → null → 422).
       const slot = await tx.timeSlot.findFirst({ where: { id: input.timeSlotId } });
       const umbrella = await tx.umbrella.findFirst({ where: { id: input.umbrellaId } });
       const customer = await tx.customer.findFirst({ where: { id: input.customerId } });
@@ -68,39 +113,40 @@ export class BookingsService {
         if (!pkg) throw new UnprocessableEntityException('Pacchetto non valido');
       }
 
-      // Anti-overlap (ADR-0013): confermate stesso ombrellone, date intersecanti, fascia sovrapposta.
+      // 3) Anti-overlap su intervallo (ADR-0013): stesso ombrellone, date intersecanti, fascia sovrapposta.
       const sameUmbrella = await tx.booking.findMany({
         where: { umbrellaId: input.umbrellaId, status: 'confirmed' },
         include: { timeSlot: true },
       });
       const conflict = sameUmbrella.some(
-        (b) =>
-          dateRangesOverlap(b.startDate, b.endDate, day, day) &&
-          slotsOverlap(b.timeSlot, slot),
+        (b) => dateRangesOverlap(b.startDate, b.endDate, dbStart, dbEnd) && slotsOverlap(b.timeSlot, slot),
       );
       if (conflict) {
         throw new ConflictException('Fascia non disponibile per questo ombrellone');
       }
 
-      // Auto-pricing (A3.1): il prezzo è calcolato dall'engine nello stesso tenant/tx, mai dal client.
+      // 4) Prezzo (server-autoritativo, mai dal client).
       const totalPrice = this.priceOrThrow(
         await this.catalog.priceWithin(tx, {
           umbrellaId: input.umbrellaId,
           timeSlotId: input.timeSlotId,
-          date: input.date,
+          startDate,
+          endDate,
+          type: input.type,
           packageId: input.packageId ?? null,
         }),
       );
 
+      // 5) Scrittura.
       return tx.booking.create({
         data: {
           establishmentId: tenantId,
           customerId: input.customerId,
           umbrellaId: input.umbrellaId,
           timeSlotId: input.timeSlotId,
-          startDate: day,
-          endDate: day,
-          type: 'daily',
+          startDate: dbStart,
+          endDate: dbEnd,
+          type: input.type,
           status: 'confirmed',
           totalPrice,
           packageId: input.packageId ?? null,

@@ -12,14 +12,17 @@ export class QuoteBookingDto implements QuoteBookingInput {
   @Matches(UUID_SHAPE, { message: 'timeSlotId must be a UUID' })
   timeSlotId!: string;
 
+  @IsIn(TYPES)
+  type!: BookingType;
+
   @IsCalendarDate()
-  date!: string;
+  startDate!: string;
+
+  @IsOptional()
+  @IsCalendarDate()
+  endDate?: string;
 
   @IsOptional()
   @Matches(UUID_SHAPE, { message: 'packageId must be a UUID' })
   packageId?: string;
-
-  @IsOptional()
-  @IsIn(TYPES)
-  type?: BookingType;
 }
