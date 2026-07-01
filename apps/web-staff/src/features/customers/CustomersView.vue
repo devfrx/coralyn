@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue';
 import { useRouter } from 'vue-router';
-import { Button, Avatar, DataTable, Modal, Field, Input, Textarea, Icon } from '@coralyn/ui-kit';
+import { Button, Avatar, DataTable, Modal, Field, Input, Textarea, Icon, PageToolbar } from '@coralyn/ui-kit';
 import { useCustomers, useCreateCustomer } from './useCustomers';
 
 const router = useRouter();
@@ -24,14 +24,17 @@ function ini(c: { firstName: string; lastName: string }) { return ((c.firstName[
 </script>
 <template>
   <section class="px-[26px] pb-[30px] pt-[22px]">
-    <div class="mb-4 flex flex-wrap items-center gap-3">
-      <div class="flex w-[300px] items-center gap-2 rounded-[10px] border border-[var(--color-border)] bg-[var(--color-surface)] px-3.5 py-2.5 text-[var(--color-placeholder)]">
-        <Icon name="search" :size="16" /><span class="text-[13px]">Cerca per nome o telefono…</span>
-      </div>
-      <div class="flex-1"></div>
-      <span class="text-[12.5px] tabular-nums text-[var(--color-text-muted)]">{{ customers?.length ?? 0 }} clienti</span>
-      <Button data-test="new-customer" @click="open = true"><Icon name="plus" :size="16" />Nuovo cliente</Button>
-    </div>
+    <PageToolbar>
+      <template #left>
+        <div class="flex w-[300px] items-center gap-2 rounded-[10px] border border-[var(--color-border)] bg-[var(--color-surface)] px-3.5 py-2.5 text-[var(--color-placeholder)]">
+          <Icon name="search" :size="16" /><span class="text-[13px]">Cerca per nome o telefono…</span>
+        </div>
+      </template>
+      <template #right>
+        <span class="text-[12.5px] tabular-nums text-[var(--color-text-muted)]">{{ customers?.length ?? 0 }} clienti</span>
+        <Button data-test="new-customer" @click="open = true"><Icon name="plus" :size="16" />Nuovo cliente</Button>
+      </template>
+    </PageToolbar>
 
     <p v-if="isLoading" class="text-[var(--color-text-muted)]">Caricamento…</p>
     <DataTable v-else :columns="cols">
