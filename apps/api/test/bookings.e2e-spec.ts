@@ -259,6 +259,103 @@ describe('Bookings (e2e)', () => {
     });
   });
 
+  describe('rinnovo e anzianità (A4.2)', () => {
+    let uRen: string; // ombrellone dell'abbonamento sorgente da rinnovare
+    let srcId: string; // abbonamento sorgente 2026
+
+    const mkUmbrella = (label: string, order: number) =>
+      prisma.forTenant(s1, (tx) =>
+        tx.umbrella.create({ data: { establishmentId: s1, rowId: ids.rowId, umbrellaTypeId: null, label, logicalOrder: order } }),
+      );
+
+    beforeAll(async () => {
+      uRen = (await mkUmbrella('92', 92)).id;
+      const src = await request(app.getHttpServer()).post('/api/bookings').set(...bearer(token1))
+        .send(body({ umbrellaId: uRen, type: 'subscription', startDate: '2026-07-01' })).expect(201);
+      srcId = src.body.id;
+      expect(src.body.totalPrice).toBe(800);
+    });
+
+    it('elenco abbonati 2026: la sorgente ha seniority=1, renewed=false', async () => {
+      const res = await request(app.getHttpServer()).get('/api/bookings/subscriptions?date=2026-08-01').set(...bearer(token1)).expect(200);
+      const row = res.body.find((b: { id: string }) => b.id === srcId);
+      expect(row.seniority).toBe(1);
+      expect(row.renewed).toBe(false);
+    });
+
+    it('rinnovo → 201: stagione 2027, prezzo nuovo listino (850), previousBookingId=sorgente, mappa season', async () => {
+      const res = await request(app.getHttpServer()).post(`/api/bookings/${srcId}/renew`).set(...bearer(token1))
+        .send({ startDate: '2027-07-01' }).expect(201);
+      expect(res.body.type).toBe('subscription');
+      expect(res.body.startDate).toBe('2027-05-01');
+      expect(res.body.endDate).toBe('2027-09-30');
+      expect(res.body.totalPrice).toBe(850);
+      expect(res.body.previousBookingId).toBe(srcId);
+
+      const map = await request(app.getHttpServer()).get('/api/map?date=2027-06-15').set(...bearer(token1)).expect(200);
+      const cell = map.body.sectors[0].rows[0].umbrellas.find((u: { id: string }) => u.id === uRen);
+      expect(cell.stateBySlot[ids.slotMorning]).toBe('season');
+    });
+
+    it('dopo il rinnovo: sorgente renewed=true; il rinnovo 2027 ha seniority=2', async () => {
+      const s2026 = await request(app.getHttpServer()).get('/api/bookings/subscriptions?date=2026-08-01').set(...bearer(token1)).expect(200);
+      expect(s2026.body.find((b: { id: string }) => b.id === srcId).renewed).toBe(true);
+      const s2027 = await request(app.getHttpServer()).get('/api/bookings/subscriptions?date=2027-08-01').set(...bearer(token1)).expect(200);
+      const renewal = s2027.body.find((b: { umbrellaId: string }) => b.umbrellaId === uRen);
+      expect(renewal.seniority).toBe(2);
+    });
+
+    it('doppio rinnovo → 409', async () => {
+      await request(app.getHttpServer()).post(`/api/bookings/${srcId}/renew`).set(...bearer(token1))
+        .send({ startDate: '2027-07-01' }).expect(409);
+    });
+
+    it('rinnovo verso la stessa stagione della sorgente → 422', async () => {
+      const u = (await mkUmbrella('93', 93)).id;
+      const src = await request(app.getHttpServer()).post('/api/bookings').set(...bearer(token1))
+        .send(body({ umbrellaId: u, type: 'subscription', startDate: '2026-07-01' })).expect(201);
+      await request(app.getHttpServer()).post(`/api/bookings/${src.body.id}/renew`).set(...bearer(token1))
+        .send({ startDate: '2026-08-01' }).expect(422);
+    });
+
+    it('rinnovo di una prenotazione non-abbonamento → 422', async () => {
+      const day = await request(app.getHttpServer()).post('/api/bookings').set(...bearer(token1))
+        .send(body({ umbrellaId: ids.u2, startDate: '2026-06-05' })).expect(201);
+      await request(app.getHttpServer()).post(`/api/bookings/${day.body.id}/renew`).set(...bearer(token1))
+        .send({ startDate: '2027-07-01' }).expect(422);
+    });
+
+    it('rinnovo di un abbonamento annullato → 422', async () => {
+      const u = (await mkUmbrella('94', 94)).id;
+      const src = await request(app.getHttpServer()).post('/api/bookings').set(...bearer(token1))
+        .send(body({ umbrellaId: u, type: 'subscription', startDate: '2026-07-01' })).expect(201);
+      await request(app.getHttpServer()).delete(`/api/bookings/${src.body.id}`).set(...bearer(token1)).expect(200);
+      await request(app.getHttpServer()).post(`/api/bookings/${src.body.id}/renew`).set(...bearer(token1))
+        .send({ startDate: '2027-07-01' }).expect(422);
+    });
+
+    it('rinnovo di sorgente di un altro tenant → 404 (isolamento)', async () => {
+      await request(app.getHttpServer()).post(`/api/bookings/${srcId}/renew`).set(...bearer(token2))
+        .send({ startDate: '2027-07-01' }).expect(404);
+    });
+
+    it('anti-overlap sul rinnovo: ombrellone occupato in 2027 → 409', async () => {
+      const u = (await mkUmbrella('95', 95)).id;
+      const src = await request(app.getHttpServer()).post('/api/bookings').set(...bearer(token1))
+        .send(body({ umbrellaId: u, type: 'subscription', startDate: '2026-07-01' })).expect(201);
+      // Occupa lo stesso ombrellone in 2027 con un abbonamento diretto.
+      await request(app.getHttpServer()).post('/api/bookings').set(...bearer(token1))
+        .send(body({ umbrellaId: u, type: 'subscription', startDate: '2027-07-01' })).expect(201);
+      await request(app.getHttpServer()).post(`/api/bookings/${src.body.id}/renew`).set(...bearer(token1))
+        .send({ startDate: '2027-07-01' }).expect(409);
+    });
+
+    it('elenco abbonati fuori stagione → [] (nessuna stagione)', async () => {
+      const res = await request(app.getHttpServer()).get('/api/bookings/subscriptions?date=2030-01-10').set(...bearer(token1)).expect(200);
+      expect(res.body).toEqual([]);
+    });
+  });
+
   it('DELETE annulla → la mappa torna free e si può ricreare', async () => {
     const created = await request(app.getHttpServer()).post('/api/bookings').set(...bearer(token1)).send(body({ umbrellaId: ids.u2, startDate: '2026-07-19' })).expect(201);
     await request(app.getHttpServer()).delete(`/api/bookings/${created.body.id}`).set(...bearer(token1)).expect(200);

@@ -56,6 +56,24 @@ export async function seedPricingTenant(
         unit: RateUnit.period,
       },
     });
+
+    // 2a stagione 2027 con proprio listino (prezzo abbonamento DIVERSO: 850) per esercitare il rinnovo.
+    const season2027 = await tx.season.create({
+      data: {
+        establishmentId,
+        name: 'Estate 2027',
+        startDate: new Date('2027-05-01T00:00:00Z'),
+        endDate: new Date('2027-09-30T00:00:00Z'),
+      },
+    });
+    const pricing2027 = await tx.pricing.create({ data: { establishmentId, seasonId: season2027.id } });
+    await tx.rate.create({
+      data: { establishmentId, pricingId: pricing2027.id, price: 30, unit: RateUnit.day },
+    });
+    await tx.rate.create({
+      data: { establishmentId, pricingId: pricing2027.id, type: 'subscription', price: 850, unit: RateUnit.period },
+    });
+
     return { seasonId: season.id, pricingId: pricing.id, packageId: pkg.id };
   });
 }
