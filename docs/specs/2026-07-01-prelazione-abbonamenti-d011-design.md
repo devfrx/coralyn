@@ -266,13 +266,17 @@ aggiunge un controllo `assertNoPreemptionHold`:
 // è riservato a lui; un ALTRO cliente non può prenotarlo nella stagione di destinazione. Valutazione lazy:
 // alla scadenza (today > deadline) la campagna non è più "aperta" e il blocco cade da solo (rilascio).
 const today = todayInRome();
+// Filtro in DB: solo campagne APERTE (scadenza non passata) la cui stagione di destinazione INTERSECA
+// l'intervallo della prenotazione. Riduce il lavoro al percorso caldo (una create daily lontana da ogni
+// campagna → 0 righe). Il filtro relazionale evita di scaricare campagne irrilevanti.
 const openCampaigns = await tx.renewalCampaign.findMany({
-  where: { deadline: { gte: toDbDate(today) } },            // aperte (scadenza non passata)
+  where: {
+    deadline: { gte: toDbDate(today) },
+    destinationSeason: { startDate: { lte: dbEnd }, endDate: { gte: dbStart } },
+  },
   include: { originSeason: true, destinationSeason: true },
 });
 for (const c of openCampaigns) {
-  // La prenotazione ricade nella stagione di destinazione della campagna?
-  if (!dateRangesOverlap(dbStart, dbEnd, c.destinationSeason.startDate, c.destinationSeason.endDate)) continue;
   // Aventi-diritto sull'ombrellone: abbonati CONFERMATI della stagione di ORIGINE, stesso ombrellone,
   // fascia sovrapposta, di un ALTRO cliente, NON ancora rinnovati nella stagione di destinazione.
   const os = c.originSeason;
@@ -467,6 +471,21 @@ Target da **non** regredire (riverificare dal vivo): **ui-kit 41 · web-staff 93
 - **Isolamento:** ogni query in `forTenant`; RLS FORCE anche su `RenewalCampaign`; e2e a 2 tenant.
 - **Race create-vs-hold:** stessa classe dell'anti-overlap applicativo ([D-030](../architecture/deferred.md));
   accettabile per l'MVP mono-operatore; nessun vincolo DB introdotto (coerente con ADR-0034 lazy).
+- **Posti già venduti PRIMA dell'apertura (ordine operativo, boundary documentato):** l'apertura di una
+  campagna **non** annulla retroattivamente prenotazioni già confermate nella stagione di destinazione. Se un
+  altro cliente aveva già una `Booking confirmed` in quella stagione sull'ombrellone dell'avente-diritto,
+  quella prenotazione **resta** e il rinnovo dell'avente-diritto verrà bloccato dall'**anti-overlap** ordinario
+  (409) — la prelazione non era in vigore quando il posto è stato venduto. **Regola operativa:** aprire la
+  campagna **prima** di vendere la nuova stagione. L'hold protegge le vendite **successive** all'apertura, non
+  sana quelle precedenti. *(Rilevare/segnalare i conflitti pre-esistenti all'apertura sarebbe additivo e
+  fuori scope; tracciato qui, non silenzioso.)*
+- **Salto di stagione (`origine → destinazione non adiacenti`):** consentito (si impone solo "destinazione
+  successiva all'origine", non "immediatamente successiva": le stagioni possono avere buchi). Una campagna che
+  salta una stagione è insensata ma innocua; l'uso naturale (origine = stagione i cui abbonati sono gli attuali
+  titolari) è corretto. Non enforced (gold-plating), coerente con A4.2 (direzione temporale non vincolata).
+- **Rinnovo annullato riapre la finestra:** un rinnovo `cancelled` non conta (`status='confirmed'` nel
+  predicato `renewals` e nella guardia doppio-rinnovo A4.2) → la finestra torna `open` e l'hold si riattiva
+  (se la campagna è ancora aperta). Comportamento corretto e coerente col flag `renewed` A4.2.
 
 ## 11. Decisioni chiuse
 
