@@ -26,7 +26,7 @@ function mountLogin() {
 }
 
 describe('LoginView', () => {
-  it('login valido autentica la sessione e naviga a /mappa', async () => {
+  it('login valido autentica la sessione e naviga alla mappa', async () => {
     const w = mountLogin();
     await w.find('input[type="email"]').setValue('admin@coralyn.dev');
     await w.find('input[type="password"]').setValue('coralyn-admin');
@@ -34,7 +34,7 @@ describe('LoginView', () => {
     await flushPromises();
 
     expect(useSessionStore().authenticated).toBe(true);
-    expect(push).toHaveBeenCalledWith('/mappa');
+    expect(push).toHaveBeenCalledWith({ name: 'map' });
   });
 
   it('credenziali errate mostrano un errore e non navigano', async () => {

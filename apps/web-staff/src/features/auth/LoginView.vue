@@ -15,7 +15,7 @@ async function accedi() {
   loading.value = true;
   try {
     await session.login(email.value, password.value);
-    router.push('/mappa');
+    router.push({ name: 'map' });
   } catch {
     errore.value = 'Email o password non corretti';
   } finally {
@@ -39,6 +39,6 @@ async function accedi() {
       <Button type="submit" class="w-full" :disabled="loading">{{ loading ? 'Accesso…' : 'Accedi' }}</Button>
     </form>
     <div class="my-6 flex items-center gap-3"><span class="h-px flex-1 bg-[var(--color-border)]"></span><span class="text-[10.5px] font-semibold uppercase tracking-[.1em] text-[var(--color-placeholder)]">oppure</span><span class="h-px flex-1 bg-[var(--color-border)]"></span></div>
-    <p class="text-center text-[13.5px] text-[var(--color-text-2nd)]">Non hai un account? <RouterLink to="/registrazione" class="font-semibold text-[var(--color-brand-ink)]">Registra il tuo stabilimento</RouterLink></p>
+    <p class="text-center text-[13.5px] text-[var(--color-text-2nd)]">Non hai un account? <RouterLink :to="{ name: 'register' }" class="font-semibold text-[var(--color-brand-ink)]">Registra il tuo stabilimento</RouterLink></p>
   </AuthLayout>
 </template>
