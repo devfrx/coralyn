@@ -7,7 +7,7 @@ import { IsCalendarDate } from './is-calendar-date';
 // rifiuterebbe. Validiamo la *forma* e lasciamo alla FK il controllo di esistenza nel tenant (→ 422).
 export const UUID_SHAPE = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
 
-const TYPES: BookingType[] = ['daily', 'periodic', 'subscription'];
+export const TYPES: BookingType[] = ['daily', 'periodic', 'subscription'];
 
 export class CreateBookingDto implements CreateBookingInput {
   @Matches(UUID_SHAPE, { message: 'customerId must be a UUID' })

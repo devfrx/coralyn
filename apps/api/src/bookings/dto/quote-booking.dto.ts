@@ -1,9 +1,7 @@
 import { IsIn, IsOptional, Matches } from 'class-validator';
 import type { BookingType, QuoteBookingInput } from '@coralyn/contracts';
 import { IsCalendarDate } from './is-calendar-date';
-import { UUID_SHAPE } from './create-booking.dto';
-
-const TYPES: BookingType[] = ['daily', 'periodic', 'subscription'];
+import { TYPES, UUID_SHAPE } from './create-booking.dto';
 
 export class QuoteBookingDto implements QuoteBookingInput {
   @Matches(UUID_SHAPE, { message: 'umbrellaId must be a UUID' })
