@@ -2,13 +2,24 @@ import { setupServer } from 'msw/node';
 import { http, HttpResponse } from 'msw';
 import { handlers } from './handlers';
 import { mapSeed } from './data/seed';
-import { Role, type CustomerDTO, type UserDTO } from '@coralyn/contracts';
+import { Role, type CustomerDTO, type PackageDTO, type RateDTO, type SeasonDTO, type UserDTO } from '@coralyn/contracts';
 
 const INITIAL_CUSTOMERS: CustomerDTO[] = [
   { id: 'c-1', firstName: 'Mario', lastName: 'Rossi', phone: '+39 333 1111111', email: 'mario.rossi@email.it', notes: '' },
 ];
 let customers: CustomerDTO[] = [...INITIAL_CUSTOMERS];
 export function resetCustomersSeed() { customers = [...INITIAL_CUSTOMERS]; }
+
+// --- Listino (D-032): stato mutabile in-memory per i test dell'editor ---
+const SEASON_1: SeasonDTO = { id: 'se-1', name: 'Estate 2026', startDate: '2026-06-01', endDate: '2026-09-15' };
+let seasons: SeasonDTO[] = [SEASON_1];
+let packages: PackageDTO[] = [{ id: 'pkg-1', name: 'Standard', equipment: { sunbeds: 2 } }];
+let rates: RateDTO[] = [{ id: 'ra-1', seasonId: 'se-1', price: 28, unit: 'day' }];
+export function resetPricingSeed() {
+  seasons = [SEASON_1];
+  packages = [{ id: 'pkg-1', name: 'Standard', equipment: { sunbeds: 2 } }];
+  rates = [{ id: 'ra-1', seasonId: 'se-1', price: 28, unit: 'day' }];
+}
 
 // Auth mockata SOLO per i test (in dev il login colpisce il backend reale).
 export const MOCK_TOKEN = 'valid-token';
@@ -54,9 +65,66 @@ export const server = setupServer(
     customers[i] = { ...customers[i], ...patch };
     return HttpResponse.json(customers[i]);
   }),
-  http.get('/api/packages', () =>
-    HttpResponse.json([{ id: 'pkg-1', name: 'Standard', equipment: { sunbeds: 2 } }]),
-  ),
+  // Seasons
+  http.get('/api/seasons', () => HttpResponse.json(seasons)),
+  http.post('/api/seasons', async ({ request }) => {
+    const b = (await request.json()) as Omit<SeasonDTO, 'id'>;
+    const created: SeasonDTO = { id: `se-${seasons.length + 1}`, ...b };
+    seasons.push(created);
+    return HttpResponse.json(created, { status: 201 });
+  }),
+  http.delete('/api/seasons/:id', ({ params }) => {
+    const i = seasons.findIndex((s) => s.id === params.id);
+    if (i < 0) return new HttpResponse(null, { status: 404 });
+    const [removed] = seasons.splice(i, 1);
+    rates = rates.filter((r) => r.seasonId !== removed.id);
+    return HttpResponse.json(removed);
+  }),
+  // Packages (CRUD)
+  http.get('/api/packages', () => HttpResponse.json(packages)),
+  http.post('/api/packages', async ({ request }) => {
+    const b = (await request.json()) as Omit<PackageDTO, 'id'>;
+    const created: PackageDTO = { id: `pkg-${packages.length + 1}`, ...b };
+    packages.push(created);
+    return HttpResponse.json(created, { status: 201 });
+  }),
+  http.patch('/api/packages/:id', async ({ params, request }) => {
+    const patch = (await request.json()) as Partial<PackageDTO>;
+    const i = packages.findIndex((p) => p.id === params.id);
+    if (i < 0) return new HttpResponse(null, { status: 404 });
+    packages[i] = { ...packages[i], ...patch };
+    return HttpResponse.json(packages[i]);
+  }),
+  http.delete('/api/packages/:id', ({ params }) => {
+    const i = packages.findIndex((p) => p.id === params.id);
+    if (i < 0) return new HttpResponse(null, { status: 404 });
+    const [removed] = packages.splice(i, 1);
+    return HttpResponse.json(removed);
+  }),
+  // Rates (CRUD, filtrate per stagione)
+  http.get('/api/rates', ({ request }) => {
+    const seasonId = new URL(request.url).searchParams.get('seasonId') ?? '';
+    return HttpResponse.json(rates.filter((r) => r.seasonId === seasonId));
+  }),
+  http.post('/api/rates', async ({ request }) => {
+    const b = (await request.json()) as Omit<RateDTO, 'id'>;
+    const created: RateDTO = { id: `ra-${rates.length + 1}`, ...b };
+    rates.push(created);
+    return HttpResponse.json(created, { status: 201 });
+  }),
+  http.patch('/api/rates/:id', async ({ params, request }) => {
+    const patch = (await request.json()) as Partial<RateDTO>;
+    const i = rates.findIndex((r) => r.id === params.id);
+    if (i < 0) return new HttpResponse(null, { status: 404 });
+    rates[i] = { ...rates[i], ...patch };
+    return HttpResponse.json(rates[i]);
+  }),
+  http.delete('/api/rates/:id', ({ params }) => {
+    const i = rates.findIndex((r) => r.id === params.id);
+    if (i < 0) return new HttpResponse(null, { status: 404 });
+    const [removed] = rates.splice(i, 1);
+    return HttpResponse.json(removed);
+  }),
   http.get('/api/bookings', () => HttpResponse.json([])),
   http.get('/api/bookings/subscriptions', ({ request }) => {
     const date = new URL(request.url).searchParams.get('date') ?? '';
