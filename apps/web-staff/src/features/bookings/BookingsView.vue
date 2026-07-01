@@ -2,7 +2,7 @@
 import { ref, computed } from 'vue';
 import { useRouter } from 'vue-router';
 import { SegmentedControl, Button, Badge, Avatar, DataTable, Icon } from '@coralyn/ui-kit';
-import type { BookingDTO, PaymentStatus } from '@coralyn/contracts';
+import type { BookingDTO, BookingType, PaymentStatus } from '@coralyn/contracts';
 import { storeToRefs } from 'pinia';
 import { useSessionStore } from '@/stores/session';
 import { useDayBookings } from './useBookings';
@@ -33,6 +33,8 @@ const PAY_TONE: Record<PaymentStatus, 'success' | 'warning' | 'neutral'> = {
   partial: 'warning',
   unpaid: 'neutral',
 };
+const TYPE_LABEL: Record<BookingType, string> = { daily: 'Giornaliera', periodic: 'Periodica', subscription: 'Abbonamento' };
+const periodLabel = (b: BookingDTO): string => (b.type === 'daily' ? b.startDate : `${b.startDate} → ${b.endDate}`);
 
 const customerName = (id: string): string => {
   const c = (customers.value ?? []).find((x) => x.id === id);
@@ -92,9 +94,9 @@ function openSettle(b: BookingDTO): void {
           </div>
         </td>
         <td class="border-b border-[var(--color-border-row)] px-3.5 py-3.5 tabular-nums text-[var(--color-text-2nd)]">{{ umbrellaLabel.get(b.umbrellaId) ?? '—' }}</td>
-        <td class="border-b border-[var(--color-border-row)] px-3.5 py-3.5 text-[var(--color-text-2nd)]">Giornaliero</td>
+        <td class="border-b border-[var(--color-border-row)] px-3.5 py-3.5 text-[var(--color-text-2nd)]">{{ TYPE_LABEL[b.type] }}</td>
         <td class="border-b border-[var(--color-border-row)] px-3.5 py-3.5 text-[var(--color-text-2nd)]">{{ b.packageId ? (packageName.get(b.packageId) ?? '—') : '—' }}</td>
-        <td class="border-b border-[var(--color-border-row)] px-3.5 py-3.5 tabular-nums text-[var(--color-text-2nd)]">{{ b.startDate }}</td>
+        <td class="border-b border-[var(--color-border-row)] px-3.5 py-3.5 tabular-nums text-[var(--color-text-2nd)]">{{ periodLabel(b) }}</td>
         <td class="border-b border-[var(--color-border-row)] px-3.5 py-3.5"><Badge :tone="PAY_TONE[b.paymentStatus]">{{ PAY_LABEL[b.paymentStatus] }}</Badge></td>
         <td class="border-b border-[var(--color-border-row)] px-[18px] py-3.5 text-right">
           <button

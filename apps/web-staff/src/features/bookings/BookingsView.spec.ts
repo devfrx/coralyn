@@ -70,4 +70,30 @@ describe('BookingsView', () => {
     expect(w.text()).toContain('Pacchetto'); // header colonna
     expect(w.text()).toContain('Standard'); // risolto per bk-1
   });
+
+  it('colonna Tipo: etichetta IT dal type; Periodo mostra il range per periodic/subscription', async () => {
+    server.use(
+      http.get('/api/bookings', () =>
+        HttpResponse.json([
+          {
+            id: 'bk-1', customerId: 'c-1', umbrellaId: 'u1', timeSlotId: 's1',
+            startDate: '2026-07-24', endDate: '2026-07-26', type: 'periodic', status: 'confirmed',
+            totalPrice: 84, paymentStatus: 'unpaid', amountCollected: 0,
+          },
+          {
+            id: 'bk-2', customerId: 'c-1', umbrellaId: 'u2', timeSlotId: 's1',
+            startDate: '2026-05-01', endDate: '2026-09-30', type: 'subscription', status: 'confirmed',
+            totalPrice: 800, paymentStatus: 'unpaid', amountCollected: 0,
+          },
+        ]),
+      ),
+    );
+    const w = mountApp(BookingsView);
+    await flushPromises();
+    await tick();
+    await flushPromises();
+    expect(w.text()).toContain('Periodica');
+    expect(w.text()).toContain('Abbonamento');
+    expect(w.text()).toContain('2026-07-24 → 2026-07-26'); // range periodica
+  });
 });
