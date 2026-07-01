@@ -59,13 +59,14 @@ export const server = setupServer(
   ),
   http.get('/api/bookings', () => HttpResponse.json([])),
   http.get('/api/bookings/quote', ({ request }) => {
-    const hasPkg = new URL(request.url).searchParams.has('packageId');
-    return HttpResponse.json({ totalPrice: hasPkg ? 35 : 28 });
+    const p = new URL(request.url).searchParams;
+    if (p.get('type') === 'subscription') return HttpResponse.json({ totalPrice: 800 });
+    return HttpResponse.json({ totalPrice: p.has('packageId') ? 35 : 28 });
   }),
   http.post('/api/bookings', async ({ request }) => {
-    const b = (await request.json()) as { customerId: string; umbrellaId: string; timeSlotId: string; date: string; packageId?: string };
+    const b = (await request.json()) as { customerId: string; umbrellaId: string; timeSlotId: string; type: string; startDate: string; endDate?: string; packageId?: string };
     return HttpResponse.json(
-      { id: 'bk-1', ...b, startDate: b.date, endDate: b.date, type: 'daily', status: 'confirmed', totalPrice: 28, paymentStatus: 'unpaid', amountCollected: 0 },
+      { id: 'bk-1', customerId: b.customerId, umbrellaId: b.umbrellaId, timeSlotId: b.timeSlotId, startDate: b.startDate, endDate: b.endDate ?? b.startDate, type: b.type, status: 'confirmed', totalPrice: 28, paymentStatus: 'unpaid', amountCollected: 0, packageId: b.packageId },
       { status: 201 },
     );
   }),

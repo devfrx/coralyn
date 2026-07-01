@@ -62,6 +62,18 @@ describe('MapView', () => {
     await flushPromises();
     expect(document.body.textContent).toContain('35');
 
+    // Cambiando il Tipo in Abbonamento, il prezzo si ricalcola (MSW: 800 per subscription).
+    const typeSelect = Array.from(document.body.querySelectorAll('select')).find((s) =>
+      s.textContent?.includes('Abbonamento'),
+    ) as HTMLSelectElement | undefined;
+    expect(typeSelect).toBeTruthy();
+    typeSelect!.value = 'subscription';
+    typeSelect!.dispatchEvent(new Event('change'));
+    await flushPromises();
+    await new Promise((r) => setTimeout(r, 0));
+    await flushPromises();
+    expect(document.body.textContent).toContain('800');
+
     w.unmount();
   });
 });

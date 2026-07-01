@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue';
 import { UmbrellaCell, SegmentedControl, Badge, Button, Modal, Icon } from '@coralyn/ui-kit';
-import type { UmbrellaDTO, SlotState, BookingDTO } from '@coralyn/contracts';
+import type { UmbrellaDTO, SlotState, BookingDTO, BookingType } from '@coralyn/contracts';
 import { useDayMap } from './useDayMap';
 import { useDayBookings, useCreateBooking, useCancelBooking } from '@/features/bookings/useBookings';
-import { useBookingQuote } from '@/features/bookings/useBookingQuote';
+import { useBookingQuote, type QuoteParams } from '@/features/bookings/useBookingQuote';
 import { usePackages } from '@/features/bookings/usePackages';
 import SettlePaymentModal from '@/features/bookings/SettlePaymentModal.vue';
 import { useCustomers } from '@/features/customers/useCustomers';
@@ -101,6 +101,8 @@ const currentCustomerName = computed<string>(() => {
 
 const customerId = ref<string>('');
 const packageId = ref<string>('');
+const bookingType = ref<BookingType>('daily');
+const endDate = ref<string>('');
 
 function slotIsBusy(slotId: string): boolean {
   return sel.value ? (liveU.value.stateBySlot[slotId] ?? 'free') !== 'free' : false;
@@ -115,6 +117,8 @@ function openModal(): void {
   selectedSlotId.value = firstFreeSlot();
   customerId.value = '';
   packageId.value = '';
+  bookingType.value = 'daily';
+  endDate.value = '';
   modalBooking.value = true;
 }
 async function confirmBooking(): Promise<void> {
@@ -123,7 +127,9 @@ async function confirmBooking(): Promise<void> {
     customerId: customerId.value,
     umbrellaId: sel.value.u.id,
     timeSlotId: selectedSlotId.value,
-    date: activeDate.value,
+    type: bookingType.value,
+    startDate: activeDate.value,
+    endDate: bookingType.value === 'periodic' ? endDate.value : undefined,
     packageId: packageId.value || undefined,
   });
   modalBooking.value = false;
@@ -133,16 +139,18 @@ async function onCancel(): Promise<void> {
 }
 
 const modalBooking = ref(false);
-const quoteParams = computed(() =>
-  modalBooking.value && sel.value && selectedSlotId.value
-    ? {
-        umbrellaId: sel.value.u.id,
-        timeSlotId: selectedSlotId.value,
-        date: activeDate.value,
-        packageId: packageId.value || undefined,
-      }
-    : null,
-);
+const quoteParams = computed<QuoteParams | null>(() => {
+  if (!(modalBooking.value && sel.value && selectedSlotId.value)) return null;
+  if (bookingType.value === 'periodic' && !endDate.value) return null; // niente quote finché manca la fine
+  return {
+    umbrellaId: sel.value.u.id,
+    timeSlotId: selectedSlotId.value,
+    type: bookingType.value,
+    startDate: activeDate.value,
+    endDate: bookingType.value === 'periodic' ? endDate.value : undefined,
+    packageId: packageId.value || undefined,
+  };
+});
 const { data: quote, isError: quoteError, isFetching: quoteLoading } = useBookingQuote(quoteParams);
 const settleOpen = ref(false);
 // Fascia options for modal: only free slots (SegmentedControl has no disabled-option API)
@@ -270,6 +278,14 @@ const freeSlotOptions = computed(() =>
     <Modal v-model:open="modalBooking" title="Nuova prenotazione" :eyebrow="`Settore ${sel?.sector ?? ''} · Ombrellone ${sel?.u.label ?? ''}`">
       <div class="flex flex-col gap-[18px]">
         <div>
+          <label class="mb-1.5 block text-[12.5px] font-semibold text-[var(--color-text-2nd)]">Tipo</label>
+          <select v-model="bookingType" class="w-full rounded-[11px] border-[1.5px] border-[var(--color-border-input)] bg-[var(--color-surface)] px-3.5 py-3 text-[13.5px] text-[var(--color-text)] focus:outline-none">
+            <option value="daily">Giornaliera</option>
+            <option value="periodic">Periodica</option>
+            <option value="subscription">Abbonamento</option>
+          </select>
+        </div>
+        <div>
           <label class="mb-1.5 block text-[12.5px] font-semibold text-[var(--color-text-2nd)]">Cliente</label>
           <select v-model="customerId" class="w-full rounded-[11px] border-[1.5px] border-[var(--color-border-input)] bg-[var(--color-surface)] px-3.5 py-3 text-[13.5px] text-[var(--color-text)] focus:outline-none">
             <option value="" disabled>Seleziona un cliente…</option>
@@ -283,6 +299,11 @@ const freeSlotOptions = computed(() =>
           <label class="mb-1.5 block text-[12.5px] font-semibold text-[var(--color-text-2nd)]">Fascia</label>
           <SegmentedControl v-model="selectedSlotId" :options="freeSlotOptions" />
         </div>
+        <div v-if="bookingType === 'periodic'">
+          <label class="mb-1.5 block text-[12.5px] font-semibold text-[var(--color-text-2nd)]">Fine periodo</label>
+          <input type="date" v-model="endDate" :min="activeDate" class="w-full rounded-[11px] border-[1.5px] border-[var(--color-border-input)] bg-[var(--color-surface)] px-3.5 py-3 text-[13.5px] text-[var(--color-text)] focus:outline-none" />
+        </div>
+        <p v-else-if="bookingType === 'subscription'" class="text-[12.5px] text-[var(--color-text-muted)]">Durata: stagione intera.</p>
         <div>
           <label class="mb-1.5 block text-[12.5px] font-semibold text-[var(--color-text-2nd)]">Pacchetto</label>
           <select v-model="packageId" class="w-full rounded-[11px] border-[1.5px] border-[var(--color-border-input)] bg-[var(--color-surface)] px-3.5 py-3 text-[13.5px] text-[var(--color-text)] focus:outline-none">
