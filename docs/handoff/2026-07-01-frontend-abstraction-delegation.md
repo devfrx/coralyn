@@ -19,12 +19,11 @@
 
 ## 0. Situazione GIT
 
-- **`origin/main` = `f9f3ed5`** al momento della consegna. Contiene: **A4.2 (rinnovo + anzianità)**
-  mergiata + il **fix di review A4.2** (`56e9fd4`) + il **chore MSW dev** (`f9f3ed5`, service worker
-  MSW rimosso in dev). Working tree pulito.
-- **Branch `docs/frontend-abstraction`**: porta SOLO i documenti di design di questo refactor
-  (ADR-0033, spec, piano, questo handoff). Va **mergiato FF su `main`** (nessun codice, solo doc).
-- **Nessuna migrazione**, nessun cambio di codice applicativo in questa sessione: solo design docs.
+- **`origin/main`** contiene, al momento della consegna: **A4.2 (rinnovo + anzianità)** mergiata + il
+  **fix di review A4.2** + il **chore MSW dev** (service worker MSW rimosso in dev) + i **documenti di
+  design di questo refactor** (ADR-0033, spec, piano, questo handoff). **Working tree pulito, nessun
+  branch pendente da mergiare** — i doc sono già su `main`.
+- **Nessuna migrazione**, nessun cambio di codice applicativo: questa sessione ha prodotto solo design docs.
 
 ## 1. Cosa ha prodotto questa sessione
 
@@ -41,7 +40,7 @@
 **Eseguire il piano** [docs/plans/2026-07-01-frontend-abstraction.md](../plans/2026-07-01-frontend-abstraction.md)
 task-by-task. Il piano è già scritto e pronto; il codice è congelato dalla consegna, quindi il piano
 non è invecchiato. Usa `superpowers:subagent-driven-development` (o `executing-plans`), come è stato
-fatto per A4.2. Parti da un **NUOVO branch da `main`** (dopo aver mergiato il branch doc).
+fatto per A4.2. Parti da un **NUOVO branch da `main`**.
 
 **Obiettivo:** estrarre componenti/utility/composable riutilizzabili dalle viste `web-staff`
 (scope **massimale**: include `DataTable` data-driven e factory dei composable), collocandoli secondo
@@ -109,8 +108,8 @@ entrambe le macchine dopo il fetch/ff.
 > C:\Users\Jays\Desktop\new).
 >
 > STATO: A4.2 (rinnovo + anzianità) è COMPLETA, mergiata FF su main e pushata; increment A4 completo.
-> È stato anche mergiato un chore che rimuove il service worker MSW in dev. origin/main = `f9f3ed5`
-> (più il branch `docs/frontend-abstraction` con soli documenti di design, da mergiare FF).
+> È stato anche mergiato un chore che rimuove il service worker MSW in dev. origin/main contiene già
+> A4.2 completo + il design di questo refactor (ADR-0033, spec, piano, handoff): nessun branch pendente.
 >
 > MACCHINA: all'avvio esegui SEMPRE `git fetch --all --prune` poi `git checkout main && git merge
 > --ff-only origin/main` prima di fidarti del tree o creare un branch.

@@ -176,6 +176,14 @@ anche in futuro, [ADR-0033](../architecture/decisions/0033-astrazione-componenti
 
 > Ogni riga è **estrazione a parità di resa**. Nessuna vista cambia aspetto.
 
+> **Il piano è autoritativo sui dettagli di adozione.** Dove la fedeltà pixel o un comportamento
+> esistente lo richiedono, il piano (sezione *Self-review*) **affina** questa mappa mantenendo la forma
+> attuale invece di forzare un componente condiviso — es.: gli input *date* di `RenewalsView` restano
+> inline (classi diverse da `Input.vue` → sostituirli sarebbe un ridisegno); `CustomersView` resta
+> sull'API a *slot* di `DataTable` (conserva il row-click); `MapView` non adotta `PageToolbar`;
+> `ReportView` non estrae un `ListItem` (uso singolo, YAGNI). Queste scelte **preservano** la resa, in
+> linea con il vincolo §1.
+
 ---
 
 ## 7. Strategia di verifica (zero regressione)
