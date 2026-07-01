@@ -58,6 +58,24 @@ export const server = setupServer(
     HttpResponse.json([{ id: 'pkg-1', name: 'Standard', equipment: { sunbeds: 2 } }]),
   ),
   http.get('/api/bookings', () => HttpResponse.json([])),
+  http.get('/api/bookings/subscriptions', ({ request }) => {
+    const date = new URL(request.url).searchParams.get('date') ?? '';
+    if (date.startsWith('2027')) {
+      return HttpResponse.json([
+        { id: 'sub-2027', customerId: 'c-1', umbrellaId: 'u1', timeSlotId: 's1', startDate: '2027-05-01', endDate: '2027-09-30', totalPrice: 850, seniority: 2, renewed: false },
+      ]);
+    }
+    return HttpResponse.json([
+      { id: 'sub-1', customerId: 'c-1', umbrellaId: 'u1', timeSlotId: 's1', startDate: '2026-05-01', endDate: '2026-09-30', totalPrice: 800, seniority: 1, renewed: false },
+    ]);
+  }),
+  http.post('/api/bookings/:id/renew', async ({ params, request }) => {
+    const b = (await request.json()) as { startDate: string };
+    return HttpResponse.json(
+      { id: 'bk-renew', customerId: 'c-1', umbrellaId: 'u1', timeSlotId: 's1', startDate: b.startDate, endDate: '2027-09-30', type: 'subscription', status: 'confirmed', totalPrice: 850, paymentStatus: 'unpaid', amountCollected: 0, previousBookingId: params.id as string },
+      { status: 201 },
+    );
+  }),
   http.get('/api/bookings/quote', ({ request }) => {
     const p = new URL(request.url).searchParams;
     if (p.get('type') === 'subscription') return HttpResponse.json({ totalPrice: 800 });

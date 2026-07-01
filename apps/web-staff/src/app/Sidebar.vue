@@ -9,6 +9,7 @@ const router = useRouter();
 const nav = [
   { to: '/map', label: 'Mappa', icon: 'map' },
   { to: '/bookings', label: 'Prenotazioni', icon: 'calendar' },
+  { to: '/renewals', label: 'Rinnovi', icon: 'renew' },
   { to: '/customers', label: 'Clienti', icon: 'users' },
   { to: '/pricing', label: 'Listino', icon: 'tag' },
   { to: '/report', label: 'Report', icon: 'chart' },
