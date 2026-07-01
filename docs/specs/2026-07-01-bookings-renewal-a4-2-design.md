@@ -280,7 +280,7 @@ async listSubscriptions(date: string): Promise<SubscriptionListItemDTO[]> {
     });
     if (subs.length === 0) return [];
     const ids = subs.map((b) => b.id);
-    const seniorityById = await this.computeSeniority(tx, ids);           // §6 (CTE ricorsiva, batch)
+    const seniorityById = await this.computeSeniority(tx, ids);           // §6 (risalita iterativa)
     const renewedIds = new Set(
       (await tx.booking.findMany({
         where: { previousBookingId: { in: ids }, status: 'confirmed' }, select: { previousBookingId: true },
@@ -293,38 +293,56 @@ async listSubscriptions(date: string): Promise<SubscriptionListItemDTO[]> {
 
 ---
 
-## 6. Anzianità — CTE ricorsiva (batch, tenant-scoped)
+## 6. Anzianità — risalita iterativa (Prisma query API, RLS-safe)
 
 L'anzianità è la lunghezza della catena da `b` risalendo `previousBookingId` fino alla radice. Si calcola
-per **tutti** gli abbonamenti elencati in **una** query (niente N+1), con una CTE ricorsiva eseguita nella
-transazione `forTenant` (RLS attiva sulla `Booking`, quindi la risalita resta nel tenant):
+per **tutti** gli abbonamenti elencati risalendo la catena **per generazioni** con la query API Prisma
+(niente SQL raw — coerente col resto del codebase, che non usa `$queryRaw` nei service; e RLS automatica
+via `forTenant`, dato che `Booking` ha RLS FORCE + policy `tenant_isolation`). Il numero di query è
+**bounded dalla profondità** della catena (piccola: ~1 per stagione), non dal numero di abbonati.
 
 ```ts
 private async computeSeniority(
   tx: Prisma.TransactionClient, ids: string[],
 ): Promise<Map<string, number>> {
   if (ids.length === 0) return new Map();
-  const rows = await tx.$queryRaw<{ id: string; seniority: number }[]>(Prisma.sql`
-    WITH RECURSIVE chain AS (
-      SELECT id, "previousBookingId", 1 AS depth
-        FROM "Booking" WHERE id IN (${Prisma.join(ids)})
-      UNION ALL
-      SELECT c.id, b."previousBookingId", c.depth + 1
-        FROM chain c JOIN "Booking" b ON b.id = c."previousBookingId"
-    )
-    SELECT id, MAX(depth)::int AS seniority FROM chain GROUP BY id
-  `);
-  return new Map(rows.map((r) => [r.id, Number(r.seniority)]));
+  // Carica id → previousBookingId risalendo per generazioni (ogni giro: una findMany).
+  const parentOf = new Map<string, string | null>();
+  let toLoad = ids;
+  while (toLoad.length > 0) {
+    const gen = await tx.booking.findMany({
+      where: { id: { in: toLoad } },
+      select: { id: true, previousBookingId: true },
+    });
+    for (const r of gen) parentOf.set(r.id, r.previousBookingId);
+    toLoad = gen
+      .map((r) => r.previousBookingId)
+      .filter((x): x is string => x !== null && !parentOf.has(x));
+  }
+  // Anzianità = 1 + antenati risaliti (guardia anti-ciclo difensiva).
+  const seniority = new Map<string, number>();
+  for (const id of ids) {
+    let depth = 1;
+    let cur = parentOf.get(id) ?? null;
+    const seen = new Set<string>([id]);
+    while (cur !== null && parentOf.has(cur) && !seen.has(cur)) {
+      seen.add(cur);
+      depth += 1;
+      cur = parentOf.get(cur) ?? null;
+    }
+    seniority.set(id, depth);
+  }
+  return seniority;
 }
 ```
 
-- Per ogni `id` di partenza, `depth` parte da 1 e cresce di 1 per ogni antenato; `MAX(depth)` = lunghezza
-  totale della catena. Nessun antenato (`previousBookingId = null`) → `seniority = 1`.
-- **Cicli:** impossibili per costruzione (ogni rinnovo linka a un booking **preesistente**; il grafo è un
-  albero orientato all'indietro). Nessuna guardia anti-ciclo necessaria.
-- **RLS:** `$queryRaw` dentro `forTenant` eredita il GUC `app.current_tenant`; la risalita vede solo le
-  `Booking` del tenant (le stagioni precedenti sono dello stesso `establishmentId`). Verificato dagli e2e a
-  2 tenant.
+- `depth` parte da 1 e cresce di 1 per ogni antenato risalito; radice (`previousBookingId = null`) →
+  `seniority = 1`.
+- **Cicli:** impossibili per costruzione (ogni rinnovo linka a un booking **preesistente**, id nuovo mai
+  uguale a un antenato); la guardia `seen` è solo difensiva.
+- **Perché non una CTE ricorsiva:** i service non usano SQL raw altrove, e il binding `uuid IN (…)` via
+  `Prisma.join` è un trabocchetto (`operator does not exist: uuid = text`). La risalita iterativa è
+  idiomatica, RLS-safe e con profondità reale minima; scelta deliberata (no over-engineering).
 
 ---
 
@@ -429,11 +447,15 @@ Target da **non** regredire: **ui-kit 14 · web-staff 45 · api unit 64 · api e
   destinazione (`startDate`). Prezzo sempre ricalcolato sul nuovo listino.
 - **Solo abbonamenti:** sorgente non `subscription` → 422; sorgente `cancelled` → 422.
 - **No doppio rinnovo:** un rinnovo confermato per sorgente (409). La catena è 1:1 in pratica (schema 1:N,
-  regola imposta dal dominio).
+  regola imposta dal dominio). Un rinnovo **annullato** non blocca un nuovo rinnovo (filtro
+  `status='confirmed'`), coerentemente con il flag `renewed`. Il controllo è **applicativo** (dentro la
+  transazione): due `renew` concorrenti sulla stessa sorgente sono la stessa classe di *race* dell'anti-
+  overlap ([D-030](../architecture/deferred.md)) — accettabile per il deploy interno mono-operatore
+  dell'MVP; non introduce un vincolo DB.
 - **Stagione diversa:** destinazione = stagione della sorgente → 422 (evita duplicato/overlap sulla stessa
   stagione; l'anti-overlap lo intercetterebbe comunque, ma il 422 è più chiaro).
 - **Anti-overlap su intervalli:** riuso (helper condiviso); ombrellone occupato nella nuova stagione → 409.
-- **Anzianità derivata:** CTE ricorsiva batch; mai persistita; fresco = 1.
+- **Anzianità derivata:** risalita iterativa (Prisma, RLS-safe, profondità minima); mai persistita; fresco = 1.
 - **Mappa da `type`:** subscription rinnovata → `season` (codice esistente, invariato).
 - **Isolamento:** ogni query in `forTenant`; RLS FORCE; sorgente/antenati fuori tenant invisibili → 404;
   e2e a 2 tenant.
@@ -444,8 +466,9 @@ Target da **non** regredire: **ui-kit 14 · web-staff 45 · api unit 64 · api e
    `create` con `previousBookingId` dal client (evita divergenza/manomissione). (§4, §5)
 2. **Stagione di destinazione esplicita** via `startDate` nel body (riuso semantica subscription A4.1);
    "prossima stagione" automatica scartata (stagioni non contigue). (§4, §5)
-3. **Anzianità esposta ora**, derivata via CTE ricorsiva, **solo** in `SubscriptionListItemDTO` (non su
-   `BookingDTO`, per non pagare la risalita ovunque). (§3, §6)
+3. **Anzianità esposta ora**, derivata via **risalita iterativa** (Prisma query API, RLS-safe; niente SQL
+   raw), **solo** in `SubscriptionListItemDTO` (non su `BookingDTO`, per non pagare la risalita ovunque).
+   (§3, §6)
 4. **Superficie campagna:** `GET /bookings/subscriptions?date=` + vista FE **Rinnovi** dedicata. (§4, §8)
 5. **Invarianti di rinnovo:** solo subscription, no doppio rinnovo, stagione diversa, anti-overlap. (§4, §12)
 6. **Riuso, non duplicazione:** helper privato `priceAndWrite` condiviso da `create` e `renew`. (§5.1)

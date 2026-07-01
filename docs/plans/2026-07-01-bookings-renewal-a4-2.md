@@ -165,9 +165,22 @@ export class RenewBookingDto implements RenewBookingInput {
 Run: `corepack pnpm --filter @coralyn/api test -- renew-booking.dto`
 Expected: PASS (3 test).
 
-- [ ] **Step 5: Mappa `previousBookingId` nella proiezione booking**
+- [ ] **Step 5: Mappa `previousBookingId` nella proiezione booking (test + mapping)**
 
-In `apps/api/src/bookings/booking.projection.ts`, **dopo** la riga `packageId: b.packageId ?? undefined,`,
+a) In `apps/api/src/bookings/booking.projection.spec.ts`, **dentro** `describe('toBookingDTO', …)` (dopo il
+test `packageId`), aggiungi:
+
+```ts
+  it('mappa previousBookingId quando valorizzato e null → undefined', () => {
+    expect(toBookingDTO({ ...row, previousBookingId: 'prev-1' }).previousBookingId).toBe('prev-1');
+    expect(toBookingDTO(row).previousBookingId).toBeUndefined();
+  });
+```
+
+> Il test `toEqual` esistente **non** si rompe: `row.previousBookingId` è `null` → il DTO ha
+> `previousBookingId: undefined`, e Jest `toEqual` ignora le proprietà `undefined`.
+
+b) In `apps/api/src/bookings/booking.projection.ts`, **dopo** la riga `packageId: b.packageId ?? undefined,`,
 aggiungi:
 
 ```ts
@@ -215,8 +228,7 @@ import {
   NotFoundException,
   UnprocessableEntityException,
 } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
-import type { Booking, TimeSlot } from '@prisma/client';
+import type { Prisma, Booking, TimeSlot } from '@prisma/client';
 import type {
   BookingDTO,
   BookingType,
@@ -236,9 +248,9 @@ import { resolvePayment } from './booking.payment';
 import { toDbDate, formatDbDate, todayInRome } from '../common/dates';
 ```
 
-> Cambio chiave: `import { Prisma }` (valore, non più `import type`) per usare `Prisma.sql`/`Prisma.join`
-> nella CTE; `+ Booking, TimeSlot` (tipi); `+ RenewBookingInput, SubscriptionListItemDTO` (contratti);
-> `+ formatDbDate`; `+ toSubscriptionListItemDTO`.
+> Cambi: `+ Prisma, Booking, TimeSlot` (tipi — l'anzianità usa la query API Prisma, niente SQL raw, quindi
+> `import type` basta); `+ RenewBookingInput, SubscriptionListItemDTO` (contratti); `+ formatDbDate`;
+> `+ toSubscriptionListItemDTO`.
 
 - [ ] **Step 8: Estrai l'helper `priceAndWrite` e refattorizza `create`**
 
@@ -417,23 +429,43 @@ In `apps/api/src/bookings/bookings.service.ts`, **dopo** il metodo `create` appe
     });
   }
 
-  /** Anzianità = lunghezza catena `previousBookingId` (batch, una sola CTE ricorsiva; RLS via forTenant). */
+  /**
+   * Anzianità = lunghezza catena `previousBookingId`. Risalita iterativa per generazioni con la query
+   * API Prisma (RLS via forTenant, niente SQL raw — coerente col resto del codebase). Query bounded dalla
+   * profondità della catena (piccola: 1 per stagione), non dal numero di abbonati.
+   */
   private async computeSeniority(
     tx: Prisma.TransactionClient,
     ids: string[],
   ): Promise<Map<string, number>> {
     if (ids.length === 0) return new Map();
-    const rows = await tx.$queryRaw<{ id: string; seniority: number }[]>(Prisma.sql`
-      WITH RECURSIVE chain AS (
-        SELECT id, "previousBookingId", 1 AS depth
-          FROM "Booking" WHERE id IN (${Prisma.join(ids)})
-        UNION ALL
-        SELECT c.id, b."previousBookingId", c.depth + 1
-          FROM chain c JOIN "Booking" b ON b.id = c."previousBookingId"
-      )
-      SELECT id, MAX(depth)::int AS seniority FROM chain GROUP BY id
-    `);
-    return new Map(rows.map((r) => [r.id, Number(r.seniority)]));
+    const parentOf = new Map<string, string | null>();
+    let toLoad = ids;
+    while (toLoad.length > 0) {
+      const gen = await tx.booking.findMany({
+        where: { id: { in: toLoad } },
+        select: { id: true, previousBookingId: true },
+      });
+      for (const r of gen) parentOf.set(r.id, r.previousBookingId);
+      toLoad = gen
+        .map((r) => r.previousBookingId)
+        .filter((x): x is string => x !== null && !parentOf.has(x));
+    }
+    // Risali da ogni id contando gli antenati (guardia anti-ciclo difensiva: i cicli sono impossibili
+    // per costruzione — ogni rinnovo linka un booking preesistente).
+    const seniority = new Map<string, number>();
+    for (const id of ids) {
+      let depth = 1;
+      let cur = parentOf.get(id) ?? null;
+      const seen = new Set<string>([id]);
+      while (cur !== null && parentOf.has(cur) && !seen.has(cur)) {
+        seen.add(cur);
+        depth += 1;
+        cur = parentOf.get(cur) ?? null;
+      }
+      seniority.set(id, depth);
+    }
+    return seniority;
   }
 ```
 
@@ -478,13 +510,14 @@ corepack pnpm --filter @coralyn/api exec prisma generate
 corepack pnpm --filter @coralyn/api build
 corepack pnpm --filter @coralyn/api test
 ```
-Expected: build OK; unit PASS (DTO nuovo + proiezioni/engine invariati). Conteggio api unit **≥ 67** (+3 DTO).
+Expected: build OK; unit PASS (DTO nuovo + proiezioni/engine invariati). Conteggio api unit **≥ 68**
+(+3 DTO renew, +1 proiezione `previousBookingId`).
 
 - [ ] **Step 12: Commit**
 
 ```bash
-git add apps/api/src/bookings/dto/renew-booking.dto.ts apps/api/src/bookings/dto/renew-booking.dto.spec.ts apps/api/src/bookings/subscription.projection.ts apps/api/src/bookings/booking.projection.ts apps/api/src/bookings/bookings.service.ts apps/api/src/bookings/bookings.controller.ts
-git commit -m "feat(api): renew booking (priceAndWrite condiviso) + subscriptions + anzianità CTE (A4.2)"
+git add apps/api/src/bookings/dto/renew-booking.dto.ts apps/api/src/bookings/dto/renew-booking.dto.spec.ts apps/api/src/bookings/subscription.projection.ts apps/api/src/bookings/booking.projection.ts apps/api/src/bookings/booking.projection.spec.ts apps/api/src/bookings/bookings.service.ts apps/api/src/bookings/bookings.controller.ts
+git commit -m "feat(api): renew booking (priceAndWrite condiviso) + subscriptions + anzianità (A4.2)"
 ```
 
 ---
@@ -962,7 +995,7 @@ corepack pnpm --filter @coralyn/api test
 DATABASE_URL="postgresql://coralyn_app:coralyn_app@localhost:5433/coralyn_test?schema=public" corepack pnpm --filter @coralyn/api test:e2e
 ```
 Expected: tutto verde. Conteggi attesi: ui-kit **14** (invariato) · web-staff **≥47** (+RenewalsView ×2) ·
-api unit **≥67** (+3 DTO) · api e2e **≥73** (+10 rinnovo/anzianità/validazioni/anti-overlap/elenco).
+api unit **≥68** (+3 DTO renew, +1 proiezione) · api e2e **≥73** (+10 rinnovo/anzianità/validazioni/anti-overlap/elenco).
 
 - [ ] **Step 6: Verifica live (Docker) — raccomandata**
 
@@ -992,7 +1025,7 @@ git push -u origin feat/bookings-renewal-a4-2
 - **Copertura spec:** §3 contratti (RenewBookingInput/SubscriptionListItemDTO/previousBookingId) → Task 1;
   §4 endpoint renew + subscriptions → Task 2 (Step 10) + e2e Task 3; §5.1 helper `priceAndWrite` condiviso
   → Task 2 (Step 8); §5.2 renew (sorgente valida, no doppio rinnovo, stagione diversa, copia FK) → Task 2
-  (Step 9) + e2e Task 3; §5.3 listSubscriptions + §6 CTE anzianità → Task 2 (Step 9) + e2e Task 3; §7 mappa
+  (Step 9) + e2e Task 3; §5.3 listSubscriptions + §6 anzianità (risalita iterativa) → Task 2 (Step 9) + e2e Task 3; §7 mappa
   invariata → verificata da e2e (`season` in 2027); §8 FE vista Rinnovi + composable → Task 4; §9 seed 2ª
   stagione → Task 3 (e2e) + Task 5 (dev); §10 test → Task 2/3/4/5; §11 DoD/doc → Task 5; §12 casi limite →
   e2e Task 3; §13 decisioni → riflesse in confini/handoff.
