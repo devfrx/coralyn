@@ -24,8 +24,15 @@
 > multi-stagione, tracciato in [D-033](../architecture/deferred.md)); `subscription`: il server risolve la
 > Stagione attiva (`CatalogService.resolveSeasonWithin`) e impone `startDate=season.startDate`,
 > `endDate=season.endDate` (il client non può specificare una fine). Nessuna migrazione: schema, engine di
-> pricing e proiezione mappa erano già generali su intervalli. `previousBookingId` resta **inutilizzato
-> fino ad A4.2** (rinnovo).
+> pricing e proiezione mappa erano già generali su intervalli.
+>
+> **Slice A4.2 (rinnovo + anzianità):** `previousBookingId` è ora **valorizzato** da
+> `POST /api/bookings/:id/renew` (server-autoritativo: copia customer/umbrella/timeSlot/package dalla
+> sorgente, riprezza sul listino della stagione destinazione con lo stesso `priceAndWrite` condiviso da
+> `create`). L'anzianità è **derivata** dalla lunghezza della catena `previousBookingId` (risalita
+> iterativa via Prisma, RLS-safe). Prelazione, cabine e sospensione/cessione/disdetta restano rimandate
+> ([D-011](../architecture/deferred.md), [D-012](../architecture/deferred.md),
+> [D-013](../architecture/deferred.md)). Nessuna migrazione anche in questa slice.
 
 Fonte di verità del modello dati del Core operativo. Decisioni:
 [mappa](../architecture/decisions/0005-modello-mappa.md),
@@ -201,10 +208,11 @@ erDiagram
   ([D-009](../architecture/deferred.md)).
 - **Rinnovo / anzianità**: `previousBookingId` collega un abbonamento a quello
   della stagione precedente; la catena dà storico e anzianità
-  ([ADR-0012](../architecture/decisions/0012-gestione-abbonamenti.md)). Il campo esiste dallo schema A1
-  ma resta **inutilizzato (sempre `null`) fino ad A4.2**, che introduce l'azione di rinnovo. Prelazione
-  automatica e cabine sono rimandate ([D-011](../architecture/deferred.md),
-  [D-012](../architecture/deferred.md)).
+  ([ADR-0012](../architecture/decisions/0012-gestione-abbonamenti.md)). **Implementato (A4.2)**:
+  `POST /api/bookings/:id/renew` valorizza `previousBookingId`; l'anzianità è derivata dalla catena
+  (risalita iterativa via Prisma, non persistita separatamente). Prelazione automatica, cabine e
+  sospensione/cessione/disdetta restano rimandate ([D-011](../architecture/deferred.md),
+  [D-012](../architecture/deferred.md), [D-013](../architecture/deferred.md)).
 - **Audit & superuser**: gli eventi di dominio sono registrati in `AuditLog`
   (sanificati, tenant-tagged); il ruolo `superuser` di piattaforma li consulta
   cross-tenant in sola lettura

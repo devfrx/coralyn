@@ -163,6 +163,32 @@ async function main(): Promise<void> {
       update: { type: 'subscription', price: 800, unit: 'period' },
       create: { id: RATE_SUB, establishmentId: EID, pricingId: PRICING, type: 'subscription', price: 800, unit: 'period' },
     });
+
+    // 2a stagione 2027 (listino con abbonamento a prezzo diverso: 850) per esercitare il rinnovo (A4.2).
+    const SEASON_2027 = u(7, 2);
+    await tx.season.upsert({
+      where: { id: SEASON_2027 },
+      update: { name: 'Estate 2027', startDate: t2('2027-05-01'), endDate: t2('2027-09-30') },
+      create: { id: SEASON_2027, establishmentId: EID, name: 'Estate 2027', startDate: t2('2027-05-01'), endDate: t2('2027-09-30') },
+    });
+    const PRICING_2027 = u(8, 2);
+    await tx.pricing.upsert({
+      where: { id: PRICING_2027 },
+      update: { seasonId: SEASON_2027 },
+      create: { id: PRICING_2027, establishmentId: EID, seasonId: SEASON_2027 },
+    });
+    const RATE_BASE_2027 = u(9, 4);
+    await tx.rate.upsert({
+      where: { id: RATE_BASE_2027 },
+      update: { price: 30, unit: 'day' },
+      create: { id: RATE_BASE_2027, establishmentId: EID, pricingId: PRICING_2027, price: 30, unit: 'day' },
+    });
+    const RATE_SUB_2027 = u(9, 5);
+    await tx.rate.upsert({
+      where: { id: RATE_SUB_2027 },
+      update: { type: 'subscription', price: 850, unit: 'period' },
+      create: { id: RATE_SUB_2027, establishmentId: EID, pricingId: PRICING_2027, type: 'subscription', price: 850, unit: 'period' },
+    });
   });
 }
 

@@ -9,10 +9,10 @@ Gestionale **SaaS** per la gestione di **lidi balneari** (stabilimenti balneari)
 mappa ombrelloni, prenotazioni e abbonamenti, cassa, e — in prospettiva — booking
 online per il cliente finale.
 
-Stato: **A4.1 periodiche + abbonamenti implementate**. **Backend** — Core Foundation
+Stato: **A4.2 rinnovo + anzianità implementati → incremento A4 COMPLETO**. **Backend** — Core Foundation
 (Piano 1), Incremento 1 (scheda cliente), **modulo identità & auth** (login JWT,
 `JwtAuthGuard` globale, RLS Utente), **modulo mappa** (modello + lettura) e **prenotazioni**
-(giornaliere slice A1; periodiche e abbonamenti slice A4.1) implementati:
+(giornaliere slice A1; periodiche e abbonamenti slice A4.1; rinnovo e anzianità slice A4.2) implementati:
 API `/api/customers` (CRUD), `/api/auth` (login/me), `/api/map` (lettura della struttura
 ombrelloni per data con stati reali) e `/api/bookings` (crea/elenca/cancella prenotazioni
 giornaliere/periodiche/abbonamenti), più la **registrazione incasso base** (slice A2:
@@ -41,6 +41,14 @@ Stagione attiva, **risolta e imposta dal server**: il client non specifica la fi
 prenotazione" ha un **selettore Tipo** (Giornaliera/Periodica/Abbonamento) con campo "Fine periodo"
 per le periodiche e re-quote al cambio; la `BookingsView` mostra le colonne **Tipo** e **Periodo**
 (intervallo date). Nessuna migrazione: schema, engine e mappa erano già generali su intervalli.
+**Slice A4.2 — rinnovo + anzianità** implementato (completa l'incremento A4): endpoint
+**`POST /api/bookings/:id/renew`** copia customer/ombrellone/fascia/pacchetto dalla prenotazione
+sorgente (dev'essere un abbonamento confermato) e crea una nuova prenotazione nella stagione
+destinazione, riprezzata sul nuovo listino (`priceAndWrite` condiviso con `create`) e collegata
+via `previousBookingId` (doppio rinnovo → 409; stagione destinazione uguale alla sorgente → 422);
+endpoint **`GET /api/bookings/subscriptions?date=`** elenca gli abbonati della stagione con
+**anzianità** (derivata dalla lunghezza della catena dei rinnovi, risalita iterativa via Prisma) e
+flag **rinnovato**; nuova vista **Rinnovi** in `web-staff`. Nessuna migrazione: schema invariato.
 **Frontend** — redesign **Coralyn** completato e integrato (app-shell, ui-kit,
 tutte le viste); **login reale end-to-end** (`LoginView` → `/api/auth/login`, token Bearer
 persistito, reidratazione via `/me`, logout), scheda cliente e **`MapView`** sul backend reale
@@ -55,8 +63,8 @@ Il provisioning è **fornitore + inviti**
 ([ADR-0028](docs/architecture/decisions/0028-provisioning-tenant.md)):
 la pagina `/registrazione` è informativa ("attivazione su invito"), non self-service.
 Containerizzazione locale via Docker Compose.
-Prossimi passi: **A4.2** (rinnovo + anzianità via `previousBookingId`), **editor CRUD del listino**
-([D-032](docs/architecture/deferred.md)) e **gestione utenti staff**
+Prossimi passi: **editor CRUD del listino** ([D-032](docs/architecture/deferred.md)) oppure
+**prelazione automatica** ([D-011](docs/architecture/deferred.md)), e **gestione utenti staff**
 ([D-025](docs/architecture/deferred.md)).
 
 ## Documentazione
