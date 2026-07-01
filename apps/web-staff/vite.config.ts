@@ -12,7 +12,7 @@ export default defineConfig({
     Icons({ compiler: 'vue3' }),
     VitePWA({
       registerType: 'autoUpdate',
-      devOptions: { enabled: false }, // in dev il SW attivo è quello di MSW
+      devOptions: { enabled: false }, // nessun SW in dev: il FE dev parla col backend reale via proxy
       workbox: { globPatterns: ['**/*.{js,css,html,svg,png,woff2}'] },
       manifest: {
         name: 'Coralyn · Staff',
@@ -36,7 +36,7 @@ export default defineConfig({
   optimizeDeps: { include: ['@coralyn/contracts'] },
   server: {
     proxy: {
-      // FE -> API reale senza CORS; MSW in dev bypassa /api non gestiti.
+      // FE -> API reale senza CORS. In dev non c'è MSW nel browser: tutte le /api vanno al backend.
       // Nessun rewrite: il backend monta tutto sotto /api (ADR-0022), quindi /api/customers va
       // inoltrato intatto a http://localhost:3000/api/customers. In produzione il proxy non esiste
       // e il FE chiama /api direttamente sul backend: stesso path, nessuno strip.

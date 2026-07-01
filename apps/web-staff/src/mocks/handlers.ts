@@ -1,5 +1,6 @@
 import type { RequestHandler } from 'msw';
 
-// Dev: nessun mock attivo. Il worker MSW (onUnhandledRequest: 'bypass' in main.ts) lascia
-// passare le richieste al backend reale. I mock vivono SOLO nei test (vedi server.ts).
+// Lista base condivisa. In dev NON montiamo alcun worker MSW nel browser (il FE parla col
+// backend reale via proxy Vite); i mock vivono SOLO nei test Node (vedi server.ts), che
+// partono da questa lista. Vuota per ora: nessun handler condiviso tra i test.
 export const handlers: RequestHandler[] = [];
