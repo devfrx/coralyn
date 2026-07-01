@@ -6,8 +6,6 @@ import type { BookingDTO, PaymentStatus } from '@coralyn/contracts';
 import { storeToRefs } from 'pinia';
 import { useSessionStore } from '@/stores/session';
 import { useDayBookings } from './useBookings';
-import { useCustomers } from '@/features/customers/useCustomers';
-import { useDayMap } from '@/features/map/useDayMap';
 import { useEntityLabels } from '@/lib/useEntityLabels';
 import { PAY_LABEL, PAY_TONE, TYPE_LABEL } from '@/lib/statusMaps';
 import SettlePaymentModal from './SettlePaymentModal.vue';
@@ -16,8 +14,6 @@ const router = useRouter();
 const session = useSessionStore();
 const { activeDate } = storeToRefs(session);
 const { data: bookings } = useDayBookings(activeDate);
-useCustomers(); // mantiene la query clienti calda per useEntityLabels (stesso comportamento di prima)
-useDayMap();
 
 const filtro = ref<'all' | PaymentStatus>('all');
 const filtri = [
