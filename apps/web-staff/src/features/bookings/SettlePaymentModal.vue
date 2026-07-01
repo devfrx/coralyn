@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, watch, computed } from 'vue';
-import { Modal, Field, Button } from '@coralyn/ui-kit';
+import { Modal, Field, Button, ModalFooter, formatEuro } from '@coralyn/ui-kit';
 import type { BookingDTO, PaymentMethod } from '@coralyn/contracts';
 import { ApiError } from '@/lib/http';
 import { useSettlePayment } from './useBookings';
@@ -69,7 +69,7 @@ async function confirm(): Promise<void> {
     <div v-if="booking" class="flex flex-col gap-[18px]">
       <p class="text-[13px] text-[var(--color-text-2nd)]">
         Totale dovuto:
-        <span class="font-semibold tabular-nums text-[var(--color-text)]">€ {{ total.toFixed(2) }}</span>
+        <span class="font-semibold tabular-nums text-[var(--color-text)]">{{ formatEuro(total) }}</span>
       </p>
 
       <Field label="Importo incassato (€)">
@@ -93,10 +93,7 @@ async function confirm(): Promise<void> {
 
       <p v-if="error" class="text-[12.5px] text-[var(--color-danger)]">{{ error }}</p>
 
-      <div class="flex justify-end gap-2.5 pt-2">
-        <Button type="button" variant="secondary" @click="open = false">Annulla</Button>
-        <Button type="button" :disabled="submitting" @click="confirm">Conferma incasso</Button>
-      </div>
+      <ModalFooter class="pt-2" submit-label="Conferma incasso" :submit-disabled="submitting" @cancel="open = false" @submit="confirm" />
     </div>
   </Modal>
 </template>
