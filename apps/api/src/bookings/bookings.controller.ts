@@ -1,10 +1,11 @@
 import { Body, Controller, Delete, Get, Param, Patch, Post, Query } from '@nestjs/common';
-import type { BookingDTO, BookingQuoteDTO } from '@coralyn/contracts';
+import type { BookingDTO, BookingQuoteDTO, SubscriptionListItemDTO } from '@coralyn/contracts';
 import { BookingsService } from './bookings.service';
 import { CreateBookingDto } from './dto/create-booking.dto';
 import { QuoteBookingDto } from './dto/quote-booking.dto';
 import { SettlePaymentDto } from './dto/settle-payment.dto';
 import { BookingsQueryDto } from './dto/bookings-query.dto';
+import { RenewBookingDto } from './dto/renew-booking.dto';
 import { resolveDate } from '../common/dates';
 
 @Controller('bookings')
@@ -16,6 +17,11 @@ export class BookingsController {
     return this.bookings.quote(query);
   }
 
+  @Get('subscriptions')
+  subscriptions(@Query() query: BookingsQueryDto): Promise<SubscriptionListItemDTO[]> {
+    return this.bookings.listSubscriptions(resolveDate(query.date));
+  }
+
   @Get()
   list(@Query() query: BookingsQueryDto): Promise<BookingDTO[]> {
     return this.bookings.listByDate(resolveDate(query.date));
@@ -24,6 +30,11 @@ export class BookingsController {
   @Post()
   create(@Body() body: CreateBookingDto): Promise<BookingDTO> {
     return this.bookings.create(body);
+  }
+
+  @Post(':id/renew')
+  renew(@Param('id') id: string, @Body() body: RenewBookingDto): Promise<BookingDTO> {
+    return this.bookings.renew(id, body);
   }
 
   @Delete(':id')

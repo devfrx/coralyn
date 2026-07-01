@@ -54,4 +54,9 @@ describe('toBookingDTO', () => {
     expect(toBookingDTO({ ...row, packageId: 'pkg-1' }).packageId).toBe('pkg-1');
     expect(toBookingDTO(row).packageId).toBeUndefined();
   });
+
+  it('mappa previousBookingId quando valorizzato e null → undefined', () => {
+    expect(toBookingDTO({ ...row, previousBookingId: 'prev-1' }).previousBookingId).toBe('prev-1');
+    expect(toBookingDTO(row).previousBookingId).toBeUndefined();
+  });
 });
