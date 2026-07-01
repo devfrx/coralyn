@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, ref, watchEffect } from 'vue';
-import { Button, Card, DataTable, Modal, Field, Input, Select, Icon, PageToolbar, formatEuro } from '@coralyn/ui-kit';
+import { Button, Card, DataTable, EmptyState, Modal, Field, Input, Select, Icon, formatEuro } from '@coralyn/ui-kit';
 import type { BookingType, RateDTO, RateUnit } from '@coralyn/contracts';
 import { useSeasons, useCreateSeason, useDeleteSeason } from './useSeasons';
 import { useRates, useCreateRate, useUpdateRate, useDeleteRate } from './useRates';
@@ -13,11 +13,24 @@ const createSeason = useCreateSeason();
 const deleteSeason = useDeleteSeason();
 const activeSeasonId = ref('');
 const seasonOptions = computed(() => (seasons.value ?? []).map((s) => ({ value: s.id, label: s.name })));
+const activeSeason = computed(() => seasons.value?.find((s) => s.id === activeSeasonId.value));
 // Seleziona la prima stagione appena arrivano i dati, se non ce n'è già una attiva.
 watchEffect(() => {
   if (!activeSeasonId.value && (seasons.value?.length ?? 0) > 0) activeSeasonId.value = seasons.value![0].id;
 });
 const getSeasonId = () => activeSeasonId.value;
+
+// "2026-06-01" → "1 giu" (data breve in italiano per il pill stagione).
+const MONTHS_IT = ['gen', 'feb', 'mar', 'apr', 'mag', 'giu', 'lug', 'ago', 'set', 'ott', 'nov', 'dic'];
+function shortDay(iso?: string): string {
+  if (!iso) return '';
+  const [, m, d] = iso.split('-');
+  return `${Number(d)} ${MONTHS_IT[Number(m) - 1] ?? ''}`;
+}
+const seasonRange = computed(() => {
+  const s = activeSeason.value;
+  return s ? `${shortDay(s.startDate)} – ${shortDay(s.endDate)}` : '';
+});
 
 /** Elimina la stagione attiva SOLO dopo conferma: cascata applicativa che elimina anche tutte le sue tariffe (irreversibile). */
 function confirmDeleteSeason() {
@@ -32,11 +45,29 @@ const createPackage = useCreatePackage();
 const updatePackage = useUpdatePackage();
 const deletePackage = useDeletePackage();
 
+// Dotazione leggibile: {sunbeds:4} → "4 lettini". Chiavi note tradotte, le altre mostrate come sono.
+const EQUIP_IT: Record<string, [string, string]> = {
+  sunbeds: ['lettino', 'lettini'],
+  deckchairs: ['sdraio', 'sdraio'],
+  umbrellas: ['ombrellone', 'ombrelloni'],
+};
+function equipmentLabel(equipment: Record<string, number>): string {
+  const parts = Object.entries(equipment).map(([k, v]) => {
+    const it = EQUIP_IT[k];
+    const noun = it ? (v === 1 ? it[0] : it[1]) : k;
+    return `${v} ${noun}`;
+  });
+  return parts.join(' · ') || 'Nessuna dotazione';
+}
+
 // --- Tariffe ---
 const { data: rates } = useRates(getSeasonId);
 const createRate = useCreateRate(getSeasonId);
 const updateRate = useUpdateRate(getSeasonId);
 const deleteRate = useDeleteRate(getSeasonId);
+function rateCount(pkgId: string): number {
+  return (rates.value ?? []).filter((r) => r.packageId === pkgId).length;
+}
 
 // --- Dimensioni per il modale tariffa (da mappa + pacchetti) ---
 const { data: dayMap } = useDayMap();
@@ -153,6 +184,24 @@ function submitRate() {
 function pkgName(id?: string) { return packages.value?.find((p) => p.id === id)?.name ?? '—'; }
 function slotName(id?: string) { return dayMap.value?.timeSlots.find((t) => t.id === id)?.name ?? '—'; }
 function sectorName(id?: string) { return dayMap.value?.sectors.find((s) => s.id === id)?.name ?? 'Tutti'; }
+/** Posizione leggibile: "Settore · Fila" se c'è la fila, altrimenti il settore, altrimenti "Tutti". */
+function rowName(id?: string): string | undefined {
+  if (!id || !dayMap.value) return undefined;
+  for (const s of dayMap.value.sectors) {
+    const row = s.rows.find((r) => r.id === id);
+    if (row) return `${s.name} · ${row.label}`;
+  }
+  return undefined;
+}
+function positionLabel(r: RateDTO): string {
+  return rowName(r.rowId) ?? (r.sectorId ? sectorName(r.sectorId) : 'Tutti');
+}
+function typeLabel(t?: BookingType): string {
+  return t ? (TYPE_OPTIONS.find((o) => o.value === t)?.label ?? t) : 'Tutti';
+}
+function unitLabel(unit: RateUnit): string {
+  return unit === 'day' ? '/ giorno' : '/ periodo';
+}
 const rateCols = [
   { key: 'position', label: 'Posizione' },
   { key: 'package', label: 'Pacchetto' },
@@ -165,65 +214,82 @@ const rateCols = [
 
 <template>
   <section class="px-[26px] pb-[30px] pt-[22px]">
-    <PageToolbar>
-      <template #left>
-        <Field label="Stagione">
-          <Select v-model="activeSeasonId" data-test="season-select">
-            <option v-for="o in seasonOptions" :key="o.value" :value="o.value">{{ o.label }}</option>
-          </Select>
-        </Field>
-        <Button variant="secondary" data-test="new-season" @click="seasonModal = true"><Icon name="plus" :size="16" />Stagione</Button>
-        <Button
-          v-if="activeSeasonId"
-          variant="danger"
-          data-test="delete-season"
-          @click="confirmDeleteSeason"
-        ><Icon name="trash-2" :size="16" />Elimina stagione</Button>
-      </template>
-      <template #right>
-        <Button data-test="new-package" variant="secondary" @click="openCreatePackage"><Icon name="plus" :size="16" />Pacchetto</Button>
-        <Button data-test="new-rate" :disabled="!activeSeasonId" @click="openCreateRate"><Icon name="plus" :size="16" />Nuova tariffa</Button>
-      </template>
-    </PageToolbar>
+    <!-- Barra stagione + azioni -->
+    <div class="mb-[18px] flex flex-wrap items-center gap-3">
+      <div class="flex items-center gap-2.5">
+        <Select v-model="activeSeasonId" data-test="season-select" class="min-w-[150px] font-semibold">
+          <option v-for="o in seasonOptions" :key="o.value" :value="o.value">{{ o.label }}</option>
+        </Select>
+        <span v-if="seasonRange" class="whitespace-nowrap text-[12px] tabular-nums text-[var(--color-text-muted)]">{{ seasonRange }}</span>
+      </div>
+      <Button variant="secondary" data-test="new-season" @click="seasonModal = true"><Icon name="plus" :size="16" />Stagione</Button>
+      <button
+        v-if="activeSeasonId"
+        data-test="delete-season"
+        type="button"
+        title="Elimina stagione"
+        class="grid h-9 w-9 place-items-center rounded-[10px] border border-[var(--color-border)] text-[var(--color-text-muted)] transition-colors hover:border-[var(--color-danger)] hover:text-[var(--color-danger)] focus-visible:outline-none focus-visible:[box-shadow:var(--ring-focus)]"
+        @click="confirmDeleteSeason"
+      ><Icon name="trash-2" :size="16" /></button>
+      <div class="flex-1"></div>
+      <Button variant="secondary" data-test="new-package" @click="openCreatePackage"><Icon name="plus" :size="16" />Pacchetto</Button>
+      <Button data-test="new-rate" :disabled="!activeSeasonId" @click="openCreateRate"><Icon name="plus" :size="16" />Nuova tariffa</Button>
+    </div>
 
     <!-- Card pacchetti -->
-    <div class="mb-3.5 grid grid-cols-3 gap-3.5">
+    <EmptyState v-if="(packages?.length ?? 0) === 0" class="mb-4" message="Nessun pacchetto. Creane uno con «Pacchetto»." />
+    <div v-else class="mb-4 grid grid-cols-3 gap-3.5">
       <Card v-for="p in packages" :key="p.id">
-        <div class="p-[18px]">
-          <div class="mb-2.5 flex items-center justify-between">
+        <div class="flex h-full flex-col p-[18px]">
+          <div class="mb-2 flex items-start justify-between gap-2">
             <span class="text-[15px] font-bold text-[var(--color-text)]">{{ p.name }}</span>
-            <div class="flex items-center gap-2.5">
-              <button class="text-[var(--color-text-muted)] hover:text-[var(--color-accent)]"
+            <div class="flex shrink-0 items-center gap-2.5">
+              <button type="button" title="Modifica" class="text-[var(--color-text-muted)] hover:text-[var(--color-accent)]"
                 :data-test="`edit-pkg-${p.id}`" @click="openEditPackage(p)"><Icon name="edit" :size="15" /></button>
-              <button class="text-[var(--color-text-muted)] hover:text-[var(--color-danger)]"
+              <button type="button" title="Elimina" class="text-[var(--color-text-muted)] hover:text-[var(--color-danger)]"
                 :data-test="`del-pkg-${p.id}`" @click="deletePackage.mutate(p.id)"><Icon name="trash-2" :size="15" /></button>
             </div>
           </div>
-          <div class="min-h-[40px] text-[12.5px] leading-relaxed text-[var(--color-text-2nd)]">
-            {{ Object.entries(p.equipment).map(([k, v]) => `${v} ${k}`).join(' · ') || 'Nessuna dotazione' }}
+          <div class="min-h-[38px] flex-1 text-[12.5px] leading-relaxed text-[var(--color-text-2nd)]">{{ equipmentLabel(p.equipment) }}</div>
+          <div class="mt-3 flex items-baseline gap-1.5 border-t border-[var(--color-border-row)] pt-3">
+            <span class="text-[18px] font-bold tabular-nums text-[var(--color-text)]">{{ rateCount(p.id) }}</span>
+            <span class="text-[11.5px] text-[var(--color-text-muted)]">{{ rateCount(p.id) === 1 ? 'tariffa collegata' : 'tariffe collegate' }}</span>
           </div>
         </div>
       </Card>
     </div>
 
+    <!-- Fasce orarie della giornata (contesto per le tariffe) -->
+    <div v-if="(dayMap?.timeSlots?.length ?? 0) > 0" class="mb-4 flex flex-wrap gap-2.5">
+      <div v-for="f in dayMap!.timeSlots" :key="f.id"
+        class="flex items-center gap-2 rounded-[11px] border border-[var(--color-border)] bg-[var(--color-raised)] px-3.5 py-2">
+        <Icon name="clock" :size="15" class="text-[var(--color-accent)]" />
+        <span class="text-[12.5px] font-semibold text-[var(--color-text)]">{{ f.name }}</span>
+      </div>
+    </div>
+
     <!-- Tabella tariffe -->
     <DataTable :columns="rateCols">
       <tr v-for="r in rates" :key="r.id" class="hover:bg-[var(--color-raised)]">
-        <td class="border-b border-[var(--color-border-row)] px-[18px] py-3.5 font-semibold text-[var(--color-text)]">{{ sectorName(r.sectorId) }}</td>
+        <td class="border-b border-[var(--color-border-row)] px-[18px] py-3.5 font-semibold text-[var(--color-text)]">{{ positionLabel(r) }}</td>
         <td class="border-b border-[var(--color-border-row)] px-3.5 py-3.5 text-[var(--color-text-2nd)]">{{ pkgName(r.packageId) }}</td>
         <td class="border-b border-[var(--color-border-row)] px-3.5 py-3.5 text-[var(--color-text-2nd)]">{{ slotName(r.timeSlotId) }}</td>
-        <td class="border-b border-[var(--color-border-row)] px-3.5 py-3.5 text-[var(--color-text-2nd)]">{{ r.type ?? 'Tutti' }}</td>
-        <td class="border-b border-[var(--color-border-row)] px-3.5 py-3.5 text-right tabular-nums text-[var(--color-text)]">{{ formatEuro(r.price) }}</td>
+        <td class="border-b border-[var(--color-border-row)] px-3.5 py-3.5 text-[var(--color-text-2nd)]">{{ typeLabel(r.type) }}</td>
+        <td class="border-b border-[var(--color-border-row)] px-3.5 py-3.5 text-right">
+          <span class="font-bold tabular-nums text-[var(--color-text)]">{{ formatEuro(r.price) }}</span>
+          <span class="ml-1 text-[11px] text-[var(--color-text-muted)]">{{ unitLabel(r.unit) }}</span>
+        </td>
         <td class="border-b border-[var(--color-border-row)] px-[18px] py-3.5 text-right">
           <div class="flex items-center justify-end gap-2.5">
-            <button class="text-[var(--color-text-muted)] hover:text-[var(--color-accent)]"
+            <button type="button" title="Modifica" class="text-[var(--color-text-muted)] hover:text-[var(--color-accent)]"
               :data-test="`edit-rate-${r.id}`" @click="openEditRate(r)"><Icon name="edit" :size="15" /></button>
-            <button class="text-[var(--color-text-muted)] hover:text-[var(--color-danger)]"
+            <button type="button" title="Elimina" class="text-[var(--color-text-muted)] hover:text-[var(--color-danger)]"
               :data-test="`del-rate-${r.id}`" @click="deleteRate.mutate(r.id)"><Icon name="trash-2" :size="15" /></button>
           </div>
         </td>
       </tr>
     </DataTable>
+    <EmptyState v-if="activeSeasonId && (rates?.length ?? 0) === 0" class="mt-3" message="Nessuna tariffa per questa stagione. Aggiungine una con «Nuova tariffa»." />
 
     <!-- Modale stagione -->
     <Modal v-model:open="seasonModal" title="Nuova stagione">
