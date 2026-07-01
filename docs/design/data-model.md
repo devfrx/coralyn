@@ -5,7 +5,8 @@
 > resta in italiano; la mappatura termine-di-dominio ↔ identificatore è nel
 > [glossario](../architecture/glossary.md). Le entità ancora **non implementate**
 > (`Waitlist`, `AuditLog`) hanno nomi di design, da confermare quando verranno realizzate.
-> `Booking` è **implementata** (slice A1 — solo `type=daily` attivo; `packageId` presente e nullable
+> `Booking` è **implementata** (slice A1 — `type=daily`; slice A4.1 — `type=periodic` e
+> `type=subscription`: tutti e tre i tipi ora creano prenotazioni reali. `packageId` presente e nullable
 > da A3.1). `Package`, `Season`, `Pricing` e `Rate` sono **implementate** (slice A3.1, con RLS
 > `tenant_isolation` FORCE e vincolo di non-ambiguità sulla firma delle dimensioni).
 >
@@ -16,6 +17,15 @@
 > tenant-scoped); `Booking.packageId` nullable è **valorizzato dal selettore** (slice A3.2: il modale
 > sceglie il `Package`, `GET /api/packages` lista i pacchetti del tenant). Pacchetto = dimensione
 > **opzionale** (`null` = tariffa base, nessun pacchetto).
+>
+> **Slice A4.1 (periodiche + abbonamenti):** `BookingsService` deriva l'intervallo dal `type`
+> (`deriveInterval`, server-autoritativo) — `periodic`: `startDate`/`endDate` espliciti, validati contro
+> la Stagione risolta da `startDate` (un periodo che sfora `season.endDate` → **422**, mai split
+> multi-stagione, tracciato in [D-033](../architecture/deferred.md)); `subscription`: il server risolve la
+> Stagione attiva (`CatalogService.resolveSeasonWithin`) e impone `startDate=season.startDate`,
+> `endDate=season.endDate` (il client non può specificare una fine). Nessuna migrazione: schema, engine di
+> pricing e proiezione mappa erano già generali su intervalli. `previousBookingId` resta **inutilizzato
+> fino ad A4.2** (rinnovo).
 
 Fonte di verità del modello dati del Core operativo. Decisioni:
 [mappa](../architecture/decisions/0005-modello-mappa.md),
@@ -191,7 +201,8 @@ erDiagram
   ([D-009](../architecture/deferred.md)).
 - **Rinnovo / anzianità**: `previousBookingId` collega un abbonamento a quello
   della stagione precedente; la catena dà storico e anzianità
-  ([ADR-0012](../architecture/decisions/0012-gestione-abbonamenti.md)). Prelazione
+  ([ADR-0012](../architecture/decisions/0012-gestione-abbonamenti.md)). Il campo esiste dallo schema A1
+  ma resta **inutilizzato (sempre `null`) fino ad A4.2**, che introduce l'azione di rinnovo. Prelazione
   automatica e cabine sono rimandate ([D-011](../architecture/deferred.md),
   [D-012](../architecture/deferred.md)).
 - **Audit & superuser**: gli eventi di dominio sono registrati in `AuditLog`
@@ -205,6 +216,9 @@ erDiagram
   si sovrappongano sullo stesso `Umbrella` per intervalli di date intersecanti **e
   `TimeSlot` uguale o sovrapposto**. Mattina e pomeriggio sullo stesso ombrellone/giorno
   non si sovrappongono ([ADR-0013](../architecture/decisions/0013-granularita-disponibilita-a-slot.md)).
+  **Dalla slice A4.1** il controllo è esercitato realmente su **intervalli** (`periodic`/`subscription`
+  multi-giorno), non solo sul singolo giorno di una `daily`: `dateRangesOverlap` confronta gli estremi
+  delle due prenotazioni, in AND con `slotsOverlap` sulla fascia.
 - **Risoluzione prezzo** (slice A3.1, **implementato**): il pricing engine puro (`resolvePrice`)
   seleziona la `Rate` applicabile secondo la **precedenza esplicita lessicografica**
   periodo › fila › settore › pacchetto › fascia › tipo ([ADR-0032](../architecture/decisions/0032-pricing-engine-precedenza.md)).

@@ -155,6 +155,14 @@ async function main(): Promise<void> {
       update: { timeSlotId: u(2, 2), price: 40, unit: 'day' },
       create: { id: RATE_PM, establishmentId: EID, pricingId: PRICING, timeSlotId: u(2, 2), price: 40, unit: 'day' },
     });
+
+    // Abbonamento (type=subscription) a forfait di stagione: esercita unit=period (A4.1).
+    const RATE_SUB = u(9, 3);
+    await tx.rate.upsert({
+      where: { id: RATE_SUB },
+      update: { type: 'subscription', price: 800, unit: 'period' },
+      create: { id: RATE_SUB, establishmentId: EID, pricingId: PRICING, type: 'subscription', price: 800, unit: 'period' },
+    });
   });
 }
 
