@@ -107,13 +107,14 @@ export interface PackageDTO {
 /** Unità di prezzo di una Tariffa (ADR-0006). */
 export type RateUnit = 'day' | 'period';
 
-/** Input del preventivo di prezzo (pricing engine, ADR-0006/ADR-0032). */
+/** Input del preventivo di prezzo (pricing engine, ADR-0006/ADR-0032). Stessa forma della create. */
 export interface QuoteBookingInput {
   umbrellaId: string;
   timeSlotId: string;
-  date: string;          // ISO yyyy-mm-dd
-  packageId?: string;    // A3.1: assente (nessun pacchetto)
-  type?: BookingType;    // default 'daily'
+  type: BookingType;   // esplicito (A4.1): 'daily' | 'periodic' | 'subscription'
+  startDate: string;   // ISO yyyy-mm-dd
+  endDate?: string;    // ISO. periodic: fine · daily: omesso · subscription: derivata dalla stagione (server)
+  packageId?: string;  // opzionale (nessun pacchetto = assente)
 }
 
 /** Preventivo calcolato dall'engine. */
@@ -148,13 +149,15 @@ export interface BookingDTO {
   packageId?: string;            // A3.1 (additivo): valorizzato dal selettore Pacchetto (A3.2); assente = nessun pacchetto
 }
 
-/** Input per creare una prenotazione giornaliera. Il prezzo è calcolato dal pricing engine (A3.1). */
+/** Input per creare una prenotazione. Prezzo e (per subscription) durata sono server-autoritativi (A4.1). */
 export interface CreateBookingInput {
   customerId: string;
   umbrellaId: string;
   timeSlotId: string;
-  date: string; // ISO yyyy-mm-dd
-  packageId?: string; // A3.2 (additivo): pacchetto scelto; assente = nessun pacchetto (tariffa base)
+  type: BookingType;   // esplicito: daily | periodic | subscription
+  startDate: string;   // ISO. daily: il giorno · periodic: inizio · subscription: data che identifica la Stagione
+  endDate?: string;    // ISO. periodic: OBBLIGATORIO (≥ startDate) · daily: omesso (=startDate) · subscription: VIETATO
+  packageId?: string;  // opzionale (null = tariffa base)
 }
 
 /** Input per registrare l'incasso base (ADR-0011). Lo stato è derivato server-side. */
