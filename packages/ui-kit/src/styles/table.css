@@ -1,0 +1,5 @@
+/*
+ * Le classi standard di cella per DataTable/tabelle custom vivono in `./table.ts` (costanti TS),
+ * non qui: sono riutilizzate lato template Vue via interpolazione classe, non via `@apply` — evita
+ * una doppia fonte di verità con le utility Tailwind. Vedi ADR-0033 §3.6.
+ */
