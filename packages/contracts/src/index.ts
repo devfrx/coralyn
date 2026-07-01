@@ -188,6 +188,43 @@ export interface SettlePaymentInput {
   collectionDate?: string;       // ISO yyyy-mm-dd; default oggi Europe/Rome
 }
 
+// --- Prelazione abbonamenti (D-011) -----------------------------------------
+
+/** Input per aprire una campagna di prelazione. Le stagioni sono identificate da una data al loro
+ *  interno (coerente con RenewBookingInput/subscriptions). Server-autoritativo. */
+export interface OpenRenewalCampaignInput {
+  originDate: string;       // ISO yyyy-mm-dd: una data DENTRO la stagione di ORIGINE (aventi-diritto)
+  destinationDate: string;  // ISO yyyy-mm-dd: una data DENTRO la stagione di DESTINAZIONE (da riservare)
+  deadline: string;         // ISO yyyy-mm-dd: scadenza della finestra (uniforme per campagna)
+}
+
+/** Campagna di prelazione (una per stagione di destinazione). */
+export interface RenewalCampaignDTO {
+  id: string;
+  originSeasonId: string;
+  destinationSeasonId: string;
+  deadline: string;         // ISO yyyy-mm-dd
+}
+
+/** Stato della finestra di un avente-diritto (derivato lazy). */
+export type RenewalWindowState = 'open' | 'exercised' | 'expired';
+
+/** Finestra di prelazione di un abbonato uscente, con priorità (anzianità) e stato derivato. */
+export interface RenewalWindowItemDTO {
+  sourceBookingId: string;  // l'abbonamento di ORIGINE (avente-diritto)
+  customerId: string;
+  umbrellaId: string;
+  timeSlotId: string;
+  packageId?: string;
+  seniority: number;        // catena rinnovi (derivata, >= 1) — chiave d'ordinamento (priorità)
+  state: RenewalWindowState;
+}
+
+/** Campagna + finestre (ordinate per anzianità decrescente). Ritorno di GET /renewal-campaigns. */
+export interface RenewalCampaignDetailDTO extends RenewalCampaignDTO {
+  windows: RenewalWindowItemDTO[];
+}
+
 // --- Listino / editor (D-032) -----------------------------------------------
 
 /** Stagione operativa dello Stabilimento (ADR-0031). Date ISO yyyy-mm-dd. */
