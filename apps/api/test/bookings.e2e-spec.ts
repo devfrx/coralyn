@@ -59,7 +59,7 @@ describe('Bookings (e2e)', () => {
   });
 
   const body = (over: Partial<Record<string, unknown>> = {}) => ({
-    customerId, umbrellaId: ids.u1, timeSlotId: ids.slotMorning, date: D, ...over,
+    customerId, umbrellaId: ids.u1, timeSlotId: ids.slotMorning, type: 'daily', startDate: D, ...over,
   });
 
   it('senza token → 401', async () => {
@@ -94,31 +94,31 @@ describe('Bookings (e2e)', () => {
   });
 
   it('isolamento: s2 non può prenotare un ombrellone di s1 → 422', async () => {
-    await request(app.getHttpServer()).post('/api/bookings').set(...bearer(token2)).send(body({ date: '2026-07-16' })).expect(422);
+    await request(app.getHttpServer()).post('/api/bookings').set(...bearer(token2)).send(body({ startDate: '2026-07-16' })).expect(422);
   });
 
   it('superuser (no tenant) → 400', async () => {
-    await request(app.getHttpServer()).post('/api/bookings').set(...bearer(superToken)).send(body({ date: '2026-07-17' })).expect(400);
+    await request(app.getHttpServer()).post('/api/bookings').set(...bearer(superToken)).send(body({ startDate: '2026-07-17' })).expect(400);
   });
 
   it('validazione: data calendariale impossibile → 400', async () => {
-    await request(app.getHttpServer()).post('/api/bookings').set(...bearer(token1)).send(body({ date: '2026-13-40' })).expect(400);
+    await request(app.getHttpServer()).post('/api/bookings').set(...bearer(token1)).send(body({ startDate: '2026-13-40' })).expect(400);
   });
 
   it('prezzo calcolato dal listino: pomeriggio usa la tariffa specifica (40)', async () => {
     const res = await request(app.getHttpServer()).post('/api/bookings').set(...bearer(token1))
-      .send(body({ umbrellaId: ids.u2, timeSlotId: ids.slotAfternoon, date: '2026-07-20' })).expect(201);
+      .send(body({ umbrellaId: ids.u2, timeSlotId: ids.slotAfternoon, startDate: '2026-07-20' })).expect(201);
     expect(res.body.totalPrice).toBe(40);
   });
 
   it('data fuori stagione → 422 (nessuna stagione)', async () => {
     await request(app.getHttpServer()).post('/api/bookings').set(...bearer(token1))
-      .send(body({ umbrellaId: ids.u2, date: '2027-01-10' })).expect(422);
+      .send(body({ umbrellaId: ids.u2, startDate: '2027-01-10' })).expect(422);
   });
 
   it('create con packageId valido → 201, prezzo dalla rate pacchetto (60) e lo persiste', async () => {
     const res = await request(app.getHttpServer()).post('/api/bookings').set(...bearer(token1))
-      .send(body({ umbrellaId: ids.u2, date: '2026-07-21', packageId })).expect(201);
+      .send(body({ umbrellaId: ids.u2, startDate: '2026-07-21', packageId })).expect(201);
     expect(res.body.totalPrice).toBe(60);
     expect(res.body.packageId).toBe(packageId);
 
@@ -128,26 +128,26 @@ describe('Bookings (e2e)', () => {
 
   it('create con packageId inesistente nel tenant → 422', async () => {
     await request(app.getHttpServer()).post('/api/bookings').set(...bearer(token1))
-      .send(body({ umbrellaId: ids.u2, date: '2026-07-22', packageId: '00000000-0000-0000-0000-0000000000ff' })).expect(422);
+      .send(body({ umbrellaId: ids.u2, startDate: '2026-07-22', packageId: '00000000-0000-0000-0000-0000000000ff' })).expect(422);
   });
 
   describe('GET /bookings/quote', () => {
     it('senza token → 401', async () => {
-      await request(app.getHttpServer()).get(`/api/bookings/quote?umbrellaId=${ids.u1}&timeSlotId=${ids.slotMorning}&date=${D}`).expect(401);
+      await request(app.getHttpServer()).get(`/api/bookings/quote?umbrellaId=${ids.u1}&timeSlotId=${ids.slotMorning}&type=daily&startDate=${D}`).expect(401);
     });
     it('mattina → 28 (catch-all)', async () => {
-      const res = await request(app.getHttpServer()).get(`/api/bookings/quote?umbrellaId=${ids.u1}&timeSlotId=${ids.slotMorning}&date=${D}`).set(...bearer(token1)).expect(200);
+      const res = await request(app.getHttpServer()).get(`/api/bookings/quote?umbrellaId=${ids.u1}&timeSlotId=${ids.slotMorning}&type=daily&startDate=${D}`).set(...bearer(token1)).expect(200);
       expect(res.body.totalPrice).toBe(28);
     });
     it('pomeriggio → 40 (precedenza fascia)', async () => {
-      const res = await request(app.getHttpServer()).get(`/api/bookings/quote?umbrellaId=${ids.u1}&timeSlotId=${ids.slotAfternoon}&date=${D}`).set(...bearer(token1)).expect(200);
+      const res = await request(app.getHttpServer()).get(`/api/bookings/quote?umbrellaId=${ids.u1}&timeSlotId=${ids.slotAfternoon}&type=daily&startDate=${D}`).set(...bearer(token1)).expect(200);
       expect(res.body.totalPrice).toBe(40);
     });
     it('fuori stagione → 422', async () => {
-      await request(app.getHttpServer()).get(`/api/bookings/quote?umbrellaId=${ids.u1}&timeSlotId=${ids.slotMorning}&date=2027-01-10`).set(...bearer(token1)).expect(422);
+      await request(app.getHttpServer()).get(`/api/bookings/quote?umbrellaId=${ids.u1}&timeSlotId=${ids.slotMorning}&type=daily&startDate=2027-01-10`).set(...bearer(token1)).expect(422);
     });
     it('isolamento: s2 quota un ombrellone di s1 → 422', async () => {
-      await request(app.getHttpServer()).get(`/api/bookings/quote?umbrellaId=${ids.u1}&timeSlotId=${ids.slotMorning}&date=${D}`).set(...bearer(token2)).expect(422);
+      await request(app.getHttpServer()).get(`/api/bookings/quote?umbrellaId=${ids.u1}&timeSlotId=${ids.slotMorning}&type=daily&startDate=${D}`).set(...bearer(token2)).expect(422);
     });
   });
 
@@ -170,13 +170,102 @@ describe('Bookings (e2e)', () => {
     });
   });
 
+  describe('periodiche e abbonamenti (A4.1)', () => {
+    let uPer: string; // ombrellone dedicato per le periodiche
+    let uSub: string; // ombrellone dedicato per l'abbonamento (copre l'intera stagione)
+
+    beforeAll(async () => {
+      const mk = (label: string, order: number) =>
+        prisma.forTenant(s1, (tx) =>
+          tx.umbrella.create({ data: { establishmentId: s1, rowId: ids.rowId, umbrellaTypeId: null, label, logicalOrder: order } }),
+        );
+      uPer = (await mk('90', 90)).id;
+      uSub = (await mk('91', 91)).id;
+    });
+
+    it('periodic multi-giorno → 201, prezzo = base × giorni, mappa "booked" nei giorni interni', async () => {
+      const res = await request(app.getHttpServer()).post('/api/bookings').set(...bearer(token1))
+        .send(body({ umbrellaId: uPer, type: 'periodic', startDate: '2026-07-24', endDate: '2026-07-26' })).expect(201);
+      expect(res.body.type).toBe('periodic');
+      expect(res.body.startDate).toBe('2026-07-24');
+      expect(res.body.endDate).toBe('2026-07-26');
+      expect(res.body.totalPrice).toBe(84); // 28 × 3 giorni (estremi inclusi)
+
+      const map = await request(app.getHttpServer()).get('/api/map?date=2026-07-25').set(...bearer(token1)).expect(200);
+      const cell = map.body.sectors[0].rows[0].umbrellas.find((u: { id: string }) => u.id === uPer);
+      expect(cell.stateBySlot[ids.slotMorning]).toBe('booked');
+    });
+
+    it('anti-overlap su intervalli: periodo intersecante → 409; disgiunto → 201', async () => {
+      await request(app.getHttpServer()).post('/api/bookings').set(...bearer(token1))
+        .send(body({ umbrellaId: uPer, type: 'periodic', startDate: '2026-07-25', endDate: '2026-07-27' })).expect(409);
+      await request(app.getHttpServer()).post('/api/bookings').set(...bearer(token1))
+        .send(body({ umbrellaId: uPer, type: 'periodic', startDate: '2026-07-28', endDate: '2026-07-29' })).expect(201);
+    });
+
+    it('subscription → 201, durata = stagione, prezzo forfait (800), mappa "season"', async () => {
+      const res = await request(app.getHttpServer()).post('/api/bookings').set(...bearer(token1))
+        .send(body({ umbrellaId: uSub, type: 'subscription', startDate: '2026-07-01' })).expect(201);
+      expect(res.body.type).toBe('subscription');
+      expect(res.body.startDate).toBe('2026-05-01'); // season.startDate
+      expect(res.body.endDate).toBe('2026-09-30');   // season.endDate
+      expect(res.body.totalPrice).toBe(800);
+
+      const map = await request(app.getHttpServer()).get('/api/map?date=2026-06-15').set(...bearer(token1)).expect(200);
+      const cell = map.body.sectors[0].rows[0].umbrellas.find((u: { id: string }) => u.id === uSub);
+      expect(cell.stateBySlot[ids.slotMorning]).toBe('season');
+    });
+
+    it('daily con endDate → 422', async () => {
+      await request(app.getHttpServer()).post('/api/bookings').set(...bearer(token1))
+        .send(body({ umbrellaId: uPer, startDate: '2026-08-10', endDate: '2026-08-11' })).expect(422);
+    });
+
+    it('periodic senza endDate → 422', async () => {
+      await request(app.getHttpServer()).post('/api/bookings').set(...bearer(token1))
+        .send(body({ umbrellaId: uPer, type: 'periodic', startDate: '2026-08-10' })).expect(422);
+    });
+
+    it('periodic con endDate < startDate → 422', async () => {
+      await request(app.getHttpServer()).post('/api/bookings').set(...bearer(token1))
+        .send(body({ umbrellaId: uPer, type: 'periodic', startDate: '2026-08-10', endDate: '2026-08-05' })).expect(422);
+    });
+
+    it('periodic che supera la stagione → 422', async () => {
+      await request(app.getHttpServer()).post('/api/bookings').set(...bearer(token1))
+        .send(body({ umbrellaId: uPer, type: 'periodic', startDate: '2026-09-28', endDate: '2026-10-15' })).expect(422);
+    });
+
+    it('subscription con endDate → 422', async () => {
+      await request(app.getHttpServer()).post('/api/bookings').set(...bearer(token1))
+        .send(body({ umbrellaId: uSub, type: 'subscription', startDate: '2026-07-01', endDate: '2026-09-30' })).expect(422);
+    });
+
+    it('subscription fuori stagione → 422 (nessuna stagione)', async () => {
+      await request(app.getHttpServer()).post('/api/bookings').set(...bearer(token1))
+        .send(body({ umbrellaId: uSub, type: 'subscription', startDate: '2027-01-10' })).expect(422);
+    });
+
+    it('quote periodic → prezzo = base × giorni; quote subscription → forfait', async () => {
+      const per = await request(app.getHttpServer())
+        .get(`/api/bookings/quote?umbrellaId=${uPer}&timeSlotId=${ids.slotMorning}&type=periodic&startDate=2026-08-01&endDate=2026-08-05`)
+        .set(...bearer(token1)).expect(200);
+      expect(per.body.totalPrice).toBe(140); // 28 × 5
+
+      const sub = await request(app.getHttpServer())
+        .get(`/api/bookings/quote?umbrellaId=${uSub}&timeSlotId=${ids.slotMorning}&type=subscription&startDate=2026-07-01`)
+        .set(...bearer(token1)).expect(200);
+      expect(sub.body.totalPrice).toBe(800);
+    });
+  });
+
   it('DELETE annulla → la mappa torna free e si può ricreare', async () => {
-    const created = await request(app.getHttpServer()).post('/api/bookings').set(...bearer(token1)).send(body({ umbrellaId: ids.u2, date: '2026-07-19' })).expect(201);
+    const created = await request(app.getHttpServer()).post('/api/bookings').set(...bearer(token1)).send(body({ umbrellaId: ids.u2, startDate: '2026-07-19' })).expect(201);
     await request(app.getHttpServer()).delete(`/api/bookings/${created.body.id}`).set(...bearer(token1)).expect(200);
     const map = await request(app.getHttpServer()).get('/api/map?date=2026-07-19').set(...bearer(token1)).expect(200);
     const u2 = map.body.sectors[0].rows[0].umbrellas.find((u: { id: string }) => u.id === ids.u2);
     expect(u2.stateBySlot[ids.slotMorning]).toBe('free');
-    await request(app.getHttpServer()).post('/api/bookings').set(...bearer(token1)).send(body({ umbrellaId: ids.u2, date: '2026-07-19' })).expect(201);
+    await request(app.getHttpServer()).post('/api/bookings').set(...bearer(token1)).send(body({ umbrellaId: ids.u2, startDate: '2026-07-19' })).expect(201);
   });
 
   describe('PATCH /bookings/:id/payment', () => {
@@ -185,7 +274,7 @@ describe('Bookings (e2e)', () => {
 
     beforeAll(async () => {
       const res = await request(app.getHttpServer()).post('/api/bookings').set(...bearer(token1))
-        .send(body({ umbrellaId: ids.u1, timeSlotId: ids.slotMorning, date: settle })).expect(201);
+        .send(body({ umbrellaId: ids.u1, timeSlotId: ids.slotMorning, startDate: settle })).expect(201);
       bId = res.body.id;
     });
 
@@ -233,7 +322,7 @@ describe('Bookings (e2e)', () => {
 
     it('prenotazione annullata → 409', async () => {
       const created = await request(app.getHttpServer()).post('/api/bookings').set(...bearer(token1))
-        .send(body({ umbrellaId: ids.u2, date: '2026-08-02' })).expect(201);
+        .send(body({ umbrellaId: ids.u2, startDate: '2026-08-02' })).expect(201);
       await request(app.getHttpServer()).delete(`/api/bookings/${created.body.id}`).set(...bearer(token1)).expect(200);
       await request(app.getHttpServer()).patch(`/api/bookings/${created.body.id}/payment`).set(...bearer(token1))
         .send({ amountCollected: 30, paymentMethod: 'cash' }).expect(409);

@@ -47,6 +47,15 @@ export async function seedPricingTenant(
         unit: RateUnit.day,
       },
     });
+    await tx.rate.create({
+      data: {
+        establishmentId,
+        pricingId: pricing.id,
+        type: 'subscription',
+        price: 800,
+        unit: RateUnit.period,
+      },
+    });
     return { seasonId: season.id, pricingId: pricing.id, packageId: pkg.id };
   });
 }
