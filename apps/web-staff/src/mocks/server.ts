@@ -195,11 +195,11 @@ export const server = setupServer(
     const p = new URL(request.url).searchParams;
     const seasonId = 'se-1';
     if (p.get('type') === 'subscription')
-      return HttpResponse.json({ totalPrice: 800, matchedRate: { id: 'ra-sub', seasonId, price: 800, unit: 'period', type: 'subscription' } });
+      return HttpResponse.json({ totalPrice: 800, matchedRate: { id: 'ra-sub', seasonId, price: 800, type: 'subscription' } });
     const pkg = p.get('packageId');
     if (pkg)
-      return HttpResponse.json({ totalPrice: 35, matchedRate: { id: 'ra-pkg', seasonId, price: 35, unit: 'day', packageId: pkg } });
-    return HttpResponse.json({ totalPrice: 28, matchedRate: { id: 'ra-1', seasonId, price: 28, unit: 'day' } }); // catch-all
+      return HttpResponse.json({ totalPrice: 35, matchedRate: { id: 'ra-pkg', seasonId, price: 35, packageId: pkg } });
+    return HttpResponse.json({ totalPrice: 28, matchedRate: { id: 'ra-1', seasonId, price: 28 } }); // catch-all
   }),
   http.post('/api/bookings', async ({ request }) => {
     const b = (await request.json()) as { customerId: string; umbrellaId: string; timeSlotId: string; type: string; startDate: string; endDate?: string; packageId?: string };

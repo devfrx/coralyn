@@ -32,6 +32,11 @@ const STATE_LABEL: Record<SlotState, string> = {
 const TYPE_LABEL: Record<BookingType, string> = {
   daily: 'Giornaliera', periodic: 'Periodica', subscription: 'Abbonamento',
 };
+const TYPE_HELP: Record<BookingType, string> = {
+  daily: 'Un giorno.',
+  periodic: 'Scegli le date; paghi a giornata (prezzo × giorni).',
+  subscription: 'Tutta la stagione, prezzo forfait.',
+};
 
 const timeSlots = computed(() => map.value?.timeSlots ?? []);
 const typesById = computed(() => new Map((map.value?.umbrellaTypes ?? []).map((t) => [t.id, t])));
@@ -196,7 +201,8 @@ const matchedRateLabel = computed<string>(() => {
   if (r.type) parts.push(TYPE_LABEL[r.type] ?? r.type);
   if (r.periodStart) parts.push(`Periodo ${r.periodStart}${r.periodEnd ? '–' + r.periodEnd : ''}`);
   const dims = parts.length ? parts.join(' · ') : 'Tariffa base del listino';
-  return `${dims} — ${formatEuro(r.price)}${r.unit === 'day' ? '/g' : ' forfait'}`;
+  const suffix = bookingType.value === 'subscription' ? ' forfait stagione' : '/g';
+  return `${dims} — ${formatEuro(r.price)}${suffix}`;
 });
 
 const settleOpen = ref(false);
@@ -329,6 +335,7 @@ const freeSlotOptions = computed(() =>
             <option value="periodic">Periodica</option>
             <option value="subscription">Abbonamento</option>
           </Select>
+          <p class="mt-1.5 text-[11.5px] text-[var(--color-text-muted)]">{{ TYPE_HELP[bookingType] }}</p>
         </div>
         <div>
           <label class="mb-1.5 block text-[12.5px] font-semibold text-[var(--color-text-2nd)]">Cliente</label>
@@ -348,7 +355,6 @@ const freeSlotOptions = computed(() =>
           <label class="mb-1.5 block text-[12.5px] font-semibold text-[var(--color-text-2nd)]">Fine periodo</label>
           <input type="date" v-model="endDate" :min="activeDate" class="w-full rounded-[11px] border-[1.5px] border-[var(--color-border-input)] bg-[var(--color-surface)] px-3.5 py-3 text-[13.5px] text-[var(--color-text)] focus:outline-none" />
         </div>
-        <p v-else-if="bookingType === 'subscription'" class="text-[12.5px] text-[var(--color-text-muted)]">Durata: stagione intera.</p>
         <div>
           <label class="mb-1.5 block text-[12.5px] font-semibold text-[var(--color-text-2nd)]">Pacchetto</label>
           <Select v-model="packageId">

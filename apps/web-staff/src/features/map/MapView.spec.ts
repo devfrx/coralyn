@@ -105,7 +105,7 @@ describe('MapView', () => {
       http.get('/api/bookings/quote', () =>
         HttpResponse.json({
           totalPrice: 40,
-          matchedRate: { id: 'ra-row', seasonId: 'se-1', price: 40, unit: 'day', rowId: 'row-1' },
+          matchedRate: { id: 'ra-row', seasonId: 'se-1', price: 40, rowId: 'row-1' },
         }),
       ),
     );
@@ -136,7 +136,7 @@ describe('MapView', () => {
         HttpResponse.json({
           totalPrice: 45,
           matchedRate: {
-            id: 'ra-period', seasonId: 'se-1', price: 45, unit: 'day',
+            id: 'ra-period', seasonId: 'se-1', price: 45,
             periodStart: '2026-08-01', periodEnd: '2026-08-31',
           },
         }),
@@ -251,6 +251,59 @@ describe('MapView', () => {
     expect(cells[1].props('afternoonState')).toBe('free');
     expect(cells[1].find('button').attributes('aria-label')).toMatch(/mattina Giornaliero, pomeriggio Libero/);
 
+    w.unmount();
+  });
+
+  it('la riga di spiegazione cambia col tipo di prenotazione', async () => {
+    const w = mountApp(MapView, { attachTo: document.body });
+    await flushPromises();
+    await new Promise((r) => setTimeout(r, 0));
+    await flushPromises();
+    await w.findComponent({ name: 'UmbrellaCell' }).find('button').trigger('click');
+    await flushPromises();
+    await w.findAll('button').find((b) => b.text().includes('Nuova prenotazione'))!.trigger('click');
+    await flushPromises();
+
+    // Il modale è teleportato (DialogPortal): il primo <select> in document.body è il Tipo.
+    const typeSelect = document.body.querySelectorAll('select')[0] as HTMLSelectElement;
+    typeSelect.value = 'subscription';
+    typeSelect.dispatchEvent(new Event('change'));
+    await flushPromises();
+    expect(document.body.textContent).toContain('Tutta la stagione, prezzo forfait.');
+
+    typeSelect.value = 'periodic';
+    typeSelect.dispatchEvent(new Event('change'));
+    await flushPromises();
+    expect(document.body.textContent).toContain('paghi a giornata');
+
+    typeSelect.value = 'daily';
+    typeSelect.dispatchEvent(new Event('change'));
+    await flushPromises();
+    expect(document.body.textContent).toContain('Un giorno.');
+    w.unmount();
+  });
+
+  it('il suffisso della tariffa applicata deriva dal tipo: subscription → forfait', async () => {
+    server.use(
+      http.get('/api/bookings/quote', () =>
+        HttpResponse.json({ totalPrice: 800, matchedRate: { id: 'ra-sub', seasonId: 'se-1', price: 800, type: 'subscription' } }),
+      ),
+    );
+    const w = mountApp(MapView, { attachTo: document.body });
+    await flushPromises();
+    await new Promise((r) => setTimeout(r, 0));
+    await flushPromises();
+    await w.findComponent({ name: 'UmbrellaCell' }).find('button').trigger('click');
+    await flushPromises();
+    await w.findAll('button').find((b) => b.text().includes('Nuova prenotazione'))!.trigger('click');
+    await flushPromises();
+    const typeSelect = document.body.querySelectorAll('select')[0] as HTMLSelectElement;
+    typeSelect.value = 'subscription';
+    typeSelect.dispatchEvent(new Event('change'));
+    await flushPromises();
+    await new Promise((r) => setTimeout(r, 0));
+    await flushPromises();
+    expect(document.body.textContent).toContain('forfait stagione');
     w.unmount();
   });
 
