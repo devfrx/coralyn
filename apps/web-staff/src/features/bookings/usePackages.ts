@@ -13,6 +13,31 @@ export function usePackages() {
   });
 }
 
+/** Lista COMPLETA (attivi + archiviati) per l'editor Listino. */
+export function useAllPackages() {
+  const session = useSessionStore();
+  return queryResource({
+    queryKey: () => queryKeys.allPackages(session.establishmentId),
+    queryFn: () => apiFetch<PackageDTO[]>('/packages?includeArchived=true'),
+  });
+}
+
+export function useArchivePackage() {
+  const session = useSessionStore();
+  return mutationResource({
+    mutationFn: (id: string) => apiFetch<PackageDTO>(`/packages/${id}/archive`, { method: 'POST' }),
+    invalidates: () => [queryKeys.packages(session.establishmentId)],
+  });
+}
+
+export function useRestorePackage() {
+  const session = useSessionStore();
+  return mutationResource({
+    mutationFn: (id: string) => apiFetch<PackageDTO>(`/packages/${id}/restore`, { method: 'POST' }),
+    invalidates: () => [queryKeys.packages(session.establishmentId)],
+  });
+}
+
 export function useCreatePackage() {
   const session = useSessionStore();
   return mutationResource({

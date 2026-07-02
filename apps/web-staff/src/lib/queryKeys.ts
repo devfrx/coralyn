@@ -4,6 +4,7 @@ export const queryKeys = {
   dayMap: (tenantId: string, date: string) => ['map', tenantId, date] as const,
   bookings: (tenantId: string, date: string) => ['bookings', tenantId, date] as const,
   packages: (tenantId: string) => ['packages', tenantId] as const,
+  allPackages: (tenantId: string) => ['packages', tenantId, 'all'] as const,
   subscriptions: (tenantId: string, seasonId: string) => ['subscriptions', tenantId, seasonId] as const,
   seasons: (tenantId: string) => ['seasons', tenantId] as const,
   rates: (tenantId: string, seasonId: string) => ['rates', tenantId, seasonId] as const,

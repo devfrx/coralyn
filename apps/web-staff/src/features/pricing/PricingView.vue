@@ -5,7 +5,7 @@ import type { BookingType, RateDTO, TimeSlotDTO } from '@coralyn/contracts';
 import { useSeasons, useCreateSeason, useDeleteSeason } from './useSeasons';
 import { useRates, useCreateRate, useUpdateRate, useDeleteRate } from './useRates';
 import { useTimeSlots, useCreateTimeSlot, useUpdateTimeSlot, useDeleteTimeSlot } from './useTimeSlots';
-import { usePackages, useCreatePackage, useUpdatePackage, useDeletePackage } from '@/features/bookings/usePackages';
+import { useAllPackages, useCreatePackage, useUpdatePackage, useDeletePackage, useArchivePackage, useRestorePackage } from '@/features/bookings/usePackages';
 import { useDayMap } from '@/features/map/useDayMap';
 import { rateSpecificity } from './rateSpecificity';
 
@@ -35,10 +35,15 @@ const seasonRange = computed(() => {
 });
 
 // --- Pacchetti ---
-const { data: packages } = usePackages();
+const { data: packages } = useAllPackages(); // include archiviati (editor)
 const createPackage = useCreatePackage();
 const updatePackage = useUpdatePackage();
 const deletePackage = useDeletePackage();
+const archivePackage = useArchivePackage();
+const restorePackage = useRestorePackage();
+const activePackages = computed(() => (packages.value ?? []).filter((p) => !p.archived));
+const archivedPackages = computed(() => (packages.value ?? []).filter((p) => p.archived));
+const archivedOpen = ref(false);
 
 // Dotazione leggibile: {sunbeds:4} → "4 lettini". Chiavi note tradotte, le altre mostrate come sono.
 const EQUIP_IT: Record<string, [string, string]> = {
@@ -105,7 +110,7 @@ const confirmCopy = computed(() => {
   if (p?.kind === 'season')
     return { title: 'Eliminare la stagione?', description: `«${p.name}» e tutte le sue tariffe. L'operazione è irreversibile.` };
   if (p?.kind === 'package')
-    return { title: 'Eliminare il pacchetto?', description: `«${p.name}». Se è referenziato da tariffe o prenotazioni non sarà eliminato.` };
+    return { title: 'Eliminare definitivamente?', description: `«${p.name}» verrà rimosso in modo irreversibile. Possibile solo perché è archiviato e senza tariffe/prenotazioni collegate.` };
   if (p?.kind === 'rate')
     return { title: 'Eliminare la tariffa?', description: 'La regola di prezzo verrà rimossa dal listino.' };
   if (p?.kind === 'timeSlot')
@@ -127,7 +132,7 @@ function onConfirmDelete() {
 const { data: dayMap } = useDayMap();
 const sectorOptions = computed(() => (dayMap.value?.sectors ?? []).map((s) => ({ value: s.id, label: s.name })));
 const timeSlotOptions = computed(() => (dayMap.value?.timeSlots ?? []).map((t) => ({ value: t.id, label: t.name })));
-const packageOptions = computed(() => (packages.value ?? []).map((p) => ({ value: p.id, label: p.name })));
+const packageOptions = computed(() => activePackages.value.map((p) => ({ value: p.id, label: p.name })));
 const TYPE_OPTIONS: { value: BookingType; label: string }[] = [
   { value: 'daily', label: 'Giornaliera' }, { value: 'periodic', label: 'Periodica' }, { value: 'subscription', label: 'Abbonamento' },
 ];
@@ -315,17 +320,17 @@ const rateCols = [
     </div>
 
     <!-- Card pacchetti -->
-    <EmptyState v-if="(packages?.length ?? 0) === 0" class="mb-4" message="Nessun pacchetto. Creane uno con «Pacchetto»." />
+    <EmptyState v-if="activePackages.length === 0" class="mb-4" message="Nessun pacchetto. Creane uno con «Pacchetto»." />
     <div v-else class="mb-4 grid grid-cols-3 gap-3.5">
-      <Card v-for="p in packages" :key="p.id">
+      <Card v-for="p in activePackages" :key="p.id">
         <div class="flex h-full flex-col p-[18px]">
           <div class="mb-2 flex items-start justify-between gap-2">
             <span class="text-[15px] font-bold text-[var(--color-text)]">{{ p.name }}</span>
             <div class="flex shrink-0 items-center gap-2.5">
               <button type="button" title="Modifica" class="text-[var(--color-text-muted)] hover:text-[var(--color-accent)]"
                 :data-test="`edit-pkg-${p.id}`" @click="openEditPackage(p)"><Icon name="edit" :size="15" /></button>
-              <button type="button" title="Elimina" class="text-[var(--color-text-muted)] hover:text-[var(--color-danger)]"
-                :data-test="`del-pkg-${p.id}`" @click="askDeletePackage(p)"><Icon name="trash-2" :size="15" /></button>
+              <button type="button" title="Archivia" class="text-[var(--color-text-muted)] hover:text-[var(--color-accent)]"
+                :data-test="`archive-pkg-${p.id}`" @click="archivePackage.mutate(p.id)"><Icon name="archive" :size="15" /></button>
             </div>
           </div>
           <div class="min-h-[38px] flex-1 text-[12.5px] leading-relaxed text-[var(--color-text-2nd)]">{{ equipmentLabel(p.equipment) }}</div>
@@ -335,6 +340,32 @@ const rateCols = [
           </div>
         </div>
       </Card>
+    </div>
+
+    <!-- Pacchetti archiviati (a scomparsa, chiusa di default) -->
+    <div v-if="archivedPackages.length > 0" class="mb-4">
+      <button type="button" data-test="toggle-archived"
+        class="mb-2 flex items-center gap-1.5 text-[12.5px] font-semibold text-[var(--color-text-muted)] hover:text-[var(--color-text-2nd)]"
+        @click="archivedOpen = !archivedOpen">
+        <Icon :name="archivedOpen ? 'chevron-down' : 'chevron-right'" :size="15" />
+        Archiviati ({{ archivedPackages.length }})
+      </button>
+      <div v-if="archivedOpen" class="grid grid-cols-3 gap-3.5">
+        <Card v-for="p in archivedPackages" :key="p.id" class="opacity-60">
+          <div class="flex h-full flex-col p-[18px]">
+            <div class="mb-2 flex items-start justify-between gap-2">
+              <span class="text-[15px] font-bold text-[var(--color-text)]">{{ p.name }}</span>
+              <div class="flex shrink-0 items-center gap-2.5">
+                <button type="button" title="Ripristina" class="text-[var(--color-text-muted)] hover:text-[var(--color-accent)]"
+                  :data-test="`restore-pkg-${p.id}`" @click="restorePackage.mutate(p.id)"><Icon name="renew" :size="15" /></button>
+                <button type="button" title="Elimina definitivamente" class="text-[var(--color-text-muted)] hover:text-[var(--color-danger)]"
+                  :data-test="`del-pkg-${p.id}`" @click="askDeletePackage(p)"><Icon name="trash-2" :size="15" /></button>
+              </div>
+            </div>
+            <div class="min-h-[38px] flex-1 text-[12.5px] leading-relaxed text-[var(--color-text-2nd)]">{{ equipmentLabel(p.equipment) }}</div>
+          </div>
+        </Card>
+      </div>
     </div>
 
     <!-- Fasce orarie della giornata (editor) -->

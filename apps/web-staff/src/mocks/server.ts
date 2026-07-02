@@ -88,7 +88,10 @@ export const server = setupServer(
     return HttpResponse.json(removed);
   }),
   // Packages (CRUD)
-  http.get('/api/packages', () => HttpResponse.json(packages)),
+  http.get('/api/packages', ({ request }) => {
+    const includeArchived = new URL(request.url).searchParams.get('includeArchived') === 'true';
+    return HttpResponse.json(includeArchived ? packages : packages.filter((p) => !p.archived));
+  }),
   http.post('/api/packages', async ({ request }) => {
     const b = (await request.json()) as Omit<PackageDTO, 'id'>;
     const created: PackageDTO = { id: `pkg-${packages.length + 1}`, ...b };
@@ -107,6 +110,19 @@ export const server = setupServer(
     if (i < 0) return new HttpResponse(null, { status: 404 });
     const [removed] = packages.splice(i, 1);
     return HttpResponse.json(removed);
+  }),
+  http.post('/api/packages/:id/archive', ({ params }) => {
+    const i = packages.findIndex((p) => p.id === params.id);
+    if (i < 0) return new HttpResponse(null, { status: 404 });
+    packages[i] = { ...packages[i], archived: true };
+    return HttpResponse.json(packages[i]);
+  }),
+  http.post('/api/packages/:id/restore', ({ params }) => {
+    const i = packages.findIndex((p) => p.id === params.id);
+    if (i < 0) return new HttpResponse(null, { status: 404 });
+    const { archived: _drop, ...rest } = packages[i];
+    packages[i] = rest;
+    return HttpResponse.json(packages[i]);
   }),
   // Rates (CRUD, filtrate per stagione)
   http.get('/api/rates', ({ request }) => {

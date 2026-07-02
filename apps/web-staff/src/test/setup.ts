@@ -4,5 +4,5 @@ import { clearToasts } from '@/lib/toasts';
 
 beforeAll(() => server.listen({ onUnhandledRequest: 'error' }));
 beforeEach(() => { resetCustomersSeed(); resetPricingSeed(); resetCampaignSeed(); clearToasts(); });
-afterEach(() => server.resetHandlers());
+afterEach(() => { server.resetHandlers(); document.body.innerHTML = ''; });
 afterAll(() => server.close());

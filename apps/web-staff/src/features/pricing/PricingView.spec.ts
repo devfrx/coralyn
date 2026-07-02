@@ -154,35 +154,60 @@ describe('PricingView', () => {
     });
   });
 
-  describe('elimina pacchetto: conferma + errore server visibile (Slice A)', () => {
-    it('annullando la conferma NON elimina il pacchetto', async () => {
+  describe('ciclo di vita pacchetto: archivia / ripristina / elimina definitivamente', () => {
+    it('la card attiva mostra "Archivia" (non "Elimina") e archiviando sparisce dagli attivi', async () => {
       const w = mountApp(PricingView, { attachTo: document.body });
       await settle();
-      await w.get('[data-test="del-pkg-pkg-1"]').trigger('click');
+      expect(w.get('[data-test="archive-pkg-pkg-1"]')).toBeTruthy(); // throws (get) se assente
+      expect(document.querySelector('[data-test="del-pkg-pkg-1"]')).toBeNull(); // niente delete sulla card attiva
+      await w.get('[data-test="archive-pkg-pkg-1"]').trigger('click');
       await settle();
-      expect(document.body.textContent).toContain('Eliminare il pacchetto?');
-      dialogBtn('Annulla')!.click();
-      await settle();
-      expect(w.text()).toContain('Standard'); // il pacchetto resta
+      // "Standard" non è più tra le card attive, ma la sezione Archiviati compare (chiusa).
+      expect(w.get('[data-test="toggle-archived"]').text()).toContain('Archiviati (1)');
     });
 
-    it('409 dal server (pacchetto in uso) → il messaggio del server diventa un toast', async () => {
-      server.use(
-        http.delete('/api/packages/:id', () =>
-          HttpResponse.json(
-            { statusCode: 409, message: 'Pacchetto in uso da tariffe o prenotazioni: non eliminabile.', error: 'Conflict' },
-            { status: 409 },
-          ),
-        ),
-      );
+    it('apre la sezione archiviati e ripristina il pacchetto', async () => {
       const w = mountApp(PricingView, { attachTo: document.body });
+      await settle();
+      await w.get('[data-test="archive-pkg-pkg-1"]').trigger('click');
+      await settle();
+      await w.get('[data-test="toggle-archived"]').trigger('click'); // apri
+      await settle();
+      await w.get('[data-test="restore-pkg-pkg-1"]').trigger('click');
+      await settle();
+      // Ripristinato: torna card attiva con azione Archivia, sezione archiviati sparita.
+      expect(w.get('[data-test="archive-pkg-pkg-1"]')).toBeTruthy(); // throws (get) se assente
+      expect(document.querySelector('[data-test="toggle-archived"]')).toBeNull();
+    });
+
+    it('"Elimina definitivamente" apre il ConfirmDialog e chiama la DELETE', async () => {
+      const w = mountApp(PricingView, { attachTo: document.body });
+      await settle();
+      await w.get('[data-test="archive-pkg-pkg-1"]').trigger('click');
+      await settle();
+      await w.get('[data-test="toggle-archived"]').trigger('click');
       await settle();
       await w.get('[data-test="del-pkg-pkg-1"]').trigger('click');
       await settle();
+      expect(document.body.textContent).toContain('Eliminare definitivamente?');
       dialogBtn('Elimina')!.click();
       await settle();
-      expect(useToasts().items.map((t) => t.message)).toEqual(['Pacchetto in uso da tariffe o prenotazioni: non eliminabile.']);
-      expect(w.text()).toContain('Standard'); // niente rimozione ottimistica
+      // Eliminato del tutto: niente più card, niente sezione archiviati.
+      expect(document.querySelector('[data-test="toggle-archived"]')).toBeNull();
+      expect(w.text()).not.toContain('Standard');
+    });
+
+    it('il selettore Pacchetto dell\'editor tariffe NON elenca gli archiviati', async () => {
+      const w = mountApp(PricingView, { attachTo: document.body });
+      await settle();
+      await w.get('[data-test="archive-pkg-pkg-1"]').trigger('click');
+      await settle();
+      await w.get('[data-test="new-rate"]').trigger('click');
+      await settle();
+      const form = document.querySelector('[data-test="form-rate"]') as HTMLElement;
+      const packageSelect = form.querySelectorAll('select')[2] as HTMLSelectElement; // Tipo, Settore, Pacchetto, Fascia
+      expect(Array.from(packageSelect.options).some((o) => o.textContent?.includes('Standard'))).toBe(false);
+      w.unmount();
     });
   });
 
