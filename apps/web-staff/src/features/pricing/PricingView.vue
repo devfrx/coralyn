@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, watchEffect } from 'vue';
 import { Button, Card, DataTable, EmptyState, Modal, ConfirmDialog, Field, Input, Select, Icon, formatEuro } from '@coralyn/ui-kit';
-import type { BookingType, RateDTO, RateUnit, TimeSlotDTO } from '@coralyn/contracts';
+import type { BookingType, RateDTO, TimeSlotDTO } from '@coralyn/contracts';
 import { useSeasons, useCreateSeason, useDeleteSeason } from './useSeasons';
 import { useRates, useCreateRate, useUpdateRate, useDeleteRate } from './useRates';
 import { useTimeSlots, useCreateTimeSlot, useUpdateTimeSlot, useDeleteTimeSlot } from './useTimeSlots';
@@ -131,9 +131,6 @@ const packageOptions = computed(() => (packages.value ?? []).map((p) => ({ value
 const TYPE_OPTIONS: { value: BookingType; label: string }[] = [
   { value: 'daily', label: 'Giornaliera' }, { value: 'periodic', label: 'Periodica' }, { value: 'subscription', label: 'Abbonamento' },
 ];
-const UNIT_OPTIONS: { value: RateUnit; label: string }[] = [
-  { value: 'day', label: 'Al giorno' }, { value: 'period', label: 'Forfait periodo' },
-];
 
 // --- Modale stagione ---
 const seasonModal = ref(false);
@@ -209,10 +206,10 @@ function submitSlot() {
 const rateModal = ref(false);
 const editingRateId = ref<string | null>(null); // null = crea, valorizzato = modifica
 const rType = ref(''); const rSector = ref(''); const rPackage = ref(''); const rSlot = ref('');
-const rPrice = ref(''); const rUnit = ref<RateUnit>('day');
+const rPrice = ref('');
 function resetRateForm() {
   rType.value = rSector.value = rPackage.value = rSlot.value = '';
-  rPrice.value = ''; rUnit.value = 'day';
+  rPrice.value = '';
 }
 function openCreateRate() {
   editingRateId.value = null;
@@ -226,7 +223,6 @@ function openEditRate(r: RateDTO) {
   rPackage.value = r.packageId ?? '';
   rSlot.value = r.timeSlotId ?? '';
   rPrice.value = String(r.price);
-  rUnit.value = r.unit;
   rateModal.value = true;
 }
 function closeRateModal() {
@@ -244,7 +240,6 @@ function submitRate() {
       packageId: rPackage.value || null,
       timeSlotId: rSlot.value || null,
       price: Number(rPrice.value),
-      unit: rUnit.value,
     };
     updateRate.mutate({ id: editingRateId.value, input: editDims }, { onSuccess: () => { resetRateForm(); closeRateModal(); } });
   } else {
@@ -255,7 +250,6 @@ function submitRate() {
       packageId: rPackage.value || undefined,
       timeSlotId: rSlot.value || undefined,
       price: Number(rPrice.value),
-      unit: rUnit.value,
     };
     createRate.mutate(
       { seasonId: activeSeasonId.value, ...createDims },
@@ -283,8 +277,8 @@ function positionLabel(r: RateDTO): string {
 function typeLabel(t?: BookingType): string {
   return t ? (TYPE_OPTIONS.find((o) => o.value === t)?.label ?? t) : 'Tutti';
 }
-function unitLabel(unit: RateUnit): string {
-  return unit === 'day' ? '/ giorno' : '/ periodo';
+function priceHint(r: RateDTO): string {
+  return r.type === 'subscription' ? 'forfait/stagione' : '/giorno';
 }
 const rateCols = [
   { key: 'position', label: 'Posizione' },
@@ -376,7 +370,7 @@ const rateCols = [
         <td class="border-b border-[var(--color-border-row)] px-3.5 py-3.5 text-[var(--color-text-2nd)]">{{ typeLabel(r.type) }}</td>
         <td class="border-b border-[var(--color-border-row)] px-3.5 py-3.5 text-right">
           <span class="font-bold tabular-nums text-[var(--color-text)]">{{ formatEuro(r.price) }}</span>
-          <span class="ml-1 text-[11px] text-[var(--color-text-muted)]">{{ unitLabel(r.unit) }}</span>
+          <span class="ml-1 text-[11px] text-[var(--color-text-muted)]">{{ priceHint(r) }}</span>
         </td>
         <td class="border-b border-[var(--color-border-row)] px-[18px] py-3.5 text-right">
           <div class="flex items-center justify-end gap-2.5">
@@ -471,16 +465,7 @@ const rateCols = [
             </Field>
           </div>
         </div>
-        <div class="flex gap-3.5">
-          <div class="flex-1"><Field label="Prezzo (€)"><Input name="price" v-model="rPrice" type="number" step="0.01" placeholder="28.00" /></Field></div>
-          <div class="flex-1">
-            <Field label="Unità">
-              <Select v-model="rUnit">
-                <option v-for="o in UNIT_OPTIONS" :key="o.value" :value="o.value">{{ o.label }}</option>
-              </Select>
-            </Field>
-          </div>
-        </div>
+        <Field label="Prezzo (€)"><Input name="price" v-model="rPrice" type="number" step="0.01" placeholder="28.00" /></Field>
         <div class="flex justify-end gap-2.5 pt-1">
           <Button variant="secondary" type="button" @click="closeRateModal">Annulla</Button>
           <Button type="submit">{{ editingRateId ? 'Salva modifiche' : 'Crea tariffa' }}</Button>

@@ -246,8 +246,8 @@ describe('PricingView', () => {
     it('ordina le tariffe per specificità e mostra la legenda di precedenza', async () => {
       server.use(
         http.get('/api/rates', () => HttpResponse.json([
-          { id: 'ra-catch', seasonId: 'se-1', price: 20, unit: 'day' },
-          { id: 'ra-slot', seasonId: 'se-1', price: 40, unit: 'day', timeSlotId: 'f-pom' },
+          { id: 'ra-catch', seasonId: 'se-1', price: 20 },
+          { id: 'ra-slot', seasonId: 'se-1', price: 40, timeSlotId: 'f-pom' },
         ])),
       );
       const w = mountApp(PricingView, { attachTo: document.body });
@@ -266,7 +266,7 @@ describe('PricingView', () => {
     it('una tariffa senza fascia (wildcard) mostra "Tutte" in colonna Fascia, non "—"', async () => {
       server.use(
         http.get('/api/rates', () => HttpResponse.json([
-          { id: 'ra-wild-slot', seasonId: 'se-1', price: 33, unit: 'day', packageId: 'pkg-1' },
+          { id: 'ra-wild-slot', seasonId: 'se-1', price: 33, packageId: 'pkg-1' },
         ])),
       );
       const w = mountApp(PricingView, { attachTo: document.body });
@@ -281,7 +281,7 @@ describe('PricingView', () => {
     it('una tariffa senza pacchetto (wildcard) mostra "Tutti" in colonna Pacchetto, non "—"', async () => {
       server.use(
         http.get('/api/rates', () => HttpResponse.json([
-          { id: 'ra-wild-pkg', seasonId: 'se-1', price: 37, unit: 'day', timeSlotId: 'f-pom' },
+          { id: 'ra-wild-pkg', seasonId: 'se-1', price: 37, timeSlotId: 'f-pom' },
         ])),
       );
       const w = mountApp(PricingView, { attachTo: document.body });
@@ -291,6 +291,35 @@ describe('PricingView', () => {
       expect(row).toBeTruthy();
       expect(row!.text()).toContain('Tutti');
       expect(row!.text()).not.toContain('—');
+    });
+  });
+
+  describe('chiarezza tipi (slice)', () => {
+    it('il modale tariffa non ha più il selettore "Unità"', async () => {
+      const w = mountApp(PricingView, { attachTo: document.body });
+      await settle();
+      await w.get('[data-test="new-rate"]').trigger('click');
+      await settle();
+      const form = document.querySelector('[data-test="form-rate"]') as HTMLElement;
+      expect(form.textContent).not.toContain('Unità');
+      w.unmount();
+    });
+
+    it('colonna Prezzo: subscription → "forfait", altri tipi → "/giorno"', async () => {
+      server.use(
+        http.get('/api/rates', () => HttpResponse.json([
+          { id: 'ra-sub', seasonId: 'se-1', price: 800, type: 'subscription' },
+          { id: 'ra-day', seasonId: 'se-1', price: 28 },
+        ])),
+      );
+      const w = mountApp(PricingView, { attachTo: document.body });
+      await settle();
+      const rows = w.findAll('tbody tr');
+      const rowSub = rows.find((r) => r.text().includes('800'))!;
+      const rowDay = rows.find((r) => r.text().includes('28'))!;
+      expect(rowSub.text()).toContain('forfait');
+      expect(rowDay.text()).toContain('/giorno');
+      w.unmount();
     });
   });
 });

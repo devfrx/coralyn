@@ -15,12 +15,12 @@ const SEASON_1: SeasonDTO = { id: 'se-1', name: 'Estate 2026', startDate: '2026-
 const SEASON_2: SeasonDTO = { id: 'se-2', name: 'Estate 2027', startDate: '2027-05-01', endDate: '2027-09-30' };
 let seasons: SeasonDTO[] = [SEASON_1, SEASON_2];
 let packages: PackageDTO[] = [{ id: 'pkg-1', name: 'Standard', equipment: { sunbeds: 2 } }];
-let rates: RateDTO[] = [{ id: 'ra-1', seasonId: 'se-1', price: 28, unit: 'day' }];
+let rates: RateDTO[] = [{ id: 'ra-1', seasonId: 'se-1', price: 28 }];
 let timeSlots: TimeSlotDTO[] = timeSlotsSeed.map((s) => ({ ...s }));
 export function resetPricingSeed() {
   seasons = [SEASON_1, SEASON_2];
   packages = [{ id: 'pkg-1', name: 'Standard', equipment: { sunbeds: 2 } }];
-  rates = [{ id: 'ra-1', seasonId: 'se-1', price: 28, unit: 'day' }];
+  rates = [{ id: 'ra-1', seasonId: 'se-1', price: 28 }];
   timeSlots = timeSlotsSeed.map((s) => ({ ...s }));
 }
 

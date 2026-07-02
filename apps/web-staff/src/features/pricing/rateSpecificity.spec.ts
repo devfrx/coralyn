@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import type { RateDTO } from '@coralyn/contracts';
 import { rateSpecificity } from './rateSpecificity';
 
-const base = (over: Partial<RateDTO>): RateDTO => ({ id: 'r', seasonId: 's', price: 10, unit: 'day', ...over });
+const base = (over: Partial<RateDTO>): RateDTO => ({ id: 'r', seasonId: 's', price: 10, ...over });
 
 describe('rateSpecificity', () => {
   it('la catch-all (nessuna dimensione) è la meno specifica', () => {
