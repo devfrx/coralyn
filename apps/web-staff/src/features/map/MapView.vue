@@ -122,21 +122,24 @@ function openModal(): void {
   endDate.value = '';
   modalBooking.value = true;
 }
-async function confirmBooking(): Promise<void> {
+function confirmBooking(): void {
   if (!sel.value || !customerId.value) return;
-  await createBooking.mutateAsync({
-    customerId: customerId.value,
-    umbrellaId: sel.value.u.id,
-    timeSlotId: selectedSlotId.value,
-    type: bookingType.value,
-    startDate: activeDate.value,
-    endDate: bookingType.value === 'periodic' ? endDate.value : undefined,
-    packageId: packageId.value || undefined,
-  });
-  modalBooking.value = false;
+  createBooking.mutate(
+    {
+      customerId: customerId.value,
+      umbrellaId: sel.value.u.id,
+      timeSlotId: selectedSlotId.value,
+      type: bookingType.value,
+      startDate: activeDate.value,
+      endDate: bookingType.value === 'periodic' ? endDate.value : undefined,
+      packageId: packageId.value || undefined,
+    },
+    { onSuccess: () => { modalBooking.value = false; } },
+  );
+  // Su errore: il modale resta aperto (l'operatore corregge) e il toast globale (Slice A) mostra il messaggio server.
 }
-async function onCancel(): Promise<void> {
-  if (currentBooking.value) await cancelBooking.mutateAsync(currentBooking.value.id);
+function onCancel(): void {
+  if (currentBooking.value) cancelBooking.mutate(currentBooking.value.id);
 }
 
 const modalBooking = ref(false);

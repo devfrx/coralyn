@@ -1,6 +1,9 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi, afterEach } from 'vitest';
+import { http, HttpResponse } from 'msw';
 import { flushPromises } from '@vue/test-utils';
 import { mountApp } from '@/test/utils';
+import { server } from '@/mocks/server';
+import { useToasts } from '@/lib/toasts';
 import MapView from './MapView.vue';
 
 describe('MapView', () => {
@@ -76,4 +79,53 @@ describe('MapView', () => {
 
     w.unmount();
   });
+
+  it('errore 409 alla conferma: toast del server, modale resta aperto, nessun unhandled rejection', async () => {
+    const rejections: unknown[] = [];
+    const onRej = (e: PromiseRejectionEvent) => { rejections.push(e.reason); e.preventDefault(); };
+    window.addEventListener('unhandledrejection', onRej);
+    server.use(
+      http.post('/api/bookings', () =>
+        HttpResponse.json(
+          { statusCode: 409, message: 'Ombrellone già prenotato per questa fascia', error: 'Conflict' },
+          { status: 409 },
+        ),
+      ),
+    );
+
+    const w = mountApp(MapView, { attachTo: document.body });
+    await flushPromises();
+    await new Promise((r) => setTimeout(r, 0));
+    await flushPromises();
+
+    await w.findComponent({ name: 'UmbrellaCell' }).find('button').trigger('click');
+    await flushPromises();
+    await w.findAll('button').find((b) => b.text().includes('Nuova prenotazione'))!.trigger('click');
+    await flushPromises();
+
+    // Scegli un cliente (necessario perché confirmBooking esce se customerId è vuoto).
+    const custSelect = Array.from(document.body.querySelectorAll('select')).find((s) =>
+      s.textContent?.includes('Seleziona un cliente'),
+    ) as HTMLSelectElement;
+    custSelect.value = 'c-1';
+    custSelect.dispatchEvent(new Event('change'));
+    await flushPromises();
+    await new Promise((r) => setTimeout(r, 0));
+    await flushPromises();
+
+    const confirm = Array.from(document.body.querySelectorAll('button')).find((b) => b.textContent?.includes('Conferma prenotazione'))!;
+    confirm.click();
+    await flushPromises();
+    await new Promise((r) => setTimeout(r, 0));
+    await flushPromises();
+
+    expect(useToasts().items.map((t) => t.message)).toContain('Ombrellone già prenotato per questa fascia');
+    expect(document.body.textContent).toContain('Conferma prenotazione'); // modale ANCORA aperto
+    expect(rejections).toEqual([]); // niente unhandled promise rejection
+
+    window.removeEventListener('unhandledrejection', onRej);
+    w.unmount();
+  });
+
+  afterEach(() => { vi.restoreAllMocks(); });
 });
