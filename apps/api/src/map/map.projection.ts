@@ -9,6 +9,7 @@ import type {
   UmbrellaTypeDTO,
 } from '@coralyn/contracts';
 import { slotsOverlap } from '../bookings/booking.availability';
+import { formatDbTime } from '../common/time';
 
 type RowWithUmbrellas = Row & { umbrellas: Umbrella[] };
 type SectorWithRows = Sector & { rows: RowWithUmbrellas[] };
@@ -34,7 +35,13 @@ const STATE_BY_TYPE: Record<BookingType, SlotState> = {
 };
 
 export function projectDayMap(date: string, source: MapSource): DayMapDTO {
-  const timeSlots: TimeSlotDTO[] = source.timeSlots.map((s) => ({ id: s.id, name: s.name, sortOrder: s.sortOrder }));
+  const timeSlots: TimeSlotDTO[] = source.timeSlots.map((s) => ({
+    id: s.id,
+    name: s.name,
+    startTime: formatDbTime(s.startTime),
+    endTime: formatDbTime(s.endTime),
+    sortOrder: s.sortOrder,
+  }));
   const slotById = new Map(source.timeSlots.map((s) => [s.id, s]));
   const umbrellaTypes: UmbrellaTypeDTO[] = source.umbrellaTypes.map((t) => ({
     id: t.id,

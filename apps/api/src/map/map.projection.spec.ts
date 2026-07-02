@@ -37,8 +37,8 @@ describe('projectDayMap', () => {
     expect(dto.date).toBe('2026-07-15');
     expect(dto.umbrellaTypes).toEqual([{ id: 't1', name: 'Palma', sortOrder: 2, icon: 'palmtree' }]);
     expect(dto.timeSlots).toEqual([
-      { id: 's1', name: 'Mattina', sortOrder: 1 },
-      { id: 's2', name: 'Pomeriggio', sortOrder: 2 },
+      { id: 's1', name: 'Mattina', startTime: '08:00', endTime: '13:00', sortOrder: 1 },
+      { id: 's2', name: 'Pomeriggio', startTime: '13:00', endTime: '19:00', sortOrder: 2 },
     ]);
     expect(dto.sectors[0].rows[0].umbrellas).toHaveLength(2);
   });
