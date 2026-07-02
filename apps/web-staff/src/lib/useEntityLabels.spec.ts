@@ -53,4 +53,19 @@ describe('useEntityLabels', () => {
     await flushPromises();
     expect(api().packageName.value.get('pkg-x')).toBe('Deluxe');
   });
+
+  it('packageName: risolve anche un pacchetto ARCHIVIATO (storico prenotazioni, spec §2)', async () => {
+    server.use(
+      http.get('/api/packages', ({ request }) => {
+        const all = [{ id: 'pkg-arch', name: 'Ritirato', equipment: {}, archived: true }];
+        const includeArchived = new URL(request.url).searchParams.get('includeArchived') === 'true';
+        return HttpResponse.json(includeArchived ? all : all.filter((p) => !p.archived));
+      }),
+    );
+    const { api } = mountHook();
+    await flushPromises();
+    await tick();
+    await flushPromises();
+    expect(api().packageName.value.get('pkg-arch')).toBe('Ritirato');
+  });
 });
