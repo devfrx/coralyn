@@ -41,7 +41,25 @@ export interface UmbrellaTypeDTO {
 export interface TimeSlotDTO {
   id: string;
   name: string;
+  startTime?: string; // "HH:MM" (semiaperto [start,end)); assente per consumatori legacy
+  endTime?: string;   // "HH:MM"
   sortOrder: number;
+}
+
+/** Input creazione fascia: orari "HH:MM" obbligatori; sortOrder default = append in coda. */
+export interface CreateTimeSlotInput {
+  name: string;
+  startTime: string;
+  endTime: string;
+  sortOrder?: number;
+}
+
+/** Input modifica fascia: tutti opzionali (patch). Orari "HH:MM". */
+export interface UpdateTimeSlotInput {
+  name?: string;
+  startTime?: string;
+  endTime?: string;
+  sortOrder?: number;
 }
 
 export interface UmbrellaDTO {
