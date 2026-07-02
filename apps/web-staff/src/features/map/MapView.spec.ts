@@ -127,5 +127,49 @@ describe('MapView', () => {
     w.unmount();
   });
 
+  it('deriva le due metà dagli orari: Giornata intera occupa mattina+pomeriggio', async () => {
+    const map3 = {
+      date: '2026-06-27',
+      umbrellaTypes: [{ id: 't1', name: 'Palma', sortOrder: 1, icon: 'palmtree' }],
+      timeSlots: [
+        { id: 'giorno', name: 'Giornata intera', startTime: '08:00', endTime: '19:00', sortOrder: 3 },
+        { id: 'mat', name: 'Mattina', startTime: '08:00', endTime: '13:00', sortOrder: 1 },
+        { id: 'pom', name: 'Pomeriggio', startTime: '13:00', endTime: '19:00', sortOrder: 2 },
+      ],
+      sectors: [{
+        id: 'sec', name: 'Centro', sortOrder: 1,
+        rows: [{ id: 'r1', label: 'Fila 1', sortOrder: 1, umbrellas: [
+          // Giornata intera occupata → overlap segna occupate tutte e 3 le fasce
+          { id: 'u-full', label: '1', umbrellaTypeId: 't1', rowId: 'r1',
+            stateBySlot: { giorno: 'daily', mat: 'daily', pom: 'daily' } },
+          // Solo Mattina occupata
+          { id: 'u-mat', label: '2', umbrellaTypeId: 't1', rowId: 'r1',
+            stateBySlot: { giorno: 'free', mat: 'daily', pom: 'free' } },
+        ] }],
+      }],
+    };
+    server.use(http.get('/api/map', () => HttpResponse.json(map3)));
+
+    const w = mountApp(MapView, { attachTo: document.body });
+    await flushPromises();
+    await new Promise((r) => setTimeout(r, 0));
+    await flushPromises();
+
+    const cells = w.findAllComponents({ name: 'UmbrellaCell' });
+    expect(cells.length).toBe(2);
+
+    // u-full: Giornata intera prenotata → entrambe le metà "Giornaliero" (overlap-aware)
+    expect(cells[0].props('morningState')).toBe('daily');
+    expect(cells[0].props('afternoonState')).toBe('daily');
+    expect(cells[0].find('button').attributes('aria-label')).toMatch(/mattina Giornaliero, pomeriggio Giornaliero/);
+
+    // u-mat: solo Mattina occupata → mattina Giornaliero, pomeriggio Libero
+    expect(cells[1].props('morningState')).toBe('daily');
+    expect(cells[1].props('afternoonState')).toBe('free');
+    expect(cells[1].find('button').attributes('aria-label')).toMatch(/mattina Giornaliero, pomeriggio Libero/);
+
+    w.unmount();
+  });
+
   afterEach(() => { vi.restoreAllMocks(); });
 });

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue';
 import { UmbrellaCell, SegmentedControl, Badge, Button, Modal, Icon, Select, ModalFooter, formatEuro } from '@coralyn/ui-kit';
-import type { UmbrellaDTO, SlotState, BookingDTO, BookingType } from '@coralyn/contracts';
+import type { UmbrellaDTO, SlotState, BookingDTO, BookingType, TimeSlotDTO } from '@coralyn/contracts';
 import { PAY_LABEL, PAY_TONE } from '@/lib/statusMaps';
 import { useDayMap } from './useDayMap';
 import { useDayBookings, useCreateBooking, useCancelBooking } from '@/features/bookings/useBookings';
@@ -43,9 +43,26 @@ const currentSector = computed(() => normalSectors.value.find((s) => s.id === ac
 const sectorOptions = computed(() => normalSectors.value.map((s) => ({ value: s.id, label: s.name })));
 const spotCount = computed(() => currentSector.value?.rows.reduce((n, r) => n + r.umbrellas.length, 0) ?? 0);
 
+// Due metà derivate dagli orari (spec §6). Fallback all'ordine dell'array se mancano gli orari.
+const halfSlots = computed<[TimeSlotDTO | undefined, TimeSlotDTO | undefined]>(() => {
+  const all = timeSlots.value;
+  if (all.length === 0) return [undefined, undefined];
+  const withTimes = all.filter((s) => s.startTime && s.endTime);
+  if (withTimes.length === 0) return [all[0], all[1] ?? all[0]]; // fallback legacy (nessun orario)
+  const dayStart = withTimes.reduce((m, s) => (s.startTime! < m ? s.startTime! : m), withTimes[0].startTime!);
+  const dayEnd = withTimes.reduce((m, s) => (s.endTime! > m ? s.endTime! : m), withTimes[0].endTime!);
+  const halves = withTimes
+    .filter((s) => !(withTimes.length > 1 && s.startTime === dayStart && s.endTime === dayEnd))
+    .sort((a, b) => a.startTime!.localeCompare(b.startTime!));
+  if (halves.length === 0) return [withTimes[0], withTimes[0]]; // solo la "piena"
+  const morning = halves[0];
+  const afternoon = halves[halves.length - 1];
+  return [morning, afternoon];
+});
+
 function slotState(u: UmbrellaDTO, idx: number): SlotState {
-  const s = timeSlots.value[idx] ?? timeSlots.value[0];
-  return (u.stateBySlot[s?.id] ?? 'free') as SlotState;
+  const s = halfSlots.value[idx] ?? halfSlots.value[0];
+  return (u.stateBySlot[s?.id ?? ''] ?? 'free') as SlotState;
 }
 function typeIcon(u: UmbrellaDTO): string | null {
   return u.umbrellaTypeId ? (typesById.value.get(u.umbrellaTypeId)?.icon ?? 'umbrella') : null;
@@ -62,8 +79,8 @@ function open(u: UmbrellaDTO, sector: string, row: string) { sel.value = { u, se
 function close() { sel.value = null; }
 
 function liveSlotState(idx: number): SlotState {
-  const s = timeSlots.value[idx] ?? timeSlots.value[0];
-  return (liveU.value.stateBySlot[s?.id] ?? 'free') as SlotState;
+  const s = halfSlots.value[idx] ?? halfSlots.value[0];
+  return (liveU.value.stateBySlot[s?.id ?? ''] ?? 'free') as SlotState;
 }
 const morning = computed<SlotState>(() => (sel.value ? liveSlotState(0) : 'free'));
 const afternoon = computed<SlotState>(() => (sel.value ? liveSlotState(1) : 'free'));
