@@ -63,10 +63,12 @@ export class CatalogService {
     private readonly tenant: TenantContext,
   ) {}
 
-  /** Lista dei pacchetti del tenant (read-only, per il selettore FE). */
-  async listPackages(): Promise<PackageDTO[]> {
+  /** Lista dei pacchetti del tenant. Default: solo attivi; `includeArchived` include gli archiviati. */
+  async listPackages(includeArchived = false): Promise<PackageDTO[]> {
     const tenantId = this.tenant.require();
-    const rows = await this.prisma.forTenant(tenantId, (tx) => tx.package.findMany());
+    const rows = await this.prisma.forTenant(tenantId, (tx) =>
+      tx.package.findMany({ where: includeArchived ? {} : { archivedAt: null } }),
+    );
     return rows.map(toPackageDTO);
   }
 
@@ -168,17 +170,46 @@ export class CatalogService {
     return toPackageDTO(p);
   }
 
+  /** Archivia (soft-delete) un pacchetto del tenant; 404 se assente/cross-tenant. Idempotente. */
+  async archivePackage(id: string): Promise<PackageDTO> {
+    const tenantId = this.tenant.require();
+    const p = await this.prisma.forTenant(tenantId, async (tx) => {
+      const existing = await tx.package.findFirst({ where: { id } });
+      if (!existing) return null;
+      if (existing.archivedAt != null) return existing; // già archiviato: no-op
+      return tx.package.update({ where: { id }, data: { archivedAt: new Date() } });
+    });
+    if (!p) throw new NotFoundException('Pacchetto non trovato');
+    return toPackageDTO(p);
+  }
+
+  /** Ripristina un pacchetto archiviato (archivedAt → null); 404 se assente/cross-tenant. Idempotente. */
+  async restorePackage(id: string): Promise<PackageDTO> {
+    const tenantId = this.tenant.require();
+    const p = await this.prisma.forTenant(tenantId, async (tx) => {
+      const existing = await tx.package.findFirst({ where: { id } });
+      if (!existing) return null;
+      if (existing.archivedAt == null) return existing; // già attivo: no-op
+      return tx.package.update({ where: { id }, data: { archivedAt: null } });
+    });
+    if (!p) throw new NotFoundException('Pacchetto non trovato');
+    return toPackageDTO(p);
+  }
+
   /**
-   * Elimina un pacchetto del tenant corrente e lo ritorna; 409 se referenziato da tariffe/prenotazioni.
-   * NB: `Rate_packageId_fkey` e `Booking_packageId_fkey` sono ON DELETE SET NULL (non RESTRICT): senza
-   * questa guardia esplicita la delete riuscirebbe silenziosamente, azzerando il packageId su tariffe
-   * (prezzo server-autoritativo alterato) e prenotazioni. Guardia pre-delete dentro la stessa transazione.
+   * Elimina fisicamente un pacchetto del tenant e lo ritorna. Consentito SOLO su un pacchetto già
+   * archiviato (409 altrimenti: flusso in due passi, niente cancellazioni accidentali) e senza
+   * riferimenti (409 se rate/booking > 0 — rete di sicurezza: le FK sono ON DELETE SET NULL, senza
+   * questa guardia la delete azzererebbe silenziosamente il packageId su tariffe/prenotazioni).
    */
   async deletePackage(id: string): Promise<PackageDTO> {
     const tenantId = this.tenant.require();
     const p = await this.prisma.forTenant(tenantId, async (tx) => {
       const existing = await tx.package.findFirst({ where: { id } });
       if (!existing) return null;
+      if (existing.archivedAt == null) {
+        throw new ConflictException('Archivia il pacchetto prima di eliminarlo definitivamente.');
+      }
       const [rateCount, bookingCount] = await Promise.all([
         tx.rate.count({ where: { packageId: id } }),
         tx.booking.count({ where: { packageId: id } }),

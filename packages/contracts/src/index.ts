@@ -115,11 +115,12 @@ export interface LoginResponse {
 /** Tipo di prenotazione (ADR-0006). A1 usa solo `daily`. */
 export type BookingType = 'daily' | 'periodic' | 'subscription';
 
-/** Pacchetto/dotazione prenotabile (ADR-0006). */
+/** Pacchetto/dotazione prenotabile (ADR-0006). `archived` presente solo quando archiviato. */
 export interface PackageDTO {
   id: string;
   name: string;
   equipment: Record<string, number>; // es. { sunbeds: 2, deckchairs: 1 }
+  archived?: boolean; // true = ritirato dalla circolazione (soft-delete); assente = attivo
 }
 
 /** Input del preventivo di prezzo (pricing engine, ADR-0006/ADR-0032). Stessa forma della create. */

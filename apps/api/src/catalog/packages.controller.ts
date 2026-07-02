@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Post, Query } from '@nestjs/common';
 import type { PackageDTO } from '@coralyn/contracts';
 import { CatalogService } from './catalog.service';
 import { CreatePackageDto } from './dto/create-package.dto';
@@ -9,8 +9,8 @@ export class PackagesController {
   constructor(private readonly catalog: CatalogService) {}
 
   @Get()
-  list(): Promise<PackageDTO[]> {
-    return this.catalog.listPackages();
+  list(@Query('includeArchived') includeArchived?: string): Promise<PackageDTO[]> {
+    return this.catalog.listPackages(includeArchived === 'true');
   }
 
   @Post()
@@ -21,6 +21,16 @@ export class PackagesController {
   @Patch(':id')
   update(@Param('id') id: string, @Body() body: UpdatePackageDto): Promise<PackageDTO> {
     return this.catalog.updatePackage(id, body);
+  }
+
+  @Post(':id/archive')
+  archive(@Param('id') id: string): Promise<PackageDTO> {
+    return this.catalog.archivePackage(id);
+  }
+
+  @Post(':id/restore')
+  restore(@Param('id') id: string): Promise<PackageDTO> {
+    return this.catalog.restorePackage(id);
   }
 
   @Delete(':id')

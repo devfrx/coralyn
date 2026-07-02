@@ -68,10 +68,11 @@ describe('Packages (e2e)', () => {
     await request(app.getHttpServer()).patch(`/api/packages/${id}`).set(...bearer(token2)).send({ name: 'X' }).expect(404);
   });
 
-  it('DELETE elimina il pacchetto e lo ritorna; 404 se inesistente', async () => {
+  it('DELETE elimina un pacchetto ARCHIVIATO e lo ritorna; 404 se poi si ripete', async () => {
     const created = await request(app.getHttpServer())
       .post('/api/packages').set(...bearer(token1)).send({ name: 'Effimero', equipment: {} }).expect(201);
     const id = created.body.id as string;
+    await request(app.getHttpServer()).post(`/api/packages/${id}/archive`).set(...bearer(token1)).expect(201);
     const del = await request(app.getHttpServer()).delete(`/api/packages/${id}`).set(...bearer(token1)).expect(200);
     expect(del.body.id).toBe(id);
     await request(app.getHttpServer()).delete(`/api/packages/${id}`).set(...bearer(token1)).expect(404);
@@ -81,7 +82,7 @@ describe('Packages (e2e)', () => {
     await request(app.getHttpServer()).post('/api/packages').set(...bearer(token1)).send({ name: '', equipment: {} }).expect(400);
   });
 
-  it('DELETE di un pacchetto referenziato da una tariffa → 409', async () => {
+  it('DELETE di un pacchetto ARCHIVIATO ma referenziato da una tariffa → 409', async () => {
     const pkg = await request(app.getHttpServer())
       .post('/api/packages').set(...bearer(token1)).send({ name: 'Referenziato', equipment: {} }).expect(201);
     const season = await request(app.getHttpServer())
@@ -90,7 +91,49 @@ describe('Packages (e2e)', () => {
     await request(app.getHttpServer())
       .post('/api/rates').set(...bearer(token1))
       .send({ seasonId: season.body.id, packageId: pkg.body.id, price: 40 }).expect(201);
+    await request(app.getHttpServer()).post(`/api/packages/${pkg.body.id}/archive`).set(...bearer(token1)).expect(201);
 
     await request(app.getHttpServer()).delete(`/api/packages/${pkg.body.id}`).set(...bearer(token1)).expect(409);
+  });
+
+  it('archive nasconde il pacchetto dal default e lo mostra con includeArchived; restore lo riporta', async () => {
+    const created = await request(app.getHttpServer())
+      .post('/api/packages').set(...bearer(token1)).send({ name: 'Da Archiviare', equipment: {} }).expect(201);
+    const id = created.body.id as string;
+
+    const archived = await request(app.getHttpServer())
+      .post(`/api/packages/${id}/archive`).set(...bearer(token1)).expect(201);
+    expect(archived.body).toMatchObject({ id, archived: true });
+
+    const listDefault = await request(app.getHttpServer()).get('/api/packages').set(...bearer(token1)).expect(200);
+    expect(listDefault.body.some((p: { id: string }) => p.id === id)).toBe(false);
+
+    const listAll = await request(app.getHttpServer())
+      .get('/api/packages?includeArchived=true').set(...bearer(token1)).expect(200);
+    const found = listAll.body.find((p: { id: string }) => p.id === id);
+    expect(found).toMatchObject({ id, archived: true });
+
+    const restored = await request(app.getHttpServer())
+      .post(`/api/packages/${id}/restore`).set(...bearer(token1)).expect(201);
+    expect(restored.body.id).toBe(id);
+    expect(restored.body.archived).toBeUndefined();
+
+    const listAfter = await request(app.getHttpServer()).get('/api/packages').set(...bearer(token1)).expect(200);
+    expect(listAfter.body.some((p: { id: string }) => p.id === id)).toBe(true);
+  });
+
+  it('DELETE di un pacchetto NON archiviato → 409 (va prima archiviato)', async () => {
+    const created = await request(app.getHttpServer())
+      .post('/api/packages').set(...bearer(token1)).send({ name: 'Attivo', equipment: {} }).expect(201);
+    await request(app.getHttpServer()).delete(`/api/packages/${created.body.id}`).set(...bearer(token1)).expect(409);
+  });
+
+  it('archive/restore/delete sono isolati per tenant (404 cross-tenant)', async () => {
+    const created = await request(app.getHttpServer())
+      .post('/api/packages').set(...bearer(token1)).send({ name: 'Isolato', equipment: {} }).expect(201);
+    const id = created.body.id as string;
+    await request(app.getHttpServer()).post(`/api/packages/${id}/archive`).set(...bearer(token2)).expect(404);
+    await request(app.getHttpServer()).post(`/api/packages/${id}/restore`).set(...bearer(token2)).expect(404);
+    await request(app.getHttpServer()).delete(`/api/packages/${id}`).set(...bearer(token2)).expect(404);
   });
 });
