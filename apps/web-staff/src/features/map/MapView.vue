@@ -201,6 +201,8 @@ const matchedRateLabel = computed<string>(() => {
   if (r.type) parts.push(TYPE_LABEL[r.type] ?? r.type);
   if (r.periodStart) parts.push(`Periodo ${r.periodStart}${r.periodEnd ? '–' + r.periodEnd : ''}`);
   const dims = parts.length ? parts.join(' · ') : 'Tariffa base del listino';
+  // Il suffisso deriva dal TIPO CORRENTE della prenotazione (non da `r.type`): il calcolo del prezzo è
+  // funzione del tipo scelto, non della tariffa matchata (un abbonamento può vincere una catch-all → forfait).
   const suffix = bookingType.value === 'subscription' ? ' forfait stagione' : '/g';
   return `${dims} — ${formatEuro(r.price)}${suffix}`;
 });
