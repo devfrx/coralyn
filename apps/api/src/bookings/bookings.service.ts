@@ -140,6 +140,50 @@ export class BookingsService {
     );
     if (conflict) throw new ConflictException('Fascia non disponibile per questo ombrellone');
 
+    // Hold di prelazione (D-011, ADR-0034): mentre una finestra è APERTA, l'ombrellone+fascia
+    // dell'avente-diritto è riservato a lui; un ALTRO cliente non può prenotarlo nella stagione di
+    // destinazione. Valutazione lazy: alla scadenza (today > deadline) la campagna non è più "aperta"
+    // e il blocco cade da solo (rilascio). Filtro in DB su scadenza + intersezione con la destinazione.
+    const today = todayInRome();
+    const openCampaigns = await tx.renewalCampaign.findMany({
+      where: {
+        deadline: { gte: toDbDate(today) },
+        destinationSeason: { startDate: { lte: dbEnd }, endDate: { gte: dbStart } },
+      },
+      include: { originSeason: true, destinationSeason: true },
+    });
+    for (const c of openCampaigns) {
+      // Aventi-diritto: abbonati CONFERMATI della stagione di ORIGINE sullo stesso ombrellone, di un
+      // ALTRO cliente (il proprio rinnovo non confligge col proprio hold), non ancora rinnovati nella
+      // stagione di destinazione. Fascia sovrapposta → riservato.
+      const holders = await tx.booking.findMany({
+        where: {
+          type: 'subscription',
+          status: 'confirmed',
+          umbrellaId: p.umbrellaId,
+          startDate: { lte: c.originSeason.endDate },
+          endDate: { gte: c.originSeason.startDate },
+          customerId: { not: p.customerId },
+        },
+        include: { timeSlot: true, renewals: true },
+      });
+      const held = holders.some(
+        (h) =>
+          slotsOverlap(h.timeSlot, p.slot) &&
+          !h.renewals.some(
+            (r) =>
+              r.status === 'confirmed' &&
+              dateRangesOverlap(
+                r.startDate,
+                r.endDate,
+                c.destinationSeason.startDate,
+                c.destinationSeason.endDate,
+              ),
+          ),
+      );
+      if (held) throw new ConflictException('Ombrellone riservato per prelazione');
+    }
+
     // Prezzo (server-autoritativo, mai dal client).
     const totalPrice = this.priceOrThrow(
       await this.catalog.priceWithin(tx, {

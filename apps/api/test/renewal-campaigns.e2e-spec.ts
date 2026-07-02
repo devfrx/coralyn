@@ -213,5 +213,137 @@ describe('Renewal campaigns (e2e)', () => {
       await request(app.getHttpServer()).delete(`/api/renewal-campaigns/${created.body.id}`).set(...bearer(token2)).expect(404);
       await request(app.getHttpServer()).delete(`/api/renewal-campaigns/${created.body.id}`).set(...bearer(token1)).expect(200);
     });
+
+    // Chiude un gap di copertura del Task 4: la scadenza è inclusiva (today == deadline → ancora 'open'),
+    // ma nessun test lo esercitava esplicitamente con la data odierna reale.
+    it('boundary: deadline == oggi → finestra ancora open (scadenza inclusiva)', async () => {
+      const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Rome' }).format(new Date());
+      const boundaryCampaign = await request(app.getHttpServer()).post('/api/renewal-campaigns').set(...bearer(token1))
+        .send({ originDate: '2026-07-01', destinationDate: '2027-07-01', deadline: today }).expect(201);
+
+      const res = await request(app.getHttpServer()).get('/api/renewal-campaigns?destinationDate=2027-07-01').set(...bearer(token1)).expect(200);
+      const w = res.body.windows.find((x: { sourceBookingId: string }) => x.sourceBookingId === srcSeniorId);
+      expect(w.state).toBe('open');
+
+      await request(app.getHttpServer()).delete(`/api/renewal-campaigns/${boundaryCampaign.body.id}`).set(...bearer(token1)).expect(200);
+    });
+  });
+
+  describe('hold di prelazione (D-011)', () => {
+    let custA: string;
+    let custB: string;
+    let uX: string;
+    let campaignId: string;
+
+    beforeAll(async () => {
+      custA = (await mkCustomer('HoldA')).id;
+      custB = (await mkCustomer('HoldB')).id;
+      uX = (await mkUmbrella('rc-hold-uX', 300)).id;
+
+      // A: abbonamento 2026 su uX/Mattina (avente-diritto della campagna 2026→2027).
+      await request(app.getHttpServer()).post('/api/bookings').set(...bearer(token1))
+        .send({ customerId: custA, umbrellaId: uX, timeSlotId: ids.slotMorning, type: 'subscription', startDate: '2026-07-01' }).expect(201);
+    });
+
+    afterEach(async () => {
+      // Ogni test gestisce la propria campagna (aperta/chiusa/scaduta): la ripuliamo per isolare i casi.
+      if (campaignId) {
+        await prisma.forTenant(s1, (tx) => tx.renewalCampaign.deleteMany({ where: { id: campaignId } }));
+      }
+    });
+
+    it('hold attivo: campagna aperta → B non può prenotare uX/Mattina in 2027 → 409', async () => {
+      campaignId = (
+        await request(app.getHttpServer()).post('/api/renewal-campaigns').set(...bearer(token1))
+          .send({ originDate: '2026-07-01', destinationDate: '2027-07-01', deadline: '2099-12-31' }).expect(201)
+      ).body.id;
+
+      const res = await request(app.getHttpServer()).post('/api/bookings').set(...bearer(token1))
+        .send({ customerId: custB, umbrellaId: uX, timeSlotId: ids.slotMorning, type: 'subscription', startDate: '2027-07-01' })
+        .expect(409);
+      expect(res.body.message).toBe('Ombrellone riservato per prelazione');
+    });
+
+    it('il proprio rinnovo non è bloccato dal proprio hold: A rinnova uX verso 2027 → 201', async () => {
+      campaignId = (
+        await request(app.getHttpServer()).post('/api/renewal-campaigns').set(...bearer(token1))
+          .send({ originDate: '2026-07-01', destinationDate: '2027-07-01', deadline: '2099-12-31' }).expect(201)
+      ).body.id;
+
+      const srcA = await prisma.forTenant(s1, (tx) =>
+        tx.booking.findFirst({ where: { customerId: custA, umbrellaId: uX, type: 'subscription', status: 'confirmed' } }),
+      );
+      const renewed = await request(app.getHttpServer()).post(`/api/bookings/${srcA!.id}/renew`).set(...bearer(token1))
+        .send({ startDate: '2027-07-01' }).expect(201);
+
+      // Cleanup: annulla il rinnovo per non lasciare uX occupato in 2027 per gli altri test del blocco.
+      await request(app.getHttpServer()).delete(`/api/bookings/${renewed.body.id}`).set(...bearer(token1)).expect(200);
+    });
+
+    it('rilascio lazy: campagna scaduta (deadline 2000-01-01) → B prenota uX in 2027 → 201', async () => {
+      campaignId = (
+        await request(app.getHttpServer()).post('/api/renewal-campaigns').set(...bearer(token1))
+          .send({ originDate: '2026-07-01', destinationDate: '2027-07-01', deadline: '2000-01-01' }).expect(201)
+      ).body.id;
+
+      const created = await request(app.getHttpServer()).post('/api/bookings').set(...bearer(token1))
+        .send({ customerId: custB, umbrellaId: uX, timeSlotId: ids.slotMorning, type: 'subscription', startDate: '2027-07-01' })
+        .expect(201);
+
+      // Cleanup: libera uX/2027 per gli altri test del blocco.
+      await request(app.getHttpServer()).delete(`/api/bookings/${created.body.id}`).set(...bearer(token1)).expect(200);
+    });
+
+    it('chiusura libera: campagna aperta → DELETE → B prenota uX in 2027 → 201', async () => {
+      const opened = (
+        await request(app.getHttpServer()).post('/api/renewal-campaigns').set(...bearer(token1))
+          .send({ originDate: '2026-07-01', destinationDate: '2027-07-01', deadline: '2099-12-31' }).expect(201)
+      ).body.id;
+      await request(app.getHttpServer()).delete(`/api/renewal-campaigns/${opened}`).set(...bearer(token1)).expect(200);
+
+      const created = await request(app.getHttpServer()).post('/api/bookings').set(...bearer(token1))
+        .send({ customerId: custB, umbrellaId: uX, timeSlotId: ids.slotMorning, type: 'subscription', startDate: '2027-07-01' })
+        .expect(201);
+
+      // Cleanup: libera uX/2027 per gli altri test del blocco.
+      await request(app.getHttpServer()).delete(`/api/bookings/${created.body.id}`).set(...bearer(token1)).expect(200);
+    });
+
+    it('isolamento: l\'hold del tenant1 non tocca il tenant2', async () => {
+      campaignId = (
+        await request(app.getHttpServer()).post('/api/renewal-campaigns').set(...bearer(token1))
+          .send({ originDate: '2026-07-01', destinationDate: '2027-07-01', deadline: '2099-12-31' }).expect(201)
+      ).body.id;
+
+      // Struttura minima indipendente per s2 (nessuna campagna, nessun conflitto): deve prenotare liberamente.
+      const idsS2 = await seedMapTenant(prisma, s2);
+      await seedPricingTenant(prisma, s2, { afternoonSlotId: idsS2.slotAfternoon });
+      const custS2 = await prisma.forTenant(s2, (tx) =>
+        tx.customer.create({ data: { establishmentId: s2, firstName: 'S2Cust', lastName: 'Test' } }),
+      );
+
+      await request(app.getHttpServer()).post('/api/bookings').set(...bearer(token2))
+        .send({ customerId: custS2.id, umbrellaId: idsS2.u1, timeSlotId: idsS2.slotMorning, type: 'subscription', startDate: '2027-07-01' })
+        .expect(201);
+
+      await prisma.forTenant(s2, (tx) => tx.booking.deleteMany({}));
+      await prisma.forTenant(s2, (tx) => tx.customer.deleteMany({}));
+      await cleanPricingTenant(prisma, s2);
+      await cleanMapTenant(prisma, s2);
+    });
+
+    it('fascia diversa non è bloccata: A tiene Mattina, B prenota uX/Pomeriggio in 2027 → 201', async () => {
+      campaignId = (
+        await request(app.getHttpServer()).post('/api/renewal-campaigns').set(...bearer(token1))
+          .send({ originDate: '2026-07-01', destinationDate: '2027-07-01', deadline: '2099-12-31' }).expect(201)
+      ).body.id;
+
+      const created = await request(app.getHttpServer()).post('/api/bookings').set(...bearer(token1))
+        .send({ customerId: custB, umbrellaId: uX, timeSlotId: ids.slotAfternoon, type: 'subscription', startDate: '2027-07-01' })
+        .expect(201);
+
+      // Cleanup: libera uX/2027/Pomeriggio per gli altri test del blocco.
+      await request(app.getHttpServer()).delete(`/api/bookings/${created.body.id}`).set(...bearer(token1)).expect(200);
+    });
   });
 });
