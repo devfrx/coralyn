@@ -52,8 +52,8 @@ describe('Rates (e2e)', () => {
 
   it('POST crea una catch-all e GET la elenca per stagione', async () => {
     const res = await request(app.getHttpServer())
-      .post('/api/rates').set(...bearer(token1)).send({ seasonId, price: 25, unit: 'day' }).expect(201);
-    expect(res.body).toMatchObject({ seasonId, price: 25, unit: 'day' });
+      .post('/api/rates').set(...bearer(token1)).send({ seasonId, price: 25 }).expect(201);
+    expect(res.body).toMatchObject({ seasonId, price: 25 });
     expect(res.body.type).toBeUndefined();
 
     const list = await request(app.getHttpServer()).get(`/api/rates?seasonId=${seasonId}`).set(...bearer(token1)).expect(200);
@@ -63,12 +63,12 @@ describe('Rates (e2e)', () => {
   it('POST di una firma duplicata → 409', async () => {
     // già esiste la catch-all del test precedente → un secondo catch-all viola Rate_signature_key
     await request(app.getHttpServer())
-      .post('/api/rates').set(...bearer(token1)).send({ seasonId, price: 99, unit: 'day' }).expect(409);
+      .post('/api/rates').set(...bearer(token1)).send({ seasonId, price: 99 }).expect(409);
   });
 
   it('PATCH modifica il prezzo di una tariffa', async () => {
     const created = await request(app.getHttpServer())
-      .post('/api/rates').set(...bearer(token1)).send({ seasonId, type: 'subscription', price: 700, unit: 'period' }).expect(201);
+      .post('/api/rates').set(...bearer(token1)).send({ seasonId, type: 'subscription', price: 700 }).expect(201);
     const patched = await request(app.getHttpServer())
       .patch(`/api/rates/${created.body.id}`).set(...bearer(token1)).send({ price: 750 }).expect(200);
     expect(patched.body.price).toBe(750);
@@ -77,7 +77,7 @@ describe('Rates (e2e)', () => {
   it('PATCH con dimensione a null la azzera (wildcard), non lascia il vecchio valore', async () => {
     const created = await request(app.getHttpServer())
       .post('/api/rates').set(...bearer(token1))
-      .send({ seasonId, sectorId: ids.sectorId, type: 'periodic', price: 33, unit: 'day' }).expect(201);
+      .send({ seasonId, sectorId: ids.sectorId, type: 'periodic', price: 33 }).expect(201);
     expect(created.body.sectorId).toBe(ids.sectorId);
 
     const patched = await request(app.getHttpServer())
@@ -95,7 +95,7 @@ describe('Rates (e2e)', () => {
 
   it('DELETE elimina la tariffa e la ritorna; 404 se inesistente', async () => {
     const created = await request(app.getHttpServer())
-      .post('/api/rates').set(...bearer(token1)).send({ seasonId, timeSlotId: ids.slotMorning, price: 15, unit: 'day' }).expect(201);
+      .post('/api/rates').set(...bearer(token1)).send({ seasonId, timeSlotId: ids.slotMorning, price: 15 }).expect(201);
     const del = await request(app.getHttpServer()).delete(`/api/rates/${created.body.id}`).set(...bearer(token1)).expect(200);
     expect(del.body.id).toBe(created.body.id);
     await request(app.getHttpServer()).delete(`/api/rates/${created.body.id}`).set(...bearer(token1)).expect(404);

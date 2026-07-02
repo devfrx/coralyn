@@ -200,11 +200,6 @@ model RenewalCampaign {
   @@index([establishmentId])
 }
 
-enum RateUnit {
-  day
-  period
-}
-
 model Package {
   id              String        @id @default(uuid()) @db.Uuid
   establishmentId String        @db.Uuid
@@ -255,7 +250,6 @@ model Rate {
   periodStart     DateTime?     @db.Date
   periodEnd       DateTime?     @db.Date
   price           Decimal       @db.Decimal(10, 2)
-  unit            RateUnit
   establishment   Establishment @relation(fields: [establishmentId], references: [id])
   pricing         Pricing       @relation(fields: [pricingId], references: [id])
   sector          Sector?       @relation(fields: [sectorId], references: [id])

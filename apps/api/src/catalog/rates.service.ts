@@ -49,7 +49,6 @@ export class RatesService {
             periodStart: input.periodStart ? toDbDate(input.periodStart) : null,
             periodEnd: input.periodEnd ? toDbDate(input.periodEnd) : null,
             price: input.price,
-            unit: input.unit,
           },
         });
       });
@@ -77,7 +76,6 @@ export class RatesService {
         if (input.periodStart !== undefined) data.periodStart = input.periodStart ? toDbDate(input.periodStart) : null;
         if (input.periodEnd !== undefined) data.periodEnd = input.periodEnd ? toDbDate(input.periodEnd) : null;
         if (input.price !== undefined) data.price = input.price;
-        if (input.unit !== undefined) data.unit = input.unit;
         const updated = await tx.rate.update({ where: { id }, data });
         return { updated, seasonId: existing.pricing.seasonId };
       });

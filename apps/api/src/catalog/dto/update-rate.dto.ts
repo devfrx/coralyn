@@ -1,10 +1,9 @@
 import { IsIn, IsNumber, IsOptional, Matches, Min } from 'class-validator';
-import type { BookingType, RateUnit, UpdateRateInput } from '@coralyn/contracts';
+import type { BookingType, UpdateRateInput } from '@coralyn/contracts';
 import { UUID_SHAPE } from '../../common/uuid';
 import { IsCalendarDate } from '../../common/is-calendar-date';
 
 const TYPES: BookingType[] = ['daily', 'periodic', 'subscription'];
-const UNITS: RateUnit[] = ['day', 'period'];
 
 export class UpdateRateDto implements UpdateRateInput {
   // Le dimensioni accettano `| null` (azzera la dimensione in edit). @IsOptional() di class-validator
@@ -17,5 +16,4 @@ export class UpdateRateDto implements UpdateRateInput {
   @IsOptional() @IsCalendarDate() periodStart?: string | null;
   @IsOptional() @IsCalendarDate() periodEnd?: string | null;
   @IsOptional() @IsNumber({ maxDecimalPlaces: 2 }) @Min(0) price?: number;
-  @IsOptional() @IsIn(UNITS) unit?: RateUnit;
 }

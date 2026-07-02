@@ -1,4 +1,4 @@
-import type { BookingType, RateUnit } from '@coralyn/contracts';
+import type { BookingType } from '@coralyn/contracts';
 
 /** Contesto di una prenotazione da prezzare (posizione gia risolta a settore/fila). */
 export interface PricingContext {
@@ -22,7 +22,6 @@ export interface RateRow {
   periodStart: string | null;
   periodEnd: string | null;
   price: number;
-  unit: RateUnit;
 }
 
 export type PriceResult =
@@ -89,6 +88,6 @@ export function resolvePrice(ctx: PricingContext, rates: RateRow[]): PriceResult
   }
 
   const days = daysInclusive(ctx.startDate, ctx.endDate);
-  const totalPrice = best.unit === 'day' ? round2(best.price * days) : round2(best.price);
+  const totalPrice = ctx.type === 'subscription' ? round2(best.price) : round2(best.price * days);
   return { ok: true, totalPrice, rate: best };
 }

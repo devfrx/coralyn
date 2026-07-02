@@ -96,7 +96,7 @@ describe('TimeSlots (e2e)', () => {
       .send({ name: 'Estate 2029', startDate: '2029-06-01', endDate: '2029-09-30' })).body.id;
     const rate = await request(app.getHttpServer())
       .post('/api/rates').set(...bearer(token1))
-      .send({ seasonId, timeSlotId: ids.slotAfternoon, price: 20, unit: 'day' }).expect(201);
+      .send({ seasonId, timeSlotId: ids.slotAfternoon, price: 20 }).expect(201);
     await request(app.getHttpServer())
       .delete(`/api/time-slots/${ids.slotAfternoon}`).set(...bearer(token1)).expect(409);
     // pulizia tariffa+stagione (lascia le 2 fasce base)

@@ -151,7 +151,7 @@ describe('Bookings (e2e)', () => {
     it('il quote espone matchedRate (provenienza): la catch-all a 28/giorno', async () => {
       const res = await request(app.getHttpServer()).get(`/api/bookings/quote?umbrellaId=${ids.u1}&timeSlotId=${ids.slotMorning}&type=daily&startDate=${D}`).set(...bearer(token1)).expect(200);
       expect(res.body.totalPrice).toBe(28);
-      expect(res.body.matchedRate).toMatchObject({ price: 28, unit: 'day' });
+      expect(res.body.matchedRate).toMatchObject({ price: 28 });
       expect(res.body.matchedRate.id).toEqual(expect.any(String));
       expect(res.body.matchedRate.timeSlotId).toBeUndefined(); // catch-all: dimensione null → assente
     });

@@ -1,10 +1,9 @@
 import { IsIn, IsNumber, IsOptional, Matches, Min } from 'class-validator';
-import type { BookingType, CreateRateInput, RateUnit } from '@coralyn/contracts';
+import type { BookingType, CreateRateInput } from '@coralyn/contracts';
 import { UUID_SHAPE } from '../../common/uuid';
 import { IsCalendarDate } from '../../common/is-calendar-date';
 
 const TYPES: BookingType[] = ['daily', 'periodic', 'subscription'];
-const UNITS: RateUnit[] = ['day', 'period'];
 
 export class CreateRateDto implements CreateRateInput {
   @Matches(UUID_SHAPE, { message: 'seasonId must be a UUID' })
@@ -41,7 +40,4 @@ export class CreateRateDto implements CreateRateInput {
   @IsNumber({ maxDecimalPlaces: 2 })
   @Min(0)
   price!: number;
-
-  @IsIn(UNITS)
-  unit!: RateUnit;
 }

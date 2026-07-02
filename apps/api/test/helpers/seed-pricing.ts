@@ -1,4 +1,3 @@
-import { RateUnit } from '@prisma/client';
 import type { PrismaService } from '../../src/prisma/prisma.service';
 
 export interface PricingSeedIds {
@@ -28,7 +27,7 @@ export async function seedPricingTenant(
     });
     const pricing = await tx.pricing.create({ data: { establishmentId, seasonId: season.id } });
     await tx.rate.create({
-      data: { establishmentId, pricingId: pricing.id, price: 28, unit: RateUnit.day },
+      data: { establishmentId, pricingId: pricing.id, price: 28 },
     });
     await tx.rate.create({
       data: {
@@ -36,7 +35,6 @@ export async function seedPricingTenant(
         pricingId: pricing.id,
         timeSlotId: opts.afternoonSlotId,
         price: 40,
-        unit: RateUnit.day,
       },
     });
     await tx.rate.create({
@@ -45,7 +43,6 @@ export async function seedPricingTenant(
         pricingId: pricing.id,
         packageId: pkg.id,
         price: 60,
-        unit: RateUnit.day,
       },
     });
     await tx.rate.create({
@@ -54,7 +51,6 @@ export async function seedPricingTenant(
         pricingId: pricing.id,
         type: 'subscription',
         price: 800,
-        unit: RateUnit.period,
       },
     });
 
@@ -69,10 +65,10 @@ export async function seedPricingTenant(
     });
     const pricing2027 = await tx.pricing.create({ data: { establishmentId, seasonId: season2027.id } });
     await tx.rate.create({
-      data: { establishmentId, pricingId: pricing2027.id, price: 30, unit: RateUnit.day },
+      data: { establishmentId, pricingId: pricing2027.id, price: 30 },
     });
     await tx.rate.create({
-      data: { establishmentId, pricingId: pricing2027.id, type: 'subscription', price: 850, unit: RateUnit.period },
+      data: { establishmentId, pricingId: pricing2027.id, type: 'subscription', price: 850 },
     });
 
     return { seasonId: season.id, season2027Id: season2027.id, pricingId: pricing.id, packageId: pkg.id };

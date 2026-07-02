@@ -35,7 +35,6 @@ function toRateRow(r: Rate): RateRow {
     periodStart: r.periodStart ? formatDbDate(r.periodStart) : null,
     periodEnd: r.periodEnd ? formatDbDate(r.periodEnd) : null,
     price: Number(r.price),
-    unit: r.unit,
   };
 }
 
@@ -52,7 +51,6 @@ function rateRowToDTO(row: RateRow, seasonId: string): RateDTO {
     periodStart: row.periodStart ?? undefined,
     periodEnd: row.periodEnd ?? undefined,
     price: row.price,
-    unit: row.unit,
   };
 }
 

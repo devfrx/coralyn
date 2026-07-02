@@ -16,6 +16,5 @@ export function toRateDTO(r: Rate, seasonId: string): RateDTO {
     periodStart: r.periodStart ? formatDbDate(r.periodStart) : undefined,
     periodEnd: r.periodEnd ? formatDbDate(r.periodEnd) : undefined,
     price: Number(r.price),
-    unit: r.unit,
   };
 }

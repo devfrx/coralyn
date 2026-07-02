@@ -145,23 +145,23 @@ async function main(): Promise<void> {
     const RATE_BASE = u(9, 1);
     await tx.rate.upsert({
       where: { id: RATE_BASE },
-      update: { price: 28, unit: 'day' },
-      create: { id: RATE_BASE, establishmentId: EID, pricingId: PRICING, price: 28, unit: 'day' },
+      update: { price: 28 },
+      create: { id: RATE_BASE, establishmentId: EID, pricingId: PRICING, price: 28 },
     });
     // Pomeriggio (fascia u(2,2)) piu caro: dimostra la precedenza per fascia.
     const RATE_PM = u(9, 2);
     await tx.rate.upsert({
       where: { id: RATE_PM },
-      update: { timeSlotId: u(2, 2), price: 40, unit: 'day' },
-      create: { id: RATE_PM, establishmentId: EID, pricingId: PRICING, timeSlotId: u(2, 2), price: 40, unit: 'day' },
+      update: { timeSlotId: u(2, 2), price: 40 },
+      create: { id: RATE_PM, establishmentId: EID, pricingId: PRICING, timeSlotId: u(2, 2), price: 40 },
     });
 
-    // Abbonamento (type=subscription) a forfait di stagione: esercita unit=period (A4.1).
+    // Abbonamento (type=subscription) a forfait di stagione.
     const RATE_SUB = u(9, 3);
     await tx.rate.upsert({
       where: { id: RATE_SUB },
-      update: { type: 'subscription', price: 800, unit: 'period' },
-      create: { id: RATE_SUB, establishmentId: EID, pricingId: PRICING, type: 'subscription', price: 800, unit: 'period' },
+      update: { type: 'subscription', price: 800 },
+      create: { id: RATE_SUB, establishmentId: EID, pricingId: PRICING, type: 'subscription', price: 800 },
     });
 
     // 2a stagione 2027 (listino con abbonamento a prezzo diverso: 850) per esercitare il rinnovo (A4.2).
@@ -180,14 +180,14 @@ async function main(): Promise<void> {
     const RATE_BASE_2027 = u(9, 4);
     await tx.rate.upsert({
       where: { id: RATE_BASE_2027 },
-      update: { price: 30, unit: 'day' },
-      create: { id: RATE_BASE_2027, establishmentId: EID, pricingId: PRICING_2027, price: 30, unit: 'day' },
+      update: { price: 30 },
+      create: { id: RATE_BASE_2027, establishmentId: EID, pricingId: PRICING_2027, price: 30 },
     });
     const RATE_SUB_2027 = u(9, 5);
     await tx.rate.upsert({
       where: { id: RATE_SUB_2027 },
-      update: { type: 'subscription', price: 850, unit: 'period' },
-      create: { id: RATE_SUB_2027, establishmentId: EID, pricingId: PRICING_2027, type: 'subscription', price: 850, unit: 'period' },
+      update: { type: 'subscription', price: 850 },
+      create: { id: RATE_SUB_2027, establishmentId: EID, pricingId: PRICING_2027, type: 'subscription', price: 850 },
     });
   });
 }

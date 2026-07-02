@@ -13,7 +13,7 @@ const ctx = (over: Partial<PricingContext> = {}): PricingContext => ({
 
 const rate = (over: Partial<RateRow>): RateRow => ({
   id: 'r-test', type: null, sectorId: null, rowId: null, packageId: null, timeSlotId: null,
-  periodStart: null, periodEnd: null, price: 0, unit: 'day', ...over,
+  periodStart: null, periodEnd: null, price: 0, ...over,
 });
 
 const CATCH_ALL = rate({ price: 28 });
@@ -66,18 +66,23 @@ describe('resolvePrice', () => {
     expect(resolvePrice(ctx({ timeSlotId: 'slot-am' }), [CATCH_ALL, rPm])).toMatchObject({ totalPrice: 28 });
   });
 
-  it('unit=day su piu giorni -> price x giorni (estremi inclusi)', () => {
-    const r = resolvePrice(ctx({ startDate: '2026-07-15', endDate: '2026-07-17' }), [rate({ price: 10, unit: 'day' })]);
+  it('daily -> price x 1', () => {
+    const r = resolvePrice(ctx({ type: 'daily' }), [rate({ price: 28 })]);
+    expect(r).toMatchObject({ ok: true, totalPrice: 28 });
+  });
+
+  it('periodic su piu giorni -> price x giorni (estremi inclusi)', () => {
+    const r = resolvePrice(ctx({ type: 'periodic', startDate: '2026-07-15', endDate: '2026-07-17' }), [rate({ price: 10 })]);
     expect(r).toMatchObject({ totalPrice: 30 }); // 3 giorni
   });
 
-  it('unit=period -> forfait, indipendente dai giorni', () => {
-    const r = resolvePrice(ctx({ startDate: '2026-07-15', endDate: '2026-07-20' }), [rate({ price: 200, unit: 'period' })]);
+  it('subscription -> forfait, indipendente dai giorni', () => {
+    const r = resolvePrice(ctx({ type: 'subscription', startDate: '2026-07-15', endDate: '2026-07-20' }), [rate({ price: 200 })]);
     expect(r).toMatchObject({ totalPrice: 200 });
   });
 
-  it('centesimi: 0.1 x 3 senza errore float', () => {
-    const r = resolvePrice(ctx({ startDate: '2026-07-15', endDate: '2026-07-17' }), [rate({ price: 0.1, unit: 'day' })]);
+  it('centesimi: 0.1 x 3 senza errore float (periodic)', () => {
+    const r = resolvePrice(ctx({ type: 'periodic', startDate: '2026-07-15', endDate: '2026-07-17' }), [rate({ price: 0.1 })]);
     expect(r).toMatchObject({ totalPrice: 0.3 });
   });
 

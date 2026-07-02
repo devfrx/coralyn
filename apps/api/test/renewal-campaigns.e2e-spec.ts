@@ -1,6 +1,6 @@
 import { Test } from '@nestjs/testing';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
-import { Role, RateUnit } from '@prisma/client';
+import { Role } from '@prisma/client';
 import request from 'supertest';
 import { AppModule } from '../src/app.module';
 import { PrismaService } from '../src/prisma/prisma.service';
@@ -115,7 +115,7 @@ describe('Renewal campaigns (e2e)', () => {
           data: { establishmentId: s1, name: 'Estate 2025 (rc-test)', startDate: new Date('2025-05-01T00:00:00Z'), endDate: new Date('2025-09-30T00:00:00Z') },
         });
         const pricing2025 = await tx.pricing.create({ data: { establishmentId: s1, seasonId: season2025.id } });
-        await tx.rate.create({ data: { establishmentId: s1, pricingId: pricing2025.id, type: 'subscription', price: 750, unit: RateUnit.period } });
+        await tx.rate.create({ data: { establishmentId: s1, pricingId: pricing2025.id, type: 'subscription', price: 750 } });
       });
       const uSenior2025 = (await mkUmbrella('rc-senior-2025', 200)).id;
       const uJunior = (await mkUmbrella('rc-junior', 202)).id;

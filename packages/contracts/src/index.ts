@@ -122,9 +122,6 @@ export interface PackageDTO {
   equipment: Record<string, number>; // es. { sunbeds: 2, deckchairs: 1 }
 }
 
-/** Unità di prezzo di una Tariffa (ADR-0006). */
-export type RateUnit = 'day' | 'period';
-
 /** Input del preventivo di prezzo (pricing engine, ADR-0006/ADR-0032). Stessa forma della create. */
 export interface QuoteBookingInput {
   umbrellaId: string;
@@ -273,7 +270,6 @@ export interface RateDTO {
   periodStart?: string; // ISO yyyy-mm-dd
   periodEnd?: string;   // ISO yyyy-mm-dd
   price: number;        // EUR, max 2 decimali
-  unit: RateUnit;
 }
 
 /** Input creazione tariffa: come RateDTO senza `id` (include `seasonId`). */
@@ -292,7 +288,6 @@ export interface UpdateRateInput {
   periodStart?: string | null;
   periodEnd?: string | null;
   price?: number;
-  unit?: RateUnit;
 }
 
 /** Input creazione pacchetto. */

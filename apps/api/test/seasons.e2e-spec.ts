@@ -81,7 +81,7 @@ describe('Seasons (e2e)', () => {
     const pricing = await prisma.forTenant(s1, (tx) => tx.pricing.findFirst({ where: { seasonId } }));
     // semina una Rate catch-all DIRETTAMENTE in DB per esercitare la cascata (nessuna dipendenza da /api/rates)
     await prisma.forTenant(s1, (tx) =>
-      tx.rate.create({ data: { establishmentId: s1, pricingId: pricing!.id, price: 20, unit: 'day' } }),
+      tx.rate.create({ data: { establishmentId: s1, pricingId: pricing!.id, price: 20 } }),
     );
 
     const del = await request(app.getHttpServer()).delete(`/api/seasons/${seasonId}`).set(...bearer(token1)).expect(200);

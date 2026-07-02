@@ -89,7 +89,7 @@ describe('Packages (e2e)', () => {
       .send({ name: 'Stagione Pkg', startDate: '2029-06-01', endDate: '2029-09-30' }).expect(201);
     await request(app.getHttpServer())
       .post('/api/rates').set(...bearer(token1))
-      .send({ seasonId: season.body.id, packageId: pkg.body.id, price: 40, unit: 'day' }).expect(201);
+      .send({ seasonId: season.body.id, packageId: pkg.body.id, price: 40 }).expect(201);
 
     await request(app.getHttpServer()).delete(`/api/packages/${pkg.body.id}`).set(...bearer(token1)).expect(409);
   });
