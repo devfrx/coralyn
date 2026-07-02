@@ -9,10 +9,9 @@
 - **ADR di riferimento:** [ADR-0006](../architecture/decisions/0006-dominio-prenotazioni-e-pricing.md) (dominio
   pricing), [ADR-0032](../architecture/decisions/0032-pricing-engine-precedenza.md) (precedenza — **raffinato** da questo
   slice), [ADR-0009](../architecture/decisions/0009-documentazione-di-design.md) (workflow). **Nuovo ADR-0035** (vedi §3.4).
-- **Convenzione:** codice/DB inglese; UI/doc italiano. Baseline test da NON regredire (su `main`,
-  verificata live 2026-07-02): **api unit 89 · api e2e 126 · web-staff 145 · ui-kit 55.** *(Nota: la baseline live più
-  recente su questo branch è api unit 91 · e2e 129, per lo slice Archiviazione non ancora mergiato; questo slice parte da
-  `main` — vedi §8.)*
+- **Convenzione:** codice/DB inglese; UI/doc italiano. Baseline test da NON regredire (su `main`, **post-merge
+  Archiviazione**, verificata live 2026-07-03): **api unit 91 · api e2e 129 · web-staff 148 (globa ui-kit) · ui-kit
+  standalone 55.** Questo slice parte da `main` con l'Archiviazione già inclusa.
 - **Nessuna migrazione.** Cambia solo la logica del motore puro + un messaggio 422 + doc.
 
 ---
@@ -163,8 +162,9 @@ silenzioso). Aggiungere in **ADR-0032** una riga di rimando ("Raffinato da ADR-0
   **bug dal vivo si risolve col solo cambio motore**, nessuna modifica al seed.
 - **Helper e2e** ([`seed-pricing.ts`](../../apps/api/test/helpers/seed-pricing.ts)) seeda già una tariffa subscription → il
   pricing subscription negli e2e resta invariato.
-- **1 solo test unit** aggiornato 1:1 (§5); tutto il resto è additivo. Baseline `main` (api unit 89 · e2e 126) da non
-  regredire: attesi **+3/4 unit** (motore) **+1/2 e2e** (422 abbonamento), **0 FE**.
+- **1 solo test unit** aggiornato 1:1 (§5); tutto il resto è additivo. Baseline `main` (post-Archiviazione: api unit 91 ·
+  e2e 129 · web-staff 148 · ui-kit 55) da non regredire: attesi **+3/4 unit** (motore) **+1/2 e2e** (422 abbonamento),
+  **0 FE**.
 - **Cambio di comportamento osservabile (voluto):** un listino privo di tariffa Abbonamento ora dà **422** su prenotazioni
   Abbonamento invece di un forfait errato silenzioso. Coerente con ADR-0032 §6 ("mai €0/prezzo silenzioso").
 
@@ -182,9 +182,7 @@ silenzioso). Aggiungere in **ADR-0032** una riga di rimando ("Raffinato da ADR-0
 
 - **Slice separato**, **nuovo branch da `main`** (ADR-0009). File toccati: `pricing.engine.ts` (+spec),
   `bookings.service.ts` (+e2e), nuovo ADR-0035, riga di rimando in ADR-0032. **Indipendente** dallo slice Archiviazione
-  (che tocca catalog service/editor/contratti) → nessun conflitto di file atteso.
-- **Interazione col branch Archiviazione non mergiato:** questo slice parte da `main`. Se l'utente merge prima
-  l'Archiviazione, si (ri)parte da `main` aggiornato; i due insiemi di file non si sovrappongono. Un solo layer (backend)
+  (già mergiato su `main`, che tocca catalog service/editor/contratti) → nessun conflitto di file. Un solo layer (backend)
   → probabile **un solo commit** (motore+service+e2e) + eventuale commit doc (ADR).
 - **Workflow ADR-0009:** questa spec → (approvazione utente) → piano TDD (`writing-plans`) → esecuzione subagent-driven,
   test-first. Non regredire i conteggi (riverificati dal vivo).
