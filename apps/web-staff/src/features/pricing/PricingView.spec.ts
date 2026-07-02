@@ -261,4 +261,36 @@ describe('PricingView', () => {
       expect(w.text()).toContain('vince la più specifica'); // legenda
     });
   });
+
+  describe('tabella tariffe: etichette wildcard coerenti (cleanup B2)', () => {
+    it('una tariffa senza fascia (wildcard) mostra "Tutte" in colonna Fascia, non "—"', async () => {
+      server.use(
+        http.get('/api/rates', () => HttpResponse.json([
+          { id: 'ra-wild-slot', seasonId: 'se-1', price: 33, unit: 'day', packageId: 'pkg-1' },
+        ])),
+      );
+      const w = mountApp(PricingView, { attachTo: document.body });
+      await settle();
+      const rows = w.findAll('tbody tr');
+      const row = rows.find((r) => r.text().includes('33'));
+      expect(row).toBeTruthy();
+      expect(row!.text()).toContain('Tutte');
+      expect(row!.text()).not.toContain('—');
+    });
+
+    it('una tariffa senza pacchetto (wildcard) mostra "Tutti" in colonna Pacchetto, non "—"', async () => {
+      server.use(
+        http.get('/api/rates', () => HttpResponse.json([
+          { id: 'ra-wild-pkg', seasonId: 'se-1', price: 37, unit: 'day', timeSlotId: 'f-pom' },
+        ])),
+      );
+      const w = mountApp(PricingView, { attachTo: document.body });
+      await settle();
+      const rows = w.findAll('tbody tr');
+      const row = rows.find((r) => r.text().includes('37'));
+      expect(row).toBeTruthy();
+      expect(row!.text()).toContain('Tutti');
+      expect(row!.text()).not.toContain('—');
+    });
+  });
 });

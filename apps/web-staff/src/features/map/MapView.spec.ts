@@ -130,6 +130,39 @@ describe('MapView', () => {
     w.unmount();
   });
 
+  it('mostra il periodo quando la tariffa è matchata per sotto-periodo (provenienza, cleanup B2)', async () => {
+    server.use(
+      http.get('/api/bookings/quote', () =>
+        HttpResponse.json({
+          totalPrice: 45,
+          matchedRate: {
+            id: 'ra-period', seasonId: 'se-1', price: 45, unit: 'day',
+            periodStart: '2026-08-01', periodEnd: '2026-08-31',
+          },
+        }),
+      ),
+    );
+
+    const w = mountApp(MapView, { attachTo: document.body });
+    await flushPromises();
+    await new Promise((r) => setTimeout(r, 0));
+    await flushPromises();
+
+    // Apri drawer sul primo ombrellone libero + modale "Nuova prenotazione" (stessi passi del test sopra).
+    await w.findComponent({ name: 'UmbrellaCell' }).find('button').trigger('click');
+    await flushPromises();
+    await w.findAll('button').find((b) => b.text().includes('Nuova prenotazione'))!.trigger('click');
+    await flushPromises();
+    await new Promise((r) => setTimeout(r, 0));
+    await flushPromises();
+
+    expect(document.body.textContent).toContain('Tariffa applicata');
+    expect(document.body.textContent).toContain('Periodo'); // periodStart matchato → segmento periodo, non "base"
+    expect(document.body.textContent).not.toContain('Tariffa base del listino');
+
+    w.unmount();
+  });
+
   it('errore 409 alla conferma: toast del server, modale resta aperto, nessun unhandled rejection', async () => {
     const rejections: unknown[] = [];
     const onRej = (e: PromiseRejectionEvent) => { rejections.push(e.reason); e.preventDefault(); };

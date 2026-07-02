@@ -265,8 +265,8 @@ function submitRate() {
 }
 
 // --- Etichette per la tabella tariffe ---
-function pkgName(id?: string) { return packages.value?.find((p) => p.id === id)?.name ?? '—'; }
-function slotName(id?: string) { return dayMap.value?.timeSlots.find((t) => t.id === id)?.name ?? '—'; }
+function pkgName(id?: string) { if (!id) return 'Tutti'; return packages.value?.find((p) => p.id === id)?.name ?? '—'; }
+function slotName(id?: string) { if (!id) return 'Tutte'; return dayMap.value?.timeSlots.find((t) => t.id === id)?.name ?? '—'; }
 function sectorName(id?: string) { return dayMap.value?.sectors.find((s) => s.id === id)?.name ?? 'Tutti'; }
 /** Posizione leggibile: "Settore · Fila" se c'è la fila, altrimenti il settore, altrimenti "Tutti". */
 function rowName(id?: string): string | undefined {

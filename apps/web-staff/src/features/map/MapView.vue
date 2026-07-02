@@ -194,6 +194,7 @@ const matchedRateLabel = computed<string>(() => {
   if (r.sectorId) parts.push(sectorsById.value.get(r.sectorId) ?? 'Settore');
   if (r.rowId) parts.push(rowsById.value.get(r.rowId) ?? 'Fila');
   if (r.type) parts.push(TYPE_LABEL[r.type] ?? r.type);
+  if (r.periodStart) parts.push(`Periodo ${r.periodStart}${r.periodEnd ? '–' + r.periodEnd : ''}`);
   const dims = parts.length ? parts.join(' · ') : 'Tariffa base del listino';
   return `${dims} — ${formatEuro(r.price)}${r.unit === 'day' ? '/g' : ' forfait'}`;
 });
