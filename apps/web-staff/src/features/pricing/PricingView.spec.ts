@@ -241,4 +241,24 @@ describe('PricingView', () => {
       expect(w.text()).toContain('Pomeriggio'); // niente rimozione ottimistica
     });
   });
+
+  describe('precedenza tariffe (ADR-0032, Slice B2)', () => {
+    it('ordina le tariffe per specificità e mostra la legenda di precedenza', async () => {
+      server.use(
+        http.get('/api/rates', () => HttpResponse.json([
+          { id: 'ra-catch', seasonId: 'se-1', price: 20, unit: 'day' },
+          { id: 'ra-slot', seasonId: 'se-1', price: 40, unit: 'day', timeSlotId: 'f-pom' },
+        ])),
+      );
+      const w = mountApp(PricingView, { attachTo: document.body });
+      await settle();
+      const rows = w.findAll('tbody tr');
+      const idxSlot = rows.findIndex((r) => r.text().includes('40'));
+      const idxCatch = rows.findIndex((r) => r.text().includes('20'));
+      expect(idxSlot).toBeGreaterThanOrEqual(0);
+      expect(idxCatch).toBeGreaterThanOrEqual(0);
+      expect(idxSlot).toBeLessThan(idxCatch); // la più specifica (fascia) è sopra la catch-all
+      expect(w.text()).toContain('vince la più specifica'); // legenda
+    });
+  });
 });

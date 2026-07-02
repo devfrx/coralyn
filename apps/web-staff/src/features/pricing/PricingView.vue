@@ -7,6 +7,7 @@ import { useRates, useCreateRate, useUpdateRate, useDeleteRate } from './useRate
 import { useTimeSlots, useCreateTimeSlot, useUpdateTimeSlot, useDeleteTimeSlot } from './useTimeSlots';
 import { usePackages, useCreatePackage, useUpdatePackage, useDeletePackage } from '@/features/bookings/usePackages';
 import { useDayMap } from '@/features/map/useDayMap';
+import { rateSpecificity } from './rateSpecificity';
 
 // --- Stagioni ---
 const { data: seasons } = useSeasons();
@@ -62,6 +63,10 @@ const deleteRate = useDeleteRate(getSeasonId);
 function rateCount(pkgId: string): number {
   return (rates.value ?? []).filter((r) => r.packageId === pkgId).length;
 }
+// Ordinamento per specificità (ADR-0032): non muta `rates`, solo la vista in tabella.
+const sortedRates = computed(() =>
+  [...(rates.value ?? [])].sort((a, b) => rateSpecificity(b) - rateSpecificity(a)),
+);
 
 // --- Fasce orarie ---
 const { data: slots } = useTimeSlots();
@@ -360,8 +365,11 @@ const rateCols = [
     </div>
 
     <!-- Tabella tariffe -->
+    <p class="mb-2 text-[12px] text-[var(--color-text-muted)]">
+      Quando più tariffe si applicano, vince la più specifica: periodo › fila › settore › pacchetto › fascia › tipo.
+    </p>
     <DataTable :columns="rateCols">
-      <tr v-for="r in rates" :key="r.id" class="hover:bg-[var(--color-raised)]">
+      <tr v-for="r in sortedRates" :key="r.id" class="hover:bg-[var(--color-raised)]">
         <td class="border-b border-[var(--color-border-row)] px-[18px] py-3.5 font-semibold text-[var(--color-text)]">{{ positionLabel(r) }}</td>
         <td class="border-b border-[var(--color-border-row)] px-3.5 py-3.5 text-[var(--color-text-2nd)]">{{ pkgName(r.packageId) }}</td>
         <td class="border-b border-[var(--color-border-row)] px-3.5 py-3.5 text-[var(--color-text-2nd)]">{{ slotName(r.timeSlotId) }}</td>
