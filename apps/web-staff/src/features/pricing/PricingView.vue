@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import { computed, ref, watchEffect } from 'vue';
 import { Button, Card, DataTable, EmptyState, Modal, ConfirmDialog, Field, Input, Select, Icon, formatEuro } from '@coralyn/ui-kit';
-import type { BookingType, RateDTO, RateUnit } from '@coralyn/contracts';
+import type { BookingType, RateDTO, RateUnit, TimeSlotDTO } from '@coralyn/contracts';
 import { useSeasons, useCreateSeason, useDeleteSeason } from './useSeasons';
 import { useRates, useCreateRate, useUpdateRate, useDeleteRate } from './useRates';
+import { useTimeSlots, useCreateTimeSlot, useUpdateTimeSlot, useDeleteTimeSlot } from './useTimeSlots';
 import { usePackages, useCreatePackage, useUpdatePackage, useDeletePackage } from '@/features/bookings/usePackages';
 import { useDayMap } from '@/features/map/useDayMap';
 
@@ -62,11 +63,18 @@ function rateCount(pkgId: string): number {
   return (rates.value ?? []).filter((r) => r.packageId === pkgId).length;
 }
 
+// --- Fasce orarie ---
+const { data: slots } = useTimeSlots();
+const createSlot = useCreateTimeSlot();
+const updateSlot = useUpdateTimeSlot();
+const deleteSlot = useDeleteTimeSlot();
+
 // --- Conferme distruttive (ConfirmDialog) ---
 type PendingDelete =
   | { kind: 'season'; id: string; name: string }
   | { kind: 'package'; id: string; name: string }
-  | { kind: 'rate'; id: string };
+  | { kind: 'rate'; id: string }
+  | { kind: 'timeSlot'; id: string; name: string };
 const pendingDelete = ref<PendingDelete | null>(null);
 const confirmOpen = ref(false);
 
@@ -83,6 +91,10 @@ function askDeleteRate(id: string) {
   pendingDelete.value = { kind: 'rate', id };
   confirmOpen.value = true;
 }
+function askDeleteTimeSlot(s: { id: string; name: string }) {
+  pendingDelete.value = { kind: 'timeSlot', id: s.id, name: s.name };
+  confirmOpen.value = true;
+}
 const confirmCopy = computed(() => {
   const p = pendingDelete.value;
   if (p?.kind === 'season')
@@ -91,6 +103,8 @@ const confirmCopy = computed(() => {
     return { title: 'Eliminare il pacchetto?', description: `«${p.name}». Se è referenziato da tariffe o prenotazioni non sarà eliminato.` };
   if (p?.kind === 'rate')
     return { title: 'Eliminare la tariffa?', description: 'La regola di prezzo verrà rimossa dal listino.' };
+  if (p?.kind === 'timeSlot')
+    return { title: 'Eliminare la fascia?', description: `«${p.name}». Se è usata da tariffe o prenotazioni non sarà eliminata.` };
   return { title: '', description: '' };
 });
 function onConfirmDelete() {
@@ -98,6 +112,7 @@ function onConfirmDelete() {
   if (!p) return;
   if (p.kind === 'season') deleteSeason.mutate(p.id, { onSuccess: () => (activeSeasonId.value = '') });
   else if (p.kind === 'package') deletePackage.mutate(p.id);
+  else if (p.kind === 'timeSlot') deleteSlot.mutate(p.id);
   else deleteRate.mutate(p.id);
   confirmOpen.value = false;
   pendingDelete.value = null;
@@ -152,6 +167,36 @@ function submitPackage() {
     updatePackage.mutate({ id: editingPkgId.value, input }, { onSuccess: () => closePackageModal() });
   } else {
     createPackage.mutate(input, { onSuccess: () => closePackageModal() });
+  }
+}
+
+// --- Modale fascia ---
+const slotModal = ref(false);
+const editingSlotId = ref<string | null>(null); // null = crea, valorizzato = modifica
+const slotNameField = ref(''); const slotStart = ref(''); const slotEnd = ref('');
+function openCreateSlot() {
+  editingSlotId.value = null;
+  slotNameField.value = ''; slotStart.value = '08:00'; slotEnd.value = '19:00';
+  slotModal.value = true;
+}
+function openEditSlot(s: TimeSlotDTO) {
+  editingSlotId.value = s.id;
+  slotNameField.value = s.name;
+  slotStart.value = s.startTime ?? '';
+  slotEnd.value = s.endTime ?? '';
+  slotModal.value = true;
+}
+function closeSlotModal() {
+  slotModal.value = false;
+  editingSlotId.value = null;
+}
+function submitSlot() {
+  if (!slotNameField.value || !slotStart.value || !slotEnd.value) return;
+  const input = { name: slotNameField.value, startTime: slotStart.value, endTime: slotEnd.value };
+  if (editingSlotId.value) {
+    updateSlot.mutate({ id: editingSlotId.value, input }, { onSuccess: () => closeSlotModal() });
+  } else {
+    createSlot.mutate(input, { onSuccess: () => closeSlotModal() });
   }
 }
 
@@ -293,12 +338,24 @@ const rateCols = [
       </Card>
     </div>
 
-    <!-- Fasce orarie della giornata (contesto per le tariffe) -->
-    <div v-if="(dayMap?.timeSlots?.length ?? 0) > 0" class="mb-4 flex flex-wrap gap-2.5">
-      <div v-for="f in dayMap!.timeSlots" :key="f.id"
-        class="flex items-center gap-2 rounded-[11px] border border-[var(--color-border)] bg-[var(--color-raised)] px-3.5 py-2">
-        <Icon name="clock" :size="15" class="text-[var(--color-accent)]" />
-        <span class="text-[12.5px] font-semibold text-[var(--color-text)]">{{ f.name }}</span>
+    <!-- Fasce orarie della giornata (editor) -->
+    <div class="mb-4">
+      <div class="mb-2 flex items-center justify-between">
+        <span class="text-[13px] font-semibold text-[var(--color-text-2nd)]">Fasce orarie</span>
+        <Button variant="secondary" data-test="new-time-slot" @click="openCreateSlot"><Icon name="plus" :size="16" />Nuova fascia</Button>
+      </div>
+      <EmptyState v-if="(slots?.length ?? 0) === 0" message="Nessuna fascia. Creane una con «Nuova fascia»." />
+      <div v-else class="flex flex-wrap gap-2.5">
+        <div v-for="f in slots" :key="f.id" :data-test="`slot-${f.id}`"
+          class="flex items-center gap-2 rounded-[11px] border border-[var(--color-border)] bg-[var(--color-raised)] px-3.5 py-2">
+          <Icon name="clock" :size="15" class="text-[var(--color-accent)]" />
+          <span class="text-[12.5px] font-semibold text-[var(--color-text)]">{{ f.name }}</span>
+          <span v-if="f.startTime" class="text-[11.5px] text-[var(--color-text-muted)]">{{ f.startTime }}–{{ f.endTime }}</span>
+          <button type="button" title="Modifica" class="text-[var(--color-text-muted)] hover:text-[var(--color-accent)]"
+            :data-test="`edit-slot-${f.id}`" @click="openEditSlot(f)"><Icon name="edit" :size="14" /></button>
+          <button type="button" title="Elimina" class="text-[var(--color-text-muted)] hover:text-[var(--color-danger)]"
+            :data-test="`del-slot-${f.id}`" @click="askDeleteTimeSlot(f)"><Icon name="trash-2" :size="14" /></button>
+        </div>
       </div>
     </div>
 
@@ -348,6 +405,21 @@ const rateCols = [
         <div class="flex justify-end gap-2.5 pt-1">
           <Button variant="secondary" type="button" @click="closePackageModal">Annulla</Button>
           <Button type="submit">{{ editingPkgId ? 'Salva modifiche' : 'Salva pacchetto' }}</Button>
+        </div>
+      </form>
+    </Modal>
+
+    <!-- Modale fascia -->
+    <Modal v-model:open="slotModal" :title="editingSlotId ? 'Modifica fascia' : 'Nuova fascia'">
+      <form data-test="form-time-slot" class="flex flex-col gap-4" @submit.prevent="submitSlot">
+        <Field label="Nome"><Input name="name" v-model="slotNameField" data-test="slot-name" placeholder="Es. Mattina" /></Field>
+        <div class="flex gap-3.5">
+          <div class="flex-1"><Field label="Inizio"><Input name="startTime" v-model="slotStart" type="time" data-test="slot-start" /></Field></div>
+          <div class="flex-1"><Field label="Fine"><Input name="endTime" v-model="slotEnd" type="time" data-test="slot-end" /></Field></div>
+        </div>
+        <div class="flex justify-end gap-2.5 pt-1">
+          <Button variant="secondary" type="button" @click="closeSlotModal">Annulla</Button>
+          <Button type="submit">{{ editingSlotId ? 'Salva modifiche' : 'Salva fascia' }}</Button>
         </div>
       </form>
     </Modal>

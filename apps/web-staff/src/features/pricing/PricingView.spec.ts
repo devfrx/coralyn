@@ -197,4 +197,48 @@ describe('PricingView', () => {
     await settle();
     expect(w.text()).not.toContain('28');
   });
+
+  describe('editor fasce orarie (Slice B1)', () => {
+    it('elenca le fasce con i relativi orari', async () => {
+      const w = mountApp(PricingView, { attachTo: document.body });
+      await settle();
+      const mattina = w.get('[data-test="slot-f-mat"]');
+      expect(mattina.text()).toContain('Mattina');
+      expect(mattina.text()).toContain('08:00–13:00');
+      const pomeriggio = w.get('[data-test="slot-f-pom"]');
+      expect(pomeriggio.text()).toContain('Pomeriggio');
+      expect(pomeriggio.text()).toContain('13:00–19:00');
+    });
+
+    it('crea una nuova fascia dal modale e compare tra le fasce', async () => {
+      const w = mountApp(PricingView, { attachTo: document.body });
+      await settle();
+      await w.get('[data-test="new-time-slot"]').trigger('click');
+      await flushPromises();
+      const set = (name: string, val: string) => {
+        const el = document.querySelector(`[data-test="form-time-slot"] input[name="${name}"]`) as HTMLInputElement;
+        el.value = val;
+        el.dispatchEvent(new Event('input', { bubbles: true }));
+      };
+      set('name', 'Serale');
+      set('startTime', '17:00');
+      set('endTime', '19:00');
+      (document.querySelector('[data-test="form-time-slot"]') as HTMLFormElement)
+        .dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+      await settle();
+      expect(w.text()).toContain('Serale');
+    });
+
+    it('409 dal server (fascia in uso, f-pom) → il messaggio del server diventa un toast', async () => {
+      const w = mountApp(PricingView, { attachTo: document.body });
+      await settle();
+      await w.get('[data-test="del-slot-f-pom"]').trigger('click');
+      await settle();
+      expect(document.body.textContent).toContain('Eliminare la fascia?');
+      dialogBtn('Elimina')!.click();
+      await settle();
+      expect(useToasts().items.map((t) => t.message)).toEqual(['Fascia in uso da tariffe o prenotazioni: non eliminabile.']);
+      expect(w.text()).toContain('Pomeriggio'); // niente rimozione ottimistica
+    });
+  });
 });

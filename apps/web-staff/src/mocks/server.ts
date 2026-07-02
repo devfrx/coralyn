@@ -1,8 +1,8 @@
 import { setupServer } from 'msw/node';
 import { http, HttpResponse } from 'msw';
 import { handlers } from './handlers';
-import { mapSeed } from './data/seed';
-import { Role, type CustomerDTO, type PackageDTO, type RateDTO, type RenewalCampaignDetailDTO, type SeasonDTO, type UserDTO } from '@coralyn/contracts';
+import { mapSeed, timeSlotsSeed } from './data/seed';
+import { Role, type CustomerDTO, type PackageDTO, type RateDTO, type RenewalCampaignDetailDTO, type SeasonDTO, type TimeSlotDTO, type CreateTimeSlotInput, type UpdateTimeSlotInput, type UserDTO } from '@coralyn/contracts';
 
 const INITIAL_CUSTOMERS: CustomerDTO[] = [
   { id: 'c-1', firstName: 'Mario', lastName: 'Rossi', phone: '+39 333 1111111', email: 'mario.rossi@email.it', notes: '' },
@@ -16,10 +16,12 @@ const SEASON_2: SeasonDTO = { id: 'se-2', name: 'Estate 2027', startDate: '2027-
 let seasons: SeasonDTO[] = [SEASON_1, SEASON_2];
 let packages: PackageDTO[] = [{ id: 'pkg-1', name: 'Standard', equipment: { sunbeds: 2 } }];
 let rates: RateDTO[] = [{ id: 'ra-1', seasonId: 'se-1', price: 28, unit: 'day' }];
+let timeSlots: TimeSlotDTO[] = timeSlotsSeed.map((s) => ({ ...s }));
 export function resetPricingSeed() {
   seasons = [SEASON_1, SEASON_2];
   packages = [{ id: 'pkg-1', name: 'Standard', equipment: { sunbeds: 2 } }];
   rates = [{ id: 'ra-1', seasonId: 'se-1', price: 28, unit: 'day' }];
+  timeSlots = timeSlotsSeed.map((s) => ({ ...s }));
 }
 
 // --- Prelazione (D-011): stato campagna in-memory per i test ---
@@ -128,6 +130,31 @@ export const server = setupServer(
     const i = rates.findIndex((r) => r.id === params.id);
     if (i < 0) return new HttpResponse(null, { status: 404 });
     const [removed] = rates.splice(i, 1);
+    return HttpResponse.json(removed);
+  }),
+  // Time slots / fasce (CRUD)
+  http.get('/api/time-slots', () => HttpResponse.json(timeSlots)),
+  http.post('/api/time-slots', async ({ request }) => {
+    const b = (await request.json()) as CreateTimeSlotInput;
+    const created: TimeSlotDTO = { id: `ts-${timeSlots.length + 1}`, sortOrder: timeSlots.length + 1, ...b };
+    timeSlots.push(created);
+    return HttpResponse.json(created, { status: 201 });
+  }),
+  http.patch('/api/time-slots/:id', async ({ params, request }) => {
+    const patch = (await request.json()) as UpdateTimeSlotInput;
+    const i = timeSlots.findIndex((s) => s.id === params.id);
+    if (i < 0) return new HttpResponse(null, { status: 404 });
+    timeSlots[i] = { ...timeSlots[i], ...patch };
+    return HttpResponse.json(timeSlots[i]);
+  }),
+  http.delete('/api/time-slots/:id', ({ params }) => {
+    const i = timeSlots.findIndex((s) => s.id === params.id);
+    if (i < 0) return new HttpResponse(null, { status: 404 });
+    // simula la delete-guard: 'f-pom' è "in uso" per testare il 409 → toast
+    if (params.id === 'f-pom') {
+      return HttpResponse.json({ message: 'Fascia in uso da tariffe o prenotazioni: non eliminabile.' }, { status: 409 });
+    }
+    const [removed] = timeSlots.splice(i, 1);
     return HttpResponse.json(removed);
   }),
   http.get('/api/bookings', () => HttpResponse.json([])),

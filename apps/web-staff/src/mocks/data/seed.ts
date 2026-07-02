@@ -1,4 +1,4 @@
-import type { DayMapDTO } from '@coralyn/contracts';
+import type { DayMapDTO, TimeSlotDTO } from '@coralyn/contracts';
 
 export const mapSeed: DayMapDTO = {
   date: '2026-06-27',
@@ -7,8 +7,8 @@ export const mapSeed: DayMapDTO = {
     { id: 't-palma', name: 'Palma', sortOrder: 2, icon: 'palmtree' },
   ],
   timeSlots: [
-    { id: 'f-mat', name: 'Mattina', sortOrder: 1 },
-    { id: 'f-pom', name: 'Pomeriggio', sortOrder: 2 },
+    { id: 'f-mat', name: 'Mattina', startTime: '08:00', endTime: '13:00', sortOrder: 1 },
+    { id: 'f-pom', name: 'Pomeriggio', startTime: '13:00', endTime: '19:00', sortOrder: 2 },
   ],
   sectors: [
     {
@@ -37,3 +37,8 @@ export const mapSeed: DayMapDTO = {
     },
   ],
 };
+
+export const timeSlotsSeed: TimeSlotDTO[] = [
+  { id: 'f-mat', name: 'Mattina', startTime: '08:00', endTime: '13:00', sortOrder: 1 },
+  { id: 'f-pom', name: 'Pomeriggio', startTime: '13:00', endTime: '19:00', sortOrder: 2 },
+];
