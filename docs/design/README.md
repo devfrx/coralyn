@@ -12,7 +12,11 @@ Diagrammi e mockup **versionati e tenuti aggiornati** (vedi
   [ADR-0027](../architecture/decisions/0027-coralyn-linguaggio-visivo.md)); bundle renderizzato:
   [`Coralyn - Gestionale Lidi.html`](../../Coralyn%20-%20Gestionale%20Lidi.html) ·
   [frontend-app-shell.html](mockups/frontend-app-shell.html) — *storico* (direzione "Costiero professionale", superato da Coralyn) ·
-  [main-screen.html](mockups/main-screen.html) — *storico* (direzione Core iniziale).
+  [main-screen.html](mockups/main-screen.html) — *storico* (direzione Core iniziale) ·
+  [gestionale-lidi-aspirazionale.html](mockups/gestionale-lidi-aspirazionale.html) — **aspirazionale**, *non* lo
+  stato corrente: mostra tier di prezzo e badge marketing **rifiutati** (una `Rate` = un prezzo,
+  [ADR-0032](../architecture/decisions/0032-pricing-engine-precedenza.md); honesty-pass Slice A), orari fascia
+  (→ Slice B) ed equipment custom (→ Slice C) non ancora nel modello.
 
 I diagrammi mostrano lo **stato corrente** del design; il **perché** delle scelte sta
 negli [ADR](../architecture/decisions/). Aggiornare questi file fa parte della
