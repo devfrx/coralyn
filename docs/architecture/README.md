@@ -55,7 +55,9 @@ destinato alla vendita in abbonamento a più stabilimenti.
 - `customers` — anagrafica Customer.
 - `bookings` — Booking, disponibilità **per slot** (anti-overlap), lista
   d'attesa minima, incasso base ([ADR-0011](decisions/0011-incasso-base-nel-core.md)),
-  rinnovo abbonamenti e storico ([ADR-0012](decisions/0012-gestione-abbonamenti.md)).
+  rinnovo abbonamenti e storico ([ADR-0012](decisions/0012-gestione-abbonamenti.md)),
+  prelazione abbonamenti — campagna + finestre derivate a valutazione lazy, hold
+  applicativo ([ADR-0034](decisions/0034-prelazione-finestre-lazy.md)).
 - `identity` — utenti staff + **superuser di piattaforma** + contesto tenant
   ([ADR-0015](decisions/0015-osservabilita-e-console-superuser.md)); RBAC granulare
   tenant → modulo 3.
@@ -111,3 +113,4 @@ componenti) è la spec d'implementazione di `ui-kit` ([ADR-0017](decisions/0017-
 - [ADR-0030](decisions/0030-codice-e-db-in-inglese.md) — Codice e DB interamente in inglese (supera ADR-0003)
 - [ADR-0031](decisions/0031-fuso-orario-e-date-operative.md) — Fuso orario e date operative (calendario nel fuso dello Stabilimento)
 - [ADR-0032](decisions/0032-pricing-engine-precedenza.md) — Pricing engine — dimensioni e precedenza esplicita
+- [ADR-0034](decisions/0034-prelazione-finestre-lazy.md) — Prelazione: finestre derivate a valutazione lazy

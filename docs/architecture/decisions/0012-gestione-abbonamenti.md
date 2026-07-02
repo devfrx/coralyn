@@ -3,7 +3,7 @@
 - **Status:** Accepted
 - **Data:** 2026-06-27
 - **Decisori:** Team di progetto
-- **ADR correlati:** [ADR-0006](0006-dominio-prenotazioni-e-pricing.md), [D-011](../deferred.md), [D-012](../deferred.md), [D-013](../deferred.md)
+- **ADR correlati:** [ADR-0006](0006-dominio-prenotazioni-e-pricing.md), [ADR-0034](0034-prelazione-finestre-lazy.md) (D-011, realizzata), [D-012](../deferred.md), [D-013](../deferred.md)
 
 ## Context
 
@@ -29,7 +29,8 @@ aggiunte **minime e additive**:
 
 **Fuori MVP (rimandato):**
 - **Prelazione automatica**: finestre con scadenza, rilascio automatico del posto se
-  non rinnovato, priorità per anzianità → [D-011](../deferred.md).
+  non rinnovato, priorità per anzianità → [D-011](../deferred.md), **realizzata da
+  [ADR-0034](0034-prelazione-finestre-lazy.md)**.
 - **Cabina e servizi accessori** (posto auto, ingressi) come risorse → [D-012](../deferred.md).
 - **Sospensione / cessione / disdetta** dell'abbonamento → [D-013](../deferred.md).
 - **Notifiche** di scadenza/rinnovo → dipendono dal modulo notifiche ([D-006](../deferred.md)).

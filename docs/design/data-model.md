@@ -30,9 +30,15 @@
 > `POST /api/bookings/:id/renew` (server-autoritativo: copia customer/umbrella/timeSlot/package dalla
 > sorgente, riprezza sul listino della stagione destinazione con lo stesso `priceAndWrite` condiviso da
 > `create`). L'anzianità è **derivata** dalla lunghezza della catena `previousBookingId` (risalita
-> iterativa via Prisma, RLS-safe). Prelazione, cabine e sospensione/cessione/disdetta restano rimandate
-> ([D-011](../architecture/deferred.md), [D-012](../architecture/deferred.md),
-> [D-013](../architecture/deferred.md)). Nessuna migrazione anche in questa slice.
+> iterativa via Prisma, RLS-safe). Cabine e sospensione/cessione/disdetta restano rimandate
+> ([D-012](../architecture/deferred.md), [D-013](../architecture/deferred.md)). Nessuna migrazione
+> anche in questa slice.
+>
+> **Slice D-011 (prelazione abbonamenti, ADR-0034):** nuova entità `RenewalCampaign` (una migrazione,
+> con RLS `tenant_isolation` FORCE come tutte le entità tenant-scoped). Persiste **solo** la scadenza
+> + il legame fra stagione di origine e stagione di destinazione: lo stato per-abbonato della finestra
+> (`open`/`exercised`/`expired`) è **derivato lazy** (nessuna riga aggiuntiva, nessun job/scheduler).
+> Nessun nuovo `BookingStatus`, nessun campo su `Booking`.
 
 Fonte di verità del modello dati del Core operativo. Decisioni:
 [mappa](../architecture/decisions/0005-modello-mappa.md),
@@ -50,6 +56,7 @@ erDiagram
     ESTABLISHMENT ||--o{ TIME_SLOT : "definisce"
     ESTABLISHMENT ||--o{ UMBRELLA_TYPE : "definisce"
     ESTABLISHMENT ||--o{ AUDIT_LOG : "registra"
+    ESTABLISHMENT ||--o{ RENEWAL_CAMPAIGN : "apre"
     USER ||--o{ AUDIT_LOG : "genera"
     TIME_SLOT ||--o{ RATE : "qualifica"
     TIME_SLOT ||--o{ BOOKING : "slot di"
@@ -64,6 +71,8 @@ erDiagram
     UMBRELLA ||--o{ BOOKING : "oggetto di"
     BOOKING ||--o| BOOKING : "rinnovata in"
     CUSTOMER ||--o{ WAITLIST : "richiede"
+    SEASON ||--o{ RENEWAL_CAMPAIGN : "origine di"
+    SEASON ||--o{ RENEWAL_CAMPAIGN : "destinazione di"
 
     ESTABLISHMENT {
         uuid id PK
@@ -175,6 +184,14 @@ erDiagram
         json period
         string status "waiting|promoted|cancelled"
     }
+    RENEWAL_CAMPAIGN {
+        uuid id PK
+        uuid establishmentId FK
+        uuid originSeasonId FK "stagione degli aventi-diritto (abbonati uscenti)"
+        uuid destinationSeasonId FK "stagione entrante da riservare; unique per Establishment"
+        date deadline "scadenza uniforme per campagna (ADR-0031)"
+        timestamp createdAt
+    }
     USER {
         uuid id PK
         uuid establishmentId FK "null per superuser"
@@ -210,9 +227,20 @@ erDiagram
   della stagione precedente; la catena dà storico e anzianità
   ([ADR-0012](../architecture/decisions/0012-gestione-abbonamenti.md)). **Implementato (A4.2)**:
   `POST /api/bookings/:id/renew` valorizza `previousBookingId`; l'anzianità è derivata dalla catena
-  (risalita iterativa via Prisma, non persistita separatamente). Prelazione automatica, cabine e
-  sospensione/cessione/disdetta restano rimandate ([D-011](../architecture/deferred.md),
-  [D-012](../architecture/deferred.md), [D-013](../architecture/deferred.md)).
+  (risalita iterativa via Prisma, non persistita separatamente). Cabine e sospensione/cessione/disdetta
+  restano rimandate ([D-012](../architecture/deferred.md), [D-013](../architecture/deferred.md)).
+- **Prelazione (D-011, implementata, [ADR-0034](../architecture/decisions/0034-prelazione-finestre-lazy.md))**:
+  `RenewalCampaign` è l'**unico** stato persistito (scadenza + legame stagione origine/destinazione,
+  una campagna per stagione di destinazione). La finestra per-abbonato e il suo stato
+  (`open`/`exercised`/`expired`) sono **derivati** a lettura, confrontando `deadline` con
+  `todayInRome()` e l'esistenza di un rinnovo confermato nella stagione di destinazione — nessuna riga
+  aggiuntiva. **Invariante di hold**: mentre una finestra è aperta, l'ombrellone+fascia dell'avente
+  diritto è **riservato** (409 a un altro cliente che tenti di prenotarlo nella stagione di
+  destinazione); il **rilascio è lazy** (nessuno scheduler): alla scadenza (`today > deadline`) o alla
+  chiusura della campagna, il blocco cade da solo alla valutazione successiva. Il proprio rinnovo non è
+  mai bloccato dal proprio hold. L'hold è verificato dentro `BookingsService.priceAndWrite`, accanto
+  all'anti-overlap, non come vincolo DB (stessa filosofia di [D-030](../architecture/deferred.md)).
+  Nessun nuovo `BookingStatus`.
 - **Audit & superuser**: gli eventi di dominio sono registrati in `AuditLog`
   (sanificati, tenant-tagged); il ruolo `superuser` di piattaforma li consulta
   cross-tenant in sola lettura
