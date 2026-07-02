@@ -1,6 +1,9 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
+import { http, HttpResponse } from 'msw';
 import { flushPromises } from '@vue/test-utils';
 import { mountApp } from '@/test/utils';
+import { server } from '@/mocks/server';
+import { useToasts } from '@/lib/toasts';
 import PricingView from './PricingView.vue';
 
 const settle = async () => {
@@ -152,6 +155,39 @@ describe('PricingView', () => {
 
       expect(confirmSpy).toHaveBeenCalledTimes(1);
       expect(w.text()).not.toContain('Estate 2026');
+    });
+  });
+
+  describe('elimina pacchetto: conferma + errore server visibile (Slice A)', () => {
+    afterEach(() => vi.restoreAllMocks());
+
+    it('annullando la conferma NON elimina il pacchetto', async () => {
+      const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(false);
+      const w = mountApp(PricingView, { attachTo: document.body });
+      await settle();
+      await w.get('[data-test="del-pkg-pkg-1"]').trigger('click');
+      await settle();
+      expect(confirmSpy).toHaveBeenCalledTimes(1);
+      expect(confirmSpy.mock.calls[0][0]).toContain('Standard');
+      expect(w.text()).toContain('Standard'); // il pacchetto resta
+    });
+
+    it('409 dal server (pacchetto in uso) → il messaggio del server diventa un toast', async () => {
+      vi.spyOn(window, 'confirm').mockReturnValue(true);
+      server.use(
+        http.delete('/api/packages/:id', () =>
+          HttpResponse.json(
+            { statusCode: 409, message: 'Pacchetto in uso da tariffe o prenotazioni: non eliminabile.', error: 'Conflict' },
+            { status: 409 },
+          ),
+        ),
+      );
+      const w = mountApp(PricingView, { attachTo: document.body });
+      await settle();
+      await w.get('[data-test="del-pkg-pkg-1"]').trigger('click');
+      await settle();
+      expect(useToasts().items.map((t) => t.message)).toEqual(['Pacchetto in uso da tariffe o prenotazioni: non eliminabile.']);
+      expect(w.text()).toContain('Standard'); // niente rimozione ottimistica
     });
   });
 });

@@ -3,6 +3,7 @@ import { http, HttpResponse } from 'msw';
 import { flushPromises } from '@vue/test-utils';
 import { mountApp } from '@/test/utils';
 import { server } from '@/mocks/server';
+import { useToasts } from '@/lib/toasts';
 import type { RenewalCampaignDetailDTO } from '@coralyn/contracts';
 import RenewalsView from './RenewalsView.vue';
 
@@ -67,6 +68,33 @@ describe('RenewalsView', () => {
     expect(w.text()).toContain('2027-06-15');
     expect(w.text()).toContain('Aperta');
     expect(w.text()).toContain('Chiudi campagna');
+  });
+
+  it('422 all\'apertura campagna → il messaggio del server diventa un toast (Slice A)', async () => {
+    server.use(
+      http.post('/api/renewal-campaigns', () =>
+        HttpResponse.json(
+          { statusCode: 422, message: 'La stagione di destinazione deve seguire quella di origine', error: 'Unprocessable Entity' },
+          { status: 422 },
+        ),
+      ),
+    );
+    const w = mountApp(RenewalsView);
+    await flushPromises();
+    await tick();
+    await flushPromises();
+    await setTargetDate(w, '2027-07-01');
+
+    const deadlineInput = w.findAll('input[type="date"]')[2]; // [0] origine, [1] destinazione, [2] scadenza
+    await deadlineInput.setValue('2027-06-15');
+    const openBtn = w.findAll('button').find((b) => b.text().includes('Apri campagna'));
+    await openBtn?.trigger('click');
+    await flushPromises();
+    await tick();
+    await flushPromises();
+
+    expect(useToasts().items.map((t) => t.message)).toEqual(['La stagione di destinazione deve seguire quella di origine']);
+    expect(w.text()).toContain('Apri campagna di prelazione'); // la campagna NON risulta aperta
   });
 
   it('"Chiudi campagna" invoca la DELETE e torna al pannello di apertura', async () => {

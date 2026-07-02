@@ -45,6 +45,12 @@ const createPackage = useCreatePackage();
 const updatePackage = useUpdatePackage();
 const deletePackage = useDeletePackage();
 
+/** Elimina un pacchetto SOLO dopo conferma. Se è referenziato il server risponde 409 (toast). */
+function confirmDeletePackage(p: { id: string; name: string }) {
+  if (!window.confirm(`Eliminare il pacchetto «${p.name}»?`)) return;
+  deletePackage.mutate(p.id);
+}
+
 // Dotazione leggibile: {sunbeds:4} → "4 lettini". Chiavi note tradotte, le altre mostrate come sono.
 const EQUIP_IT: Record<string, [string, string]> = {
   sunbeds: ['lettino', 'lettini'],
@@ -247,7 +253,7 @@ const rateCols = [
               <button type="button" title="Modifica" class="text-[var(--color-text-muted)] hover:text-[var(--color-accent)]"
                 :data-test="`edit-pkg-${p.id}`" @click="openEditPackage(p)"><Icon name="edit" :size="15" /></button>
               <button type="button" title="Elimina" class="text-[var(--color-text-muted)] hover:text-[var(--color-danger)]"
-                :data-test="`del-pkg-${p.id}`" @click="deletePackage.mutate(p.id)"><Icon name="trash-2" :size="15" /></button>
+                :data-test="`del-pkg-${p.id}`" @click="confirmDeletePackage(p)"><Icon name="trash-2" :size="15" /></button>
             </div>
           </div>
           <div class="min-h-[38px] flex-1 text-[12.5px] leading-relaxed text-[var(--color-text-2nd)]">{{ equipmentLabel(p.equipment) }}</div>
