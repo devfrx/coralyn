@@ -30,7 +30,14 @@ export type PriceResult =
 
 /** La rate e applicabile se ogni dimensione specificata (non-null) combacia col contesto. */
 function isApplicable(ctx: PricingContext, r: RateRow): boolean {
-  if (r.type !== null && r.type !== ctx.type) return false;
+  // Partizione dura del tipo (ADR-0035, raffina ADR-0032 §1): 'subscription' ha formula forfait
+  // (non prezzo/giorno) e dev'essere prezzato SOLO da tariffe esplicitamente subscription. Il wildcard
+  // (type=null) rappresenta la famiglia a prezzo/giorno (daily/periodic), NON il forfait di stagione.
+  if (ctx.type === 'subscription') {
+    if (r.type !== 'subscription') return false;
+  } else if (r.type !== null && r.type !== ctx.type) {
+    return false;
+  }
   if (r.sectorId !== null && r.sectorId !== ctx.sectorId) return false;
   if (r.rowId !== null && r.rowId !== ctx.rowId) return false;
   if (r.packageId !== null && r.packageId !== ctx.packageId) return false;

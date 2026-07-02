@@ -76,9 +76,29 @@ describe('resolvePrice', () => {
     expect(r).toMatchObject({ totalPrice: 30 }); // 3 giorni
   });
 
-  it('subscription -> forfait, indipendente dai giorni', () => {
-    const r = resolvePrice(ctx({ type: 'subscription', startDate: '2026-07-15', endDate: '2026-07-20' }), [rate({ price: 200 })]);
+  it('subscription -> forfait, indipendente dai giorni (tariffa subscription-specifica)', () => {
+    const r = resolvePrice(
+      ctx({ type: 'subscription', startDate: '2026-07-15', endDate: '2026-07-20' }),
+      [rate({ type: 'subscription', price: 200 })],
+    );
     expect(r).toMatchObject({ totalPrice: 200 });
+  });
+
+  it('subscription: la tariffa Abbonamento (800) batte una fascia-specifica wildcard (28) — il bug esatto', () => {
+    const fasciaWildcard = rate({ timeSlotId: 'slot-am', price: 28 }); // type=null, fascia-specifica
+    const abbonamento = rate({ type: 'subscription', price: 800 });    // subscription, fascia null
+    const r = resolvePrice(ctx({ type: 'subscription' }), [fasciaWildcard, abbonamento]);
+    expect(r).toMatchObject({ ok: true, totalPrice: 800 });
+  });
+
+  it('subscription: con solo catch-all wildcard -> NO_RATE (partizione: il wildcard non prezza l abbonamento)', () => {
+    expect(resolvePrice(ctx({ type: 'subscription' }), [CATCH_ALL])).toEqual({ ok: false, reason: 'NO_RATE' });
+  });
+
+  it('partizione non regredisce per/day: daily e periodic sono ancora prezzati dal catch-all wildcard', () => {
+    expect(resolvePrice(ctx({ type: 'daily' }), [CATCH_ALL])).toMatchObject({ ok: true, totalPrice: 28 });
+    const per = resolvePrice(ctx({ type: 'periodic', startDate: '2026-07-15', endDate: '2026-07-17' }), [CATCH_ALL]);
+    expect(per).toMatchObject({ ok: true, totalPrice: 84 }); // 28 x 3 giorni
   });
 
   it('centesimi: 0.1 x 3 senza errore float (periodic)', () => {
