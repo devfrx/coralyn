@@ -96,7 +96,7 @@ model TimeSlot {
   id              String        @id @default(uuid()) @db.Uuid
   establishmentId String        @db.Uuid
   name            String
-  startTime       DateTime      @db.Time(0) // not exposed in the DTO (ADR-0013)
+  startTime       DateTime      @db.Time(0) // "HH:MM" wall-clock, round-trip UTC (ADR-0031); exposed in TimeSlotDTO (B1)
   endTime         DateTime      @db.Time(0)
   sortOrder       Int
   establishment   Establishment @relation(fields: [establishmentId], references: [id])
