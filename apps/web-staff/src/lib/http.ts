@@ -25,5 +25,11 @@ export async function apiFetch<T>(path: string, init: RequestInit = {}): Promise
     },
   });
   if (!res.ok) throw new ApiError(res.status, path);
-  return (await res.json()) as T;
+  // NestJS serializza un ritorno `null` come body VUOTO (non il literal JSON "null"), es.
+  // GET /renewal-campaigns senza campagna aperta. res.json() lancerebbe su un body vuoto:
+  // trattiamo 204/no-content e body-testo-vuoto come `null` tipizzato T.
+  if (res.status === 204) return null as T;
+  const text = await res.text();
+  if (text.length === 0) return null as T;
+  return JSON.parse(text) as T;
 }

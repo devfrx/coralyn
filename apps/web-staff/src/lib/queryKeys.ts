@@ -7,4 +7,5 @@ export const queryKeys = {
   subscriptions: (tenantId: string, date: string) => ['subscriptions', tenantId, date] as const,
   seasons: (tenantId: string) => ['seasons', tenantId] as const,
   rates: (tenantId: string, seasonId: string) => ['rates', tenantId, seasonId] as const,
+  renewalCampaign: (tenantId: string, destinationDate: string) => ['renewalCampaign', tenantId, destinationDate] as const,
 };

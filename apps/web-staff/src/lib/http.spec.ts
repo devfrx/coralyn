@@ -34,4 +34,21 @@ describe('apiFetch', () => {
     vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response('boom', { status: 401 }));
     await expect(apiFetch('/clienti')).rejects.toMatchObject({ status: 401 });
   });
+
+  it('risolve a null su body vuoto 200 (es. GET /renewal-campaigns senza campagna)', async () => {
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response('', { status: 200 }));
+    await expect(apiFetch('/renewal-campaigns?destinationDate=2027-05-01')).resolves.toBeNull();
+  });
+
+  it('risolve a null su risposta 204 No Content', async () => {
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(null, { status: 204 }));
+    await expect(apiFetch('/qualcosa')).resolves.toBeNull();
+  });
+
+  it('continua a parsare un body JSON normale', async () => {
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response(JSON.stringify({ id: 'camp-1' }), { status: 200, headers: { 'content-type': 'application/json' } }),
+    );
+    await expect(apiFetch('/renewal-campaigns?destinationDate=2027-05-01')).resolves.toEqual({ id: 'camp-1' });
+  });
 });

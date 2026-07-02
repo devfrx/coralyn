@@ -2,7 +2,7 @@ import { setupServer } from 'msw/node';
 import { http, HttpResponse } from 'msw';
 import { handlers } from './handlers';
 import { mapSeed } from './data/seed';
-import { Role, type CustomerDTO, type PackageDTO, type RateDTO, type SeasonDTO, type UserDTO } from '@coralyn/contracts';
+import { Role, type CustomerDTO, type PackageDTO, type RateDTO, type RenewalCampaignDetailDTO, type SeasonDTO, type UserDTO } from '@coralyn/contracts';
 
 const INITIAL_CUSTOMERS: CustomerDTO[] = [
   { id: 'c-1', firstName: 'Mario', lastName: 'Rossi', phone: '+39 333 1111111', email: 'mario.rossi@email.it', notes: '' },
@@ -20,6 +20,10 @@ export function resetPricingSeed() {
   packages = [{ id: 'pkg-1', name: 'Standard', equipment: { sunbeds: 2 } }];
   rates = [{ id: 'ra-1', seasonId: 'se-1', price: 28, unit: 'day' }];
 }
+
+// --- Prelazione (D-011): stato campagna in-memory per i test ---
+let campaign: RenewalCampaignDetailDTO | null = null;
+export function resetCampaignSeed() { campaign = null; }
 
 // Auth mockata SOLO per i test (in dev il login colpisce il backend reale).
 export const MOCK_TOKEN = 'valid-token';
@@ -144,6 +148,22 @@ export const server = setupServer(
       { status: 201 },
     );
   }),
+  // Prelazione (D-011)
+  http.get('/api/renewal-campaigns', ({ request }) => {
+    const dest = new URL(request.url).searchParams.get('destinationDate') ?? '';
+    return HttpResponse.json(campaign && dest.startsWith('2027') ? campaign : null);
+  }),
+  http.post('/api/renewal-campaigns', async ({ request }) => {
+    const b = (await request.json()) as { originDate: string; destinationDate: string; deadline: string };
+    campaign = {
+      id: 'camp-1', originSeasonId: 'se-1', destinationSeasonId: 'se-2', deadline: b.deadline,
+      windows: [
+        { sourceBookingId: 'sub-1', customerId: 'c-1', umbrellaId: 'u1', timeSlotId: 's1', seniority: 1, state: 'open' },
+      ],
+    };
+    return HttpResponse.json({ id: campaign.id, originSeasonId: campaign.originSeasonId, destinationSeasonId: campaign.destinationSeasonId, deadline: campaign.deadline }, { status: 201 });
+  }),
+  http.delete('/api/renewal-campaigns/:id', () => { campaign = null; return HttpResponse.json({ ok: true }); }),
   http.get('/api/bookings/quote', ({ request }) => {
     const p = new URL(request.url).searchParams;
     if (p.get('type') === 'subscription') return HttpResponse.json({ totalPrice: 800 });
