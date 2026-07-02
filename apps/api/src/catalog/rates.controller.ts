@@ -3,14 +3,15 @@ import type { RateDTO } from '@coralyn/contracts';
 import { RatesService } from './rates.service';
 import { CreateRateDto } from './dto/create-rate.dto';
 import { UpdateRateDto } from './dto/update-rate.dto';
+import { RatesQueryDto } from './dto/rates-query.dto';
 
 @Controller('rates')
 export class RatesController {
   constructor(private readonly rates: RatesService) {}
 
   @Get()
-  list(@Query('seasonId') seasonId?: string): Promise<RateDTO[]> {
-    return this.rates.list(seasonId);
+  list(@Query() query: RatesQueryDto): Promise<RateDTO[]> {
+    return this.rates.list(query.seasonId);
   }
 
   @Post()

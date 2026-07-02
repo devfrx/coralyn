@@ -113,4 +113,12 @@ describe('Rates (e2e)', () => {
       .set(...bearer(token1)).expect(200);
     expect(quote.body.totalPrice).toBe(25);
   });
+
+  it('GET senza seasonId → 400 (contratto esplicito, niente [] silenzioso)', async () => {
+    await request(app.getHttpServer()).get('/api/rates').set(...bearer(token1)).expect(400);
+  });
+
+  it('GET con seasonId malformato → 400', async () => {
+    await request(app.getHttpServer()).get('/api/rates?seasonId=not-a-uuid').set(...bearer(token1)).expect(400);
+  });
 });

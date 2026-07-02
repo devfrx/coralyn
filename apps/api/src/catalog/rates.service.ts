@@ -21,8 +21,7 @@ export class RatesService {
     throw e;
   }
 
-  async list(seasonId: string | undefined): Promise<RateDTO[]> {
-    if (!seasonId) return [];
+  async list(seasonId: string): Promise<RateDTO[]> {
     const tenantId = this.tenant.require();
     const rows = await this.prisma.forTenant(tenantId, async (tx) => {
       const pricing = await tx.pricing.findFirst({ where: { seasonId } });
