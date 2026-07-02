@@ -52,4 +52,13 @@ describe('ConfirmDialog', () => {
     const btn = Array.from(document.body.querySelectorAll('button')).find((b) => b.textContent?.trim() === 'Torna indietro');
     expect(btn).toBeTruthy();
   });
+
+  it('emette "cancel" alla chiusura via X (DialogClose)', async () => {
+    const w = await mountDialog({});
+    const x = document.body.querySelector('[aria-label="Chiudi"]') as HTMLElement;
+    x.click();
+    await nextTick();
+    expect(w.emitted('cancel')).toHaveLength(1);
+    expect(w.emitted('confirm')).toBeUndefined();
+  });
 });
