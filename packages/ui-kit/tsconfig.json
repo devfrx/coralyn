@@ -5,6 +5,9 @@
     "moduleResolution": "Bundler",
     "jsx": "preserve",
     "noEmit": true,
+    // ui-kit è una libreria di componenti browser: gli spec (`src/**/*.spec.ts`) usano `document`,
+    // `HTMLElement`, `Event`… → serve la lib DOM (la base ha solo ES2022) o `vue-tsc --noEmit` fallisce.
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
     "types": ["unplugin-icons/types/vue"]
   },
   "include": ["src"]
