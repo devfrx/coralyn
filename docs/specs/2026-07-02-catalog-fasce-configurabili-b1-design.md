@@ -20,7 +20,7 @@
 - **`TimeSlot` esiste a schema** (`schema.prisma:95-107`): `name`, `startTime`/`endTime` (`@db.Time(0)`, oggi con
   commento "not exposed in the DTO (ADR-0013)"), `sortOrder`, relazioni `bookings`/`rates`. Oggi le fasce sono solo
   **seedate** (`SEED_ON_START`), non c'è alcun CRUD.
-- **FE**: le fasce compaiono come **pill di sola lettura** nella vista Listino (`PricingView.vue:270-273`), popolate da
+- **FE**: le fasce compaiono come **pill di sola lettura** nella vista Listino (`PricingView.vue:296-301`), popolate da
   `useDayMap().timeSlots`; nella modale prenotazione (`MapView.vue`) come `SegmentedControl` delle fasce libere.
 - **Il backend è già "slot-aware" e overlap-aware** (ADR-0013, realizzato negli slice precedenti):
   - `slotsOverlap(a, b)` (`booking.availability.ts:8`) — intervalli **semiaperti [start,end)**; c'è già uno spec che
@@ -76,7 +76,7 @@ Pomeriggio*. Quattro layer coesi (ordine di commit):
   "HH:MM" = cronologica) → 400/422 se violata. `sortOrder` intero ≥ 0 opzionale (default: append in coda).
 - **Overlap fra fasce AMMESSO** (ADR-0013, intenzionale): nessuna validazione anti-overlap in create/update. Giornata
   intera *può* sovrapporsi a Mattina/Pomeriggio: è il caso d'uso.
-- **Delete-guard (409), specchio di `deletePackage`** (`catalog.service.ts:149-166`): pre-check nella stessa
+- **Delete-guard (409), specchio di `deletePackage`** (`catalog.service.ts:161-177`): pre-check nella stessa
   transazione — `rate.count({where:{timeSlotId:id}})` **e** `booking.count({where:{timeSlotId:id}})`; se `>0` →
   **409** "Fascia in uso da tariffe o prenotazioni: non eliminabile." (necessario perché `Rate.timeSlotId` è
   **ON DELETE SET NULL** → altrimenti azzererebbe silenziosamente il `timeSlotId` della tariffa; `Booking.timeSlotId`
@@ -100,7 +100,7 @@ Pomeriggio*. Quattro layer coesi (ordine di commit):
 
 ## 5. Layer 3 — FE editor fasce (vista Listino)
 
-- Nella `PricingView` la sezione pill fasce (`:270-273`) diventa un **editor**: lista delle fasce (nome + orari) con
+- Nella `PricingView` la sezione pill fasce (`:296-301`) diventa un **editor**: lista delle fasce (nome + orari) con
   azioni modifica/elimina e un bottone "Nuova fascia".
 - **Modale add/edit** (riuso `Modal`): campi `name`, `startTime`, `endTime` (input `type="time"` → valore "HH:MM"),
   `sortOrder` implicito (ordine di creazione; riordino fuori scope MVP). Submit → `POST`/`PATCH`.
@@ -148,7 +148,7 @@ Documentato qui per continuità; **non** implementato in B1. `resolvePrice` **re
 - estende `BookingQuoteDTO` con la **provenienza** (dimensioni combacianti della Rate vincente + prezzo/unità) — es.
   `matchedRate?: { timeSlotId?, packageId?, sectorId?, rowId?, type?, periodStart?, periodEnd?, price, unit }`;
 - **MapView**: nella modale "+Nuova prenotazione" mostra *quale* tariffa ha prodotto il prezzo (es. "Tariffa:
-  Pomeriggio · Standard — 40 €/g") invece del solo importo; il messaggio "listino non configurato" (`MapView.vue:316`) resta;
+  Pomeriggio · Standard — 40 €/g") invece del solo importo; il messaggio "listino non configurato" (`MapView.vue:319`) resta;
 - **Editor Listino**: spiega la **precedenza** (ordine di specificità ADR-0032) quando più tariffe potrebbero applicarsi.
 - Fai brainstorming+spec dedicati per B2 prima di pianificare (workflow ADR-0009).
 

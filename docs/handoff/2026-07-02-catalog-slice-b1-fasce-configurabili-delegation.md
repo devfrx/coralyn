@@ -102,7 +102,7 @@ Da NON affrontare ora, ma da citare quando toccano l'area:
 - **Pattern CRUD da rispecchiare**: `apps/api/src/catalog/seasons.controller.ts`, `seasons.service.ts`,
   `rates.controller.ts`, `rates.service.ts`; DTO in `apps/api/src/catalog/dto/`; proiezioni `season.projection.ts`,
   `rate.projection.ts`; registrazione in `CatalogModule` (`apps/api/src/catalog/catalog.module.ts`).
-- **Delete-guard 409 da specchiare**: `catalog.service.ts:149-166` (`deletePackage`, pre-check `rate.count` +
+- **Delete-guard 409 da specchiare**: `catalog.service.ts:161-177` (`deletePackage`, pre-check `rate.count` +
   `booking.count` → `ConflictException`).
 - **`TimeSlot`**: `apps/api/prisma/schema.prisma:95-107` (name/startTime/endTime `@db.Time(0)`/sortOrder). FK:
   `Booking_timeSlotId_fkey` **RESTRICT**, `Rate_timeSlotId_fkey` **SET NULL** (migrazioni `20260630125645_bookings`,
@@ -115,7 +115,7 @@ Da NON affrontare ora, ma da citare quando toccano l'area:
   totalPrice, rate }` — la `rate` vincente serve a **B2**, non a B1).
 - **Validator gemello**: `apps/api/src/common/is-calendar-date.ts` (crea `is-clock-time.ts` sullo stesso schema);
   `common/uuid.ts` (`UUID_SHAPE`); helper date esistente `apps/api/src/common/dates.ts` (crea `common/time.ts` gemello).
-- **FE**: pill fasce `apps/web-staff/src/features/pricing/PricingView.vue:270-273` (da rendere editor); `useDayMap`
+- **FE**: pill fasce `apps/web-staff/src/features/pricing/PricingView.vue:296-301` (da rendere editor); `useDayMap`
   `apps/web-staff/src/features/map/useDayMap.ts`; cella mappa `apps/web-staff/src/features/map/MapView.vue`
   (`slotState(u, idx)` usa `timeSlots[0]/[1]` — da derivare dagli orari, spec §6); `ConfirmDialog` da
   `@coralyn/ui-kit` (riuso delete); MSW `apps/web-staff/src/mocks/server.ts`; composabili pattern `useSeasons.ts`/`useRates.ts`.
