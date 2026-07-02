@@ -7,6 +7,7 @@ import {
 import type { Prisma, Booking, TimeSlot } from '@prisma/client';
 import type {
   BookingDTO,
+  BookingQuoteDTO,
   BookingType,
   CreateBookingInput,
   QuoteBookingInput,
@@ -45,9 +46,8 @@ export class BookingsService {
     return rows.map(toBookingDTO);
   }
 
-  /** Mappa l'esito del pricing → prezzo, oppure lancia l'eccezione 422 col messaggio IT. */
-  private priceOrThrow(outcome: QuoteOutcome): number {
-    if (outcome.ok) return outcome.totalPrice;
+  /** Lancia il 422 di dominio col messaggio IT per un esito di pricing fallito. */
+  private throwPriceError(outcome: Extract<QuoteOutcome, { ok: false }>): never {
     if (outcome.reason === 'UMBRELLA_NOT_FOUND')
       throw new UnprocessableEntityException('Ombrellone non valido');
     if (outcome.reason === 'NO_SEASON')
@@ -56,22 +56,21 @@ export class BookingsService {
   }
 
   /** Preventivo per il modale FE (preview). Deriva l'intervallo dal tipo come la create (single source). */
-  async quote(input: QuoteBookingInput): Promise<{ totalPrice: number }> {
+  async quote(input: QuoteBookingInput): Promise<BookingQuoteDTO> {
     const tenantId = this.tenant.require();
-    const totalPrice = await this.prisma.forTenant(tenantId, async (tx) => {
+    return this.prisma.forTenant(tenantId, async (tx) => {
       const { startDate, endDate } = await this.deriveInterval(tx, input);
-      return this.priceOrThrow(
-        await this.catalog.priceWithin(tx, {
-          umbrellaId: input.umbrellaId,
-          timeSlotId: input.timeSlotId,
-          startDate,
-          endDate,
-          type: input.type,
-          packageId: input.packageId ?? null,
-        }),
-      );
+      const outcome = await this.catalog.priceWithin(tx, {
+        umbrellaId: input.umbrellaId,
+        timeSlotId: input.timeSlotId,
+        startDate,
+        endDate,
+        type: input.type,
+        packageId: input.packageId ?? null,
+      });
+      if (!outcome.ok) this.throwPriceError(outcome);
+      return { totalPrice: outcome.totalPrice, matchedRate: outcome.matchedRate };
     });
-    return { totalPrice };
   }
 
   /**
@@ -187,16 +186,16 @@ export class BookingsService {
     }
 
     // Prezzo (server-autoritativo, mai dal client).
-    const totalPrice = this.priceOrThrow(
-      await this.catalog.priceWithin(tx, {
-        umbrellaId: p.umbrellaId,
-        timeSlotId: p.slot.id,
-        startDate: p.startDate,
-        endDate: p.endDate,
-        type: p.type,
-        packageId: p.packageId,
-      }),
-    );
+    const outcome = await this.catalog.priceWithin(tx, {
+      umbrellaId: p.umbrellaId,
+      timeSlotId: p.slot.id,
+      startDate: p.startDate,
+      endDate: p.endDate,
+      type: p.type,
+      packageId: p.packageId,
+    });
+    if (!outcome.ok) this.throwPriceError(outcome);
+    const totalPrice = outcome.totalPrice;
 
     return tx.booking.create({
       data: {

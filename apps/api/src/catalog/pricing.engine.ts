@@ -13,6 +13,7 @@ export interface PricingContext {
 
 /** Una Rate "piatta" gia caricata dal DB (Decimal->number, Date->ISO). Dimensione null = wildcard. */
 export interface RateRow {
+  id: string;            // id della Rate DB (ignorato dall'engine; serve alla provenienza B2)
   type: BookingType | null;
   sectorId: string | null;
   rowId: string | null;

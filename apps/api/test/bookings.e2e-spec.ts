@@ -148,6 +148,13 @@ describe('Bookings (e2e)', () => {
       const res = await request(app.getHttpServer()).get(`/api/bookings/quote?umbrellaId=${ids.u1}&timeSlotId=${ids.slotAfternoon}&type=daily&startDate=${D}`).set(...bearer(token1)).expect(200);
       expect(res.body.totalPrice).toBe(40);
     });
+    it('il quote espone matchedRate (provenienza): la catch-all a 25/giorno', async () => {
+      const res = await request(app.getHttpServer()).get(`/api/bookings/quote?umbrellaId=${ids.u1}&timeSlotId=${ids.slotMorning}&type=daily&startDate=${D}`).set(...bearer(token1)).expect(200);
+      expect(res.body.totalPrice).toBe(28);
+      expect(res.body.matchedRate).toMatchObject({ price: 28, unit: 'day' });
+      expect(res.body.matchedRate.id).toEqual(expect.any(String));
+      expect(res.body.matchedRate.timeSlotId).toBeUndefined(); // catch-all: dimensione null → assente
+    });
     it('fuori stagione → 422', async () => {
       await request(app.getHttpServer()).get(`/api/bookings/quote?umbrellaId=${ids.u1}&timeSlotId=${ids.slotMorning}&type=daily&startDate=2027-01-10`).set(...bearer(token1)).expect(422);
     });

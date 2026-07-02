@@ -135,9 +135,10 @@ export interface QuoteBookingInput {
   packageId?: string;  // opzionale (nessun pacchetto = assente)
 }
 
-/** Preventivo calcolato dall'engine. */
+/** Preventivo calcolato dall'engine + provenienza (la Rate vincente, ADR-0032). */
 export interface BookingQuoteDTO {
   totalPrice: number;    // EUR, 2 decimali
+  matchedRate: RateDTO;  // la Rate che ha prodotto il prezzo (sempre presente: il quote risponde 200 solo se ok)
 }
 
 /** Stato del ciclo di vita. A1: `confirmed` alla creazione, `cancelled` all'annullo. */

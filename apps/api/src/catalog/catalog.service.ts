@@ -1,6 +1,6 @@
 import { ConflictException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { Prisma, type Rate } from '@prisma/client';
-import type { BookingType, CreatePackageInput, PackageDTO, UpdatePackageInput } from '@coralyn/contracts';
+import type { BookingType, CreatePackageInput, PackageDTO, RateDTO, UpdatePackageInput } from '@coralyn/contracts';
 import { PrismaService } from '../prisma/prisma.service';
 import { TenantContext } from '../tenant/tenant-context';
 import { formatDbDate, toDbDate } from '../common/dates';
@@ -17,7 +17,7 @@ export interface QuoteContext {
 }
 
 export type QuoteOutcome =
-  | { ok: true; totalPrice: number }
+  | { ok: true; totalPrice: number; matchedRate: RateDTO }
   | { ok: false; reason: 'UMBRELLA_NOT_FOUND' | 'NO_SEASON' | 'NO_RATE' };
 
 export type SeasonRange =
@@ -26,6 +26,7 @@ export type SeasonRange =
 
 function toRateRow(r: Rate): RateRow {
   return {
+    id: r.id,
     type: r.type,
     sectorId: r.sectorId,
     rowId: r.rowId,
@@ -35,6 +36,23 @@ function toRateRow(r: Rate): RateRow {
     periodEnd: r.periodEnd ? formatDbDate(r.periodEnd) : null,
     price: Number(r.price),
     unit: r.unit,
+  };
+}
+
+/** RateRow (forma piatta engine) → RateDTO (null→undefined). NON usa toRateDTO (che consuma un Rate Prisma). */
+function rateRowToDTO(row: RateRow, seasonId: string): RateDTO {
+  return {
+    id: row.id,
+    seasonId,
+    type: row.type ?? undefined,
+    sectorId: row.sectorId ?? undefined,
+    rowId: row.rowId ?? undefined,
+    packageId: row.packageId ?? undefined,
+    timeSlotId: row.timeSlotId ?? undefined,
+    periodStart: row.periodStart ?? undefined,
+    periodEnd: row.periodEnd ?? undefined,
+    price: row.price,
+    unit: row.unit,
   };
 }
 
@@ -122,7 +140,7 @@ export class CatalogService {
       rates.map(toRateRow),
     );
     if (!result.ok) return { ok: false, reason: 'NO_RATE' };
-    return { ok: true, totalPrice: result.totalPrice };
+    return { ok: true, totalPrice: result.totalPrice, matchedRate: rateRowToDTO(result.rate, seasons[0].id) };
   }
 
   /** Crea un pacchetto per il tenant corrente. */

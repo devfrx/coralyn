@@ -12,7 +12,7 @@ const ctx = (over: Partial<PricingContext> = {}): PricingContext => ({
 });
 
 const rate = (over: Partial<RateRow>): RateRow => ({
-  type: null, sectorId: null, rowId: null, packageId: null, timeSlotId: null,
+  id: 'r-test', type: null, sectorId: null, rowId: null, packageId: null, timeSlotId: null,
   periodStart: null, periodEnd: null, price: 0, unit: 'day', ...over,
 });
 
@@ -85,5 +85,12 @@ describe('resolvePrice', () => {
     const a = rate({ rowId: 'row-1', price: 45 });
     const b = rate({ rowId: 'row-1', price: 99 });
     expect(resolvePrice(ctx(), [a, b])).toMatchObject({ totalPrice: 45 });
+  });
+
+  it('ritorna la Rate vincente con il suo id (provenienza B2)', () => {
+    const rPkg = rate({ id: 'r-pkg', packageId: 'pkg-1', price: 50 });
+    const res = resolvePrice(ctx({ packageId: 'pkg-1' }), [CATCH_ALL, rPkg]);
+    expect(res.ok).toBe(true);
+    if (res.ok) expect(res.rate.id).toBe('r-pkg');
   });
 });
