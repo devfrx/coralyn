@@ -47,12 +47,16 @@ export class BookingsService {
   }
 
   /** Lancia il 422 di dominio col messaggio IT per un esito di pricing fallito. */
-  private throwPriceError(outcome: Extract<QuoteOutcome, { ok: false }>): never {
+  private throwPriceError(outcome: Extract<QuoteOutcome, { ok: false }>, type: BookingType): never {
     if (outcome.reason === 'UMBRELLA_NOT_FOUND')
       throw new UnprocessableEntityException('Ombrellone non valido');
     if (outcome.reason === 'NO_SEASON')
       throw new UnprocessableEntityException('Nessuna stagione attiva per questa data');
-    throw new UnprocessableEntityException('Nessuna tariffa applicabile: configurare il listino'); // NO_RATE
+    // NO_RATE — messaggio type-aware (ADR-0035): un abbonamento senza tariffa dedicata non è mai
+    // prezzato dal wildcard; il no-match è esplicito, mai un forfait silenzioso.
+    if (type === 'subscription')
+      throw new UnprocessableEntityException('Nessuna tariffa Abbonamento configurata per questa stagione');
+    throw new UnprocessableEntityException('Nessuna tariffa applicabile: configurare il listino');
   }
 
   /** Preventivo per il modale FE (preview). Deriva l'intervallo dal tipo come la create (single source). */
@@ -68,7 +72,7 @@ export class BookingsService {
         type: input.type,
         packageId: input.packageId ?? null,
       });
-      if (!outcome.ok) this.throwPriceError(outcome);
+      if (!outcome.ok) this.throwPriceError(outcome, input.type);
       return { totalPrice: outcome.totalPrice, matchedRate: outcome.matchedRate };
     });
   }
@@ -194,7 +198,7 @@ export class BookingsService {
       type: p.type,
       packageId: p.packageId,
     });
-    if (!outcome.ok) this.throwPriceError(outcome);
+    if (!outcome.ok) this.throwPriceError(outcome, p.type);
     const totalPrice = outcome.totalPrice;
 
     return tx.booking.create({

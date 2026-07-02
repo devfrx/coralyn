@@ -258,6 +258,29 @@ describe('Bookings (e2e)', () => {
         .send(body({ umbrellaId: uSub, type: 'subscription', startDate: '2027-01-10' })).expect(422);
     });
 
+    it('subscription senza tariffa Abbonamento nella stagione -> 422 con messaggio specifico', async () => {
+      // Stagione 2028 con listino SOLO catch-all (nessuna tariffa subscription): esercita la partizione.
+      await prisma.forTenant(s1, async (tx) => {
+        const season2028 = await tx.season.create({
+          data: {
+            establishmentId: s1,
+            name: 'Estate 2028',
+            startDate: new Date('2028-05-01T00:00:00Z'),
+            endDate: new Date('2028-09-30T00:00:00Z'),
+          },
+        });
+        const pricing2028 = await tx.pricing.create({ data: { establishmentId: s1, seasonId: season2028.id } });
+        await tx.rate.create({ data: { establishmentId: s1, pricingId: pricing2028.id, price: 30 } }); // solo catch-all
+      });
+
+      const res = await request(app.getHttpServer())
+        .post('/api/bookings')
+        .set(...bearer(token1))
+        .send(body({ umbrellaId: uSub, type: 'subscription', startDate: '2028-07-01' }))
+        .expect(422);
+      expect(res.body.message).toBe('Nessuna tariffa Abbonamento configurata per questa stagione');
+    });
+
     it('quote periodic → prezzo = base × giorni; quote subscription → forfait', async () => {
       const per = await request(app.getHttpServer())
         .get(`/api/bookings/quote?umbrellaId=${uPer}&timeSlotId=${ids.slotMorning}&type=periodic&startDate=2026-08-01&endDate=2026-08-05`)
