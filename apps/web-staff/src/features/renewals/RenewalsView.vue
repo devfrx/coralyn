@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, watchEffect } from 'vue';
-import { Button, Badge, DataTable, Avatar, EmptyState, Select, initials } from '@coralyn/ui-kit';
+import { Button, Badge, DataTable, Avatar, EmptyState, Select, ConfirmDialog, initials } from '@coralyn/ui-kit';
 import type { RenewalWindowItemDTO, RenewalWindowState, SubscriptionListItemDTO } from '@coralyn/contracts';
 import { storeToRefs } from 'pinia';
 import { useSessionStore } from '@/stores/session';
@@ -54,9 +54,11 @@ function doOpenCampaign(): void {
   openCampaign.mutate({ originSeasonId: originSeasonId.value, destinationSeasonId: destinationSeasonId.value, deadline: deadline.value });
 }
 
-function doCloseCampaign(): void {
-  if (!campaign.value) return;
-  closeCampaign.mutate(campaign.value.id);
+const closeConfirmOpen = ref(false);
+function askCloseCampaign(): void { closeConfirmOpen.value = true; }
+function onConfirmClose(): void {
+  if (campaign.value) closeCampaign.mutate(campaign.value.id);
+  closeConfirmOpen.value = false;
 }
 
 function stateBadge(s: RenewalWindowState): { tone: 'success' | 'warning' | 'neutral'; label: string } {
@@ -68,6 +70,15 @@ function stateBadge(s: RenewalWindowState): { tone: 'success' | 'warning' | 'neu
 
 <template>
   <section class="px-[26px] pb-[30px] pt-[22px]">
+    <div class="mb-5 rounded-[14px] border border-[var(--color-border-row)] bg-[var(--color-raised)] p-4 text-[12.5px] leading-relaxed text-[var(--color-text-2nd)]">
+      <p class="mb-1 font-semibold text-[var(--color-text)]">Prelazione abbonamenti</p>
+      <p>
+        Una <strong>campagna di prelazione</strong> riserva ogni ombrellone all'abbonato che lo aveva nella stagione
+        precedente — un <strong>diritto di precedenza</strong> per anzianità — fino alla scadenza. Aprendola blocchi
+        quei posti agli aventi-diritto; chiudendola (o alla scadenza) tornano liberi per tutti.
+      </p>
+    </div>
+
     <div class="mb-4 flex flex-wrap items-end gap-4">
       <label class="flex flex-col gap-1.5">
         <span class="text-[12.5px] font-semibold text-[var(--color-text-2nd)]">Stagione di origine</span>
@@ -84,17 +95,28 @@ function stateBadge(s: RenewalWindowState): { tone: 'success' | 'warning' | 'neu
       </label>
     </div>
 
+    <p v-if="!destinationSeasonId" class="mb-4 text-[12.5px] text-[var(--color-text-muted)]">
+      Scegli una stagione di destinazione per gestire i rinnovi.
+    </p>
+
     <div v-if="destinationSeasonId && !campaign" class="mb-5 flex flex-wrap items-end gap-4 rounded-[14px] border-[1.5px] border-[var(--color-border-input)] bg-[var(--color-surface)] p-4">
       <label class="flex flex-col gap-1.5">
         <span class="text-[12.5px] font-semibold text-[var(--color-text-2nd)]">Scadenza prelazione</span>
         <input type="date" v-model="deadline" class="rounded-[11px] border-[1.5px] border-[var(--color-border-input)] bg-[var(--color-surface)] px-3.5 py-2.5 text-[13.5px] text-[var(--color-text)] focus:outline-none" />
       </label>
       <Button :disabled="!deadline" @click="doOpenCampaign">Apri campagna di prelazione</Button>
+      <span class="text-[12px] text-[var(--color-text-muted)]">Dopo la scadenza, i posti tornano liberi per tutti.</span>
     </div>
 
     <div v-if="campaign" class="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-[14px] border-[1.5px] border-[var(--color-border-input)] bg-[var(--color-surface)] p-4">
       <span class="text-[13.5px] text-[var(--color-text)]">Scadenza campagna: <strong>{{ campaign.deadline }}</strong></span>
-      <Button @click="doCloseCampaign">Chiudi campagna</Button>
+      <Button @click="askCloseCampaign">Chiudi campagna</Button>
+    </div>
+
+    <div v-if="campaign" class="mb-2 flex flex-wrap gap-3 text-[11.5px] text-[var(--color-text-muted)]">
+      <span class="inline-flex items-center gap-1.5"><Badge tone="neutral">Aperta</Badge> in attesa di rinnovo</span>
+      <span class="inline-flex items-center gap-1.5"><Badge tone="success">Rinnovato</Badge> diritto esercitato</span>
+      <span class="inline-flex items-center gap-1.5"><Badge tone="warning">Scaduta</Badge> finestra chiusa</span>
     </div>
 
     <DataTable v-if="campaign && windowRows.length" :columns="cols" :rows="(windowRows as unknown as Record<string, unknown>[])" :row-key="(r) => (r as unknown as RenewalWindowItemDTO).sourceBookingId">
@@ -134,5 +156,14 @@ function stateBadge(s: RenewalWindowState): { tone: 'success' | 'warning' | 'neu
       </DataTable>
       <EmptyState v-else message="Nessun abbonato per questa stagione." />
     </template>
+
+    <ConfirmDialog
+      v-model:open="closeConfirmOpen"
+      title="Chiudere la campagna?"
+      description="Gli ombrelloni riservati per prelazione tornano liberi per tutti."
+      confirm-label="Chiudi"
+      tone="danger"
+      @confirm="onConfirmClose"
+    />
   </section>
 </template>

@@ -96,8 +96,17 @@ describe('RenewalsView', () => {
     expect(w.text()).toContain('Apri campagna di prelazione'); // la campagna NON risulta aperta
   });
 
-  it('"Chiudi campagna" invoca la DELETE e torna al pannello di apertura', async () => {
+  it('mostra intestazione esplicativa e legenda badge', async () => {
     const w = mountApp(RenewalsView);
+    await flushPromises();
+    await tick();
+    await flushPromises();
+    expect(w.text()).toContain('prelazione'); // spiegazione della campagna
+    expect(w.text()).toContain('diritto di precedenza'); // microcopy chiave
+  });
+
+  it('"Chiudi campagna" richiede conferma via ConfirmDialog prima della DELETE', async () => {
+    const w = mountApp(RenewalsView, { attachTo: document.body });
     await flushPromises();
     await tick();
     await flushPromises();
@@ -105,20 +114,22 @@ describe('RenewalsView', () => {
 
     const deadlineInput = w.findAll('input[type="date"]')[0];
     await deadlineInput.setValue('2027-06-15');
-    const openBtn = w.findAll('button').find((b) => b.text().includes('Apri campagna'));
-    await openBtn?.trigger('click');
-    await flushPromises();
-    await tick();
-    await flushPromises();
+    await w.findAll('button').find((b) => b.text().includes('Apri campagna'))?.trigger('click');
+    await flushPromises(); await tick(); await flushPromises();
     expect(w.text()).toContain('Chiudi campagna');
 
-    const closeBtn = w.findAll('button').find((b) => b.text().includes('Chiudi campagna'));
-    await closeBtn?.trigger('click');
+    // Il click su "Chiudi campagna" apre la conferma, NON chiude subito.
+    await w.findAll('button').find((b) => b.text().includes('Chiudi campagna'))?.trigger('click');
     await flushPromises();
-    await tick();
-    await flushPromises();
+    expect(document.body.textContent).toContain('Chiudere la campagna?');
+    expect(w.text()).toContain('Chiudi campagna'); // ancora aperta finché non confermi
 
+    // Conferma nel dialog → DELETE → torna al pannello apertura.
+    Array.from(document.body.querySelectorAll('button')).find((b) => b.textContent?.trim() === 'Chiudi')!.click();
+    await flushPromises(); await tick(); await flushPromises();
     expect(w.text()).toContain('Apri campagna di prelazione');
+
+    w.unmount();
   });
 
   it('finestre "exercised"/"expired" mostrano i badge corretti e "Rinnova" è disabilitato solo su esercitata', async () => {
