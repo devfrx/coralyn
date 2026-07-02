@@ -73,9 +73,14 @@ function stateBadge(s: RenewalWindowState): { tone: 'success' | 'warning' | 'neu
     <div class="mb-5 rounded-[14px] border border-[var(--color-border-row)] bg-[var(--color-raised)] p-4 text-[12.5px] leading-relaxed text-[var(--color-text-2nd)]">
       <p class="mb-1 font-semibold text-[var(--color-text)]">Prelazione abbonamenti</p>
       <p>
-        Una <strong>campagna di prelazione</strong> riserva ogni ombrellone all'abbonato che lo aveva nella stagione
-        precedente — un <strong>diritto di precedenza</strong> per anzianità — fino alla scadenza. Aprendola blocchi
-        quei posti agli aventi-diritto; chiudendola (o alla scadenza) tornano liberi per tutti.
+        Una <strong>campagna di prelazione</strong> riserva ogni ombrellone all'abbonato che lo aveva nella
+        stagione precedente — un <strong>diritto di precedenza</strong> per anzianità — fino a una
+        <strong>scadenza unica</strong>, valida per tutti gli aventi-diritto allo stesso modo. Finché è aperta,
+        nessun altro può prenotare quei posti per la stagione di destinazione.
+      </p>
+      <p class="mt-1.5">
+        Alla scadenza (o chiudendo la campagna) i posti non rinnovati <strong>tornano liberi da soli</strong>:
+        non devi fare nulla e <strong>non va reimpostata</strong>. Per cambiare la scadenza, chiudi la campagna e riaprila.
       </p>
     </div>
 
@@ -94,10 +99,6 @@ function stateBadge(s: RenewalWindowState): { tone: 'success' | 'warning' | 'neu
         </Select>
       </label>
     </div>
-
-    <p v-if="!destinationSeasonId" class="mb-4 text-[12.5px] text-[var(--color-text-muted)]">
-      Scegli una stagione di destinazione per gestire i rinnovi.
-    </p>
 
     <div v-if="destinationSeasonId && !campaign" class="mb-5 flex flex-wrap items-end gap-4 rounded-[14px] border-[1.5px] border-[var(--color-border-input)] bg-[var(--color-surface)] p-4">
       <label class="flex flex-col gap-1.5">
@@ -138,23 +139,26 @@ function stateBadge(s: RenewalWindowState): { tone: 'success' | 'warning' | 'neu
     <EmptyState v-else-if="campaign" message="Nessuna finestra di prelazione per questa campagna." />
 
     <template v-else>
-      <DataTable v-if="rows.length" :columns="cols" :rows="(rows as unknown as Record<string, unknown>[])" :row-key="(r) => (r as unknown as SubscriptionListItemDTO).id">
-        <template #cell-cliente="{ row }">
-          <div class="flex items-center gap-2.5">
-            <Avatar :initials="initials(customerName((row as unknown as SubscriptionListItemDTO).customerId))" size="sm" />
-            <span class="font-semibold text-[var(--color-text)]">{{ customerName((row as unknown as SubscriptionListItemDTO).customerId) }}</span>
-          </div>
-        </template>
-        <template #cell-ombrellone="{ row }"><span class="text-[var(--color-text-2nd)]">{{ umbrellaLabel.get((row as unknown as SubscriptionListItemDTO).umbrellaId) ?? '—' }}</span></template>
-        <template #cell-anzianita="{ row }"><span class="text-[var(--color-text-2nd)]">{{ (row as unknown as SubscriptionListItemDTO).seniority }} {{ (row as unknown as SubscriptionListItemDTO).seniority === 1 ? 'stagione' : 'stagioni' }}</span></template>
-        <template #cell-stato="{ row }">
-          <Badge :tone="(row as unknown as SubscriptionListItemDTO).renewed ? 'success' : 'neutral'">{{ (row as unknown as SubscriptionListItemDTO).renewed ? 'Rinnovato' : 'Da rinnovare' }}</Badge>
-        </template>
-        <template #cell-azione="{ row }">
-          <Button :disabled="(row as unknown as SubscriptionListItemDTO).renewed || !destinationSeasonId" @click="doRenew((row as unknown as SubscriptionListItemDTO).id)">Rinnova</Button>
-        </template>
-      </DataTable>
-      <EmptyState v-else message="Nessun abbonato per questa stagione." />
+      <EmptyState v-if="!destinationSeasonId" message="Scegli una stagione di destinazione per gestire i rinnovi." />
+      <template v-else>
+        <DataTable v-if="rows.length" :columns="cols" :rows="(rows as unknown as Record<string, unknown>[])" :row-key="(r) => (r as unknown as SubscriptionListItemDTO).id">
+          <template #cell-cliente="{ row }">
+            <div class="flex items-center gap-2.5">
+              <Avatar :initials="initials(customerName((row as unknown as SubscriptionListItemDTO).customerId))" size="sm" />
+              <span class="font-semibold text-[var(--color-text)]">{{ customerName((row as unknown as SubscriptionListItemDTO).customerId) }}</span>
+            </div>
+          </template>
+          <template #cell-ombrellone="{ row }"><span class="text-[var(--color-text-2nd)]">{{ umbrellaLabel.get((row as unknown as SubscriptionListItemDTO).umbrellaId) ?? '—' }}</span></template>
+          <template #cell-anzianita="{ row }"><span class="text-[var(--color-text-2nd)]">{{ (row as unknown as SubscriptionListItemDTO).seniority }} {{ (row as unknown as SubscriptionListItemDTO).seniority === 1 ? 'stagione' : 'stagioni' }}</span></template>
+          <template #cell-stato="{ row }">
+            <Badge :tone="(row as unknown as SubscriptionListItemDTO).renewed ? 'success' : 'neutral'">{{ (row as unknown as SubscriptionListItemDTO).renewed ? 'Rinnovato' : 'Da rinnovare' }}</Badge>
+          </template>
+          <template #cell-azione="{ row }">
+            <Button :disabled="(row as unknown as SubscriptionListItemDTO).renewed" @click="doRenew((row as unknown as SubscriptionListItemDTO).id)">Rinnova</Button>
+          </template>
+        </DataTable>
+        <EmptyState v-else message="Nessun abbonato nella stagione di origine." />
+      </template>
     </template>
 
     <ConfirmDialog

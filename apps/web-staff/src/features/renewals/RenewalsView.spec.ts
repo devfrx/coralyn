@@ -15,20 +15,24 @@ describe('RenewalsView', () => {
     await flushPromises();
     await tick();
     await flushPromises();
+    await setDestination(w, 'se-2');
     expect(w.text()).toContain('Rossi');     // c-1 risolto dalla query clienti
     expect(w.text()).toContain('Anzianità');  // header colonna
     expect(w.text()).toContain('stagione');   // "1 stagione" (seniority di sub-1)
   });
 
-  it('Rinnova è disabilitato senza stagione di destinazione e si abilita impostandola', async () => {
+  it('senza destinazione mostra l\'empty-state; impostandola compare la lista rinnovabile abilitata', async () => {
     const w = mountApp(RenewalsView);
     await flushPromises();
     await tick();
     await flushPromises();
-    const renewBtn = () => w.findAll('button').find((b) => b.text().includes('Rinnova'));
-    expect(renewBtn()?.attributes('disabled')).toBeDefined();
+    // Nessuna destinazione: empty-state guida, nessun bottone Rinnova.
+    expect(w.text()).toContain('Scegli una stagione di destinazione');
+    expect(w.findAll('button').find((b) => b.text().includes('Rinnova'))).toBeUndefined();
+    // Impostata la destinazione: compare la lista abbonati con Rinnova abilitato (sub-1 non rinnovato).
     await setDestination(w, 'se-2');
-    expect(renewBtn()?.attributes('disabled')).toBeUndefined();
+    const renewBtn = w.findAll('button').find((b) => b.text().includes('Rinnova'));
+    expect(renewBtn?.attributes('disabled')).toBeUndefined();
   });
 
   async function setDestination(w: ReturnType<typeof mountApp>, seasonId: string) {
@@ -103,6 +107,8 @@ describe('RenewalsView', () => {
     await flushPromises();
     expect(w.text()).toContain('prelazione'); // spiegazione della campagna
     expect(w.text()).toContain('diritto di precedenza'); // microcopy chiave
+    expect(w.text()).toContain('scadenza unica');
+    expect(w.text()).toContain('non va reimpostata');
   });
 
   it('"Chiudi campagna" richiede conferma via ConfirmDialog prima della DELETE', async () => {
