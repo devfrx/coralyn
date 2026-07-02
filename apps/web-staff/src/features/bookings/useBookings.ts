@@ -43,5 +43,7 @@ export function useSettlePayment() {
       apiFetch<BookingDTO>(`/bookings/${id}/payment`, { method: 'PATCH', body: JSON.stringify(input) }),
     // L'incasso non cambia lo stato della mappa (A1 §10): invalida solo la lista del giorno.
     invalidates: () => [queryKeys.bookings(session.establishmentId, session.activeDate)],
+    // SettlePaymentModal mostra già l'errore inline (righe 53-60): niente doppio feedback col toast.
+    quiet: true,
   });
 }

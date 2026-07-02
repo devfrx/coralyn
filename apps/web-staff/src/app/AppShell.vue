@@ -2,6 +2,7 @@
 import { useRoute } from 'vue-router';
 import Topbar from './Topbar.vue';
 import Sidebar from './Sidebar.vue';
+import ToastHost from './ToastHost.vue';
 const route = useRoute();
 </script>
 <template>
@@ -13,4 +14,5 @@ const route = useRoute();
       <div class="min-h-0 flex-1 overflow-auto"><RouterView /></div>
     </main>
   </div>
+  <ToastHost />
 </template>

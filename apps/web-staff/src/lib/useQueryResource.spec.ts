@@ -3,6 +3,7 @@ import { flushPromises } from '@vue/test-utils';
 import { defineComponent, h, ref } from 'vue';
 import { mountApp } from '@/test/utils';
 import { queryResource, mutationResource } from './useQueryResource';
+import { clearToasts, useToasts } from './toasts';
 
 const tick = () => new Promise((r) => setTimeout(r, 0));
 
@@ -50,5 +51,25 @@ describe('mutationResource', () => {
     await flushPromises();
     expect(mutationFn).toHaveBeenCalledWith('input', expect.anything());
     expect(invalidates).toHaveBeenCalled();
+  });
+});
+
+describe('mutationResource — feedback errori (Slice A)', () => {
+  it('su errore pubblica un toast col message dell\'errore', async () => {
+    clearToasts();
+    const mutationFn = vi.fn().mockRejectedValue(new Error('Pacchetto in uso: non eliminabile.'));
+    const { api } = mountHook(() => mutationResource({ mutationFn, invalidates: () => [] }));
+    await expect(api().mutateAsync('x')).rejects.toThrow();
+    await flushPromises();
+    expect(useToasts().items.map((t) => t.message)).toEqual(['Pacchetto in uso: non eliminabile.']);
+  });
+
+  it('quiet: true NON pubblica il toast (il chiamante gestisce inline, es. SettlePaymentModal)', async () => {
+    clearToasts();
+    const mutationFn = vi.fn().mockRejectedValue(new Error('boom'));
+    const { api } = mountHook(() => mutationResource({ mutationFn, invalidates: () => [], quiet: true }));
+    await expect(api().mutateAsync('x')).rejects.toThrow();
+    await flushPromises();
+    expect(useToasts().items).toHaveLength(0);
   });
 });
