@@ -7,7 +7,8 @@
   [ADR-0013](0013-granularita-disponibilita-a-slot.md) (fascia come dimensione),
   [ADR-0005](0005-modello-mappa.md) (Settore/Fila),
   [ADR-0016](0016-tipologia-ombrellone.md) + [D-018](../deferred.md) (tipologia esclusa dal prezzo),
-  [ADR-0031](0031-fuso-orario-e-date-operative.md) (date di calendario)
+  [ADR-0031](0031-fuso-orario-e-date-operative.md) (date di calendario),
+  [ADR-0035](0035-pricing-tipo-partiziona-la-formula.md) (**raffina** questo ADR: §1 semantica wildcard di `type`),
 
 ## Context
 
@@ -36,6 +37,11 @@ obbligatoria in un listino ben formato.
 
 La **`UmbrellaType` (tipologia ombrellone) NON è una dimensione di prezzo** ([ADR-0016](0016-tipologia-ombrellone.md),
 [D-018](../deferred.md)): il prezzo è per **posizione** (settore/fila), non per tipologia.
+
+> **Raffinato da [ADR-0035](0035-pricing-tipo-partiziona-la-formula.md) (2026-07-02):** dopo lo slice "Chiarezza tipi",
+> `type=null` non è più "qualsiasi tipo, abbonamento incluso" ma "famiglia a prezzo/giorno (daily/periodic)". Un
+> abbonamento è prezzato **solo** da una tariffa `type='subscription'`; il wildcard non lo prezza. La precedenza qui
+> definita resta invariata.
 
 ### 2. Ordine totale di precedenza (lessicografico)
 
