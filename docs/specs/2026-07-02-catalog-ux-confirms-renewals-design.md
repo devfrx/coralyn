@@ -18,7 +18,7 @@
 
 ### 1.1 Conferme distruttive incoerenti
 - Delete-stagione e delete-pacchetto usano **`window.confirm` nativo** del browser (`PricingView.vue:36-40`
-  `confirmDeleteSeason`, `:48-52` `confirmDeletePackage` — quest'ultimo aggiunto in Slice A). Nessun componente
+  `confirmDeleteSeason`, `:49-52` `confirmDeletePackage` — quest'ultimo aggiunto in Slice A). Nessun componente
   nostro; look off-brand.
 - Delete-**tariffa** (`PricingView.vue:293`, `deleteRate.mutate(r.id)`) è **senza conferma** (scelta Slice A:
   basso rischio). Incoerente col resto.

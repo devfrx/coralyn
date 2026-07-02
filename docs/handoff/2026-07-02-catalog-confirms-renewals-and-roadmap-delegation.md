@@ -63,7 +63,7 @@ destinato a B. Spec §7.
 2. **Slice B — "Fasce configurabili"** ([ADR-0013](../architecture/decisions/0013-granularita-disponibilita-a-slot.md)):
    `TimeSlot` CRUD + orari (`startTime`/`endTime` "HH:MM", **round-trip UTC** per ADR-0031, vietati metodi locali);
    `TimeSlotsController/Service` in `CatalogModule` (pattern `SeasonsController`/`RatesController`); editor FE nella
-   vista Listino (le pill fasce oggi mostrano solo `name`, `PricingView.vue:263-269`). **Nota all'ADR-0013**: gli
+   vista Listino (le pill fasce oggi mostrano solo `name`, `PricingView.vue:270-273`). **Nota all'ADR-0013**: gli
    orari erano "non esposti" nel booking; qui si espongono (additivo). Overlap fra fasce ammesso/intenzionale.
    Delete fascia referenziata → 409 (verifica le FK reali). **Qui confluisce la provenienza-prezzo** (§7 spec
    corrente): estendere `BookingQuoteDTO`/engine per esporre la `Rate` vincente e spiegare la precedenza in editor.
@@ -110,7 +110,7 @@ Da NON affrontare ora, ma da citare quando toccano l'area:
 ## 6. Ancore di codice (file:riga, verificate 2026-07-02)
 - **ConfirmDialog / conferme**: `packages/ui-kit/src/components/Modal.vue`, `ModalFooter.vue`; usi delete in
   `apps/web-staff/src/features/pricing/PricingView.vue` (`confirmDeleteSeason` :36-40, `confirmDeletePackage`
-  :48-52, delete-tariffa `deleteRate.mutate` :293).
+  :49-52, delete-tariffa `deleteRate.mutate` :293).
 - **MapView**: `apps/web-staff/src/features/map/MapView.vue` (`confirmBooking` :125-137, `onCancel` :138-140,
   `modalBooking` :142, quote/error :143-155/:316).
 - **Rinnovi FE**: `apps/web-staff/src/features/renewals/RenewalsView.vue` (date inputs :59-66, badge :49-53, CTA
@@ -128,7 +128,7 @@ Da NON affrontare ora, ma da citare quando toccano l'area:
 - **Contratti rinnovi**: `packages/contracts/src/index.ts` (`OpenRenewalCampaignInput` :195, `RenewBookingInput`
   :166, `RenewalCampaignDTO` :202, `SubscriptionListItemDTO` :171).
 - **Slice B (fasce)**: `apps/api/prisma/schema.prisma` `TimeSlot` (name/startTime/endTime/sortOrder, oggi solo
-  seedate); pill fasce FE `PricingView.vue:263-269`, opzioni da `useDayMap().timeSlots`.
+  seedate); pill fasce FE `PricingView.vue:270-273`, opzioni da `useDayMap().timeSlots`.
 - **Slice C (equipment)**: `schema.prisma` `Package.equipment Json @db.JsonB`; FE `PricingView.vue:313` (sunbeds),
   `equipmentLabel` :49-61.
 
