@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, ref, watchEffect } from 'vue';
-import { Button, Card, DataTable, EmptyState, Modal, Field, Input, Select, Icon, formatEuro } from '@coralyn/ui-kit';
+import { Button, Card, DataTable, EmptyState, Modal, ConfirmDialog, Field, Input, Select, Icon, formatEuro } from '@coralyn/ui-kit';
 import type { BookingType, RateDTO, RateUnit } from '@coralyn/contracts';
 import { useSeasons, useCreateSeason, useDeleteSeason } from './useSeasons';
 import { useRates, useCreateRate, useUpdateRate, useDeleteRate } from './useRates';
@@ -32,24 +32,11 @@ const seasonRange = computed(() => {
   return s ? `${shortDay(s.startDate)} – ${shortDay(s.endDate)}` : '';
 });
 
-/** Elimina la stagione attiva SOLO dopo conferma: cascata applicativa che elimina anche tutte le sue tariffe (irreversibile). */
-function confirmDeleteSeason() {
-  const name = seasons.value?.find((s) => s.id === activeSeasonId.value)?.name ?? '';
-  if (!window.confirm(`Eliminare la stagione «${name}» e tutte le sue tariffe? L'operazione è irreversibile.`)) return;
-  deleteSeason.mutate(activeSeasonId.value, { onSuccess: () => (activeSeasonId.value = '') });
-}
-
 // --- Pacchetti ---
 const { data: packages } = usePackages();
 const createPackage = useCreatePackage();
 const updatePackage = useUpdatePackage();
 const deletePackage = useDeletePackage();
-
-/** Elimina un pacchetto SOLO dopo conferma. Se è referenziato il server risponde 409 (toast). */
-function confirmDeletePackage(p: { id: string; name: string }) {
-  if (!window.confirm(`Eliminare il pacchetto «${p.name}»?`)) return;
-  deletePackage.mutate(p.id);
-}
 
 // Dotazione leggibile: {sunbeds:4} → "4 lettini". Chiavi note tradotte, le altre mostrate come sono.
 const EQUIP_IT: Record<string, [string, string]> = {
@@ -73,6 +60,47 @@ const updateRate = useUpdateRate(getSeasonId);
 const deleteRate = useDeleteRate(getSeasonId);
 function rateCount(pkgId: string): number {
   return (rates.value ?? []).filter((r) => r.packageId === pkgId).length;
+}
+
+// --- Conferme distruttive (ConfirmDialog) ---
+type PendingDelete =
+  | { kind: 'season'; id: string; name: string }
+  | { kind: 'package'; id: string; name: string }
+  | { kind: 'rate'; id: string };
+const pendingDelete = ref<PendingDelete | null>(null);
+const confirmOpen = ref(false);
+
+function askDeleteSeason() {
+  const name = seasons.value?.find((s) => s.id === activeSeasonId.value)?.name ?? '';
+  pendingDelete.value = { kind: 'season', id: activeSeasonId.value, name };
+  confirmOpen.value = true;
+}
+function askDeletePackage(p: { id: string; name: string }) {
+  pendingDelete.value = { kind: 'package', id: p.id, name: p.name };
+  confirmOpen.value = true;
+}
+function askDeleteRate(id: string) {
+  pendingDelete.value = { kind: 'rate', id };
+  confirmOpen.value = true;
+}
+const confirmCopy = computed(() => {
+  const p = pendingDelete.value;
+  if (p?.kind === 'season')
+    return { title: 'Eliminare la stagione?', description: `«${p.name}» e tutte le sue tariffe. L'operazione è irreversibile.` };
+  if (p?.kind === 'package')
+    return { title: 'Eliminare il pacchetto?', description: `«${p.name}». Se è referenziato da tariffe o prenotazioni non sarà eliminato.` };
+  if (p?.kind === 'rate')
+    return { title: 'Eliminare la tariffa?', description: 'La regola di prezzo verrà rimossa dal listino.' };
+  return { title: '', description: '' };
+});
+function onConfirmDelete() {
+  const p = pendingDelete.value;
+  if (!p) return;
+  if (p.kind === 'season') deleteSeason.mutate(p.id, { onSuccess: () => (activeSeasonId.value = '') });
+  else if (p.kind === 'package') deletePackage.mutate(p.id);
+  else deleteRate.mutate(p.id);
+  confirmOpen.value = false;
+  pendingDelete.value = null;
 }
 
 // --- Dimensioni per il modale tariffa (da mappa + pacchetti) ---
@@ -235,7 +263,7 @@ const rateCols = [
         type="button"
         title="Elimina stagione"
         class="grid h-9 w-9 place-items-center rounded-[10px] border border-[var(--color-border)] text-[var(--color-text-muted)] transition-colors hover:border-[var(--color-danger)] hover:text-[var(--color-danger)] focus-visible:outline-none focus-visible:[box-shadow:var(--ring-focus)]"
-        @click="confirmDeleteSeason"
+        @click="askDeleteSeason"
       ><Icon name="trash-2" :size="16" /></button>
       <div class="flex-1"></div>
       <Button variant="secondary" data-test="new-package" @click="openCreatePackage"><Icon name="plus" :size="16" />Pacchetto</Button>
@@ -253,7 +281,7 @@ const rateCols = [
               <button type="button" title="Modifica" class="text-[var(--color-text-muted)] hover:text-[var(--color-accent)]"
                 :data-test="`edit-pkg-${p.id}`" @click="openEditPackage(p)"><Icon name="edit" :size="15" /></button>
               <button type="button" title="Elimina" class="text-[var(--color-text-muted)] hover:text-[var(--color-danger)]"
-                :data-test="`del-pkg-${p.id}`" @click="confirmDeletePackage(p)"><Icon name="trash-2" :size="15" /></button>
+                :data-test="`del-pkg-${p.id}`" @click="askDeletePackage(p)"><Icon name="trash-2" :size="15" /></button>
             </div>
           </div>
           <div class="min-h-[38px] flex-1 text-[12.5px] leading-relaxed text-[var(--color-text-2nd)]">{{ equipmentLabel(p.equipment) }}</div>
@@ -290,7 +318,7 @@ const rateCols = [
             <button type="button" title="Modifica" class="text-[var(--color-text-muted)] hover:text-[var(--color-accent)]"
               :data-test="`edit-rate-${r.id}`" @click="openEditRate(r)"><Icon name="edit" :size="15" /></button>
             <button type="button" title="Elimina" class="text-[var(--color-text-muted)] hover:text-[var(--color-danger)]"
-              :data-test="`del-rate-${r.id}`" @click="deleteRate.mutate(r.id)"><Icon name="trash-2" :size="15" /></button>
+              :data-test="`del-rate-${r.id}`" @click="askDeleteRate(r.id)"><Icon name="trash-2" :size="15" /></button>
           </div>
         </td>
       </tr>
@@ -379,5 +407,14 @@ const rateCols = [
         </div>
       </form>
     </Modal>
+
+    <ConfirmDialog
+      v-model:open="confirmOpen"
+      :title="confirmCopy.title"
+      :description="confirmCopy.description"
+      confirm-label="Elimina"
+      tone="danger"
+      @confirm="onConfirmDelete"
+    />
   </section>
 </template>

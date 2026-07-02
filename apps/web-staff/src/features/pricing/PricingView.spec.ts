@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, afterEach } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import { http, HttpResponse } from 'msw';
 import { flushPromises } from '@vue/test-utils';
 import { mountApp } from '@/test/utils';
@@ -126,54 +126,47 @@ describe('PricingView', () => {
     expect(updatedRow!.textContent).not.toContain('Standard');
   });
 
-  describe('elimina stagione: conferma obbligatoria (cascata su tutte le tariffe)', () => {
-    afterEach(() => { vi.restoreAllMocks(); });
+  // Helper: trova il bottone del ConfirmDialog per testo, nel document.body.
+  const dialogBtn = (label: string) =>
+    Array.from(document.body.querySelectorAll('button')).find((b) => b.textContent?.trim() === label);
 
+  describe('elimina stagione: conferma via ConfirmDialog (cascata su tutte le tariffe)', () => {
     it('annullando la conferma NON elimina la stagione', async () => {
-      const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(false);
       const w = mountApp(PricingView, { attachTo: document.body });
       await settle();
-      expect(w.text()).toContain('Estate 2026');
-
       await w.get('[data-test="delete-season"]').trigger('click');
       await settle();
-
-      expect(confirmSpy).toHaveBeenCalledTimes(1);
-      expect(confirmSpy.mock.calls[0][0]).toContain('Estate 2026');
+      expect(document.body.textContent).toContain('Eliminare la stagione?');
+      dialogBtn('Annulla')!.click();
+      await settle();
       expect(w.text()).toContain('Estate 2026'); // la stagione resta
     });
 
     it('confermando elimina la stagione (e le sue tariffe)', async () => {
-      const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(true);
       const w = mountApp(PricingView, { attachTo: document.body });
       await settle();
       expect(w.text()).toContain('Estate 2026');
-      expect(w.text()).toContain('28'); // tariffa catch-all della stagione
-
       await w.get('[data-test="delete-season"]').trigger('click');
       await settle();
-
-      expect(confirmSpy).toHaveBeenCalledTimes(1);
+      dialogBtn('Elimina')!.click();
+      await settle();
       expect(w.text()).not.toContain('Estate 2026');
     });
   });
 
   describe('elimina pacchetto: conferma + errore server visibile (Slice A)', () => {
-    afterEach(() => vi.restoreAllMocks());
-
     it('annullando la conferma NON elimina il pacchetto', async () => {
-      const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(false);
       const w = mountApp(PricingView, { attachTo: document.body });
       await settle();
       await w.get('[data-test="del-pkg-pkg-1"]').trigger('click');
       await settle();
-      expect(confirmSpy).toHaveBeenCalledTimes(1);
-      expect(confirmSpy.mock.calls[0][0]).toContain('Standard');
+      expect(document.body.textContent).toContain('Eliminare il pacchetto?');
+      dialogBtn('Annulla')!.click();
+      await settle();
       expect(w.text()).toContain('Standard'); // il pacchetto resta
     });
 
     it('409 dal server (pacchetto in uso) → il messaggio del server diventa un toast', async () => {
-      vi.spyOn(window, 'confirm').mockReturnValue(true);
       server.use(
         http.delete('/api/packages/:id', () =>
           HttpResponse.json(
@@ -186,8 +179,22 @@ describe('PricingView', () => {
       await settle();
       await w.get('[data-test="del-pkg-pkg-1"]').trigger('click');
       await settle();
+      dialogBtn('Elimina')!.click();
+      await settle();
       expect(useToasts().items.map((t) => t.message)).toEqual(['Pacchetto in uso da tariffe o prenotazioni: non eliminabile.']);
       expect(w.text()).toContain('Standard'); // niente rimozione ottimistica
     });
+  });
+
+  it('elimina tariffa: richiede conferma via ConfirmDialog', async () => {
+    const w = mountApp(PricingView, { attachTo: document.body });
+    await settle();
+    expect(w.text()).toContain('28'); // tariffa ra-1
+    await w.get('[data-test="del-rate-ra-1"]').trigger('click');
+    await settle();
+    expect(document.body.textContent).toContain('Eliminare la tariffa?');
+    dialogBtn('Elimina')!.click();
+    await settle();
+    expect(w.text()).not.toContain('28');
   });
 });
