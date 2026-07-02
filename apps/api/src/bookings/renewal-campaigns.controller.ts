@@ -15,7 +15,7 @@ export class RenewalCampaignsController {
 
   @Get()
   get(@Query() query: RenewalCampaignQueryDto): Promise<RenewalCampaignDetailDTO | null> {
-    return this.campaigns.getByDestinationDate(query.destinationDate);
+    return this.campaigns.getByDestinationSeasonId(query.destinationSeasonId);
   }
 
   @Delete(':id')

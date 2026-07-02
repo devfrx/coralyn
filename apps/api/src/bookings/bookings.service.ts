@@ -271,8 +271,8 @@ export class BookingsService {
       if (already) throw new ConflictException('Abbonamento già rinnovato');
 
       // 3) Nuova stagione (semantica subscription), diversa da quella della sorgente.
-      const season = await this.catalog.resolveSeasonWithin(tx, input.startDate);
-      if (!season.ok) throw new UnprocessableEntityException('Nessuna stagione attiva per questa data');
+      const season = await this.catalog.resolveSeasonById(tx, input.destinationSeasonId);
+      if (!season.ok) throw new UnprocessableEntityException('Stagione di destinazione non trovata');
       if (season.startDate === formatDbDate(source.startDate))
         throw new UnprocessableEntityException('Il rinnovo deve puntare a una stagione diversa');
 
@@ -292,11 +292,11 @@ export class BookingsService {
     return toBookingDTO(created);
   }
 
-  /** Elenco abbonati confermati della stagione che contiene `date`, con anzianità e flag rinnovato. */
-  async listSubscriptions(date: string): Promise<SubscriptionListItemDTO[]> {
+  /** Elenco abbonati confermati della stagione `seasonId`, con anzianità e flag rinnovato. */
+  async listSubscriptions(seasonId: string): Promise<SubscriptionListItemDTO[]> {
     const tenantId = this.tenant.require();
     return this.prisma.forTenant(tenantId, async (tx) => {
-      const season = await this.catalog.resolveSeasonWithin(tx, date);
+      const season = await this.catalog.resolveSeasonById(tx, seasonId);
       if (!season.ok) return [];
       const s = toDbDate(season.startDate);
       const e = toDbDate(season.endDate);

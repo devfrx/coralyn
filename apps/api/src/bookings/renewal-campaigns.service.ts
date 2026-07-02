@@ -21,10 +21,10 @@ export class RenewalCampaignsService {
   async open(input: OpenRenewalCampaignInput): Promise<RenewalCampaignDTO> {
     const tenantId = this.tenant.require();
     const row = await this.prisma.forTenant(tenantId, async (tx) => {
-      const origin = await this.catalog.resolveSeasonWithin(tx, input.originDate);
-      if (!origin.ok) throw new UnprocessableEntityException('Nessuna stagione attiva per questa data');
-      const dest = await this.catalog.resolveSeasonWithin(tx, input.destinationDate);
-      if (!dest.ok) throw new UnprocessableEntityException('Nessuna stagione attiva per questa data');
+      const origin = await this.catalog.resolveSeasonById(tx, input.originSeasonId);
+      if (!origin.ok) throw new UnprocessableEntityException('Stagione di origine non trovata');
+      const dest = await this.catalog.resolveSeasonById(tx, input.destinationSeasonId);
+      if (!dest.ok) throw new UnprocessableEntityException('Stagione di destinazione non trovata');
       if (origin.id === dest.id)
         throw new UnprocessableEntityException('Origine e destinazione devono differire');
       if (dest.startDate <= origin.startDate)
@@ -47,16 +47,16 @@ export class RenewalCampaignsService {
     return { id: row.id, originSeasonId: row.originSeasonId, destinationSeasonId: row.destinationSeasonId, deadline: formatDbDate(row.deadline) };
   }
 
-  /** Campagna per la stagione che contiene `date` (o null), con le finestre ordinate per anzianità. */
-  async getByDestinationDate(date: string): Promise<RenewalCampaignDetailDTO | null> {
+  /** Campagna per la stagione di destinazione (per id), con le finestre ordinate per anzianità. */
+  async getByDestinationSeasonId(seasonId: string): Promise<RenewalCampaignDetailDTO | null> {
     const tenantId = this.tenant.require();
     return this.prisma.forTenant(tenantId, async (tx) => {
-      const dest = await this.catalog.resolveSeasonWithin(tx, date);
-      if (!dest.ok) return null;
-      const campaign = await tx.renewalCampaign.findFirst({ where: { destinationSeasonId: dest.id } });
+      const campaign = await tx.renewalCampaign.findFirst({ where: { destinationSeasonId: seasonId } });
       if (!campaign) return null;
       const origin = await tx.season.findFirst({ where: { id: campaign.originSeasonId } });
       if (!origin) return null;
+      const dest = await tx.season.findFirst({ where: { id: campaign.destinationSeasonId } });
+      if (!dest) return null;
 
       // Aventi-diritto: abbonati CONFERMATI della stagione di ORIGINE.
       // Overlap inclusivo con la stagione di origine (cfr. dateRangesOverlap): tenere in sync.
@@ -71,8 +71,8 @@ export class RenewalCampaignsService {
       });
       const seniorityById = await computeSeniority(tx, subs.map((b) => b.id));
 
-      const destStart = toDbDate(dest.startDate);
-      const destEnd = toDbDate(dest.endDate);
+      const destStart = dest.startDate;
+      const destEnd = dest.endDate;
       const deadlineIso = formatDbDate(campaign.deadline);
       const isExpired = todayInRome() > deadlineIso; // today > deadline → scaduta (giorno-scadenza incluso = aperta)
 

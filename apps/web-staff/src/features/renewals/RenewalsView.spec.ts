@@ -20,22 +20,21 @@ describe('RenewalsView', () => {
     expect(w.text()).toContain('stagione');   // "1 stagione" (seniority di sub-1)
   });
 
-  it('Rinnova è disabilitato senza data di destinazione e si abilita impostandola', async () => {
+  it('Rinnova è disabilitato senza stagione di destinazione e si abilita impostandola', async () => {
     const w = mountApp(RenewalsView);
     await flushPromises();
     await tick();
     await flushPromises();
     const renewBtn = () => w.findAll('button').find((b) => b.text().includes('Rinnova'));
     expect(renewBtn()?.attributes('disabled')).toBeDefined();
-    const target = w.findAll('input[type="date"]')[1]; // [0] origine, [1] destinazione
-    await target.setValue('2027-07-01');
-    await flushPromises();
+    await setDestination(w, 'se-2');
     expect(renewBtn()?.attributes('disabled')).toBeUndefined();
   });
 
-  async function setTargetDate(w: ReturnType<typeof mountApp>, date: string) {
-    const target = w.findAll('input[type="date"]')[1]; // [0] origine, [1] destinazione
-    await target.setValue(date);
+  async function setDestination(w: ReturnType<typeof mountApp>, seasonId: string) {
+    const sel = w.get('[data-test="destination-season"]').element as HTMLSelectElement;
+    sel.value = seasonId;
+    sel.dispatchEvent(new Event('change'));
     await flushPromises();
     await tick();
     await flushPromises();
@@ -46,7 +45,7 @@ describe('RenewalsView', () => {
     await flushPromises();
     await tick();
     await flushPromises();
-    await setTargetDate(w, '2027-07-01');
+    await setDestination(w, 'se-2');
     expect(w.text()).toContain('Apri campagna di prelazione');
   });
 
@@ -55,9 +54,9 @@ describe('RenewalsView', () => {
     await flushPromises();
     await tick();
     await flushPromises();
-    await setTargetDate(w, '2027-07-01');
+    await setDestination(w, 'se-2');
 
-    const deadlineInput = w.findAll('input[type="date"]')[2]; // [0] origine, [1] destinazione, [2] scadenza
+    const deadlineInput = w.findAll('input[type="date"]')[0]; // ora l'unico input date è la scadenza
     await deadlineInput.setValue('2027-06-15');
     const openBtn = w.findAll('button').find((b) => b.text().includes('Apri campagna'));
     await openBtn?.trigger('click');
@@ -83,9 +82,9 @@ describe('RenewalsView', () => {
     await flushPromises();
     await tick();
     await flushPromises();
-    await setTargetDate(w, '2027-07-01');
+    await setDestination(w, 'se-2');
 
-    const deadlineInput = w.findAll('input[type="date"]')[2]; // [0] origine, [1] destinazione, [2] scadenza
+    const deadlineInput = w.findAll('input[type="date"]')[0]; // ora l'unico input date è la scadenza
     await deadlineInput.setValue('2027-06-15');
     const openBtn = w.findAll('button').find((b) => b.text().includes('Apri campagna'));
     await openBtn?.trigger('click');
@@ -102,9 +101,9 @@ describe('RenewalsView', () => {
     await flushPromises();
     await tick();
     await flushPromises();
-    await setTargetDate(w, '2027-07-01');
+    await setDestination(w, 'se-2');
 
-    const deadlineInput = w.findAll('input[type="date"]')[2];
+    const deadlineInput = w.findAll('input[type="date"]')[0];
     await deadlineInput.setValue('2027-06-15');
     const openBtn = w.findAll('button').find((b) => b.text().includes('Apri campagna'));
     await openBtn?.trigger('click');
@@ -142,7 +141,7 @@ describe('RenewalsView', () => {
     await flushPromises();
     await tick();
     await flushPromises();
-    await setTargetDate(w, '2027-07-01');
+    await setDestination(w, 'se-2');
 
     // I tre badge di stato sono tutti presenti.
     expect(w.text()).toContain('Aperta');

@@ -3,6 +3,8 @@ import { validate } from 'class-validator';
 import { plainToInstance } from 'class-transformer';
 import { RenewBookingDto } from './renew-booking.dto';
 
+const DEST = '22222222-2222-2222-2222-222222222222';
+
 const errorsFor = async (payload: Record<string, unknown>): Promise<string[]> => {
   const dto = plainToInstance(RenewBookingDto, payload);
   const errors = await validate(dto);
@@ -10,13 +12,13 @@ const errorsFor = async (payload: Record<string, unknown>): Promise<string[]> =>
 };
 
 describe('RenewBookingDto', () => {
-  it('accetta uno startDate calendariale', async () => {
-    expect(await errorsFor({ startDate: '2027-07-01' })).toEqual([]);
+  it('accetta un destinationSeasonId ben formato', async () => {
+    expect(await errorsFor({ destinationSeasonId: DEST })).toEqual([]);
   });
-  it('rifiuta startDate mancante', async () => {
-    expect(await errorsFor({})).toContain('startDate');
+  it('rifiuta destinationSeasonId mancante', async () => {
+    expect(await errorsFor({})).toContain('destinationSeasonId');
   });
-  it('rifiuta startDate non calendariale', async () => {
-    expect(await errorsFor({ startDate: '2027-13-40' })).toContain('startDate');
+  it('rifiuta destinationSeasonId malformato', async () => {
+    expect(await errorsFor({ destinationSeasonId: 'not-a-uuid' })).toContain('destinationSeasonId');
   });
 });

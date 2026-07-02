@@ -161,10 +161,10 @@ export interface CreateBookingInput {
   packageId?: string;  // opzionale (null = tariffa base)
 }
 
-/** Input per rinnovare un abbonamento (A4.2). L'unico input è la stagione di destinazione; tutto il
- *  resto è COPIATO dalla sorgente (server-autoritativo). Prezzo ricalcolato sul nuovo listino. */
+/** Input per rinnovare un abbonamento (A4.2). L'unico input è la stagione di destinazione (per id);
+ *  tutto il resto è COPIATO dalla sorgente (server-autoritativo). Prezzo ricalcolato sul nuovo listino. */
 export interface RenewBookingInput {
-  startDate: string;   // ISO yyyy-mm-dd: una data DENTRO la stagione di destinazione (identifica la Season)
+  destinationSeasonId: string;   // id della Season di destinazione
 }
 
 /** Voce dell'elenco abbonati di una stagione (campagna rinnovi, A4.2). */
@@ -190,12 +190,11 @@ export interface SettlePaymentInput {
 
 // --- Prelazione abbonamenti (D-011) -----------------------------------------
 
-/** Input per aprire una campagna di prelazione. Le stagioni sono identificate da una data al loro
- *  interno (coerente con RenewBookingInput/subscriptions). Server-autoritativo. */
+/** Input per aprire una campagna di prelazione. Le stagioni sono identificate per id. Server-autoritativo. */
 export interface OpenRenewalCampaignInput {
-  originDate: string;       // ISO yyyy-mm-dd: una data DENTRO la stagione di ORIGINE (aventi-diritto)
-  destinationDate: string;  // ISO yyyy-mm-dd: una data DENTRO la stagione di DESTINAZIONE (da riservare)
-  deadline: string;         // ISO yyyy-mm-dd: scadenza della finestra (uniforme per campagna)
+  originSeasonId: string;       // id della Season di ORIGINE (aventi-diritto)
+  destinationSeasonId: string;  // id della Season di DESTINAZIONE (da riservare)
+  deadline: string;             // ISO yyyy-mm-dd: scadenza della finestra (uniforme per campagna)
 }
 
 /** Campagna di prelazione (una per stagione di destinazione). */

@@ -73,6 +73,18 @@ export class CatalogService {
     };
   }
 
+  /** Risolve una stagione per id e ne ritorna l'intervallo (mirror per-id di resolveSeasonWithin). */
+  async resolveSeasonById(tx: Prisma.TransactionClient, id: string): Promise<SeasonRange> {
+    const season = await tx.season.findFirst({ where: { id } });
+    if (!season) return { ok: false, reason: 'NO_SEASON' };
+    return {
+      ok: true,
+      id: season.id,
+      startDate: formatDbDate(season.startDate),
+      endDate: formatDbDate(season.endDate),
+    };
+  }
+
   /**
    * Calcola il prezzo dentro una transazione esistente (usato da BookingsService.create:
    * niente transazione annidata). Risolve posizione + stagione + engine.

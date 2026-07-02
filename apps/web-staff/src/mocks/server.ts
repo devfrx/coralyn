@@ -12,11 +12,12 @@ export function resetCustomersSeed() { customers = [...INITIAL_CUSTOMERS]; }
 
 // --- Listino (D-032): stato mutabile in-memory per i test dell'editor ---
 const SEASON_1: SeasonDTO = { id: 'se-1', name: 'Estate 2026', startDate: '2026-06-01', endDate: '2026-09-15' };
-let seasons: SeasonDTO[] = [SEASON_1];
+const SEASON_2: SeasonDTO = { id: 'se-2', name: 'Estate 2027', startDate: '2027-05-01', endDate: '2027-09-30' };
+let seasons: SeasonDTO[] = [SEASON_1, SEASON_2];
 let packages: PackageDTO[] = [{ id: 'pkg-1', name: 'Standard', equipment: { sunbeds: 2 } }];
 let rates: RateDTO[] = [{ id: 'ra-1', seasonId: 'se-1', price: 28, unit: 'day' }];
 export function resetPricingSeed() {
-  seasons = [SEASON_1];
+  seasons = [SEASON_1, SEASON_2];
   packages = [{ id: 'pkg-1', name: 'Standard', equipment: { sunbeds: 2 } }];
   rates = [{ id: 'ra-1', seasonId: 'se-1', price: 28, unit: 'day' }];
 }
@@ -131,8 +132,8 @@ export const server = setupServer(
   }),
   http.get('/api/bookings', () => HttpResponse.json([])),
   http.get('/api/bookings/subscriptions', ({ request }) => {
-    const date = new URL(request.url).searchParams.get('date') ?? '';
-    if (date.startsWith('2027')) {
+    const seasonId = new URL(request.url).searchParams.get('seasonId') ?? '';
+    if (seasonId === 'se-2') {
       return HttpResponse.json([
         { id: 'sub-2027', customerId: 'c-1', umbrellaId: 'u1', timeSlotId: 's1', startDate: '2027-05-01', endDate: '2027-09-30', totalPrice: 850, seniority: 2, renewed: false },
       ]);
@@ -141,22 +142,21 @@ export const server = setupServer(
       { id: 'sub-1', customerId: 'c-1', umbrellaId: 'u1', timeSlotId: 's1', startDate: '2026-05-01', endDate: '2026-09-30', totalPrice: 800, seniority: 1, renewed: false },
     ]);
   }),
-  http.post('/api/bookings/:id/renew', async ({ params, request }) => {
-    const b = (await request.json()) as { startDate: string };
+  http.post('/api/bookings/:id/renew', async ({ params }) => {
     return HttpResponse.json(
-      { id: 'bk-renew', customerId: 'c-1', umbrellaId: 'u1', timeSlotId: 's1', startDate: b.startDate, endDate: '2027-09-30', type: 'subscription', status: 'confirmed', totalPrice: 850, paymentStatus: 'unpaid', amountCollected: 0, previousBookingId: params.id as string },
+      { id: 'bk-renew', customerId: 'c-1', umbrellaId: 'u1', timeSlotId: 's1', startDate: '2027-05-01', endDate: '2027-09-30', type: 'subscription', status: 'confirmed', totalPrice: 850, paymentStatus: 'unpaid', amountCollected: 0, previousBookingId: params.id as string },
       { status: 201 },
     );
   }),
   // Prelazione (D-011)
   http.get('/api/renewal-campaigns', ({ request }) => {
-    const dest = new URL(request.url).searchParams.get('destinationDate') ?? '';
-    return HttpResponse.json(campaign && dest.startsWith('2027') ? campaign : null);
+    const dest = new URL(request.url).searchParams.get('destinationSeasonId') ?? '';
+    return HttpResponse.json(campaign && dest === 'se-2' ? campaign : null);
   }),
   http.post('/api/renewal-campaigns', async ({ request }) => {
-    const b = (await request.json()) as { originDate: string; destinationDate: string; deadline: string };
+    const b = (await request.json()) as { originSeasonId: string; destinationSeasonId: string; deadline: string };
     campaign = {
-      id: 'camp-1', originSeasonId: 'se-1', destinationSeasonId: 'se-2', deadline: b.deadline,
+      id: 'camp-1', originSeasonId: b.originSeasonId, destinationSeasonId: b.destinationSeasonId, deadline: b.deadline,
       windows: [
         { sourceBookingId: 'sub-1', customerId: 'c-1', umbrellaId: 'u1', timeSlotId: 's1', seniority: 1, state: 'open' },
       ],

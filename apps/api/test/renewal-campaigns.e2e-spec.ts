@@ -16,6 +16,8 @@ describe('Renewal campaigns (e2e)', () => {
   let token1: string;
   let token2: string;
   let ids: MapSeedIds;
+  let season2026: string;
+  let season2027: string;
 
   const bearer = (t: string): [string, string] => ['Authorization', `Bearer ${t}`];
 
@@ -33,7 +35,9 @@ describe('Renewal campaigns (e2e)', () => {
     token1 = await login(app, 'admin.rc1@e2e.test', 'pw1');
     token2 = await login(app, 'admin.rc2@e2e.test', 'pw2');
     ids = await seedMapTenant(prisma, s1);
-    await seedPricingTenant(prisma, s1, { afternoonSlotId: ids.slotAfternoon });
+    const seed = await seedPricingTenant(prisma, s1, { afternoonSlotId: ids.slotAfternoon });
+    season2026 = seed.seasonId;
+    season2027 = seed.season2027Id;
   });
 
   afterAll(async () => {
@@ -59,7 +63,7 @@ describe('Renewal campaigns (e2e)', () => {
   describe('open', () => {
     it('felice: 201 con originSeasonId/destinationSeasonId/deadline', async () => {
       const res = await request(app.getHttpServer()).post('/api/renewal-campaigns').set(...bearer(token1))
-        .send({ originDate: '2026-07-01', destinationDate: '2027-07-01', deadline: '2099-12-31' }).expect(201);
+        .send({ originSeasonId: season2026, destinationSeasonId: season2027, deadline: '2099-12-31' }).expect(201);
       expect(res.body.originSeasonId).toBeTruthy();
       expect(res.body.destinationSeasonId).toBeTruthy();
       expect(res.body.deadline).toBe('2099-12-31');
@@ -69,26 +73,26 @@ describe('Renewal campaigns (e2e)', () => {
       await request(app.getHttpServer()).delete(`/api/renewal-campaigns/${res.body.id}`).set(...bearer(token1)).expect(200);
     });
 
-    it('validazione: originDate = destinationDate (stessa stagione) → 422', async () => {
+    it('validazione: origine = destinazione (stessa stagione) → 422', async () => {
       await request(app.getHttpServer()).post('/api/renewal-campaigns').set(...bearer(token1))
-        .send({ originDate: '2026-07-01', destinationDate: '2026-08-01', deadline: '2099-12-31' }).expect(422);
+        .send({ originSeasonId: season2026, destinationSeasonId: season2026, deadline: '2099-12-31' }).expect(422);
     });
 
     it('validazione: destinazione precedente all\'origine → 422', async () => {
       await request(app.getHttpServer()).post('/api/renewal-campaigns').set(...bearer(token1))
-        .send({ originDate: '2027-07-01', destinationDate: '2026-07-01', deadline: '2099-12-31' }).expect(422);
+        .send({ originSeasonId: season2027, destinationSeasonId: season2026, deadline: '2099-12-31' }).expect(422);
     });
 
-    it('validazione: data senza stagione → 422', async () => {
+    it('validazione: stagione inesistente → 422', async () => {
       await request(app.getHttpServer()).post('/api/renewal-campaigns').set(...bearer(token1))
-        .send({ originDate: '2026-07-01', destinationDate: '2030-01-10', deadline: '2099-12-31' }).expect(422);
+        .send({ originSeasonId: season2026, destinationSeasonId: '00000000-0000-0000-0000-0000000000ff', deadline: '2099-12-31' }).expect(422);
     });
 
     it('duplicato → 409 sulla stessa destinazione', async () => {
       const first = await request(app.getHttpServer()).post('/api/renewal-campaigns').set(...bearer(token1))
-        .send({ originDate: '2026-07-01', destinationDate: '2027-07-01', deadline: '2099-12-31' }).expect(201);
+        .send({ originSeasonId: season2026, destinationSeasonId: season2027, deadline: '2099-12-31' }).expect(201);
       await request(app.getHttpServer()).post('/api/renewal-campaigns').set(...bearer(token1))
-        .send({ originDate: '2026-07-01', destinationDate: '2027-07-01', deadline: '2099-12-31' }).expect(409);
+        .send({ originSeasonId: season2026, destinationSeasonId: season2027, deadline: '2099-12-31' }).expect(409);
       await request(app.getHttpServer()).delete(`/api/renewal-campaigns/${first.body.id}`).set(...bearer(token1)).expect(200);
     });
   });
@@ -120,7 +124,7 @@ describe('Renewal campaigns (e2e)', () => {
       const src2025 = await request(app.getHttpServer()).post('/api/bookings').set(...bearer(token1))
         .send({ customerId: custSenior, umbrellaId: uSenior2025, timeSlotId: ids.slotMorning, type: 'subscription', startDate: '2025-07-01' }).expect(201);
       const renewed2026 = await request(app.getHttpServer()).post(`/api/bookings/${src2025.body.id}/renew`).set(...bearer(token1))
-        .send({ startDate: '2026-07-01' }).expect(201);
+        .send({ destinationSeasonId: season2026 }).expect(201);
       srcSeniorId = renewed2026.body.id; // seniority 2 nella stagione 2026 (origine della campagna)
 
       // Abbonamento "junior" 2026 diretto, sull'ombrellone dedicato: seniority 1.
@@ -130,7 +134,7 @@ describe('Renewal campaigns (e2e)', () => {
 
       campaignId = (
         await request(app.getHttpServer()).post('/api/renewal-campaigns').set(...bearer(token1))
-          .send({ originDate: '2026-07-01', destinationDate: '2027-07-01', deadline: '2099-12-31' }).expect(201)
+          .send({ originSeasonId: season2026, destinationSeasonId: season2027, deadline: '2099-12-31' }).expect(201)
       ).body.id;
     });
 
@@ -140,7 +144,7 @@ describe('Renewal campaigns (e2e)', () => {
     });
 
     it('finestre non vuote, state open, seniority>=1', async () => {
-      const res = await request(app.getHttpServer()).get('/api/renewal-campaigns?destinationDate=2027-07-01').set(...bearer(token1)).expect(200);
+      const res = await request(app.getHttpServer()).get(`/api/renewal-campaigns?destinationSeasonId=${season2027}`).set(...bearer(token1)).expect(200);
       expect(res.body.windows.length).toBeGreaterThan(0);
       for (const w of res.body.windows) {
         expect(w.state).toBe('open');
@@ -153,7 +157,7 @@ describe('Renewal campaigns (e2e)', () => {
     });
 
     it('ordinamento per anzianità desc con due abbonati di anzianità diversa', async () => {
-      const res = await request(app.getHttpServer()).get('/api/renewal-campaigns?destinationDate=2027-07-01').set(...bearer(token1)).expect(200);
+      const res = await request(app.getHttpServer()).get(`/api/renewal-campaigns?destinationSeasonId=${season2027}`).set(...bearer(token1)).expect(200);
       const seniorities = res.body.windows.map((w: { seniority: number }) => w.seniority);
       const sorted = [...seniorities].sort((a: number, b: number) => b - a);
       expect(seniorities).toEqual(sorted); // lista non-crescente per anzianità
@@ -167,9 +171,9 @@ describe('Renewal campaigns (e2e)', () => {
 
     it('exercised: dopo il renew della sorgente verso la destinazione, la sua finestra e\' exercised', async () => {
       await request(app.getHttpServer()).post(`/api/bookings/${srcJuniorId}/renew`).set(...bearer(token1))
-        .send({ startDate: '2027-07-01' }).expect(201);
+        .send({ destinationSeasonId: season2027 }).expect(201);
 
-      const res = await request(app.getHttpServer()).get('/api/renewal-campaigns?destinationDate=2027-07-01').set(...bearer(token1)).expect(200);
+      const res = await request(app.getHttpServer()).get(`/api/renewal-campaigns?destinationSeasonId=${season2027}`).set(...bearer(token1)).expect(200);
       const w = res.body.windows.find((x: { sourceBookingId: string }) => x.sourceBookingId === srcJuniorId);
       expect(w.state).toBe('exercised');
     });
@@ -179,9 +183,9 @@ describe('Renewal campaigns (e2e)', () => {
       await request(app.getHttpServer()).delete(`/api/renewal-campaigns/${campaignId}`).set(...bearer(token1)).expect(200);
 
       const expiredCampaign = await request(app.getHttpServer()).post('/api/renewal-campaigns').set(...bearer(token1))
-        .send({ originDate: '2026-07-01', destinationDate: '2027-07-01', deadline: '2000-01-01' }).expect(201);
+        .send({ originSeasonId: season2026, destinationSeasonId: season2027, deadline: '2000-01-01' }).expect(201);
 
-      const res = await request(app.getHttpServer()).get('/api/renewal-campaigns?destinationDate=2027-07-01').set(...bearer(token1)).expect(200);
+      const res = await request(app.getHttpServer()).get(`/api/renewal-campaigns?destinationSeasonId=${season2027}`).set(...bearer(token1)).expect(200);
       const w = res.body.windows.find((x: { sourceBookingId: string }) => x.sourceBookingId === srcSeniorId);
       expect(w.state).toBe('expired');
 
@@ -192,14 +196,14 @@ describe('Renewal campaigns (e2e)', () => {
     // senza argomenti): la risposta e' 200 con body vuoto, non la stringa JSON 'null'. supertest
     // esposi quindi `res.body` come `{}` (niente da parsare) e `res.text` come stringa vuota.
     it('get → nessun corpo quando non esiste campagna per la destinazione', async () => {
-      const res = await request(app.getHttpServer()).get('/api/renewal-campaigns?destinationDate=2026-07-01').set(...bearer(token1)).expect(200);
+      const res = await request(app.getHttpServer()).get(`/api/renewal-campaigns?destinationSeasonId=${season2026}`).set(...bearer(token1)).expect(200);
       expect(res.text).toBe('');
     });
 
     it('close: 200 { ok:true }, poi get → nessun corpo', async () => {
       await request(app.getHttpServer()).delete(`/api/renewal-campaigns/${campaignId}`).set(...bearer(token1)).expect(200)
         .then((r) => expect(r.body).toEqual({ ok: true }));
-      const res = await request(app.getHttpServer()).get('/api/renewal-campaigns?destinationDate=2027-07-01').set(...bearer(token1)).expect(200);
+      const res = await request(app.getHttpServer()).get(`/api/renewal-campaigns?destinationSeasonId=${season2027}`).set(...bearer(token1)).expect(200);
       expect(res.text).toBe('');
     });
 
@@ -209,7 +213,7 @@ describe('Renewal campaigns (e2e)', () => {
 
     it('delete cross-tenant → 404', async () => {
       const created = await request(app.getHttpServer()).post('/api/renewal-campaigns').set(...bearer(token1))
-        .send({ originDate: '2026-07-01', destinationDate: '2027-07-01', deadline: '2099-12-31' }).expect(201);
+        .send({ originSeasonId: season2026, destinationSeasonId: season2027, deadline: '2099-12-31' }).expect(201);
       await request(app.getHttpServer()).delete(`/api/renewal-campaigns/${created.body.id}`).set(...bearer(token2)).expect(404);
       await request(app.getHttpServer()).delete(`/api/renewal-campaigns/${created.body.id}`).set(...bearer(token1)).expect(200);
     });
@@ -219,9 +223,9 @@ describe('Renewal campaigns (e2e)', () => {
     it('boundary: deadline == oggi → finestra ancora open (scadenza inclusiva)', async () => {
       const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Rome' }).format(new Date());
       const boundaryCampaign = await request(app.getHttpServer()).post('/api/renewal-campaigns').set(...bearer(token1))
-        .send({ originDate: '2026-07-01', destinationDate: '2027-07-01', deadline: today }).expect(201);
+        .send({ originSeasonId: season2026, destinationSeasonId: season2027, deadline: today }).expect(201);
 
-      const res = await request(app.getHttpServer()).get('/api/renewal-campaigns?destinationDate=2027-07-01').set(...bearer(token1)).expect(200);
+      const res = await request(app.getHttpServer()).get(`/api/renewal-campaigns?destinationSeasonId=${season2027}`).set(...bearer(token1)).expect(200);
       const w = res.body.windows.find((x: { sourceBookingId: string }) => x.sourceBookingId === srcSeniorId);
       expect(w.state).toBe('open');
 
@@ -255,7 +259,7 @@ describe('Renewal campaigns (e2e)', () => {
     it('hold attivo: campagna aperta → B non può prenotare uX/Mattina in 2027 → 409', async () => {
       campaignId = (
         await request(app.getHttpServer()).post('/api/renewal-campaigns').set(...bearer(token1))
-          .send({ originDate: '2026-07-01', destinationDate: '2027-07-01', deadline: '2099-12-31' }).expect(201)
+          .send({ originSeasonId: season2026, destinationSeasonId: season2027, deadline: '2099-12-31' }).expect(201)
       ).body.id;
 
       const res = await request(app.getHttpServer()).post('/api/bookings').set(...bearer(token1))
@@ -267,14 +271,14 @@ describe('Renewal campaigns (e2e)', () => {
     it('il proprio rinnovo non è bloccato dal proprio hold: A rinnova uX verso 2027 → 201', async () => {
       campaignId = (
         await request(app.getHttpServer()).post('/api/renewal-campaigns').set(...bearer(token1))
-          .send({ originDate: '2026-07-01', destinationDate: '2027-07-01', deadline: '2099-12-31' }).expect(201)
+          .send({ originSeasonId: season2026, destinationSeasonId: season2027, deadline: '2099-12-31' }).expect(201)
       ).body.id;
 
       const srcA = await prisma.forTenant(s1, (tx) =>
         tx.booking.findFirst({ where: { customerId: custA, umbrellaId: uX, type: 'subscription', status: 'confirmed' } }),
       );
       const renewed = await request(app.getHttpServer()).post(`/api/bookings/${srcA!.id}/renew`).set(...bearer(token1))
-        .send({ startDate: '2027-07-01' }).expect(201);
+        .send({ destinationSeasonId: season2027 }).expect(201);
 
       // Cleanup: annulla il rinnovo per non lasciare uX occupato in 2027 per gli altri test del blocco.
       await request(app.getHttpServer()).delete(`/api/bookings/${renewed.body.id}`).set(...bearer(token1)).expect(200);
@@ -283,7 +287,7 @@ describe('Renewal campaigns (e2e)', () => {
     it('rilascio lazy: campagna scaduta (deadline 2000-01-01) → B prenota uX in 2027 → 201', async () => {
       campaignId = (
         await request(app.getHttpServer()).post('/api/renewal-campaigns').set(...bearer(token1))
-          .send({ originDate: '2026-07-01', destinationDate: '2027-07-01', deadline: '2000-01-01' }).expect(201)
+          .send({ originSeasonId: season2026, destinationSeasonId: season2027, deadline: '2000-01-01' }).expect(201)
       ).body.id;
 
       const created = await request(app.getHttpServer()).post('/api/bookings').set(...bearer(token1))
@@ -297,7 +301,7 @@ describe('Renewal campaigns (e2e)', () => {
     it('chiusura libera: campagna aperta → DELETE → B prenota uX in 2027 → 201', async () => {
       const opened = (
         await request(app.getHttpServer()).post('/api/renewal-campaigns').set(...bearer(token1))
-          .send({ originDate: '2026-07-01', destinationDate: '2027-07-01', deadline: '2099-12-31' }).expect(201)
+          .send({ originSeasonId: season2026, destinationSeasonId: season2027, deadline: '2099-12-31' }).expect(201)
       ).body.id;
       await request(app.getHttpServer()).delete(`/api/renewal-campaigns/${opened}`).set(...bearer(token1)).expect(200);
 
@@ -312,7 +316,7 @@ describe('Renewal campaigns (e2e)', () => {
     it('isolamento: l\'hold del tenant1 non tocca il tenant2', async () => {
       campaignId = (
         await request(app.getHttpServer()).post('/api/renewal-campaigns').set(...bearer(token1))
-          .send({ originDate: '2026-07-01', destinationDate: '2027-07-01', deadline: '2099-12-31' }).expect(201)
+          .send({ originSeasonId: season2026, destinationSeasonId: season2027, deadline: '2099-12-31' }).expect(201)
       ).body.id;
 
       // Struttura minima indipendente per s2 (nessuna campagna, nessun conflitto): deve prenotare liberamente.
@@ -335,7 +339,7 @@ describe('Renewal campaigns (e2e)', () => {
     it('fascia diversa non è bloccata: A tiene Mattina, B prenota uX/Pomeriggio in 2027 → 201', async () => {
       campaignId = (
         await request(app.getHttpServer()).post('/api/renewal-campaigns').set(...bearer(token1))
-          .send({ originDate: '2026-07-01', destinationDate: '2027-07-01', deadline: '2099-12-31' }).expect(201)
+          .send({ originSeasonId: season2026, destinationSeasonId: season2027, deadline: '2099-12-31' }).expect(201)
       ).body.id;
 
       const created = await request(app.getHttpServer()).post('/api/bookings').set(...bearer(token1))

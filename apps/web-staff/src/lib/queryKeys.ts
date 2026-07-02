@@ -4,8 +4,8 @@ export const queryKeys = {
   dayMap: (tenantId: string, date: string) => ['map', tenantId, date] as const,
   bookings: (tenantId: string, date: string) => ['bookings', tenantId, date] as const,
   packages: (tenantId: string) => ['packages', tenantId] as const,
-  subscriptions: (tenantId: string, date: string) => ['subscriptions', tenantId, date] as const,
+  subscriptions: (tenantId: string, seasonId: string) => ['subscriptions', tenantId, seasonId] as const,
   seasons: (tenantId: string) => ['seasons', tenantId] as const,
   rates: (tenantId: string, seasonId: string) => ['rates', tenantId, seasonId] as const,
-  renewalCampaign: (tenantId: string, destinationDate: string) => ['renewalCampaign', tenantId, destinationDate] as const,
+  renewalCampaign: (tenantId: string, destinationSeasonId: string) => ['renewalCampaign', tenantId, destinationSeasonId] as const,
 };

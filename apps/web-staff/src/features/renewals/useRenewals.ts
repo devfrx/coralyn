@@ -5,41 +5,41 @@ import { queryKeys } from '@/lib/queryKeys';
 import { useSessionStore } from '@/stores/session';
 import { queryResource, mutationResource } from '@/lib/useQueryResource';
 
-/** Abbonati della stagione che contiene `date` (campagna rinnovi). */
-export function useSubscriptions(date: Ref<string>) {
+/** Abbonati della stagione `seasonId` (campagna rinnovi). */
+export function useSubscriptions(seasonId: Ref<string>) {
   const session = useSessionStore();
   return queryResource({
-    queryKey: () => queryKeys.subscriptions(session.establishmentId, date.value),
-    queryFn: () => apiFetch<SubscriptionListItemDTO[]>(`/bookings/subscriptions?date=${date.value}`),
-    enabled: () => !!date.value,
+    queryKey: () => queryKeys.subscriptions(session.establishmentId, seasonId.value),
+    queryFn: () => apiFetch<SubscriptionListItemDTO[]>(`/bookings/subscriptions?seasonId=${seasonId.value}`),
+    enabled: () => !!seasonId.value,
   });
 }
 
-/** Rinnova un abbonamento nella stagione di destinazione (`startDate`). */
+/** Rinnova un abbonamento nella stagione di destinazione (per id). */
 export function useRenewBooking() {
   return mutationResource({
-    mutationFn: ({ id, startDate }: { id: string; startDate: string }) =>
-      apiFetch<BookingDTO>(`/bookings/${id}/renew`, { method: 'POST', body: JSON.stringify({ startDate }) }),
+    mutationFn: ({ id, destinationSeasonId }: { id: string; destinationSeasonId: string }) =>
+      apiFetch<BookingDTO>(`/bookings/${id}/renew`, { method: 'POST', body: JSON.stringify({ destinationSeasonId }) }),
     // La riga diventa "Rinnovato" e il nuovo abbonamento appare nell'elenco della stagione di destinazione.
     // La finestra di prelazione (se una campagna è aperta per questa destinazione) passa a "esercitata".
     invalidates: () => [['subscriptions'], ['map'], ['renewalCampaign']],
   });
 }
 
-/** Campagna di prelazione per la stagione di destinazione (o null). */
-export function useRenewalCampaign(destinationDate: Ref<string>) {
+/** Campagna di prelazione per la stagione di destinazione (per id, o null). */
+export function useRenewalCampaign(destinationSeasonId: Ref<string>) {
   const session = useSessionStore();
   return queryResource({
-    queryKey: () => queryKeys.renewalCampaign(session.establishmentId, destinationDate.value),
-    queryFn: () => apiFetch<RenewalCampaignDetailDTO | null>(`/renewal-campaigns?destinationDate=${destinationDate.value}`),
-    enabled: () => !!destinationDate.value,
+    queryKey: () => queryKeys.renewalCampaign(session.establishmentId, destinationSeasonId.value),
+    queryFn: () => apiFetch<RenewalCampaignDetailDTO | null>(`/renewal-campaigns?destinationSeasonId=${destinationSeasonId.value}`),
+    enabled: () => !!destinationSeasonId.value,
   });
 }
 
-/** Apre una campagna (origine+destinazione+scadenza). */
+/** Apre una campagna (origine+destinazione per id + scadenza). */
 export function useOpenCampaign() {
   return mutationResource({
-    mutationFn: (input: { originDate: string; destinationDate: string; deadline: string }) =>
+    mutationFn: (input: { originSeasonId: string; destinationSeasonId: string; deadline: string }) =>
       apiFetch(`/renewal-campaigns`, { method: 'POST', body: JSON.stringify(input) }),
     invalidates: () => [['renewalCampaign']],
   });

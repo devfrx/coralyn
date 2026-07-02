@@ -3,6 +3,7 @@ import type { PrismaService } from '../../src/prisma/prisma.service';
 
 export interface PricingSeedIds {
   seasonId: string;
+  season2027Id: string;
   pricingId: string;
   packageId: string;
 }
@@ -74,7 +75,7 @@ export async function seedPricingTenant(
       data: { establishmentId, pricingId: pricing2027.id, type: 'subscription', price: 850, unit: RateUnit.period },
     });
 
-    return { seasonId: season.id, pricingId: pricing.id, packageId: pkg.id };
+    return { seasonId: season.id, season2027Id: season2027.id, pricingId: pricing.id, packageId: pkg.id };
   });
 }
 

@@ -5,6 +5,7 @@ import { CreateBookingDto } from './dto/create-booking.dto';
 import { QuoteBookingDto } from './dto/quote-booking.dto';
 import { SettlePaymentDto } from './dto/settle-payment.dto';
 import { BookingsQueryDto } from './dto/bookings-query.dto';
+import { SubscriptionsQueryDto } from './dto/subscriptions-query.dto';
 import { RenewBookingDto } from './dto/renew-booking.dto';
 import { resolveDate } from '../common/dates';
 
@@ -18,8 +19,8 @@ export class BookingsController {
   }
 
   @Get('subscriptions')
-  subscriptions(@Query() query: BookingsQueryDto): Promise<SubscriptionListItemDTO[]> {
-    return this.bookings.listSubscriptions(resolveDate(query.date));
+  subscriptions(@Query() query: SubscriptionsQueryDto): Promise<SubscriptionListItemDTO[]> {
+    return this.bookings.listSubscriptions(query.seasonId);
   }
 
   @Get()

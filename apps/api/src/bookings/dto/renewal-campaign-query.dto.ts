@@ -1,6 +1,7 @@
-import { IsCalendarDate } from '../../common/is-calendar-date';
+import { Matches } from 'class-validator';
+import { UUID_SHAPE } from '../../common/uuid';
 
 export class RenewalCampaignQueryDto {
-  @IsCalendarDate()
-  destinationDate!: string;
+  @Matches(UUID_SHAPE, { message: 'destinationSeasonId non valido' })
+  destinationSeasonId!: string;
 }

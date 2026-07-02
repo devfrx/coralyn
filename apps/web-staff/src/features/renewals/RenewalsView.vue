@@ -1,20 +1,33 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue';
-import { Button, Badge, DataTable, Avatar, EmptyState, initials } from '@coralyn/ui-kit';
+import { ref, computed, watchEffect } from 'vue';
+import { Button, Badge, DataTable, Avatar, EmptyState, Select, initials } from '@coralyn/ui-kit';
 import type { RenewalWindowItemDTO, RenewalWindowState, SubscriptionListItemDTO } from '@coralyn/contracts';
 import { storeToRefs } from 'pinia';
 import { useSessionStore } from '@/stores/session';
 import { useSubscriptions, useRenewBooking, useRenewalCampaign, useOpenCampaign, useCloseCampaign } from './useRenewals';
+import { useSeasons } from '@/features/pricing/useSeasons';
 import { useEntityLabels } from '@/lib/useEntityLabels';
 
 const session = useSessionStore();
 const { activeDate } = storeToRefs(session);
-const sourceDate = ref(activeDate.value); // una data nella stagione di ORIGINE
-const targetDate = ref('');               // una data nella stagione di DESTINAZIONE
-const deadline = ref('');                 // scadenza per l'apertura di una nuova campagna
 
-const { data: subs } = useSubscriptions(sourceDate);
-const { data: campaign } = useRenewalCampaign(targetDate);
+const { data: seasons } = useSeasons();
+const seasonOptions = computed(() => (seasons.value ?? []).map((s) => ({ value: s.id, label: s.name })));
+const originSeasonId = ref('');       // stagione di ORIGINE (per id)
+const destinationSeasonId = ref(''); // stagione di DESTINAZIONE (per id)
+const deadline = ref('');            // scadenza per l'apertura di una nuova campagna
+
+// Default origine: la stagione che contiene activeDate se presente, altrimenti la prima.
+watchEffect(() => {
+  const list = seasons.value ?? [];
+  if (!originSeasonId.value && list.length) {
+    const containing = list.find((s) => s.startDate <= activeDate.value && activeDate.value <= s.endDate);
+    originSeasonId.value = (containing ?? list[0]).id;
+  }
+});
+
+const { data: subs } = useSubscriptions(originSeasonId);
+const { data: campaign } = useRenewalCampaign(destinationSeasonId);
 const renew = useRenewBooking();
 const openCampaign = useOpenCampaign();
 const closeCampaign = useCloseCampaign();
@@ -32,13 +45,13 @@ const rows = computed(() => subs.value ?? []);
 const windowRows = computed(() => campaign.value?.windows ?? []);
 
 function doRenew(id: string): void {
-  if (!targetDate.value) return;
-  renew.mutate({ id, startDate: targetDate.value });
+  if (!destinationSeasonId.value) return;
+  renew.mutate({ id, destinationSeasonId: destinationSeasonId.value });
 }
 
 function doOpenCampaign(): void {
-  if (!targetDate.value || !deadline.value) return;
-  openCampaign.mutate({ originDate: sourceDate.value, destinationDate: targetDate.value, deadline: deadline.value });
+  if (!destinationSeasonId.value || !deadline.value) return;
+  openCampaign.mutate({ originSeasonId: originSeasonId.value, destinationSeasonId: destinationSeasonId.value, deadline: deadline.value });
 }
 
 function doCloseCampaign(): void {
@@ -58,15 +71,20 @@ function stateBadge(s: RenewalWindowState): { tone: 'success' | 'warning' | 'neu
     <div class="mb-4 flex flex-wrap items-end gap-4">
       <label class="flex flex-col gap-1.5">
         <span class="text-[12.5px] font-semibold text-[var(--color-text-2nd)]">Stagione di origine</span>
-        <input type="date" v-model="sourceDate" class="rounded-[11px] border-[1.5px] border-[var(--color-border-input)] bg-[var(--color-surface)] px-3.5 py-2.5 text-[13.5px] text-[var(--color-text)] focus:outline-none" />
+        <Select v-model="originSeasonId" data-test="origin-season" class="min-w-[170px]">
+          <option v-for="o in seasonOptions" :key="o.value" :value="o.value">{{ o.label }}</option>
+        </Select>
       </label>
       <label class="flex flex-col gap-1.5">
         <span class="text-[12.5px] font-semibold text-[var(--color-text-2nd)]">Stagione di destinazione</span>
-        <input type="date" v-model="targetDate" class="rounded-[11px] border-[1.5px] border-[var(--color-border-input)] bg-[var(--color-surface)] px-3.5 py-2.5 text-[13.5px] text-[var(--color-text)] focus:outline-none" />
+        <Select v-model="destinationSeasonId" data-test="destination-season" class="min-w-[170px]">
+          <option value="">Scegli…</option>
+          <option v-for="o in seasonOptions" :key="o.value" :value="o.value">{{ o.label }}</option>
+        </Select>
       </label>
     </div>
 
-    <div v-if="targetDate && !campaign" class="mb-5 flex flex-wrap items-end gap-4 rounded-[14px] border-[1.5px] border-[var(--color-border-input)] bg-[var(--color-surface)] p-4">
+    <div v-if="destinationSeasonId && !campaign" class="mb-5 flex flex-wrap items-end gap-4 rounded-[14px] border-[1.5px] border-[var(--color-border-input)] bg-[var(--color-surface)] p-4">
       <label class="flex flex-col gap-1.5">
         <span class="text-[12.5px] font-semibold text-[var(--color-text-2nd)]">Scadenza prelazione</span>
         <input type="date" v-model="deadline" class="rounded-[11px] border-[1.5px] border-[var(--color-border-input)] bg-[var(--color-surface)] px-3.5 py-2.5 text-[13.5px] text-[var(--color-text)] focus:outline-none" />
@@ -92,7 +110,7 @@ function stateBadge(s: RenewalWindowState): { tone: 'success' | 'warning' | 'neu
         <Badge :tone="stateBadge((row as unknown as RenewalWindowItemDTO).state).tone">{{ stateBadge((row as unknown as RenewalWindowItemDTO).state).label }}</Badge>
       </template>
       <template #cell-azione="{ row }">
-        <Button :disabled="(row as unknown as RenewalWindowItemDTO).state === 'exercised' || !targetDate" @click="doRenew((row as unknown as RenewalWindowItemDTO).sourceBookingId)">Rinnova</Button>
+        <Button :disabled="(row as unknown as RenewalWindowItemDTO).state === 'exercised' || !destinationSeasonId" @click="doRenew((row as unknown as RenewalWindowItemDTO).sourceBookingId)">Rinnova</Button>
       </template>
     </DataTable>
     <EmptyState v-else-if="campaign" message="Nessuna finestra di prelazione per questa campagna." />
@@ -111,7 +129,7 @@ function stateBadge(s: RenewalWindowState): { tone: 'success' | 'warning' | 'neu
           <Badge :tone="(row as unknown as SubscriptionListItemDTO).renewed ? 'success' : 'neutral'">{{ (row as unknown as SubscriptionListItemDTO).renewed ? 'Rinnovato' : 'Da rinnovare' }}</Badge>
         </template>
         <template #cell-azione="{ row }">
-          <Button :disabled="(row as unknown as SubscriptionListItemDTO).renewed || !targetDate" @click="doRenew((row as unknown as SubscriptionListItemDTO).id)">Rinnova</Button>
+          <Button :disabled="(row as unknown as SubscriptionListItemDTO).renewed || !destinationSeasonId" @click="doRenew((row as unknown as SubscriptionListItemDTO).id)">Rinnova</Button>
         </template>
       </DataTable>
       <EmptyState v-else message="Nessun abbonato per questa stagione." />
