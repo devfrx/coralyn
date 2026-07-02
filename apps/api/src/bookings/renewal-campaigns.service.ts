@@ -6,6 +6,7 @@ import { TenantContext } from '../tenant/tenant-context';
 import { CatalogService } from '../catalog/catalog.service';
 import { computeSeniority } from './seniority';
 import { toRenewalWindowItemDTO } from './renewal-window.projection';
+import { dateRangesOverlap } from './booking.availability';
 import { toDbDate, formatDbDate, todayInRome } from '../common/dates';
 
 @Injectable()
@@ -58,6 +59,7 @@ export class RenewalCampaignsService {
       if (!origin) return null;
 
       // Aventi-diritto: abbonati CONFERMATI della stagione di ORIGINE.
+      // Overlap inclusivo con la stagione di origine (cfr. dateRangesOverlap): tenere in sync.
       const subs = await tx.booking.findMany({
         where: {
           type: 'subscription',
@@ -79,8 +81,7 @@ export class RenewalCampaignsService {
           const exercised = b.renewals.some(
             (r) =>
               r.status === 'confirmed' &&
-              r.startDate.getTime() <= destEnd.getTime() &&
-              r.endDate.getTime() >= destStart.getTime(),
+              dateRangesOverlap(r.startDate, r.endDate, destStart, destEnd),
           );
           const state: RenewalWindowState = exercised ? 'exercised' : isExpired ? 'expired' : 'open';
           return toRenewalWindowItemDTO(b, seniorityById.get(b.id) ?? 1, state);

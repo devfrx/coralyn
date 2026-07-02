@@ -148,6 +148,7 @@ export class BookingsService {
     const openCampaigns = await tx.renewalCampaign.findMany({
       where: {
         deadline: { gte: toDbDate(today) },
+        // Overlap inclusivo su intervallo (cfr. dateRangesOverlap): mantenere in sync se cambia la semantica.
         destinationSeason: { startDate: { lte: dbEnd }, endDate: { gte: dbStart } },
       },
       include: { originSeason: true, destinationSeason: true },
@@ -161,6 +162,7 @@ export class BookingsService {
           type: 'subscription',
           status: 'confirmed',
           umbrellaId: p.umbrellaId,
+          // Overlap inclusivo con la stagione di origine (cfr. dateRangesOverlap): tenere in sync.
           startDate: { lte: c.originSeason.endDate },
           endDate: { gte: c.originSeason.startDate },
           customerId: { not: p.customerId },
