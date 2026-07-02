@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { DialogRoot, DialogPortal, DialogOverlay, DialogContent, DialogTitle, DialogClose } from 'reka-ui';
+import { DialogRoot, DialogPortal, DialogOverlay, DialogContent, DialogTitle, DialogDescription, DialogClose } from 'reka-ui';
 import Icon from './Icon.vue';
-defineProps<{ title: string; eyebrow?: string }>();
+defineProps<{ title: string; eyebrow?: string; description?: string }>();
 const open = defineModel<boolean>('open', { required: true });
 </script>
 <template>
@@ -13,6 +13,9 @@ const open = defineModel<boolean>('open', { required: true });
           <div>
             <div v-if="eyebrow" class="mb-1 text-[11px] font-semibold uppercase tracking-[.06em] text-[var(--color-text-muted)]">{{ eyebrow }}</div>
             <DialogTitle class="text-[19px] font-bold tracking-[-.01em] text-[var(--color-text)]">{{ title }}</DialogTitle>
+            <DialogDescription :class="description ? 'mt-1 text-[12.5px] text-[var(--color-text-2nd)]' : 'sr-only'">
+              {{ description ?? title }}
+            </DialogDescription>
           </div>
           <DialogClose aria-label="Chiudi" class="grid size-8 place-items-center rounded-full border border-[var(--color-border)] bg-[var(--color-raised)] text-[var(--color-text-muted)]"><Icon name="x" :size="16" /></DialogClose>
         </div>

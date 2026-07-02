@@ -1,6 +1,6 @@
 <script setup lang="ts">
 withDefaults(defineProps<{ numeric?: boolean }>(), { numeric: false });
-const model = defineModel<string>();
+const model = defineModel<string | number>();
 </script>
 <template>
   <input
