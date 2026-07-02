@@ -8,6 +8,7 @@ import { computeSeniority } from './seniority';
 import { toRenewalWindowItemDTO } from './renewal-window.projection';
 import { dateRangesOverlap } from './booking.availability';
 import { toDbDate, formatDbDate, todayInRome } from '../common/dates';
+import { UUID_SHAPE } from '../common/uuid';
 
 @Injectable()
 export class RenewalCampaignsService {
@@ -100,6 +101,7 @@ export class RenewalCampaignsService {
 
   /** Chiude/annulla una campagna: gli hold derivati cadono subito. */
   async close(id: string): Promise<void> {
+    if (!UUID_SHAPE.test(id)) throw new NotFoundException('Campagna non trovata');
     const tenantId = this.tenant.require();
     const removed = await this.prisma.forTenant(tenantId, (tx) => tx.renewalCampaign.deleteMany({ where: { id } }));
     if (removed.count === 0) throw new NotFoundException('Campagna non trovata');

@@ -211,6 +211,10 @@ describe('Renewal campaigns (e2e)', () => {
       await request(app.getHttpServer()).delete('/api/renewal-campaigns/99999999-9999-9999-9999-999999999999').set(...bearer(token1)).expect(404);
     });
 
+    it('delete id malformato → 404 (niente 500)', async () => {
+      await request(app.getHttpServer()).delete('/api/renewal-campaigns/not-a-uuid').set(...bearer(token1)).expect(404);
+    });
+
     it('delete cross-tenant → 404', async () => {
       const created = await request(app.getHttpServer()).post('/api/renewal-campaigns').set(...bearer(token1))
         .send({ originSeasonId: season2026, destinationSeasonId: season2027, deadline: '2099-12-31' }).expect(201);

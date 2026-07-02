@@ -273,7 +273,10 @@ export class BookingsService {
       // 3) Nuova stagione (semantica subscription), diversa da quella della sorgente.
       const season = await this.catalog.resolveSeasonById(tx, input.destinationSeasonId);
       if (!season.ok) throw new UnprocessableEntityException('Stagione di destinazione non trovata');
-      if (season.startDate === formatDbDate(source.startDate))
+      // La sorgente (abbonamento) vive nella stagione che contiene la sua startDate; il rinnovo
+      // deve puntare a una stagione DIVERSA per identità (non per data d'inizio).
+      const sourceSeason = await this.catalog.resolveSeasonWithin(tx, formatDbDate(source.startDate));
+      if (sourceSeason.ok && sourceSeason.id === season.id)
         throw new UnprocessableEntityException('Il rinnovo deve puntare a una stagione diversa');
 
       // 4) Copia FK dalla sorgente + 5) anti-overlap/prezzo/scrittura (helper condiviso).
