@@ -100,6 +100,36 @@ describe('MapView', () => {
     w.unmount();
   });
 
+  it('mostra il nome della fila quando la tariffa è matchata per rowId (provenienza)', async () => {
+    server.use(
+      http.get('/api/bookings/quote', () =>
+        HttpResponse.json({
+          totalPrice: 40,
+          matchedRate: { id: 'ra-row', seasonId: 'se-1', price: 40, unit: 'day', rowId: 'row-1' },
+        }),
+      ),
+    );
+
+    const w = mountApp(MapView, { attachTo: document.body });
+    await flushPromises();
+    await new Promise((r) => setTimeout(r, 0));
+    await flushPromises();
+
+    // Apri drawer sul primo ombrellone libero + modale "Nuova prenotazione" (stessi passi del test sopra).
+    await w.findComponent({ name: 'UmbrellaCell' }).find('button').trigger('click');
+    await flushPromises();
+    await w.findAll('button').find((b) => b.text().includes('Nuova prenotazione'))!.trigger('click');
+    await flushPromises();
+    await new Promise((r) => setTimeout(r, 0));
+    await flushPromises();
+
+    expect(document.body.textContent).toContain('Tariffa applicata');
+    expect(document.body.textContent).toContain('Fila 1'); // rowId matchato → nome fila, non "base"
+    expect(document.body.textContent).not.toContain('Tariffa base del listino');
+
+    w.unmount();
+  });
+
   it('errore 409 alla conferma: toast del server, modale resta aperto, nessun unhandled rejection', async () => {
     const rejections: unknown[] = [];
     const onRej = (e: PromiseRejectionEvent) => { rejections.push(e.reason); e.preventDefault(); };

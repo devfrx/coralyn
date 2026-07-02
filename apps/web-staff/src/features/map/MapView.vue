@@ -181,6 +181,9 @@ const { data: quote, isError: quoteError, isFetching: quoteLoading } = useBookin
 const packagesById = computed(() => new Map((packages.value ?? []).map((p) => [p.id, p.name])));
 const slotsById = computed(() => new Map(timeSlots.value.map((s) => [s.id, s.name])));
 const sectorsById = computed(() => new Map(sectors.value.map((s) => [s.id, s.name])));
+const rowsById = computed(
+  () => new Map(sectors.value.flatMap((s) => s.rows.map((r) => [r.id, r.label]))),
+);
 
 const matchedRateLabel = computed<string>(() => {
   const r = quote.value?.matchedRate;
@@ -189,6 +192,7 @@ const matchedRateLabel = computed<string>(() => {
   if (r.timeSlotId) parts.push(slotsById.value.get(r.timeSlotId) ?? 'Fascia');
   if (r.packageId) parts.push(packagesById.value.get(r.packageId) ?? 'Pacchetto');
   if (r.sectorId) parts.push(sectorsById.value.get(r.sectorId) ?? 'Settore');
+  if (r.rowId) parts.push(rowsById.value.get(r.rowId) ?? 'Fila');
   if (r.type) parts.push(TYPE_LABEL[r.type] ?? r.type);
   const dims = parts.length ? parts.join(' · ') : 'Tariffa base del listino';
   return `${dims} — ${formatEuro(r.price)}${r.unit === 'day' ? '/g' : ' forfait'}`;
