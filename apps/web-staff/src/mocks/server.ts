@@ -193,8 +193,13 @@ export const server = setupServer(
   http.delete('/api/renewal-campaigns/:id', () => { campaign = null; return HttpResponse.json({ ok: true }); }),
   http.get('/api/bookings/quote', ({ request }) => {
     const p = new URL(request.url).searchParams;
-    if (p.get('type') === 'subscription') return HttpResponse.json({ totalPrice: 800 });
-    return HttpResponse.json({ totalPrice: p.has('packageId') ? 35 : 28 });
+    const seasonId = 'se-1';
+    if (p.get('type') === 'subscription')
+      return HttpResponse.json({ totalPrice: 800, matchedRate: { id: 'ra-sub', seasonId, price: 800, unit: 'period', type: 'subscription' } });
+    const pkg = p.get('packageId');
+    if (pkg)
+      return HttpResponse.json({ totalPrice: 35, matchedRate: { id: 'ra-pkg', seasonId, price: 35, unit: 'day', packageId: pkg } });
+    return HttpResponse.json({ totalPrice: 28, matchedRate: { id: 'ra-1', seasonId, price: 28, unit: 'day' } }); // catch-all
   }),
   http.post('/api/bookings', async ({ request }) => {
     const b = (await request.json()) as { customerId: string; umbrellaId: string; timeSlotId: string; type: string; startDate: string; endDate?: string; packageId?: string };

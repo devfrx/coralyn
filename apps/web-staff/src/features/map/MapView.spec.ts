@@ -80,6 +80,26 @@ describe('MapView', () => {
     w.unmount();
   });
 
+  it('mostra la tariffa applicata (provenienza) nel modale', async () => {
+    const w = mountApp(MapView, { attachTo: document.body });
+    await flushPromises();
+    await new Promise((r) => setTimeout(r, 0));
+    await flushPromises();
+
+    // Apri drawer sul primo ombrellone libero + modale "Nuova prenotazione" (stessi passi del test sopra).
+    await w.findComponent({ name: 'UmbrellaCell' }).find('button').trigger('click');
+    await flushPromises();
+    await w.findAll('button').find((b) => b.text().includes('Nuova prenotazione'))!.trigger('click');
+    await flushPromises();
+    await new Promise((r) => setTimeout(r, 0));
+    await flushPromises();
+
+    expect(document.body.textContent).toContain('Tariffa applicata');
+    expect(document.body.textContent).toContain('Tariffa base del listino'); // catch-all (nessuna dimensione)
+
+    w.unmount();
+  });
+
   it('errore 409 alla conferma: toast del server, modale resta aperto, nessun unhandled rejection', async () => {
     const rejections: unknown[] = [];
     const onRej = (e: PromiseRejectionEvent) => { rejections.push(e.reason); e.preventDefault(); };

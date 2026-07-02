@@ -29,6 +29,9 @@ const STATE_COLOR: Record<SlotState, string> = {
 const STATE_LABEL: Record<SlotState, string> = {
   free: 'Libero', season: 'Abbonato', daily: 'Giornaliero', booked: 'Prenotato',
 };
+const TYPE_LABEL: Record<BookingType, string> = {
+  daily: 'Giornaliera', periodic: 'Periodica', subscription: 'Abbonamento',
+};
 
 const timeSlots = computed(() => map.value?.timeSlots ?? []);
 const typesById = computed(() => new Map((map.value?.umbrellaTypes ?? []).map((t) => [t.id, t])));
@@ -173,6 +176,24 @@ const quoteParams = computed<QuoteParams | null>(() => {
   };
 });
 const { data: quote, isError: quoteError, isFetching: quoteLoading } = useBookingQuote(quoteParams);
+
+// Provenienza prezzo (ADR-0032): label composta dal FE dai nomi già in vista.
+const packagesById = computed(() => new Map((packages.value ?? []).map((p) => [p.id, p.name])));
+const slotsById = computed(() => new Map(timeSlots.value.map((s) => [s.id, s.name])));
+const sectorsById = computed(() => new Map(sectors.value.map((s) => [s.id, s.name])));
+
+const matchedRateLabel = computed<string>(() => {
+  const r = quote.value?.matchedRate;
+  if (!r) return '';
+  const parts: string[] = [];
+  if (r.timeSlotId) parts.push(slotsById.value.get(r.timeSlotId) ?? 'Fascia');
+  if (r.packageId) parts.push(packagesById.value.get(r.packageId) ?? 'Pacchetto');
+  if (r.sectorId) parts.push(sectorsById.value.get(r.sectorId) ?? 'Settore');
+  if (r.type) parts.push(TYPE_LABEL[r.type] ?? r.type);
+  const dims = parts.length ? parts.join(' · ') : 'Tariffa base del listino';
+  return `${dims} — ${formatEuro(r.price)}${r.unit === 'day' ? '/g' : ' forfait'}`;
+});
+
 const settleOpen = ref(false);
 // Fascia options for modal: only free slots (SegmentedControl has no disabled-option API)
 const freeSlotOptions = computed(() =>
@@ -335,6 +356,9 @@ const freeSlotOptions = computed(() =>
           <p v-if="quoteLoading" class="text-[13.5px] text-[var(--color-text-muted)]">Calcolo…</p>
           <p v-else-if="quoteError" class="text-[13.5px] text-[var(--color-danger)]">Prezzo non disponibile: listino non configurato.</p>
           <p v-else class="text-lg font-bold tabular-nums text-[var(--color-text)]">{{ formatEuro(quote?.totalPrice ?? 0) }}</p>
+          <p v-if="!quoteLoading && !quoteError && quote" class="mt-1 text-[12px] text-[var(--color-text-muted)]">
+            Tariffa applicata: {{ matchedRateLabel }}
+          </p>
         </div>
         <ModalFooter class="pt-2" submit-label="Conferma prenotazione" :submit-disabled="quoteError || quoteLoading" @cancel="modalBooking = false" @submit="confirmBooking" />
       </div>
