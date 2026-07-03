@@ -3,7 +3,8 @@
 - **Status:** Accepted
 - **Data:** 2026-06-27
 - **Decisori:** Team di progetto
-- **ADR correlati:** [ADR-0005](0005-modello-mappa.md), [glossario](../glossary.md), [D-006](../deferred.md)
+- **ADR correlati:** [ADR-0005](0005-modello-mappa.md), [glossario](../glossary.md), [D-006](../deferred.md),
+  [ADR-0036](0036-equipment-catalogo-e-composizione.md) (raffina la "dotazione" del Pacchetto)
 
 ## Context
 
@@ -23,6 +24,10 @@ intervallo; abbonamento = intervallo lungo (la Stagione) con tariffa dedicata.
 `Pacchetto` (template **personalizzabile** dallo Stabilimento: Standard, Famiglia,
 Premium…) ne definisce la dotazione (n. lettini/sdraio). Sono ammessi extra sulla
 singola prenotazione.
+
+> **Aggiornamento ([ADR-0036](0036-equipment-catalogo-e-composizione.md)):** la "dotazione" del Pacchetto non è più un
+> attributo JSONB ma una relazione verso un catalogo tenant-scoped `EquipmentType` con composizione normalizzata
+> `PackageEquipment` (quantità per tipo). La decisione di dominio qui sopra resta; cambia solo la forma della dotazione.
 
 **Pricing a regole.** Un `Listino` per `Stagione` contiene `Tariffe`. Ogni `Tariffa`
 è una regola multi-dimensione su {tipo prenotazione, ambito di posizione
