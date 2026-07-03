@@ -7,6 +7,12 @@
       "runtimeArgs": ["--filter", "@coralyn/web-staff", "dev"],
       "port": 5173,
       "autoPort": true
+    },
+    {
+      "name": "mockups",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["-m", "http.server", "8090"],
+      "port": 8090
     }
   ]
 }
