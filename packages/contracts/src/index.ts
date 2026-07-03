@@ -208,6 +208,37 @@ export interface RenewBookingInput {
   destinationSeasonId: string;   // id della Season di destinazione
 }
 
+/**
+ * DTO arricchito di una prenotazione, per la Scheda Cliente 360°. Deriva da BookingDTO
+ * (senza `customerId`, implicito nella route) + arricchimenti di sola presentazione.
+ * Date ISO yyyy-mm-dd.
+ */
+export interface CustomerBookingDTO {
+  id: string;
+  umbrellaId: string;
+  timeSlotId: string;
+  startDate: string;
+  endDate: string;
+  type: BookingType;
+  status: BookingStatus;
+  totalPrice: number;
+  paymentStatus: PaymentStatus;
+  amountCollected: number;
+  paymentMethod?: PaymentMethod;
+  collectionDate?: string;
+  packageId?: string;
+  previousBookingId?: string;
+  // — arricchimenti server-side —
+  umbrellaLabel: string;          // join Umbrella.label (il FE non carica la mappa)
+  seasonName?: string;            // Season che contiene startDate; assente se nessuna
+  seniority?: number;             // SOLO subscription: lunghezza catena rinnovi (>=1)
+  renewed?: boolean;              // SOLO subscription: esiste un rinnovo confermato
+  prelazione?: {                  // SOLO subscription confermata con finestra APERTA. Assente altrimenti.
+    destinationSeasonName: string;
+    deadline: string;             // ISO yyyy-mm-dd
+  };
+}
+
 /** Voce dell'elenco abbonati di una stagione (campagna rinnovi, A4.2). */
 export interface SubscriptionListItemDTO {
   id: string;

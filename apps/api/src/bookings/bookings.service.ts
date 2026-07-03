@@ -10,6 +10,7 @@ import type {
   BookingQuoteDTO,
   BookingType,
   CreateBookingInput,
+  CustomerBookingDTO,
   QuoteBookingInput,
   RenewBookingInput,
   SettlePaymentInput,
@@ -20,11 +21,13 @@ import { TenantContext } from '../tenant/tenant-context';
 import { CatalogService, type QuoteOutcome } from '../catalog/catalog.service';
 import { toBookingDTO } from './booking.projection';
 import { toSubscriptionListItemDTO } from './subscription.projection';
+import { toCustomerBookingDTO, resolveSeasonName } from './customer-booking.projection';
 import { slotsOverlap, dateRangesOverlap } from './booking.availability';
 import { resolvePayment } from './booking.payment';
 import { toDbDate, formatDbDate, todayInRome } from '../common/dates';
 import { computeSeniority } from './seniority';
 import { isBookingOverlapExclusion } from './booking.errors';
+import { UUID_SHAPE } from '../common/uuid';
 
 @Injectable()
 export class BookingsService {
@@ -45,6 +48,36 @@ export class BookingsService {
       }),
     );
     return rows.map(toBookingDTO);
+  }
+
+  /**
+   * Tutte le prenotazioni di un cliente, arricchite per la Scheda Cliente 360° (ordine startDate desc).
+   * Nessun filtro su status: le cancellate servono allo storico (il FE le distingue). Read-only.
+   * La prelazione viene aggiunta in un layer successivo (helper condiviso computeRenewalWindowState).
+   */
+  async listByCustomer(customerId: string): Promise<CustomerBookingDTO[]> {
+    const tenantId = this.tenant.require();
+    if (!UUID_SHAPE.test(customerId)) return []; // id malformato → invisibile, come un altro tenant
+    return this.prisma.forTenant(tenantId, async (tx) => {
+      const bookings = await tx.booking.findMany({
+        where: { customerId },
+        include: { umbrella: true, renewals: true },
+        orderBy: [{ startDate: 'desc' }, { createdAt: 'desc' }],
+      });
+      if (bookings.length === 0) return [];
+      const seasons = await tx.season.findMany({});
+      const subIds = bookings.filter((b) => b.type === 'subscription').map((b) => b.id);
+      const seniorityById = await computeSeniority(tx, subIds);
+      return bookings.map((b) => {
+        const isSub = b.type === 'subscription';
+        return toCustomerBookingDTO(b, {
+          umbrellaLabel: b.umbrella.label,
+          seasonName: resolveSeasonName(seasons, b.startDate),
+          seniority: isSub ? (seniorityById.get(b.id) ?? 1) : undefined,
+          renewed: isSub ? b.renewals.some((r) => r.status === 'confirmed') : undefined,
+        });
+      });
+    });
   }
 
   /** Lancia il 422 di dominio col messaggio IT per un esito di pricing fallito. */
