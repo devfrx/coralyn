@@ -20,34 +20,36 @@ describe('CustomerDetailView', () => {
     expect((w.find('input[name="phone"]').element as HTMLInputElement).value).toBe('+39 333 1111111');
   });
 
-  it('mostra lo storico raggruppato per stagione, con la cancellata attenuata', async () => {
+  it('storico: raggruppa per stagione con conteggio, mostra chip settore e stato', async () => {
     const w = mountApp(CustomerDetailView, { props: { id: 'c-1' } });
     await settle();
     expect(w.text()).toContain('Estate 2026');
     expect(w.text()).toContain('Estate 2027');
-    expect(w.text()).toContain('A12');
+    expect(w.text()).toContain('Centro · A12');
     expect(w.text()).toContain('Giornaliera');
     expect(w.text()).toContain('Abbonamento');
-    // la cancellata è marcata (badge "Annullata")
+    expect(w.text()).toMatch(/3\s*prenotazioni/);
+    expect(w.text()).toContain('Confermata');
     expect(w.text()).toContain('Annullata');
   });
 
-  it('mostra anzianità e badge Rinnovato nella card abbonamento', async () => {
+  it('abbonamento: numero-grande anzianità, badge pacchetto e badge Rinnovato', async () => {
     const w = mountApp(CustomerDetailView, { props: { id: 'c-1' } });
     await settle();
     expect(w.text()).toContain('Rinnovato');
-    // seniority renderizzata (es. "2ª stagione" o "2 stagioni")
-    expect(w.text()).toMatch(/2\D*stagion/i);
+    expect(w.text()).toContain('Comfort');
+    expect(w.text()).toContain('STAGIONI');
+    expect(w.text()).toMatch(/Abbonato da 2 stagioni/);
   });
 
-  it('mostra saldo e incassato nella card pagamenti', async () => {
+  it('pagamenti: due StatTile (saldo/incassato) e tabella con metodo tradotto', async () => {
     const w = mountApp(CustomerDetailView, { props: { id: 'c-1' } });
     await settle();
-    // saldo aperto = solo il daily non pagato non-cancellato (30). Le due subscription sono saldate.
-    expect(w.text()).toContain('Saldo');
-    expect(w.text()).toContain('30');
-    // incassato totale = 320 + 300 = 620
-    expect(w.text()).toContain('620');
+    expect(w.text()).toContain('Saldo aperto');
+    expect(w.text()).toContain('Incassato');
+    expect(w.text()).toContain('€ 30.00');
+    expect(w.text()).toContain('€ 620.00');
+    expect(w.text()).toContain('Carta');
   });
 
   it('mostra la nota di prelazione aperta nella card abbonamento', async () => {

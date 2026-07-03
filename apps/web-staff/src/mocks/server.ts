@@ -46,17 +46,18 @@ const INITIAL_CUSTOMER_BOOKINGS: Record<string, CustomerBookingDTO[]> = {
   'c-1': [
     { id: 'cb-1', umbrellaId: 'u-1', timeSlotId: 'ts-1', startDate: '2027-06-15', endDate: '2027-09-15',
       type: 'subscription', status: 'confirmed', totalPrice: 320, paymentStatus: 'paid', amountCollected: 320,
-      umbrellaLabel: 'A12', seasonName: 'Estate 2027', seniority: 2, renewed: false,
+      paymentMethod: 'card',
+      umbrellaLabel: 'A12', sectorName: 'Centro', packageName: 'Comfort', seasonName: 'Estate 2027', seniority: 2, renewed: false,
       prelazione: { destinationSeasonName: 'Estate 2028', deadline: '2028-04-30' } },
     { id: 'cb-2', umbrellaId: 'u-1', timeSlotId: 'ts-1', startDate: '2026-06-15', endDate: '2026-09-15',
       type: 'subscription', status: 'confirmed', totalPrice: 300, paymentStatus: 'paid', amountCollected: 300,
-      umbrellaLabel: 'A12', seasonName: 'Estate 2026', seniority: 1, renewed: true },
+      umbrellaLabel: 'A12', sectorName: 'Centro', packageName: 'Comfort', seasonName: 'Estate 2026', seniority: 1, renewed: true },
     { id: 'cb-3', umbrellaId: 'u-1', timeSlotId: 'ts-1', startDate: '2026-07-10', endDate: '2026-07-10',
       type: 'daily', status: 'confirmed', totalPrice: 30, paymentStatus: 'unpaid', amountCollected: 0,
-      umbrellaLabel: 'A12', seasonName: 'Estate 2026' },
+      umbrellaLabel: 'A12', sectorName: 'Centro', seasonName: 'Estate 2026' },
     { id: 'cb-4', umbrellaId: 'u-1', timeSlotId: 'ts-1', startDate: '2026-08-01', endDate: '2026-08-01',
       type: 'daily', status: 'cancelled', totalPrice: 30, paymentStatus: 'unpaid', amountCollected: 0,
-      umbrellaLabel: 'A12', seasonName: 'Estate 2026' },
+      umbrellaLabel: 'A12', sectorName: 'Centro', seasonName: 'Estate 2026' },
   ],
 };
 let customerBookings: Record<string, CustomerBookingDTO[]> = structuredClone(INITIAL_CUSTOMER_BOOKINGS);

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue';
-import { Card, Avatar, Button, Field, Input, Textarea, Icon } from '@coralyn/ui-kit';
+import { Card, Avatar, Button, Field, Input, Textarea, Icon, SectionCard } from '@coralyn/ui-kit';
 import { useCustomer, useUpdateCustomer, useCustomerBookings } from './useCustomers';
 import CustomerHistoryCard from './CustomerHistoryCard.vue';
 import CustomerSubscriptionsCard from './CustomerSubscriptionsCard.vue';
@@ -38,12 +38,11 @@ const ini = computed(() => (customer.value ? ((customer.value.firstName[0] ?? ''
         </div>
       </Card>
 
-      <Card class="mb-4">
-        <form class="p-5" @submit.prevent="save">
-          <div class="mb-4 flex items-center justify-between">
-            <span class="text-sm font-bold text-[var(--color-text)]">Anagrafica e contatti</span>
-            <Button type="submit" variant="ghost"><Icon name="check" :size="14" />Salva</Button>
-          </div>
+      <SectionCard title="Anagrafica e contatti" icon="users" class="mb-4">
+        <template #action>
+          <Button type="submit" form="anagrafica-form" variant="ghost"><Icon name="check" :size="14" />Salva</Button>
+        </template>
+        <form id="anagrafica-form" @submit.prevent="save">
           <div class="grid grid-cols-2 gap-x-7 gap-y-[18px]">
             <div><div class="mb-1 text-[11px] font-semibold uppercase tracking-[.05em] text-[var(--color-text-muted)]">Nome</div><div class="text-sm font-medium text-[var(--color-text)]">{{ customer.firstName }}</div></div>
             <div><div class="mb-1 text-[11px] font-semibold uppercase tracking-[.05em] text-[var(--color-text-muted)]">Cognome</div><div class="text-sm font-medium text-[var(--color-text)]">{{ customer.lastName }}</div></div>
@@ -52,7 +51,7 @@ const ini = computed(() => (customer.value ? ((customer.value.firstName[0] ?? ''
             <div class="col-span-2"><Field label="Note"><Textarea name="notes" v-model="notes" /></Field></div>
           </div>
         </form>
-      </Card>
+      </SectionCard>
 
       <div class="grid grid-cols-1 gap-3.5 lg:grid-cols-3">
         <CustomerSubscriptionsCard :bookings="bookings ?? []" />
