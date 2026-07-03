@@ -9,7 +9,9 @@
   slot-aware), [ADR-0031](0031-fuso-orario-e-date-operative.md) (date di calendario Europe/Rome,
   round-trip UTC), [D-030](../deferred.md) (anti-overlap applicativo, non vincolo DB — stessa
   filosofia della prelazione lazy), [D-013](../deferred.md) (sospensione/cessione/disdetta — vicina
-  alla rinuncia esplicita, fuori scope qui)
+  alla rinuncia esplicita, fuori scope qui), [ADR-0037](0037-anti-overlap-exclusion-constraint.md)
+  (l'anti-overlap D-030 è ora anche un EXCLUDE constraint DB; la validazione stagioni qui sotto è
+  stata rafforzata per restarne rinnovo-safe)
 
 ## Context
 
@@ -39,6 +41,11 @@ serve un nuovo `BookingStatus` per rappresentare lo stato della prelazione.
 1. **La campagna (`RenewalCampaign`) è l'unico stato persistito.** Una riga per stagione di
    destinazione: `originSeasonId`, `destinationSeasonId`, `deadline`, `createdAt`. Nessuna riga
    per-abbonato.
+
+   > Raffinamento ([ADR-0037](0037-anti-overlap-exclusion-constraint.md)): l'apertura campagna valida che la stagione
+   > di destinazione segua quella di origine; questa validazione è stata rafforzata da `dest.startDate >
+   > origin.startDate` a `dest.startDate > origin.endDate` (le due stagioni non devono sovrapporsi in date), così un
+   > rinnovo non fa mai scattare un 409 spurio contro l'`EXCLUDE` constraint anti-overlap introdotto da quell'ADR.
 2. **Le finestre per-abbonato sono derivate, non persistite.** Lo stato di ciascuna finestra
    (`open | exercised | expired`) si calcola a lettura (e a scrittura) confrontando `deadline` con
    `todayInRome()` ([ADR-0031](0031-fuso-orario-e-date-operative.md)) ed esistenza di un rinnovo

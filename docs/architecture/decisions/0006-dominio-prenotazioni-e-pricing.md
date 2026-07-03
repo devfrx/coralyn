@@ -4,7 +4,8 @@
 - **Data:** 2026-06-27
 - **Decisori:** Team di progetto
 - **ADR correlati:** [ADR-0005](0005-modello-mappa.md), [glossario](../glossary.md), [D-006](../deferred.md),
-  [ADR-0036](0036-equipment-catalogo-e-composizione.md) (raffina la "dotazione" del Pacchetto)
+  [ADR-0036](0036-equipment-catalogo-e-composizione.md) (raffina la "dotazione" del Pacchetto),
+  [ADR-0037](0037-anti-overlap-exclusion-constraint.md) (raffina l'invariante anti-overlap: garanzia anche a livello DB)
 
 ## Context
 
@@ -37,6 +38,9 @@ singola prenotazione.
 
 **Invariante di disponibilità.** Nessuna sovrapposizione tra `Prenotazione`
 confermate sullo stesso `Ombrellone` nello stesso intervallo.
+
+> Raffinato da [ADR-0037](0037-anti-overlap-exclusion-constraint.md): l'invariante è ora garantita anche a livello DB
+> (EXCLUDE constraint).
 
 **Lista d'attesa minima.** Coda di richieste su risorsa/periodo pieno, con
 **promozione manuale** a prenotazione da parte dello staff. Hold automatici con
