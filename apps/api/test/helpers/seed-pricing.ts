@@ -15,7 +15,13 @@ export async function seedPricingTenant(
 ): Promise<PricingSeedIds> {
   return prisma.forTenant(establishmentId, async (tx) => {
     const pkg = await tx.package.create({
-      data: { establishmentId, name: 'Standard', equipment: { sunbeds: 2 } },
+      data: { establishmentId, name: 'Standard' },
+    });
+    const lettino = await tx.equipmentType.create({
+      data: { establishmentId, name: 'Lettino' },
+    });
+    await tx.packageEquipment.create({
+      data: { establishmentId, packageId: pkg.id, equipmentTypeId: lettino.id, quantity: 2 },
     });
     const season = await tx.season.create({
       data: {
@@ -81,6 +87,8 @@ export async function cleanPricingTenant(prisma: PrismaService, establishmentId:
     await tx.rate.deleteMany({});
     await tx.pricing.deleteMany({});
     await tx.season.deleteMany({});
+    await tx.packageEquipment.deleteMany({});
     await tx.package.deleteMany({});
+    await tx.equipmentType.deleteMany({});
   });
 }

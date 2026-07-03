@@ -8,21 +8,23 @@ datasource db {
 }
 
 model Establishment {
-  id               String            @id @default(uuid()) @db.Uuid
-  name             String
-  customers        Customer[]
-  users            User[]
-  sectors          Sector[]
-  rows             Row[]
-  umbrellas        Umbrella[]
-  types            UmbrellaType[]
-  timeSlots        TimeSlot[]
-  bookings         Booking[]
-  packages         Package[]
-  seasons          Season[]
-  pricings         Pricing[]
-  rates            Rate[]
-  renewalCampaigns RenewalCampaign[]
+  id                String             @id @default(uuid()) @db.Uuid
+  name              String
+  customers         Customer[]
+  users             User[]
+  sectors           Sector[]
+  rows              Row[]
+  umbrellas         Umbrella[]
+  types             UmbrellaType[]
+  timeSlots         TimeSlot[]
+  bookings          Booking[]
+  packages          Package[]
+  seasons           Season[]
+  pricings          Pricing[]
+  rates             Rate[]
+  renewalCampaigns  RenewalCampaign[]
+  equipmentTypes    EquipmentType[]
+  packageEquipments PackageEquipment[]
 }
 
 model Customer {
@@ -201,14 +203,14 @@ model RenewalCampaign {
 }
 
 model Package {
-  id              String        @id @default(uuid()) @db.Uuid
-  establishmentId String        @db.Uuid
+  id              String             @id @default(uuid()) @db.Uuid
+  establishmentId String             @db.Uuid
   name            String
-  equipment       Json          @db.JsonB
   archivedAt      DateTime?
-  establishment   Establishment @relation(fields: [establishmentId], references: [id])
+  establishment   Establishment      @relation(fields: [establishmentId], references: [id])
   bookings        Booking[]
   rates           Rate[]
+  packageLinks    PackageEquipment[]
 
   @@index([establishmentId])
 }
@@ -260,4 +262,30 @@ model Rate {
 
   @@index([establishmentId])
   @@index([pricingId])
+}
+
+model EquipmentType {
+  id              String             @id @default(uuid()) @db.Uuid
+  establishmentId String             @db.Uuid
+  name            String
+  archivedAt      DateTime?
+  establishment   Establishment      @relation(fields: [establishmentId], references: [id])
+  packageLinks    PackageEquipment[]
+
+  @@unique([establishmentId, name])
+  @@index([establishmentId])
+}
+
+model PackageEquipment {
+  establishmentId String        @db.Uuid
+  packageId       String        @db.Uuid
+  equipmentTypeId String        @db.Uuid
+  quantity        Int
+  establishment   Establishment @relation(fields: [establishmentId], references: [id])
+  package         Package       @relation(fields: [packageId], references: [id], onDelete: Cascade)
+  equipmentType   EquipmentType @relation(fields: [equipmentTypeId], references: [id], onDelete: Restrict)
+
+  @@id([packageId, equipmentTypeId])
+  @@index([equipmentTypeId])
+  @@index([establishmentId])
 }

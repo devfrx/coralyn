@@ -123,9 +123,34 @@ async function main(): Promise<void> {
     const PKG_STANDARD = u(6, 1);
     await tx.package.upsert({
       where: { id: PKG_STANDARD },
-      update: { name: 'Standard', equipment: { sunbeds: 2, deckchairs: 1 } },
-      create: { id: PKG_STANDARD, establishmentId: EID, name: 'Standard', equipment: { sunbeds: 2, deckchairs: 1 } },
+      update: { name: 'Standard' },
+      create: { id: PKG_STANDARD, establishmentId: EID, name: 'Standard' },
     });
+
+    const EQ_LETTINO = u(10, 1);
+    const EQ_SDRAIO = u(10, 2);
+    const equipmentTypes = [
+      { id: EQ_LETTINO, name: 'Lettino' },
+      { id: EQ_SDRAIO, name: 'Sdraio' },
+    ];
+    for (const x of equipmentTypes) {
+      await tx.equipmentType.upsert({
+        where: { id: x.id },
+        update: { name: x.name },
+        create: { id: x.id, establishmentId: EID, name: x.name },
+      });
+    }
+    const links = [
+      { equipmentTypeId: EQ_LETTINO, quantity: 2 },
+      { equipmentTypeId: EQ_SDRAIO, quantity: 1 },
+    ];
+    for (const l of links) {
+      await tx.packageEquipment.upsert({
+        where: { packageId_equipmentTypeId: { packageId: PKG_STANDARD, equipmentTypeId: l.equipmentTypeId } },
+        update: { quantity: l.quantity },
+        create: { establishmentId: EID, packageId: PKG_STANDARD, equipmentTypeId: l.equipmentTypeId, quantity: l.quantity },
+      });
+    }
 
     const SEASON = u(7, 1);
     await tx.season.upsert({
