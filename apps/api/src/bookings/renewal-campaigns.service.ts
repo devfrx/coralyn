@@ -28,8 +28,8 @@ export class RenewalCampaignsService {
       if (!dest.ok) throw new UnprocessableEntityException('Stagione di destinazione non trovata');
       if (origin.id === dest.id)
         throw new UnprocessableEntityException('Origine e destinazione devono differire');
-      if (dest.startDate <= origin.startDate)
-        throw new UnprocessableEntityException('La stagione di destinazione deve seguire quella di origine');
+      if (dest.startDate <= origin.endDate)
+        throw new UnprocessableEntityException('La stagione di destinazione deve iniziare dopo la fine di quella di origine');
       try {
         return await tx.renewalCampaign.create({
           data: {

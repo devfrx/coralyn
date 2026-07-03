@@ -24,6 +24,7 @@ import { slotsOverlap, dateRangesOverlap } from './booking.availability';
 import { resolvePayment } from './booking.payment';
 import { toDbDate, formatDbDate, todayInRome } from '../common/dates';
 import { computeSeniority } from './seniority';
+import { isBookingOverlapExclusion } from './booking.errors';
 
 @Injectable()
 export class BookingsService {
@@ -201,21 +202,30 @@ export class BookingsService {
     if (!outcome.ok) this.throwPriceError(outcome, p.type);
     const totalPrice = outcome.totalPrice;
 
-    return tx.booking.create({
-      data: {
-        establishmentId: p.tenantId,
-        customerId: p.customerId,
-        umbrellaId: p.umbrellaId,
-        timeSlotId: p.slot.id,
-        startDate: dbStart,
-        endDate: dbEnd,
-        type: p.type,
-        status: 'confirmed',
-        totalPrice,
-        packageId: p.packageId,
-        previousBookingId: p.previousBookingId,
-      },
-    });
+    // Scrittura. Rete di sicurezza DB (ADR-0037): sotto race concorrente il check applicativo sopra
+    // può essere aggirato; l'EXCLUDE constraint booking_no_overlap scatta (SQLSTATE 23P01) e lo
+    // traduciamo nello stesso 409 gentile, così client e test non distinguono chi ha bloccato.
+    try {
+      return await tx.booking.create({
+        data: {
+          establishmentId: p.tenantId,
+          customerId: p.customerId,
+          umbrellaId: p.umbrellaId,
+          timeSlotId: p.slot.id,
+          startDate: dbStart,
+          endDate: dbEnd,
+          type: p.type,
+          status: 'confirmed',
+          totalPrice,
+          packageId: p.packageId,
+          previousBookingId: p.previousBookingId,
+        },
+      });
+    } catch (e) {
+      if (isBookingOverlapExclusion(e))
+        throw new ConflictException('Fascia non disponibile per questo ombrellone');
+      throw e;
+    }
   }
 
   /** Crea una prenotazione (daily / periodic / subscription; status=confirmed). Prezzo/durata server-autoritativi. */

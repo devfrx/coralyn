@@ -385,6 +385,34 @@ describe('Bookings (e2e)', () => {
         .send({ destinationSeasonId: season2027 }).expect(409);
     });
 
+    it('rinnovo verso una stagione che si SOVRAPPONE alla sorgente → 409 (backstop DB, mapping 23P01)', async () => {
+      // Seam deterministico: il check applicativo esclude la sorgente (previousBookingId) e passa, ma
+      // l'EXCLUDE constraint DB vede sorgente+rinnovo sovrapposti → 23P01, tradotto in 409 dal mapping.
+      const u = (await mkUmbrella('96', 96)).id;
+      // Stagione che si sovrappone a Estate 2026 [05-01, 09-30]: [09-01, 12-31].
+      const overlapId = (
+        await prisma.forTenant(s1, (tx) =>
+          tx.season.create({
+            data: {
+              establishmentId: s1,
+              name: 'Autunno 2026 (overlap)',
+              startDate: new Date('2026-09-01T00:00:00Z'),
+              endDate: new Date('2026-12-31T00:00:00Z'),
+            },
+          }),
+        )
+      ).id;
+      // Serve un listino subscription nella stagione sovrapposta per superare il pricing.
+      await prisma.forTenant(s1, async (tx) => {
+        const pr = await tx.pricing.create({ data: { establishmentId: s1, seasonId: overlapId } });
+        await tx.rate.create({ data: { establishmentId: s1, pricingId: pr.id, type: 'subscription', price: 900 } });
+      });
+      const src = await request(app.getHttpServer()).post('/api/bookings').set(...bearer(token1))
+        .send(body({ umbrellaId: u, type: 'subscription', startDate: '2026-07-01' })).expect(201);
+      await request(app.getHttpServer()).post(`/api/bookings/${src.body.id}/renew`).set(...bearer(token1))
+        .send({ destinationSeasonId: overlapId }).expect(409);
+    });
+
     it('elenco abbonati per stagione inesistente → [] (nessuna stagione)', async () => {
       const res = await request(app.getHttpServer()).get('/api/bookings/subscriptions?seasonId=00000000-0000-0000-0000-0000000000ff').set(...bearer(token1)).expect(200);
       expect(res.body).toEqual([]);

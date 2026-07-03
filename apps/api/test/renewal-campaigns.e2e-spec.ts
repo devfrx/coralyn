@@ -95,6 +95,21 @@ describe('Renewal campaigns (e2e)', () => {
         .send({ originSeasonId: season2026, destinationSeasonId: season2027, deadline: '2099-12-31' }).expect(409);
       await request(app.getHttpServer()).delete(`/api/renewal-campaigns/${first.body.id}`).set(...bearer(token1)).expect(200);
     });
+
+    it('open con destinazione che si SOVRAPPONE all\'origine → 422 (invariante rinnovo-safe)', async () => {
+      // Origine [05-01, 09-30], destinazione [09-01, 12-31]: dest.startDate <= origin.endDate → rifiutata.
+      const { originId, destId } = await prisma.forTenant(s1, async (tx) => {
+        const origin = await tx.season.create({
+          data: { establishmentId: s1, name: 'Ovl origine', startDate: new Date('2029-05-01T00:00:00Z'), endDate: new Date('2029-09-30T00:00:00Z') },
+        });
+        const dest = await tx.season.create({
+          data: { establishmentId: s1, name: 'Ovl dest', startDate: new Date('2029-09-01T00:00:00Z'), endDate: new Date('2029-12-31T00:00:00Z') },
+        });
+        return { originId: origin.id, destId: dest.id };
+      });
+      await request(app.getHttpServer()).post('/api/renewal-campaigns').set(...bearer(token1))
+        .send({ originSeasonId: originId, destinationSeasonId: destId, deadline: '2029-04-01' }).expect(422);
+    });
   });
 
   describe('get / finestre / close', () => {
