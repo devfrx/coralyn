@@ -10,9 +10,9 @@ describe('isBookingOverlapExclusion', () => {
     expect(isBookingOverlapExclusion(e)).toBe(true);
   });
 
-  it('riconosce una violazione per SQLSTATE 23P01 nel messaggio', () => {
+  it('NON scatta su un 23P01 di un altro exclusion constraint (nessun nome booking_no_overlap)', () => {
     const e = new Prisma.PrismaClientUnknownRequestError('… code: 23P01 …', { clientVersion: '5.20.0' });
-    expect(isBookingOverlapExclusion(e)).toBe(true);
+    expect(isBookingOverlapExclusion(e)).toBe(false);
   });
 
   it('NON scatta su una unique violation (23505 / P2002)', () => {

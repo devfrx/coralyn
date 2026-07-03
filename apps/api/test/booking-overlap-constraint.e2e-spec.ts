@@ -104,6 +104,17 @@ describe('Booking overlap EXCLUDE constraint (e2e, DB-level)', () => {
     expect([row.slotStartMin, row.slotEndMin]).toEqual([780, 1140]);
   });
 
+  it('il trigger NON scatta su UPDATE di colonne diverse da timeSlotId (i minuti restano intatti)', async () => {
+    // Mattina 08-13 → 480/780. Un update che NON tocca timeSlotId (es. totalPrice, come settlePayment/cancel)
+    // non deve ricalcolare né azzerare i minuti: il trigger è scoped a OF "timeSlotId".
+    const b = await insert({ umbrellaId: ids.u1, timeSlotId: ids.slotMorning, startDate: D, endDate: D });
+    await prisma.forTenant(s1, (tx) =>
+      tx.booking.update({ where: { id: b.id }, data: { totalPrice: 99 } }),
+    );
+    const row = await prisma.forTenant(s1, (tx) => tx.booking.findFirstOrThrow({ where: { id: b.id } }));
+    expect([row.slotStartMin, row.slotEndMin]).toEqual([480, 780]);
+  });
+
   it('stessa fascia, stesso ombrellone, date sovrapposte → rifiutato (violazione 23P01 booking_no_overlap)', async () => {
     await insert({ umbrellaId: ids.u1, timeSlotId: ids.slotMorning, startDate: D, endDate: D });
     await expect(
