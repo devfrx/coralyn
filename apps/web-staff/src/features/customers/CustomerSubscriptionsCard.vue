@@ -8,7 +8,7 @@ const subs = computed(() => props.bookings.filter((b) => b.type === 'subscriptio
 
 function seniorityLabel(n?: number): string {
   if (!n) return '';
-  return n === 1 ? '1ª stagione' : `${n}ª stagione (abbonato da ${n} stagioni)`;
+  return n === 1 ? '1ª stagione' : `${n}ª stagione consecutiva`;
 }
 </script>
 <template>

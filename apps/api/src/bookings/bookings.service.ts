@@ -71,9 +71,12 @@ export class BookingsService {
       const subIds = bookings.filter((b) => b.type === 'subscription').map((b) => b.id);
       const seniorityById = await computeSeniority(tx, subIds);
 
-      const campaigns = await tx.renewalCampaign.findMany({
-        include: { originSeason: true, destinationSeason: true },
-      });
+      const campaigns =
+        subIds.length > 0
+          ? await tx.renewalCampaign.findMany({
+              include: { originSeason: true, destinationSeason: true },
+            })
+          : [];
       const todayIso = todayInRome();
 
       const prelazioneFor = (b: (typeof bookings)[number]): { destinationSeasonName: string; deadline: string } | undefined => {

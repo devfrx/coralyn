@@ -11,7 +11,8 @@ const groups = computed(() => {
   const map = new Map<string, CustomerBookingDTO[]>();
   for (const b of props.bookings) {
     const key = b.seasonName ?? 'Senza stagione';
-    (map.get(key) ?? map.set(key, []).get(key)!).push(b);
+    if (!map.has(key)) map.set(key, []);
+    map.get(key)!.push(b);
   }
   return [...map.entries()];
 });
