@@ -93,13 +93,22 @@ distinguono chi ha bloccato la scrittura.
 ### Invariante rinnovo-safe
 
 Il constraint è più severo del controllo applicativo: non sa auto-escludere la sorgente di un rinnovo (l'app lo fa
-con `id ≠ previousBookingId`). Scatterebbe con un **409 spurio** solo se la stagione di **destinazione** di una
-campagna rinnovo si sovrapponesse in date all'**origine** (stesso ombrellone e fascia). Si chiude alla radice
-rafforzando la validazione di apertura campagna in `renewal-campaigns.service.ts`, da `dest.startDate >
-origin.startDate` (troppo debole: la destinazione può ancora sovrapporsi all'origine) a **`dest.startDate >
-origin.endDate`** — la stagione di destinazione deve iniziare **dopo la fine** di quella di origine. Con questa
-invariante, un rinnovo (per costruzione verso il futuro) non si sovrappone mai in date alla propria sorgente, quindi
-il constraint non lo rifiuta mai.
+con `id ≠ previousBookingId`). Scatterebbe con un **409 spurio** solo se la stagione di **destinazione** di un
+rinnovo si sovrapponesse in date all'**origine** (stesso ombrellone e fascia). Si chiude alla radice con la stessa
+invariante — **la stagione di destinazione deve iniziare dopo la fine di quella di origine** — enforcata in **due
+punti** che rappresentano gli unici modi di generare un rinnovo:
+
+- **apertura campagna** (`renewal-campaigns.service.ts`): la validazione passa da `dest.startDate > origin.startDate`
+  (troppo debole: la destinazione può ancora sovrapporsi all'origine) a **`dest.startDate > origin.endDate`**;
+- **rinnovo diretto** (`bookings.service.ts` `renew()`): un pre-flight **422** (`season.startDate > source.endDate`)
+  con messaggio chiaro ("la stagione di rinnovo deve iniziare dopo la fine dell'abbonamento di origine"), invece di
+  lasciare che il constraint produca un 409 generico per un errore di logica **prevedibile**.
+
+Con questa invariante applicata su entrambi i percorsi, un rinnovo (per costruzione verso il futuro) non si sovrappone
+mai in date alla propria sorgente: il constraint non lo rifiuta mai. Ne segue che `booking_no_overlap` resta un
+backstop per la sola **finestra di race** concorrente — non è il gestore primario di alcun caso di logica prevedibile.
+Il mapping `23P01 → 409` non è quindi più raggiungibile via API in modo deterministico; il rilevatore
+`isBookingOverlapExclusion` è pinnato direttamente contro l'errore reale del constraint da un test a livello DB.
 
 ## Consequences
 

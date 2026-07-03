@@ -3,6 +3,7 @@ import { INestApplication } from '@nestjs/common';
 import { AppModule } from '../src/app.module';
 import { PrismaService } from '../src/prisma/prisma.service';
 import { seedMapTenant, cleanMapTenant, type MapSeedIds } from './helpers/seed-map';
+import { isBookingOverlapExclusion } from '../src/bookings/booking.errors';
 
 /**
  * Test a livello DB dell'EXCLUDE constraint booking_no_overlap (D-030, ADR-0037). Inserisce
@@ -141,5 +142,20 @@ describe('Booking overlap EXCLUDE constraint (e2e, DB-level)', () => {
     await expect(
       insert({ umbrellaId: ids.u1, timeSlotId: ids.slotMorning, startDate: D, endDate: D }),
     ).resolves.toBeDefined();
+  });
+
+  it('isBookingOverlapExclusion riconosce l\'errore REALE del constraint (pin del mapping 23P01→409)', async () => {
+    // Il mapping è ormai backstop di sola race (create e renew pre-validano), quindi non è più
+    // raggiungibile via API in modo deterministico: pinniamo il rilevatore DIRETTAMENTE contro
+    // l'errore Prisma reale prodotto dal constraint, così un cambio di forma dell'errore lo rompe subito.
+    await insert({ umbrellaId: ids.u1, timeSlotId: ids.slotMorning, startDate: D, endDate: D });
+    let caught: unknown;
+    try {
+      await insert({ umbrellaId: ids.u1, timeSlotId: ids.slotMorning, startDate: D, endDate: D });
+    } catch (e) {
+      caught = e;
+    }
+    expect(caught).toBeDefined();
+    expect(isBookingOverlapExclusion(caught)).toBe(true);
   });
 });

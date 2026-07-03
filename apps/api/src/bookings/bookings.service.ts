@@ -291,6 +291,15 @@ export class BookingsService {
       const sourceSeason = await this.catalog.resolveSeasonWithin(tx, formatDbDate(source.startDate));
       if (sourceSeason.ok && sourceSeason.id === season.id)
         throw new UnprocessableEntityException('Il rinnovo deve puntare a una stagione diversa');
+      // Il rinnovo va verso il FUTURO: la stagione di destinazione deve iniziare DOPO la fine
+      // dell'abbonamento di origine. Se si sovrappone, le due prenotazioni (stesso ombrellone+fascia)
+      // collidono in date e il constraint DB scatterebbe con un 409 generico; qui diamo un 422 chiaro,
+      // coerente con la stessa invariante delle campagne rinnovo (renewal-campaigns.open). Così il
+      // constraint booking_no_overlap resta backstop di SOLA race (ADR-0037).
+      if (season.startDate <= formatDbDate(source.endDate))
+        throw new UnprocessableEntityException(
+          'La stagione di rinnovo deve iniziare dopo la fine dell’abbonamento di origine',
+        );
 
       // 4) Copia FK dalla sorgente + 5) anti-overlap/prezzo/scrittura (helper condiviso).
       return this.priceAndWrite(tx, {

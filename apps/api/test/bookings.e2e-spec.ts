@@ -385,11 +385,11 @@ describe('Bookings (e2e)', () => {
         .send({ destinationSeasonId: season2027 }).expect(409);
     });
 
-    it('rinnovo verso una stagione che si SOVRAPPONE alla sorgente → 409 (backstop DB, mapping 23P01)', async () => {
-      // Seam deterministico: il check applicativo esclude la sorgente (previousBookingId) e passa, ma
-      // l'EXCLUDE constraint DB vede sorgente+rinnovo sovrapposti → 23P01, tradotto in 409 dal mapping.
+    it('rinnovo verso una stagione che si SOVRAPPONE alla sorgente → 422 (pre-flight; il constraint DB resta solo backstop di race)', async () => {
+      // La stagione di destinazione [09-01, 12-31] si sovrappone a Estate 2026 [05-01, 09-30] della sorgente.
+      // renew() lo intercetta con un 422 chiaro PRIMA di scrivere: il constraint booking_no_overlap non
+      // deve mai essere il percorso primario per un errore di logica prevedibile (ADR-0037).
       const u = (await mkUmbrella('96', 96)).id;
-      // Stagione che si sovrappone a Estate 2026 [05-01, 09-30]: [09-01, 12-31].
       const overlapId = (
         await prisma.forTenant(s1, (tx) =>
           tx.season.create({
@@ -402,15 +402,11 @@ describe('Bookings (e2e)', () => {
           }),
         )
       ).id;
-      // Serve un listino subscription nella stagione sovrapposta per superare il pricing.
-      await prisma.forTenant(s1, async (tx) => {
-        const pr = await tx.pricing.create({ data: { establishmentId: s1, seasonId: overlapId } });
-        await tx.rate.create({ data: { establishmentId: s1, pricingId: pr.id, type: 'subscription', price: 900 } });
-      });
       const src = await request(app.getHttpServer()).post('/api/bookings').set(...bearer(token1))
         .send(body({ umbrellaId: u, type: 'subscription', startDate: '2026-07-01' })).expect(201);
-      await request(app.getHttpServer()).post(`/api/bookings/${src.body.id}/renew`).set(...bearer(token1))
-        .send({ destinationSeasonId: overlapId }).expect(409);
+      const res = await request(app.getHttpServer()).post(`/api/bookings/${src.body.id}/renew`).set(...bearer(token1))
+        .send({ destinationSeasonId: overlapId }).expect(422);
+      expect(res.body.message).toContain('iniziare dopo la fine');
     });
 
     it('elenco abbonati per stagione inesistente → [] (nessuna stagione)', async () => {
