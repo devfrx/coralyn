@@ -1,11 +1,15 @@
-import { ConflictException, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { ConflictException, Injectable, Logger, NotFoundException, UnprocessableEntityException } from '@nestjs/common';
 import { Prisma, type Rate } from '@prisma/client';
-import type { BookingType, CreatePackageInput, PackageDTO, RateDTO, UpdatePackageInput } from '@coralyn/contracts';
+import type {
+  BookingType, CreatePackageInput, PackageDTO, RateDTO, UpdatePackageInput,
+  CreateEquipmentTypeInput, EquipmentTypeDTO, UpdateEquipmentTypeInput,
+} from '@coralyn/contracts';
 import { PrismaService } from '../prisma/prisma.service';
 import { TenantContext } from '../tenant/tenant-context';
 import { formatDbDate, toDbDate } from '../common/dates';
 import { resolvePrice, type RateRow } from './pricing.engine';
 import { toPackageDTO } from './package.projection';
+import { toEquipmentTypeDTO } from './equipment-type.projection';
 
 export interface QuoteContext {
   umbrellaId: string;
@@ -63,11 +67,43 @@ export class CatalogService {
     private readonly tenant: TenantContext,
   ) {}
 
+  private static readonly PACKAGE_INCLUDE = {
+    packageLinks: { include: { equipmentType: true } },
+  } as const;
+
+  /** Valida le voci (422) e scrive i link in set-assoluto (delete-all + createMany) dentro `tx`. */
+  private async writePackageEquipment(
+    tx: Prisma.TransactionClient,
+    tenantId: string,
+    packageId: string,
+    items: { equipmentTypeId: string; quantity: number }[],
+  ): Promise<void> {
+    const ids = items.map((i) => i.equipmentTypeId);
+    if (new Set(ids).size !== ids.length) {
+      throw new UnprocessableEntityException('Voce di dotazione duplicata nella composizione.');
+    }
+    if (ids.length > 0) {
+      const found = await tx.equipmentType.findMany({ where: { id: { in: ids }, archivedAt: null } });
+      if (found.length !== ids.length) {
+        throw new UnprocessableEntityException('Tipo di dotazione non valido o archiviato.');
+      }
+    }
+    await tx.packageEquipment.deleteMany({ where: { packageId } });
+    if (items.length > 0) {
+      await tx.packageEquipment.createMany({
+        data: items.map((i) => ({ establishmentId: tenantId, packageId, equipmentTypeId: i.equipmentTypeId, quantity: i.quantity })),
+      });
+    }
+  }
+
   /** Lista dei pacchetti del tenant. Default: solo attivi; `includeArchived` include gli archiviati. */
   async listPackages(includeArchived = false): Promise<PackageDTO[]> {
     const tenantId = this.tenant.require();
     const rows = await this.prisma.forTenant(tenantId, (tx) =>
-      tx.package.findMany({ where: includeArchived ? {} : { archivedAt: null } }),
+      tx.package.findMany({
+        where: includeArchived ? {} : { archivedAt: null },
+        include: CatalogService.PACKAGE_INCLUDE,
+      }),
     );
     return rows.map(toPackageDTO);
   }
@@ -146,9 +182,11 @@ export class CatalogService {
   /** Crea un pacchetto per il tenant corrente. */
   async createPackage(input: CreatePackageInput): Promise<PackageDTO> {
     const tenantId = this.tenant.require();
-    const p = await this.prisma.forTenant(tenantId, (tx) =>
-      tx.package.create({ data: { establishmentId: tenantId, name: input.name, equipment: input.equipment } }),
-    );
+    const p = await this.prisma.forTenant(tenantId, async (tx) => {
+      const created = await tx.package.create({ data: { establishmentId: tenantId, name: input.name } });
+      await this.writePackageEquipment(tx, tenantId, created.id, input.equipment);
+      return tx.package.findFirstOrThrow({ where: { id: created.id }, include: CatalogService.PACKAGE_INCLUDE });
+    });
     return toPackageDTO(p);
   }
 
@@ -158,13 +196,13 @@ export class CatalogService {
     const p = await this.prisma.forTenant(tenantId, async (tx) => {
       const existing = await tx.package.findFirst({ where: { id } });
       if (!existing) return null;
-      return tx.package.update({
-        where: { id },
-        data: {
-          ...(input.name !== undefined ? { name: input.name } : {}),
-          ...(input.equipment !== undefined ? { equipment: input.equipment } : {}),
-        },
-      });
+      if (input.name !== undefined) {
+        await tx.package.update({ where: { id }, data: { name: input.name } });
+      }
+      if (input.equipment !== undefined) {
+        await this.writePackageEquipment(tx, tenantId, id, input.equipment);
+      }
+      return tx.package.findFirstOrThrow({ where: { id }, include: CatalogService.PACKAGE_INCLUDE });
     });
     if (!p) throw new NotFoundException('Pacchetto non trovato');
     return toPackageDTO(p);
@@ -176,8 +214,10 @@ export class CatalogService {
     const p = await this.prisma.forTenant(tenantId, async (tx) => {
       const existing = await tx.package.findFirst({ where: { id } });
       if (!existing) return null;
-      if (existing.archivedAt != null) return existing; // già archiviato: no-op
-      return tx.package.update({ where: { id }, data: { archivedAt: new Date() } });
+      if (existing.archivedAt == null) {
+        await tx.package.update({ where: { id }, data: { archivedAt: new Date() } });
+      }
+      return tx.package.findFirstOrThrow({ where: { id }, include: CatalogService.PACKAGE_INCLUDE });
     });
     if (!p) throw new NotFoundException('Pacchetto non trovato');
     return toPackageDTO(p);
@@ -189,8 +229,10 @@ export class CatalogService {
     const p = await this.prisma.forTenant(tenantId, async (tx) => {
       const existing = await tx.package.findFirst({ where: { id } });
       if (!existing) return null;
-      if (existing.archivedAt == null) return existing; // già attivo: no-op
-      return tx.package.update({ where: { id }, data: { archivedAt: null } });
+      if (existing.archivedAt != null) {
+        await tx.package.update({ where: { id }, data: { archivedAt: null } });
+      }
+      return tx.package.findFirstOrThrow({ where: { id }, include: CatalogService.PACKAGE_INCLUDE });
     });
     if (!p) throw new NotFoundException('Pacchetto non trovato');
     return toPackageDTO(p);
@@ -205,7 +247,7 @@ export class CatalogService {
   async deletePackage(id: string): Promise<PackageDTO> {
     const tenantId = this.tenant.require();
     const p = await this.prisma.forTenant(tenantId, async (tx) => {
-      const existing = await tx.package.findFirst({ where: { id } });
+      const existing = await tx.package.findFirst({ where: { id }, include: CatalogService.PACKAGE_INCLUDE });
       if (!existing) return null;
       if (existing.archivedAt == null) {
         throw new ConflictException('Archivia il pacchetto prima di eliminarlo definitivamente.');
@@ -222,5 +264,93 @@ export class CatalogService {
     });
     if (!p) throw new NotFoundException('Pacchetto non trovato');
     return toPackageDTO(p);
+  }
+
+  private normalizeName(name: string): string {
+    return name.trim();
+  }
+
+  async listEquipmentTypes(includeArchived = false): Promise<EquipmentTypeDTO[]> {
+    const tenantId = this.tenant.require();
+    const rows = await this.prisma.forTenant(tenantId, (tx) =>
+      tx.equipmentType.findMany({
+        where: includeArchived ? {} : { archivedAt: null },
+        orderBy: { name: 'asc' },
+      }),
+    );
+    return rows.map(toEquipmentTypeDTO);
+  }
+
+  async createEquipmentType(input: CreateEquipmentTypeInput): Promise<EquipmentTypeDTO> {
+    const tenantId = this.tenant.require();
+    const name = this.normalizeName(input.name);
+    const t = await this.prisma.forTenant(tenantId, async (tx) => {
+      const clash = await tx.equipmentType.findFirst({
+        where: { name: { equals: name, mode: 'insensitive' } },
+      });
+      if (clash) throw new ConflictException('Esiste già un tipo di dotazione con questo nome.');
+      return tx.equipmentType.create({ data: { establishmentId: tenantId, name } });
+    });
+    return toEquipmentTypeDTO(t);
+  }
+
+  async updateEquipmentType(id: string, input: UpdateEquipmentTypeInput): Promise<EquipmentTypeDTO> {
+    const tenantId = this.tenant.require();
+    const t = await this.prisma.forTenant(tenantId, async (tx) => {
+      const existing = await tx.equipmentType.findFirst({ where: { id } });
+      if (!existing) return null;
+      if (input.name === undefined) return existing;
+      const name = this.normalizeName(input.name);
+      const clash = await tx.equipmentType.findFirst({
+        where: { name: { equals: name, mode: 'insensitive' }, id: { not: id } },
+      });
+      if (clash) throw new ConflictException('Esiste già un tipo di dotazione con questo nome.');
+      return tx.equipmentType.update({ where: { id }, data: { name } });
+    });
+    if (!t) throw new NotFoundException('Tipo di dotazione non trovato');
+    return toEquipmentTypeDTO(t);
+  }
+
+  async archiveEquipmentType(id: string): Promise<EquipmentTypeDTO> {
+    const tenantId = this.tenant.require();
+    const t = await this.prisma.forTenant(tenantId, async (tx) => {
+      const existing = await tx.equipmentType.findFirst({ where: { id } });
+      if (!existing) return null;
+      if (existing.archivedAt != null) return existing;
+      return tx.equipmentType.update({ where: { id }, data: { archivedAt: new Date() } });
+    });
+    if (!t) throw new NotFoundException('Tipo di dotazione non trovato');
+    return toEquipmentTypeDTO(t);
+  }
+
+  async restoreEquipmentType(id: string): Promise<EquipmentTypeDTO> {
+    const tenantId = this.tenant.require();
+    const t = await this.prisma.forTenant(tenantId, async (tx) => {
+      const existing = await tx.equipmentType.findFirst({ where: { id } });
+      if (!existing) return null;
+      if (existing.archivedAt == null) return existing;
+      return tx.equipmentType.update({ where: { id }, data: { archivedAt: null } });
+    });
+    if (!t) throw new NotFoundException('Tipo di dotazione non trovato');
+    return toEquipmentTypeDTO(t);
+  }
+
+  async deleteEquipmentType(id: string): Promise<EquipmentTypeDTO> {
+    const tenantId = this.tenant.require();
+    const t = await this.prisma.forTenant(tenantId, async (tx) => {
+      const existing = await tx.equipmentType.findFirst({ where: { id } });
+      if (!existing) return null;
+      if (existing.archivedAt == null) {
+        throw new ConflictException('Archivia il tipo prima di eliminarlo definitivamente.');
+      }
+      const refs = await tx.packageEquipment.count({ where: { equipmentTypeId: id } });
+      if (refs > 0) {
+        throw new ConflictException('Archivia il tipo e rimuovilo dai pacchetti prima di eliminarlo definitivamente.');
+      }
+      await tx.equipmentType.delete({ where: { id } });
+      return existing;
+    });
+    if (!t) throw new NotFoundException('Tipo di dotazione non trovato');
+    return toEquipmentTypeDTO(t);
   }
 }

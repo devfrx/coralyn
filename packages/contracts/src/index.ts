@@ -115,11 +115,35 @@ export interface LoginResponse {
 /** Tipo di prenotazione (ADR-0006). A1 usa solo `daily`. */
 export type BookingType = 'daily' | 'periodic' | 'subscription';
 
+/** Tipo di dotazione a catalogo (tenant-scoped). `archived` presente solo se archiviato. */
+export interface EquipmentTypeDTO {
+  id: string;
+  name: string;
+  archived?: true;
+}
+
+/** Input creazione tipo di dotazione. */
+export interface CreateEquipmentTypeInput {
+  name: string;
+}
+
+/** Input modifica tipo di dotazione. */
+export interface UpdateEquipmentTypeInput {
+  name?: string;
+}
+
+/** Voce di dotazione di un pacchetto (nome risolto dal catalogo). */
+export interface PackageEquipmentDTO {
+  equipmentTypeId: string;
+  name: string;
+  quantity: number;
+}
+
 /** Pacchetto/dotazione prenotabile (ADR-0006). `archived` presente solo quando archiviato. */
 export interface PackageDTO {
   id: string;
   name: string;
-  equipment: Record<string, number>; // es. { sunbeds: 2, deckchairs: 1 }
+  equipment: PackageEquipmentDTO[]; // voci risolte dal catalogo, ordinate per nome
   archived?: boolean; // true = ritirato dalla circolazione (soft-delete); assente = attivo
 }
 
@@ -294,7 +318,7 @@ export interface UpdateRateInput {
 /** Input creazione pacchetto. */
 export interface CreatePackageInput {
   name: string;
-  equipment: Record<string, number>;
+  equipment: { equipmentTypeId: string; quantity: number }[];
 }
 
 /** Input modifica pacchetto: tutti i campi opzionali. */
