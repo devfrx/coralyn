@@ -23,7 +23,7 @@ const groups = computed(() => {
     <div v-for="[season, rows] in groups" :key="season" class="mb-4 last:mb-0">
       <div class="mb-1.5 flex items-center justify-between">
         <span class="text-[11px] font-semibold uppercase tracking-[.05em] text-[var(--color-text-muted)]">{{ season }}</span>
-        <span class="text-[11px] text-[var(--color-text-muted)]">{{ rows.length }} prenotazioni</span>
+        <span class="text-[11px] text-[var(--color-text-muted)]">{{ rows.length }} {{ rows.length === 1 ? 'prenotazione' : 'prenotazioni' }}</span>
       </div>
       <ul class="flex flex-col gap-1.5">
         <li v-for="b in rows" :key="b.id"
