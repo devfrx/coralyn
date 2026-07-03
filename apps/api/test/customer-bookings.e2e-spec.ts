@@ -22,6 +22,8 @@ describe('Customer bookings (e2e)', () => {
   let seasonBId: string; // 2027 (per il rinnovo)
   let customerId: string;
   let emptyCustomerId: string;
+  let umbrellaId2: string;
+  let pcId: string;
 
   beforeAll(async () => {
     const moduleRef = await Test.createTestingModule({ imports: [AppModule] }).compile();
@@ -49,10 +51,16 @@ describe('Customer bookings (e2e)', () => {
       customerId = cust.id;
       const empty = await tx.customer.create({ data: { establishmentId: s1, firstName: 'Nessuna', lastName: 'Prenotazione' } });
       emptyCustomerId = empty.id;
+      // Ombrellone dedicato ai casi prelazione, per non collidere con Mario/A12 (anti-overlap/hold).
+      const u2 = await tx.umbrella.create({
+        data: { establishmentId: s1, rowId: ids.rowId, umbrellaTypeId: null, label: 'A13', logicalOrder: 99 },
+      });
+      umbrellaId2 = u2.id;
     });
   });
 
   afterAll(async () => {
+    await prisma.forTenant(s1, (tx) => tx.renewalCampaign.deleteMany({}));
     await prisma.forTenant(s1, (tx) => tx.booking.deleteMany({}));
     await prisma.forTenant(s1, (tx) => tx.customer.deleteMany({}));
     await cleanPricingTenant(prisma, s1);
@@ -122,5 +130,33 @@ describe('Customer bookings (e2e)', () => {
     const res = await request(app.getHttpServer())
       .get(`/api/customers/${customerId}/bookings`).set(...bearer(t2)).expect(200);
     expect(res.body).toEqual([]);
+  });
+
+  it('valorizza prelazione sulla subscription con campagna APERTA; assente se scaduta/esercitata', async () => {
+    // Cliente fresco per isolare gli stati (evita interferenze coi test precedenti).
+    await prisma.forTenant(s1, async (tx) => {
+      const c = await tx.customer.create({ data: { establishmentId: s1, firstName: 'Prela', lastName: 'Test' } });
+      pcId = c.id;
+    });
+    const sub = await request(app.getHttpServer()).post('/api/bookings').set(...bearer(t1))
+      .send({ customerId: pcId, umbrellaId: umbrellaId2, timeSlotId: ids.slotMorning, type: 'subscription', startDate: '2026-06-15' }).expect(201);
+    const subId = sub.body.id;
+
+    // Campagna origine 2026 → dest 2027, deadline FUTURA.
+    await request(app.getHttpServer()).post('/api/renewal-campaigns').set(...bearer(t1))
+      .send({ originSeasonId: seasonAId, destinationSeasonId: seasonBId, deadline: '2099-01-01' }).expect(201);
+
+    let res = await request(app.getHttpServer()).get(`/api/customers/${pcId}/bookings`).set(...bearer(t1)).expect(200);
+    let origin = res.body.find((b: { id: string }) => b.id === subId);
+    expect(origin.prelazione).toBeDefined();
+    expect(origin.prelazione.destinationSeasonName).toBe('Estate 2027');
+    expect(origin.prelazione.deadline).toBe('2099-01-01');
+
+    // Esercitata: dopo il rinnovo verso 2027 → prelazione assente.
+    await request(app.getHttpServer()).post(`/api/bookings/${subId}/renew`).set(...bearer(t1))
+      .send({ destinationSeasonId: seasonBId }).expect(201);
+    res = await request(app.getHttpServer()).get(`/api/customers/${pcId}/bookings`).set(...bearer(t1)).expect(200);
+    origin = res.body.find((b: { id: string }) => b.id === subId);
+    expect(origin.prelazione).toBeUndefined();
   });
 });

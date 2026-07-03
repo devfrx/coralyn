@@ -22,6 +22,7 @@ import { CatalogService, type QuoteOutcome } from '../catalog/catalog.service';
 import { toBookingDTO } from './booking.projection';
 import { toSubscriptionListItemDTO } from './subscription.projection';
 import { toCustomerBookingDTO, resolveSeasonName } from './customer-booking.projection';
+import { computeRenewalWindowState } from './renewal-window.projection';
 import { slotsOverlap, dateRangesOverlap } from './booking.availability';
 import { resolvePayment } from './booking.payment';
 import { toDbDate, formatDbDate, todayInRome } from '../common/dates';
@@ -53,7 +54,8 @@ export class BookingsService {
   /**
    * Tutte le prenotazioni di un cliente, arricchite per la Scheda Cliente 360° (ordine startDate desc).
    * Nessun filtro su status: le cancellate servono allo storico (il FE le distingue). Read-only.
-   * La prelazione viene aggiunta in un layer successivo (helper condiviso computeRenewalWindowState).
+   * La prelazione è derivata con l'helper condiviso computeRenewalWindowState (ADR-0034, fonte unica
+   * con renewal-campaigns.service): le due viste non possono divergere.
    */
   async listByCustomer(customerId: string): Promise<CustomerBookingDTO[]> {
     const tenantId = this.tenant.require();
@@ -68,6 +70,31 @@ export class BookingsService {
       const seasons = await tx.season.findMany({});
       const subIds = bookings.filter((b) => b.type === 'subscription').map((b) => b.id);
       const seniorityById = await computeSeniority(tx, subIds);
+
+      const campaigns = await tx.renewalCampaign.findMany({
+        include: { originSeason: true, destinationSeason: true },
+      });
+      const todayIso = todayInRome();
+
+      const prelazioneFor = (b: (typeof bookings)[number]): { destinationSeasonName: string; deadline: string } | undefined => {
+        if (b.type !== 'subscription' || b.status !== 'confirmed') return undefined;
+        const open = campaigns.filter(
+          (c) =>
+            dateRangesOverlap(b.startDate, b.endDate, c.originSeason.startDate, c.originSeason.endDate) &&
+            computeRenewalWindowState(
+              b.renewals,
+              c.destinationSeason.startDate,
+              c.destinationSeason.endDate,
+              formatDbDate(c.deadline),
+              todayIso,
+            ) === 'open',
+        );
+        if (open.length === 0) return undefined;
+        // Più campagne aperte (atipico): la più imminente per deadline.
+        const soonest = open.reduce((a, c) => (formatDbDate(c.deadline) < formatDbDate(a.deadline) ? c : a));
+        return { destinationSeasonName: soonest.destinationSeason.name, deadline: formatDbDate(soonest.deadline) };
+      };
+
       return bookings.map((b) => {
         const isSub = b.type === 'subscription';
         return toCustomerBookingDTO(b, {
@@ -75,6 +102,7 @@ export class BookingsService {
           seasonName: resolveSeasonName(seasons, b.startDate),
           seniority: isSub ? (seniorityById.get(b.id) ?? 1) : undefined,
           renewed: isSub ? b.renewals.some((r) => r.status === 'confirmed') : undefined,
+          prelazione: prelazioneFor(b),
         });
       });
     });

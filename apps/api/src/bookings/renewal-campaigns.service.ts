@@ -1,12 +1,11 @@
 import { ConflictException, Injectable, NotFoundException, UnprocessableEntityException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
-import type { OpenRenewalCampaignInput, RenewalCampaignDTO, RenewalCampaignDetailDTO, RenewalWindowState } from '@coralyn/contracts';
+import type { OpenRenewalCampaignInput, RenewalCampaignDTO, RenewalCampaignDetailDTO } from '@coralyn/contracts';
 import { PrismaService } from '../prisma/prisma.service';
 import { TenantContext } from '../tenant/tenant-context';
 import { CatalogService } from '../catalog/catalog.service';
 import { computeSeniority } from './seniority';
-import { toRenewalWindowItemDTO } from './renewal-window.projection';
-import { dateRangesOverlap } from './booking.availability';
+import { computeRenewalWindowState, toRenewalWindowItemDTO } from './renewal-window.projection';
 import { toDbDate, formatDbDate, todayInRome } from '../common/dates';
 import { UUID_SHAPE } from '../common/uuid';
 
@@ -75,16 +74,11 @@ export class RenewalCampaignsService {
       const destStart = dest.startDate;
       const destEnd = dest.endDate;
       const deadlineIso = formatDbDate(campaign.deadline);
-      const isExpired = todayInRome() > deadlineIso; // today > deadline → scaduta (giorno-scadenza incluso = aperta)
+      const todayIso = todayInRome();
 
       const windows = subs
         .map((b) => {
-          const exercised = b.renewals.some(
-            (r) =>
-              r.status === 'confirmed' &&
-              dateRangesOverlap(r.startDate, r.endDate, destStart, destEnd),
-          );
-          const state: RenewalWindowState = exercised ? 'exercised' : isExpired ? 'expired' : 'open';
+          const state = computeRenewalWindowState(b.renewals, destStart, destEnd, deadlineIso, todayIso);
           return toRenewalWindowItemDTO(b, seniorityById.get(b.id) ?? 1, state);
         })
         .sort((a, z) => z.seniority - a.seniority || (a.sourceBookingId < z.sourceBookingId ? -1 : 1));
