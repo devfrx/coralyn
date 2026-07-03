@@ -1,4 +1,4 @@
-import type { CustomerDTO, CreateCustomerInput, UpdateCustomerInput } from '@coralyn/contracts';
+import type { CustomerDTO, CreateCustomerInput, UpdateCustomerInput, CustomerBookingDTO } from '@coralyn/contracts';
 import { apiFetch } from '@/lib/http';
 import { queryKeys } from '@/lib/queryKeys';
 import { useSessionStore } from '@/stores/session';
@@ -17,6 +17,14 @@ export function useCustomer(id: string) {
   return queryResource({
     queryKey: () => queryKeys.customer(session.establishmentId, id),
     queryFn: () => apiFetch<CustomerDTO>(`/customers/${id}`),
+  });
+}
+
+export function useCustomerBookings(id: string) {
+  const session = useSessionStore();
+  return queryResource({
+    queryKey: () => queryKeys.customerBookings(session.establishmentId, id),
+    queryFn: () => apiFetch<CustomerBookingDTO[]>(`/customers/${id}/bookings`),
   });
 }
 

@@ -2,7 +2,7 @@ import { setupServer } from 'msw/node';
 import { http, HttpResponse } from 'msw';
 import { handlers } from './handlers';
 import { mapSeed, timeSlotsSeed } from './data/seed';
-import { Role, type CustomerDTO, type EquipmentTypeDTO, type PackageDTO, type RateDTO, type RenewalCampaignDetailDTO, type SeasonDTO, type TimeSlotDTO, type CreateTimeSlotInput, type UpdateTimeSlotInput, type UserDTO } from '@coralyn/contracts';
+import { Role, type CustomerDTO, type CustomerBookingDTO, type EquipmentTypeDTO, type PackageDTO, type RateDTO, type RenewalCampaignDetailDTO, type SeasonDTO, type TimeSlotDTO, type CreateTimeSlotInput, type UpdateTimeSlotInput, type UserDTO } from '@coralyn/contracts';
 
 const INITIAL_CUSTOMERS: CustomerDTO[] = [
   { id: 'c-1', firstName: 'Mario', lastName: 'Rossi', phone: '+39 333 1111111', email: 'mario.rossi@email.it', notes: '' },
@@ -40,6 +40,26 @@ export function resetPricingSeed() {
 // --- Prelazione (D-011): stato campagna in-memory per i test ---
 let campaign: RenewalCampaignDetailDTO | null = null;
 export function resetCampaignSeed() { campaign = null; }
+
+// --- Scheda Cliente 360°: prenotazioni per cliente, stato in-memory per i test ---
+const INITIAL_CUSTOMER_BOOKINGS: Record<string, CustomerBookingDTO[]> = {
+  'c-1': [
+    { id: 'cb-1', umbrellaId: 'u-1', timeSlotId: 'ts-1', startDate: '2027-06-15', endDate: '2027-09-15',
+      type: 'subscription', status: 'confirmed', totalPrice: 320, paymentStatus: 'paid', amountCollected: 320,
+      umbrellaLabel: 'A12', seasonName: 'Estate 2027', seniority: 2, renewed: false },
+    { id: 'cb-2', umbrellaId: 'u-1', timeSlotId: 'ts-1', startDate: '2026-06-15', endDate: '2026-09-15',
+      type: 'subscription', status: 'confirmed', totalPrice: 300, paymentStatus: 'paid', amountCollected: 300,
+      umbrellaLabel: 'A12', seasonName: 'Estate 2026', seniority: 1, renewed: true },
+    { id: 'cb-3', umbrellaId: 'u-1', timeSlotId: 'ts-1', startDate: '2026-07-10', endDate: '2026-07-10',
+      type: 'daily', status: 'confirmed', totalPrice: 30, paymentStatus: 'unpaid', amountCollected: 0,
+      umbrellaLabel: 'A12', seasonName: 'Estate 2026' },
+    { id: 'cb-4', umbrellaId: 'u-1', timeSlotId: 'ts-1', startDate: '2026-08-01', endDate: '2026-08-01',
+      type: 'daily', status: 'cancelled', totalPrice: 30, paymentStatus: 'unpaid', amountCollected: 0,
+      umbrellaLabel: 'A12', seasonName: 'Estate 2026' },
+  ],
+};
+let customerBookings: Record<string, CustomerBookingDTO[]> = structuredClone(INITIAL_CUSTOMER_BOOKINGS);
+export function resetCustomerBookingsSeed() { customerBookings = structuredClone(INITIAL_CUSTOMER_BOOKINGS); }
 
 // Auth mockata SOLO per i test (in dev il login colpisce il backend reale).
 export const MOCK_TOKEN = 'valid-token';
@@ -85,6 +105,8 @@ export const server = setupServer(
     customers[i] = { ...customers[i], ...patch };
     return HttpResponse.json(customers[i]);
   }),
+  http.get('/api/customers/:id/bookings', ({ params }) =>
+    HttpResponse.json(customerBookings[params.id as string] ?? [])),
   // Seasons
   http.get('/api/seasons', () => HttpResponse.json(seasons)),
   http.post('/api/seasons', async ({ request }) => {

@@ -1,22 +1,21 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue';
-import { Card, Avatar, Badge, Button, Field, Input, Textarea, Icon } from '@coralyn/ui-kit';
-import { useCustomer, useUpdateCustomer } from './useCustomers';
+import { Card, Avatar, Button, Field, Input, Textarea, Icon } from '@coralyn/ui-kit';
+import { useCustomer, useUpdateCustomer, useCustomerBookings } from './useCustomers';
+import CustomerHistoryCard from './CustomerHistoryCard.vue';
+import CustomerSubscriptionsCard from './CustomerSubscriptionsCard.vue';
+import CustomerPaymentsCard from './CustomerPaymentsCard.vue';
 
 const props = defineProps<{ id: string }>();
 const { data: customer, isLoading, isError } = useCustomer(props.id);
 const update = useUpdateCustomer(props.id);
+const { data: bookings } = useCustomerBookings(props.id);
 
 const phone = ref(''); const email = ref(''); const notes = ref('');
 watch(customer, (c) => { if (c) { phone.value = c.phone ?? ''; email.value = c.email ?? ''; notes.value = c.notes ?? ''; } }, { immediate: true });
 function save() { update.mutate({ phone: phone.value, email: email.value, notes: notes.value }); }
 
 const ini = computed(() => (customer.value ? ((customer.value.firstName[0] ?? '') + (customer.value.lastName[0] ?? '')).toUpperCase() : ''));
-const upcoming = [
-  { icon: 'star', titolo: 'Abbonamento e anzianità', desc: 'Stagioni consecutive, rinnovi e prelazione del posto.' },
-  { icon: 'calendar', titolo: 'Storico prenotazioni', desc: 'Tutte le prenotazioni del bagnante, per stagione.' },
-  { icon: 'euro', titolo: 'Pagamenti e saldo', desc: 'Incassi, metodo di pagamento e saldo aperto.' },
-];
 </script>
 <template>
   <section class="max-w-[940px] px-[26px] pb-[30px] pt-[18px]">
@@ -55,15 +54,10 @@ const upcoming = [
         </form>
       </Card>
 
-      <div class="grid grid-cols-3 gap-3.5">
-        <div v-for="s in upcoming" :key="s.titolo" class="rounded-[var(--radius-lg)] border border-dashed border-[var(--color-border-input)] bg-[var(--color-raised)] p-[18px]">
-          <div class="mb-2.5 flex items-center justify-between">
-            <span class="grid size-[34px] place-items-center rounded-[10px] border border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-placeholder)]"><Icon :name="s.icon" :size="18" /></span>
-            <Badge tone="soon">In arrivo</Badge>
-          </div>
-          <div class="mb-1 text-[13.5px] font-bold text-[var(--color-ink-600)]">{{ s.titolo }}</div>
-          <div class="text-xs leading-relaxed text-[var(--color-text-muted)]">{{ s.desc }}</div>
-        </div>
+      <div class="grid grid-cols-1 gap-3.5 lg:grid-cols-3">
+        <CustomerSubscriptionsCard :bookings="bookings ?? []" />
+        <CustomerHistoryCard :bookings="bookings ?? []" />
+        <CustomerPaymentsCard :bookings="bookings ?? []" />
       </div>
     </template>
   </section>
