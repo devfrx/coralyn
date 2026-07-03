@@ -83,6 +83,8 @@ export class CatalogService {
       throw new UnprocessableEntityException('Voce di dotazione duplicata nella composizione.');
     }
     if (ids.length > 0) {
+      // Lo scope tenant è garantito da RLS (forTenant): un id di un altro tenant è invisibile qui,
+      // quindi `found.length !== ids.length` → 422 (non serve filtrare per establishmentId nel where).
       const found = await tx.equipmentType.findMany({ where: { id: { in: ids }, archivedAt: null } });
       if (found.length !== ids.length) {
         throw new UnprocessableEntityException('Tipo di dotazione non valido o archiviato.');

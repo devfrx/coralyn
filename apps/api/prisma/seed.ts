@@ -127,28 +127,23 @@ async function main(): Promise<void> {
       create: { id: PKG_STANDARD, establishmentId: EID, name: 'Standard' },
     });
 
-    const EQ_LETTINO = u(10, 1);
-    const EQ_SDRAIO = u(10, 2);
-    const equipmentTypes = [
-      { id: EQ_LETTINO, name: 'Lettino' },
-      { id: EQ_SDRAIO, name: 'Sdraio' },
+    // Dotazione (catalogo tenant-scoped + link). Upsert per CHIAVE NATURALE (establishmentId, name):
+    // idempotente sia su DB fresco sia su un DB già migrato (dove i tipi esistono con un id casuale
+    // generato dalla migrazione dati) — un id fisso violerebbe @@unique([establishmentId, name]).
+    const equipmentDefs = [
+      { name: 'Lettino', quantity: 2 },
+      { name: 'Sdraio', quantity: 1 },
     ];
-    for (const x of equipmentTypes) {
-      await tx.equipmentType.upsert({
-        where: { id: x.id },
-        update: { name: x.name },
-        create: { id: x.id, establishmentId: EID, name: x.name },
+    for (const d of equipmentDefs) {
+      const type = await tx.equipmentType.upsert({
+        where: { establishmentId_name: { establishmentId: EID, name: d.name } },
+        update: {},
+        create: { establishmentId: EID, name: d.name },
       });
-    }
-    const links = [
-      { equipmentTypeId: EQ_LETTINO, quantity: 2 },
-      { equipmentTypeId: EQ_SDRAIO, quantity: 1 },
-    ];
-    for (const l of links) {
       await tx.packageEquipment.upsert({
-        where: { packageId_equipmentTypeId: { packageId: PKG_STANDARD, equipmentTypeId: l.equipmentTypeId } },
-        update: { quantity: l.quantity },
-        create: { establishmentId: EID, packageId: PKG_STANDARD, equipmentTypeId: l.equipmentTypeId, quantity: l.quantity },
+        where: { packageId_equipmentTypeId: { packageId: PKG_STANDARD, equipmentTypeId: type.id } },
+        update: { quantity: d.quantity },
+        create: { establishmentId: EID, packageId: PKG_STANDARD, equipmentTypeId: type.id, quantity: d.quantity },
       });
     }
 
