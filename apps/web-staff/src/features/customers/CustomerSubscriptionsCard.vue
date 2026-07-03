@@ -22,6 +22,9 @@ function seniorityLabel(n?: number): string {
           <Badge v-if="b.renewed" tone="success">Rinnovato</Badge>
         </div>
         <div class="mt-1 text-xs text-[var(--color-text-muted)]">{{ seniorityLabel(b.seniority) }}</div>
+        <div v-if="b.prelazione" class="mt-1.5 inline-flex items-center gap-1.5 rounded-[var(--radius-full)] bg-[var(--color-accent-tint)] px-2 py-0.5 text-[11px] font-semibold text-[var(--color-accent)]">
+          Prelazione aperta per {{ b.prelazione.destinationSeasonName }} · scade {{ b.prelazione.deadline }}
+        </div>
       </li>
     </ul>
   </Card>

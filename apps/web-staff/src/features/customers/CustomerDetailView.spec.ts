@@ -50,6 +50,14 @@ describe('CustomerDetailView', () => {
     expect(w.text()).toContain('620');
   });
 
+  it('mostra la nota di prelazione aperta nella card abbonamento', async () => {
+    const w = mountApp(CustomerDetailView, { props: { id: 'c-1' } });
+    await settle();
+    expect(w.text()).toContain('Prelazione');
+    expect(w.text()).toContain('Estate 2028');
+    expect(w.text()).toContain('2028-04-30');
+  });
+
   it('modifica il telefono e lo rilegge aggiornato', async () => {
     const w = mountApp(CustomerDetailView, { props: { id: 'c-1' } });
     await settle();
