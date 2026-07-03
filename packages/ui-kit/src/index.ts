@@ -3,6 +3,8 @@ export { icons, FALLBACK_ICON } from './icons/registry';
 export { default as Toast } from './components/Toast.vue';
 export { default as Button } from './components/Button.vue';
 export { default as Card } from './components/Card.vue';
+export { default as SectionCard } from './components/SectionCard.vue';
+export { default as Callout } from './components/Callout.vue';
 export { default as Badge } from './components/Badge.vue';
 export { default as Field } from './components/Field.vue';
 export { default as Input } from './components/Input.vue';
