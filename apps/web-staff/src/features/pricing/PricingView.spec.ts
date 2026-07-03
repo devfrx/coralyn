@@ -38,6 +38,83 @@ describe('PricingView', () => {
     expect(w.text()).toContain('Prestige');
   });
 
+  it('compone un pacchetto con più voci e le mostra come "N × Nome"', async () => {
+    const w = mountApp(PricingView, { attachTo: document.body });
+    await settle();
+    await w.get('[data-test="new-package"]').trigger('click');
+    await flushPromises();
+    const nameEl = document.querySelector('[data-test="form-package"] input[name="name"]') as HTMLInputElement;
+    nameEl.value = 'Prestige'; nameEl.dispatchEvent(new Event('input', { bubbles: true }));
+    // aggiungi una riga voce e scegli 'Lettino' (eq-1) qty 3
+    (document.querySelector('[data-test="add-equipment-row"]') as HTMLButtonElement).click();
+    await flushPromises();
+    const typeSel = document.querySelector('[data-test="equip-row-0"] select') as HTMLSelectElement;
+    typeSel.value = 'eq-1'; typeSel.dispatchEvent(new Event('change', { bubbles: true }));
+    const qtyEl = document.querySelector('[data-test="equip-row-0"] input[name="quantity"]') as HTMLInputElement;
+    qtyEl.value = '3'; qtyEl.dispatchEvent(new Event('input', { bubbles: true }));
+    (document.querySelector('[data-test="form-package"]') as HTMLFormElement)
+      .dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+    await settle();
+    expect(w.text()).toContain('Prestige');
+    expect(w.text()).toContain('3 × Lettino');
+  });
+
+  it('le voci del pacchetto risultano ordinate per nome anche se inserite in ordine diverso (mock fedele al backend)', async () => {
+    const w = mountApp(PricingView, { attachTo: document.body });
+    await settle();
+    await w.get('[data-test="new-package"]').trigger('click');
+    await flushPromises();
+    const nameEl = document.querySelector('[data-test="form-package"] input[name="name"]') as HTMLInputElement;
+    nameEl.value = 'Deluxe'; nameEl.dispatchEvent(new Event('input', { bubbles: true }));
+    // Riga 0: Sdraio (eq-2) qty 1 — inserita PRIMA di Lettino, quindi in ordine non alfabetico.
+    (document.querySelector('[data-test="add-equipment-row"]') as HTMLButtonElement).click();
+    await flushPromises();
+    const typeSel0 = document.querySelector('[data-test="equip-row-0"] select') as HTMLSelectElement;
+    typeSel0.value = 'eq-2'; typeSel0.dispatchEvent(new Event('change', { bubbles: true }));
+    const qtyEl0 = document.querySelector('[data-test="equip-row-0"] input[name="quantity"]') as HTMLInputElement;
+    qtyEl0.value = '1'; qtyEl0.dispatchEvent(new Event('input', { bubbles: true }));
+    // Riga 1: Lettino (eq-1) qty 2 — inserita DOPO Sdraio.
+    (document.querySelector('[data-test="add-equipment-row"]') as HTMLButtonElement).click();
+    await flushPromises();
+    const typeSel1 = document.querySelector('[data-test="equip-row-1"] select') as HTMLSelectElement;
+    typeSel1.value = 'eq-1'; typeSel1.dispatchEvent(new Event('change', { bubbles: true }));
+    const qtyEl1 = document.querySelector('[data-test="equip-row-1"] input[name="quantity"]') as HTMLInputElement;
+    qtyEl1.value = '2'; qtyEl1.dispatchEvent(new Event('input', { bubbles: true }));
+    (document.querySelector('[data-test="form-package"]') as HTMLFormElement)
+      .dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+    await settle();
+    expect(w.text()).toContain('Deluxe');
+    // Ordine-sensibile: il backend/mock risolve e ordina per nome, quindi "Lettino" deve precedere "Sdraio"
+    // nell'etichetta risultante, anche se in input erano stati inseriti nell'ordine opposto.
+    const card = Array.from(document.querySelectorAll('*')).find((el) => el.textContent?.includes('Deluxe') && el.textContent?.includes('×'));
+    const label = card!.textContent!;
+    expect(label.indexOf('Lettino')).toBeGreaterThanOrEqual(0);
+    expect(label.indexOf('Sdraio')).toBeGreaterThan(label.indexOf('Lettino'));
+    expect(label).toContain('2 × Lettino · 1 × Sdraio');
+  });
+
+  it('modificando un pacchetto multi-voce e risalvando, nessuna voce sparisce (no clobber)', async () => {
+    server.use(
+      http.get('/api/packages', () => HttpResponse.json([
+        { id: 'pkg-1', name: 'Standard', equipment: [
+          { equipmentTypeId: 'eq-1', name: 'Lettino', quantity: 2 },
+          { equipmentTypeId: 'eq-2', name: 'Sdraio', quantity: 1 },
+        ] },
+      ])),
+    );
+    const w = mountApp(PricingView, { attachTo: document.body });
+    await settle();
+    await w.get('[data-test="edit-pkg-pkg-1"]').trigger('click');
+    await flushPromises();
+    // due righe idratate
+    expect(document.querySelectorAll('[data-test^="equip-row-"]').length).toBe(2);
+    (document.querySelector('[data-test="form-package"]') as HTMLFormElement)
+      .dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+    await settle();
+    expect(w.text()).toContain('2 × Lettino');
+    expect(w.text()).toContain('1 × Sdraio');
+  });
+
   it('crea una tariffa dal modale e compare in tabella', async () => {
     const w = mountApp(PricingView, { attachTo: document.body });
     await settle();
@@ -345,6 +422,31 @@ describe('PricingView', () => {
       expect(rowSub.text()).toContain('forfait');
       expect(rowDay.text()).toContain('/giorno');
       w.unmount();
+    });
+  });
+
+  describe('catalogo tipi di dotazione', () => {
+    it('elenca i tipi e ne crea uno nuovo dal catalogo', async () => {
+      const w = mountApp(PricingView, { attachTo: document.body });
+      await settle();
+      expect(w.text()).toContain('Lettino'); // tipo dal mock
+      await w.get('[data-test="new-equipment-type"]').trigger('click');
+      await flushPromises();
+      const el = document.querySelector('[data-test="form-equipment-type"] input[name="name"]') as HTMLInputElement;
+      el.value = 'Cassaforte';
+      el.dispatchEvent(new Event('input', { bubbles: true }));
+      (document.querySelector('[data-test="form-equipment-type"]') as HTMLFormElement)
+        .dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+      await settle();
+      expect(w.text()).toContain('Cassaforte');
+    });
+
+    it('archivia un tipo e lo mostra nella sezione archiviati', async () => {
+      const w = mountApp(PricingView, { attachTo: document.body });
+      await settle();
+      await w.get('[data-test="archive-eqt-eq-2"]').trigger('click');
+      await settle();
+      expect(w.get('[data-test="toggle-archived-eqt"]').text()).toContain('Archiviati');
     });
   });
 });

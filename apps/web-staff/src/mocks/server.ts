@@ -2,7 +2,7 @@ import { setupServer } from 'msw/node';
 import { http, HttpResponse } from 'msw';
 import { handlers } from './handlers';
 import { mapSeed, timeSlotsSeed } from './data/seed';
-import { Role, type CustomerDTO, type PackageDTO, type RateDTO, type RenewalCampaignDetailDTO, type SeasonDTO, type TimeSlotDTO, type CreateTimeSlotInput, type UpdateTimeSlotInput, type UserDTO } from '@coralyn/contracts';
+import { Role, type CustomerDTO, type EquipmentTypeDTO, type PackageDTO, type RateDTO, type RenewalCampaignDetailDTO, type SeasonDTO, type TimeSlotDTO, type CreateTimeSlotInput, type UpdateTimeSlotInput, type UserDTO } from '@coralyn/contracts';
 
 const INITIAL_CUSTOMERS: CustomerDTO[] = [
   { id: 'c-1', firstName: 'Mario', lastName: 'Rossi', phone: '+39 333 1111111', email: 'mario.rossi@email.it', notes: '' },
@@ -14,14 +14,27 @@ export function resetCustomersSeed() { customers = [...INITIAL_CUSTOMERS]; }
 const SEASON_1: SeasonDTO = { id: 'se-1', name: 'Estate 2026', startDate: '2026-06-01', endDate: '2026-09-15' };
 const SEASON_2: SeasonDTO = { id: 'se-2', name: 'Estate 2027', startDate: '2027-05-01', endDate: '2027-09-30' };
 let seasons: SeasonDTO[] = [SEASON_1, SEASON_2];
-let packages: PackageDTO[] = [{ id: 'pkg-1', name: 'Standard', equipment: { sunbeds: 2 } }];
+let packages: PackageDTO[] = [{ id: 'pkg-1', name: 'Standard', equipment: [{ equipmentTypeId: 'eq-1', name: 'Lettino', quantity: 2 }] }];
 let rates: RateDTO[] = [{ id: 'ra-1', seasonId: 'se-1', price: 28 }];
 let timeSlots: TimeSlotDTO[] = timeSlotsSeed.map((s) => ({ ...s }));
+let equipmentTypes: EquipmentTypeDTO[] = [{ id: 'eq-1', name: 'Lettino' }, { id: 'eq-2', name: 'Sdraio' }];
+// Risolve { equipmentTypeId, quantity }[] in PackageEquipmentDTO[] cercando il nome nel catalogo
+// (mirror del comportamento backend: il nome viene sempre risolto lato server, non inviato dal FE).
+function resolveEquipment(equipment: { equipmentTypeId: string; quantity: number }[]) {
+  return equipment
+    .map((e) => ({
+      equipmentTypeId: e.equipmentTypeId,
+      name: equipmentTypes.find((t) => t.id === e.equipmentTypeId)?.name ?? e.equipmentTypeId,
+      quantity: e.quantity,
+    }))
+    .sort((a, b) => a.name.localeCompare(b.name));
+}
 export function resetPricingSeed() {
   seasons = [SEASON_1, SEASON_2];
-  packages = [{ id: 'pkg-1', name: 'Standard', equipment: { sunbeds: 2 } }];
+  packages = [{ id: 'pkg-1', name: 'Standard', equipment: [{ equipmentTypeId: 'eq-1', name: 'Lettino', quantity: 2 }] }];
   rates = [{ id: 'ra-1', seasonId: 'se-1', price: 28 }];
   timeSlots = timeSlotsSeed.map((s) => ({ ...s }));
+  equipmentTypes = [{ id: 'eq-1', name: 'Lettino' }, { id: 'eq-2', name: 'Sdraio' }];
 }
 
 // --- Prelazione (D-011): stato campagna in-memory per i test ---
@@ -93,16 +106,20 @@ export const server = setupServer(
     return HttpResponse.json(includeArchived ? packages : packages.filter((p) => !p.archived));
   }),
   http.post('/api/packages', async ({ request }) => {
-    const b = (await request.json()) as Omit<PackageDTO, 'id'>;
-    const created: PackageDTO = { id: `pkg-${packages.length + 1}`, ...b };
+    const b = (await request.json()) as { name: string; equipment: { equipmentTypeId: string; quantity: number }[] };
+    const created: PackageDTO = { id: `pkg-${packages.length + 1}`, name: b.name, equipment: resolveEquipment(b.equipment) };
     packages.push(created);
     return HttpResponse.json(created, { status: 201 });
   }),
   http.patch('/api/packages/:id', async ({ params, request }) => {
-    const patch = (await request.json()) as Partial<PackageDTO>;
+    const patch = (await request.json()) as { name?: string; equipment?: { equipmentTypeId: string; quantity: number }[] };
     const i = packages.findIndex((p) => p.id === params.id);
     if (i < 0) return new HttpResponse(null, { status: 404 });
-    packages[i] = { ...packages[i], ...patch };
+    packages[i] = {
+      ...packages[i],
+      ...(patch.name !== undefined ? { name: patch.name } : {}),
+      ...(patch.equipment !== undefined ? { equipment: resolveEquipment(patch.equipment) } : {}),
+    };
     return HttpResponse.json(packages[i]);
   }),
   http.delete('/api/packages/:id', ({ params }) => {
@@ -123,6 +140,43 @@ export const server = setupServer(
     const { archived: _drop, ...rest } = packages[i];
     packages[i] = rest;
     return HttpResponse.json(packages[i]);
+  }),
+  // Equipment types / catalogo dotazione (CRUD)
+  http.get('/api/equipment-types', ({ request }) => {
+    const includeArchived = new URL(request.url).searchParams.get('includeArchived') === 'true';
+    return HttpResponse.json(includeArchived ? equipmentTypes : equipmentTypes.filter((t) => !t.archived));
+  }),
+  http.post('/api/equipment-types', async ({ request }) => {
+    const b = (await request.json()) as { name: string };
+    const created: EquipmentTypeDTO = { id: `eq-${equipmentTypes.length + 1}`, name: b.name };
+    equipmentTypes.push(created);
+    return HttpResponse.json(created, { status: 201 });
+  }),
+  http.patch('/api/equipment-types/:id', async ({ params, request }) => {
+    const patch = (await request.json()) as { name?: string };
+    const i = equipmentTypes.findIndex((t) => t.id === params.id);
+    if (i < 0) return new HttpResponse(null, { status: 404 });
+    equipmentTypes[i] = { ...equipmentTypes[i], ...patch };
+    return HttpResponse.json(equipmentTypes[i]);
+  }),
+  http.post('/api/equipment-types/:id/archive', ({ params }) => {
+    const i = equipmentTypes.findIndex((t) => t.id === params.id);
+    if (i < 0) return new HttpResponse(null, { status: 404 });
+    equipmentTypes[i] = { ...equipmentTypes[i], archived: true };
+    return HttpResponse.json(equipmentTypes[i]);
+  }),
+  http.post('/api/equipment-types/:id/restore', ({ params }) => {
+    const i = equipmentTypes.findIndex((t) => t.id === params.id);
+    if (i < 0) return new HttpResponse(null, { status: 404 });
+    const { archived: _d, ...rest } = equipmentTypes[i];
+    equipmentTypes[i] = rest;
+    return HttpResponse.json(equipmentTypes[i]);
+  }),
+  http.delete('/api/equipment-types/:id', ({ params }) => {
+    const i = equipmentTypes.findIndex((t) => t.id === params.id);
+    if (i < 0) return new HttpResponse(null, { status: 404 });
+    const [removed] = equipmentTypes.splice(i, 1);
+    return HttpResponse.json(removed);
   }),
   // Rates (CRUD, filtrate per stagione)
   http.get('/api/rates', ({ request }) => {

@@ -1,11 +1,20 @@
 <script setup lang="ts">
 import { computed, ref, watchEffect } from 'vue';
 import { Button, Card, DataTable, EmptyState, Modal, ConfirmDialog, Field, Input, Select, Icon, formatEuro } from '@coralyn/ui-kit';
-import type { BookingType, RateDTO, TimeSlotDTO } from '@coralyn/contracts';
+import type { BookingType, PackageEquipmentDTO, RateDTO, TimeSlotDTO } from '@coralyn/contracts';
 import { useSeasons, useCreateSeason, useDeleteSeason } from './useSeasons';
 import { useRates, useCreateRate, useUpdateRate, useDeleteRate } from './useRates';
 import { useTimeSlots, useCreateTimeSlot, useUpdateTimeSlot, useDeleteTimeSlot } from './useTimeSlots';
 import { useAllPackages, useCreatePackage, useUpdatePackage, useDeletePackage, useArchivePackage, useRestorePackage } from '@/features/bookings/usePackages';
+import {
+  useEquipmentTypes,
+  useAllEquipmentTypes,
+  useCreateEquipmentType,
+  useUpdateEquipmentType,
+  useArchiveEquipmentType,
+  useRestoreEquipmentType,
+  useDeleteEquipmentType,
+} from './useEquipmentTypes';
 import { useDayMap } from '@/features/map/useDayMap';
 import { rateSpecificity } from './rateSpecificity';
 
@@ -45,20 +54,24 @@ const activePackages = computed(() => (packages.value ?? []).filter((p) => !p.ar
 const archivedPackages = computed(() => (packages.value ?? []).filter((p) => p.archived));
 const archivedOpen = ref(false);
 
-// Dotazione leggibile: {sunbeds:4} → "4 lettini". Chiavi note tradotte, le altre mostrate come sono.
-const EQUIP_IT: Record<string, [string, string]> = {
-  sunbeds: ['lettino', 'lettini'],
-  deckchairs: ['sdraio', 'sdraio'],
-  umbrellas: ['ombrellone', 'ombrelloni'],
-};
-function equipmentLabel(equipment: Record<string, number>): string {
-  const parts = Object.entries(equipment).map(([k, v]) => {
-    const it = EQUIP_IT[k];
-    const noun = it ? (v === 1 ? it[0] : it[1]) : k;
-    return `${v} ${noun}`;
-  });
-  return parts.join(' · ') || 'Nessuna dotazione';
+// Dotazione leggibile: [{name:'Lettino',quantity:3}] → "3 × Lettino".
+function equipmentLabel(equipment: PackageEquipmentDTO[]): string {
+  if (equipment.length === 0) return 'Nessuna dotazione';
+  return equipment.map((e) => `${e.quantity} × ${e.name}`).join(' · ');
 }
+
+// --- Catalogo tipi di dotazione ---
+const { data: equipmentTypesData } = useAllEquipmentTypes(); // include archiviati (editor catalogo)
+const createEquipmentType = useCreateEquipmentType();
+const updateEquipmentType = useUpdateEquipmentType();
+const archiveEquipmentType = useArchiveEquipmentType();
+const restoreEquipmentType = useRestoreEquipmentType();
+const deleteEquipmentType = useDeleteEquipmentType();
+const activeEquipmentTypes = computed(() => (equipmentTypesData.value ?? []).filter((t) => !t.archived));
+const archivedEquipmentTypes = computed(() => (equipmentTypesData.value ?? []).filter((t) => t.archived));
+const archivedEqtOpen = ref(false);
+// Lista SOLO attivi, per il compositore pacchetto (i selettori di riga non devono proporre archiviati).
+const { data: equipmentTypesActive } = useEquipmentTypes();
 
 // --- Tariffe ---
 const { data: rates } = useRates(getSeasonId);
@@ -84,7 +97,8 @@ type PendingDelete =
   | { kind: 'season'; id: string; name: string }
   | { kind: 'package'; id: string; name: string }
   | { kind: 'rate'; id: string }
-  | { kind: 'timeSlot'; id: string; name: string };
+  | { kind: 'timeSlot'; id: string; name: string }
+  | { kind: 'equipmentType'; id: string; name: string };
 const pendingDelete = ref<PendingDelete | null>(null);
 const confirmOpen = ref(false);
 
@@ -105,6 +119,10 @@ function askDeleteTimeSlot(s: { id: string; name: string }) {
   pendingDelete.value = { kind: 'timeSlot', id: s.id, name: s.name };
   confirmOpen.value = true;
 }
+function askDeleteEquipmentType(t: { id: string; name: string }) {
+  pendingDelete.value = { kind: 'equipmentType', id: t.id, name: t.name };
+  confirmOpen.value = true;
+}
 const confirmCopy = computed(() => {
   const p = pendingDelete.value;
   if (p?.kind === 'season')
@@ -115,6 +133,8 @@ const confirmCopy = computed(() => {
     return { title: 'Eliminare la tariffa?', description: 'La regola di prezzo verrà rimossa dal listino.' };
   if (p?.kind === 'timeSlot')
     return { title: 'Eliminare la fascia?', description: `«${p.name}». Se è usata da tariffe o prenotazioni non sarà eliminata.` };
+  if (p?.kind === 'equipmentType')
+    return { title: 'Eliminare definitivamente?', description: `«${p.name}» verrà rimosso in modo irreversibile dal catalogo.` };
   return { title: '', description: '' };
 });
 function onConfirmDelete() {
@@ -123,6 +143,7 @@ function onConfirmDelete() {
   if (p.kind === 'season') deleteSeason.mutate(p.id, { onSuccess: () => (activeSeasonId.value = '') });
   else if (p.kind === 'package') deletePackage.mutate(p.id);
   else if (p.kind === 'timeSlot') deleteSlot.mutate(p.id);
+  else if (p.kind === 'equipmentType') deleteEquipmentType.mutate(p.id);
   else deleteRate.mutate(p.id);
   confirmOpen.value = false;
   pendingDelete.value = null;
@@ -148,32 +169,107 @@ function submitSeason() {
   );
 }
 
-// --- Modale pacchetto ---
+// --- Modale pacchetto: compositore multi-voce ---
+const NEW_TYPE_OPTION = '__new__'; // sentinella per "+ Crea «testo»" nel select di riga
 const pkgModal = ref(false);
 const editingPkgId = ref<string | null>(null); // null = crea, valorizzato = modifica
-const pName = ref(''); const pSunbeds = ref('2');
+const pName = ref('');
+const pRows = ref<{ equipmentTypeId: string; quantity: string }[]>([]);
+const equipmentTypeOptions = computed(() => (equipmentTypesActive.value ?? []).map((t) => ({ value: t.id, label: t.name })));
 function openCreatePackage() {
   editingPkgId.value = null;
-  pName.value = ''; pSunbeds.value = '2';
+  pName.value = '';
+  pRows.value = [];
   pkgModal.value = true;
 }
-function openEditPackage(p: { id: string; name: string; equipment: Record<string, number> }) {
+function openEditPackage(p: { id: string; name: string; equipment: PackageEquipmentDTO[] }) {
   editingPkgId.value = p.id;
   pName.value = p.name;
-  pSunbeds.value = String(p.equipment.sunbeds ?? 0);
+  pRows.value = p.equipment.map((e) => ({ equipmentTypeId: e.equipmentTypeId, quantity: String(e.quantity) }));
   pkgModal.value = true;
 }
 function closePackageModal() {
   pkgModal.value = false;
   editingPkgId.value = null;
 }
+function addEquipmentRow() {
+  pRows.value.push({ equipmentTypeId: '', quantity: '1' });
+}
+function removeEquipmentRow(i: number) {
+  pRows.value.splice(i, 1);
+}
+
+// Creazione al volo di un tipo dalla riga del compositore (spec §5): l'utente digita un nome nuovo
+// nel prompt, la select propone "+ Crea «testo»"; alla selezione si crea il tipo e si seleziona l'id.
+const newTypeRowIndex = ref<number | null>(null);
+const newTypeModal = ref(false);
+const newTypeName = ref('');
+function onRowTypeChange(i: number, value: string) {
+  if (value === NEW_TYPE_OPTION) {
+    newTypeRowIndex.value = i;
+    newTypeName.value = '';
+    newTypeModal.value = true;
+    pRows.value[i].equipmentTypeId = ''; // non lasciare la sentinella selezionata
+    return;
+  }
+  pRows.value[i].equipmentTypeId = value;
+}
+function closeNewTypeModal() {
+  newTypeModal.value = false;
+  newTypeRowIndex.value = null;
+  newTypeName.value = '';
+}
+function submitNewEquipmentType() {
+  if (!newTypeName.value.trim()) return;
+  createEquipmentType.mutate(
+    { name: newTypeName.value.trim() },
+    {
+      onSuccess: (created) => {
+        if (newTypeRowIndex.value !== null) pRows.value[newTypeRowIndex.value].equipmentTypeId = created.id;
+        closeNewTypeModal();
+      },
+    },
+  );
+}
+
 function submitPackage() {
   if (!pName.value) return;
-  const input = { name: pName.value, equipment: { sunbeds: Number(pSunbeds.value) || 0 } };
+  const equipment = pRows.value
+    .filter((r) => r.equipmentTypeId)
+    .map((r) => ({ equipmentTypeId: r.equipmentTypeId, quantity: Math.max(1, Number(r.quantity) || 1) }));
+  const input = { name: pName.value, equipment };
   if (editingPkgId.value) {
     updatePackage.mutate({ id: editingPkgId.value, input }, { onSuccess: () => closePackageModal() });
   } else {
     createPackage.mutate(input, { onSuccess: () => closePackageModal() });
+  }
+}
+
+// --- Catalogo tipi di dotazione: modale crea/rinomina ---
+const eqtModal = ref(false);
+const editingEqtId = ref<string | null>(null); // null = crea, valorizzato = modifica
+const eqtName = ref('');
+function openCreateEquipmentType() {
+  editingEqtId.value = null;
+  eqtName.value = '';
+  eqtModal.value = true;
+}
+function openEditEquipmentType(t: { id: string; name: string }) {
+  editingEqtId.value = t.id;
+  eqtName.value = t.name;
+  eqtModal.value = true;
+}
+function closeEquipmentTypeModal() {
+  eqtModal.value = false;
+  editingEqtId.value = null;
+}
+function submitEquipmentType() {
+  if (!eqtName.value) return;
+  const input = { name: eqtName.value };
+  if (editingEqtId.value) {
+    updateEquipmentType.mutate({ id: editingEqtId.value, input }, { onSuccess: () => closeEquipmentTypeModal() });
+  } else {
+    createEquipmentType.mutate(input, { onSuccess: () => closeEquipmentTypeModal() });
   }
 }
 
@@ -315,8 +411,48 @@ const rateCols = [
         @click="askDeleteSeason"
       ><Icon name="trash-2" :size="16" /></button>
       <div class="flex-1"></div>
+      <Button variant="secondary" data-test="new-equipment-type" @click="openCreateEquipmentType"><Icon name="plus" :size="16" />Tipo di dotazione</Button>
       <Button variant="secondary" data-test="new-package" @click="openCreatePackage"><Icon name="plus" :size="16" />Pacchetto</Button>
       <Button data-test="new-rate" :disabled="!activeSeasonId" @click="openCreateRate"><Icon name="plus" :size="16" />Nuova tariffa</Button>
+    </div>
+
+    <!-- Catalogo tipi di dotazione -->
+    <EmptyState v-if="activeEquipmentTypes.length === 0" class="mb-4" message="Nessun tipo di dotazione. Creane uno con «Tipo di dotazione»." />
+    <div v-else class="mb-4 grid grid-cols-4 gap-3">
+      <Card v-for="t in activeEquipmentTypes" :key="t.id">
+        <div class="flex items-center justify-between gap-2 p-3.5">
+          <span class="text-[13.5px] font-semibold text-[var(--color-text)]">{{ t.name }}</span>
+          <div class="flex shrink-0 items-center gap-2">
+            <button type="button" title="Modifica" class="text-[var(--color-text-muted)] hover:text-[var(--color-accent)]"
+              :data-test="`edit-eqt-${t.id}`" @click="openEditEquipmentType(t)"><Icon name="edit" :size="14" /></button>
+            <button type="button" title="Archivia" class="text-[var(--color-text-muted)] hover:text-[var(--color-accent)]"
+              :data-test="`archive-eqt-${t.id}`" @click="archiveEquipmentType.mutate(t.id)"><Icon name="archive" :size="14" /></button>
+          </div>
+        </div>
+      </Card>
+    </div>
+
+    <!-- Tipi di dotazione archiviati (a scomparsa, chiusa di default) -->
+    <div v-if="archivedEquipmentTypes.length > 0" class="mb-4">
+      <button type="button" data-test="toggle-archived-eqt"
+        class="mb-2 flex items-center gap-1.5 text-[12.5px] font-semibold text-[var(--color-text-muted)] hover:text-[var(--color-text-2nd)]"
+        @click="archivedEqtOpen = !archivedEqtOpen">
+        <Icon :name="archivedEqtOpen ? 'chevron-down' : 'chevron-right'" :size="15" />
+        Archiviati ({{ archivedEquipmentTypes.length }})
+      </button>
+      <div v-if="archivedEqtOpen" class="grid grid-cols-4 gap-3">
+        <Card v-for="t in archivedEquipmentTypes" :key="t.id" class="opacity-60">
+          <div class="flex items-center justify-between gap-2 p-3.5">
+            <span class="text-[13.5px] font-semibold text-[var(--color-text)]">{{ t.name }}</span>
+            <div class="flex shrink-0 items-center gap-2">
+              <button type="button" title="Ripristina" class="text-[var(--color-text-muted)] hover:text-[var(--color-accent)]"
+                :data-test="`restore-eqt-${t.id}`" @click="restoreEquipmentType.mutate(t.id)"><Icon name="renew" :size="14" /></button>
+              <button type="button" title="Elimina definitivamente" class="text-[var(--color-text-muted)] hover:text-[var(--color-danger)]"
+                :data-test="`del-eqt-${t.id}`" @click="askDeleteEquipmentType(t)"><Icon name="trash-2" :size="14" /></button>
+            </div>
+          </div>
+        </Card>
+      </div>
     </div>
 
     <!-- Card pacchetti -->
@@ -434,10 +570,50 @@ const rateCols = [
     <Modal v-model:open="pkgModal" :title="editingPkgId ? 'Modifica pacchetto' : 'Nuovo pacchetto'">
       <form data-test="form-package" class="flex flex-col gap-4" @submit.prevent="submitPackage">
         <Field label="Nome"><Input name="name" v-model="pName" placeholder="Comfort" /></Field>
-        <Field label="Lettini"><Input name="sunbeds" v-model="pSunbeds" type="number" /></Field>
+        <div class="flex flex-col gap-2.5">
+          <span class="text-[12px] font-semibold text-[var(--color-text-2nd)]">Dotazione</span>
+          <div v-for="(row, i) in pRows" :key="i" :data-test="`equip-row-${i}`" class="flex items-center gap-2.5">
+            <div class="flex-1">
+              <Select
+                :model-value="row.equipmentTypeId"
+                @update:model-value="(v) => onRowTypeChange(i, v as string)"
+              >
+                <option value="" disabled>Seleziona un tipo</option>
+                <option v-for="o in equipmentTypeOptions" :key="o.value" :value="o.value">{{ o.label }}</option>
+                <option :value="NEW_TYPE_OPTION">+ Crea nuovo tipo…</option>
+              </Select>
+            </div>
+            <div class="w-20"><Input name="quantity" v-model="row.quantity" type="number" min="1" /></div>
+            <button type="button" title="Rimuovi voce" class="text-[var(--color-text-muted)] hover:text-[var(--color-danger)]"
+              @click="removeEquipmentRow(i)"><Icon name="trash-2" :size="15" /></button>
+          </div>
+          <Button variant="secondary" type="button" data-test="add-equipment-row" @click="addEquipmentRow"><Icon name="plus" :size="16" />Aggiungi voce</Button>
+        </div>
         <div class="flex justify-end gap-2.5 pt-1">
           <Button variant="secondary" type="button" @click="closePackageModal">Annulla</Button>
           <Button type="submit">{{ editingPkgId ? 'Salva modifiche' : 'Salva pacchetto' }}</Button>
+        </div>
+      </form>
+    </Modal>
+
+    <!-- Modale tipo di dotazione -->
+    <Modal v-model:open="eqtModal" :title="editingEqtId ? 'Modifica tipo di dotazione' : 'Nuovo tipo di dotazione'">
+      <form data-test="form-equipment-type" class="flex flex-col gap-4" @submit.prevent="submitEquipmentType">
+        <Field label="Nome"><Input name="name" v-model="eqtName" placeholder="Lettino" /></Field>
+        <div class="flex justify-end gap-2.5 pt-1">
+          <Button variant="secondary" type="button" @click="closeEquipmentTypeModal">Annulla</Button>
+          <Button type="submit">{{ editingEqtId ? 'Salva modifiche' : 'Salva tipo' }}</Button>
+        </div>
+      </form>
+    </Modal>
+
+    <!-- Modale creazione al volo di un tipo (dal compositore pacchetto) -->
+    <Modal v-model:open="newTypeModal" title="Nuovo tipo di dotazione">
+      <form data-test="form-new-equipment-type" class="flex flex-col gap-4" @submit.prevent="submitNewEquipmentType">
+        <Field label="Nome"><Input name="name" v-model="newTypeName" placeholder="Cassaforte" /></Field>
+        <div class="flex justify-end gap-2.5 pt-1">
+          <Button variant="secondary" type="button" @click="closeNewTypeModal">Annulla</Button>
+          <Button type="submit">Crea e seleziona</Button>
         </div>
       </form>
     </Modal>

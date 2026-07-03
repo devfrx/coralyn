@@ -46,7 +46,7 @@ describe('BookingsView', () => {
   it('colonna Pacchetto: nome risolto da packageId, "—" se assente', async () => {
     server.use(
       http.get('/api/packages', () =>
-        HttpResponse.json([{ id: 'pkg-1', name: 'Standard', equipment: { sunbeds: 2 } }]),
+        HttpResponse.json([{ id: 'pkg-1', name: 'Standard', equipment: [{ equipmentTypeId: 'eq-1', name: 'Lettino', quantity: 2 }] }]),
       ),
       http.get('/api/bookings', () =>
         HttpResponse.json([
