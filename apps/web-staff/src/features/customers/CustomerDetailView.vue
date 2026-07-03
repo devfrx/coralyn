@@ -53,7 +53,7 @@ const ini = computed(() => (customer.value ? ((customer.value.firstName[0] ?? ''
         </form>
       </SectionCard>
 
-      <div class="grid grid-cols-1 gap-3.5 lg:grid-cols-3">
+      <div class="flex flex-col gap-3.5">
         <CustomerSubscriptionsCard :bookings="bookings ?? []" />
         <CustomerHistoryCard :bookings="bookings ?? []" />
         <CustomerPaymentsCard :bookings="bookings ?? []" />
