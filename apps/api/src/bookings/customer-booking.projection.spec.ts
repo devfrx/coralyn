@@ -58,6 +58,22 @@ describe('toCustomerBookingDTO', () => {
     expect(dto.seniority).toBe(3);
     expect(dto.renewed).toBe(true);
   });
+
+  it('valorizza packageName e sectorName quando presenti', () => {
+    const dto = toCustomerBookingDTO(bookingRow(), {
+      umbrellaLabel: 'A12',
+      sectorName: 'Centro',
+      packageName: 'Comfort',
+    });
+    expect(dto.sectorName).toBe('Centro');
+    expect(dto.packageName).toBe('Comfort');
+  });
+
+  it('omette packageName se assente (booking senza pacchetto)', () => {
+    const dto = toCustomerBookingDTO(bookingRow(), { umbrellaLabel: 'A12', sectorName: 'Centro' });
+    expect(dto.packageName).toBeUndefined();
+    expect(dto.sectorName).toBe('Centro');
+  });
 });
 
 describe('resolveSeasonName', () => {

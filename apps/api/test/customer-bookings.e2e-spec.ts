@@ -24,6 +24,8 @@ describe('Customer bookings (e2e)', () => {
   let emptyCustomerId: string;
   let umbrellaId2: string;
   let pcId: string;
+  let pricingPackageId: string;
+  let packCustomerId: string;
 
   beforeAll(async () => {
     const moduleRef = await Test.createTestingModule({ imports: [AppModule] }).compile();
@@ -45,6 +47,7 @@ describe('Customer bookings (e2e)', () => {
     const pricing = await seedPricingTenant(prisma, s1, { afternoonSlotId: ids.slotAfternoon });
     seasonAId = pricing.seasonId;
     seasonBId = pricing.season2027Id;
+    pricingPackageId = pricing.packageId;
 
     await prisma.forTenant(s1, async (tx) => {
       const cust = await tx.customer.create({ data: { establishmentId: s1, firstName: 'Mario', lastName: 'Rossi' } });
@@ -102,6 +105,7 @@ describe('Customer bookings (e2e)', () => {
     const origin = res.body.find((b: { id: string }) => b.id === sub.body.id);
     expect(origin.umbrellaLabel).toBe('2');
     expect(origin.seasonName).toBe('Estate 2026');
+    expect(origin.sectorName).toBe('Centro');
     expect(origin.type).toBe('subscription');
     expect(origin.seniority).toBe(1);
     expect(origin.renewed).toBe(true);
@@ -111,8 +115,29 @@ describe('Customer bookings (e2e)', () => {
     // il daily non ha campi da subscription
     const daily = res.body.find((b: { type: string }) => b.type === 'daily');
     expect(daily.umbrellaLabel).toBe('1');
+    expect(daily.sectorName).toBe('Centro');
     expect(daily.seniority).toBeUndefined();
     expect(daily.renewed).toBeUndefined();
+  });
+
+  it('arricchisce packageName (se presente) e sectorName; packageName assente senza pacchetto', async () => {
+    await prisma.forTenant(s1, async (tx) => {
+      const c = await tx.customer.create({ data: { establishmentId: s1, firstName: 'Pack', lastName: 'Test' } });
+      packCustomerId = c.id;
+    });
+    const withPkg = await request(app.getHttpServer()).post('/api/bookings').set(...bearer(t1))
+      .send({ customerId: packCustomerId, umbrellaId: umbrellaId2, timeSlotId: ids.slotAfternoon, type: 'daily', startDate: '2026-07-05', packageId: pricingPackageId }).expect(201);
+    const noPkg = await request(app.getHttpServer()).post('/api/bookings').set(...bearer(t1))
+      .send({ customerId: packCustomerId, umbrellaId: umbrellaId2, timeSlotId: ids.slotAfternoon, type: 'daily', startDate: '2026-07-06' }).expect(201);
+
+    const res = await request(app.getHttpServer())
+      .get(`/api/customers/${packCustomerId}/bookings`).set(...bearer(t1)).expect(200);
+    const rowWith = res.body.find((b: { id: string }) => b.id === withPkg.body.id);
+    const rowNo = res.body.find((b: { id: string }) => b.id === noPkg.body.id);
+    expect(rowWith.packageName).toBe('Standard');
+    expect(rowWith.sectorName).toBe('Centro');
+    expect(rowNo.packageName).toBeUndefined();
+    expect(rowNo.sectorName).toBe('Centro');
   });
 
   it('mostra anche una prenotazione cancellata', async () => {

@@ -5,6 +5,8 @@ import { formatDbDate } from '../common/dates';
 export interface CustomerBookingEnrichment {
   umbrellaLabel: string;
   seasonName?: string;
+  packageName?: string;
+  sectorName?: string;
   seniority?: number;
   renewed?: boolean;
   prelazione?: { destinationSeasonName: string; deadline: string };
@@ -28,6 +30,8 @@ export function toCustomerBookingDTO(b: Booking, e: CustomerBookingEnrichment): 
     packageId: b.packageId ?? undefined,
     previousBookingId: b.previousBookingId ?? undefined,
     umbrellaLabel: e.umbrellaLabel,
+    packageName: e.packageName,
+    sectorName: e.sectorName,
     seasonName: e.seasonName,
     seniority: e.seniority,
     renewed: e.renewed,

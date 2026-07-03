@@ -230,6 +230,8 @@ export interface CustomerBookingDTO {
   previousBookingId?: string;
   // — arricchimenti server-side —
   umbrellaLabel: string;          // join Umbrella.label (il FE non carica la mappa)
+  packageName?: string;           // nome del Package (se packageId presente); il FE non carica il catalogo
+  sectorName?: string;            // nome del Settore dell'ombrellone (per il chip «Centro · A12»)
   seasonName?: string;            // Season che contiene startDate; assente se nessuna
   seniority?: number;             // SOLO subscription: lunghezza catena rinnovi (>=1)
   renewed?: boolean;              // SOLO subscription: esiste un rinnovo confermato

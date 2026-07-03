@@ -63,7 +63,11 @@ export class BookingsService {
     return this.prisma.forTenant(tenantId, async (tx) => {
       const bookings = await tx.booking.findMany({
         where: { customerId },
-        include: { umbrella: true, renewals: true },
+        include: {
+          umbrella: { include: { row: { include: { sector: true } } } },
+          package: true,
+          renewals: true,
+        },
         orderBy: [{ startDate: 'desc' }, { createdAt: 'desc' }],
       });
       if (bookings.length === 0) return [];
@@ -102,6 +106,8 @@ export class BookingsService {
         const isSub = b.type === 'subscription';
         return toCustomerBookingDTO(b, {
           umbrellaLabel: b.umbrella.label,
+          packageName: b.package?.name ?? undefined,
+          sectorName: b.umbrella.row.sector.name,
           seasonName: resolveSeasonName(seasons, b.startDate),
           seniority: isSub ? (seniorityById.get(b.id) ?? 1) : undefined,
           renewed: isSub ? b.renewals.some((r) => r.status === 'confirmed') : undefined,
