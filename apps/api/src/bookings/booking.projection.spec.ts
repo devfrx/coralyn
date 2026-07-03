@@ -20,6 +20,8 @@ const row = {
   paymentMethod: null,
   collectionDate: null,
   createdAt: new Date(),
+  slotStartMin: 480,
+  slotEndMin: 780,
 };
 
 describe('toBookingDTO', () => {

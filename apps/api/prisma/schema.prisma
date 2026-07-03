@@ -173,6 +173,14 @@ model Booking {
   collectionDate    DateTime?      @db.Date
   createdAt         DateTime       @default(now())
 
+  // Occupazione oraria denormalizzata da TimeSlot (minuti-dalla-mezzanotte), DB-autoritativa via
+  // trigger booking_fill_slot_minutes_trg (l'app NON le scrive). Alimenta l'EXCLUDE constraint
+  // booking_no_overlap (raw SQL, non modellato qui). Vedi ADR-0037.
+  // @default(0) è un segnaposto MAI osservato: il trigger BEFORE INSERT sovrascrive sempre il valore;
+  // serve solo a rendere il create-input Prisma opzionale (così l'app non è costretta a scriverle).
+  slotStartMin      Int   @default(0)
+  slotEndMin        Int   @default(0)
+
   establishment   Establishment @relation(fields: [establishmentId], references: [id])
   customer        Customer      @relation(fields: [customerId], references: [id])
   umbrella        Umbrella      @relation(fields: [umbrellaId], references: [id])
