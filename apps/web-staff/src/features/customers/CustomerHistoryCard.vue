@@ -27,12 +27,12 @@ const groups = computed(() => {
       </div>
       <ul class="flex flex-col gap-1.5">
         <li v-for="b in rows" :key="b.id"
-            :class="['flex items-center justify-between gap-2 rounded-[var(--radius-md)] border border-[var(--color-border)] px-3 py-2 text-[13px]', b.status === 'cancelled' ? 'opacity-50' : '']">
-          <span class="flex min-w-0 items-center gap-2">
+            :class="['flex flex-wrap items-center gap-x-2 gap-y-1 rounded-[var(--radius-md)] border border-[var(--color-border)] px-3 py-2 text-[13px]', b.status === 'cancelled' ? 'opacity-50' : '']">
+          <span class="flex items-center gap-2">
             <Badge tone="brand">{{ TYPE_LABEL[b.type] }}</Badge>
             <span class="inline-flex items-center rounded-[var(--radius-sm)] bg-[var(--color-raised)] px-1.5 py-0.5 text-[11px] font-semibold text-[var(--color-text-2nd)]">{{ b.sectorName ?? '—' }} · {{ b.umbrellaLabel }}</span>
           </span>
-          <span class="flex shrink-0 items-center gap-2">
+          <span class="ml-auto flex shrink-0 items-center gap-2">
             <span class="tabular-nums font-semibold text-[var(--color-text)]">{{ `€ ${b.totalPrice.toFixed(2)}` }}</span>
             <Badge v-if="b.status === 'cancelled'" tone="danger">Annullata</Badge>
             <Badge v-else tone="success">Confermata</Badge>
