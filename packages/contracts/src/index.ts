@@ -373,3 +373,24 @@ export interface CreatePackageInput {
 
 /** Input modifica pacchetto: tutti i campi opzionali. */
 export type UpdatePackageInput = Partial<CreatePackageInput>;
+
+/** Membro del team dello stabilimento (superuser escluso: è di piattaforma). */
+export interface EstablishmentMemberDTO {
+  id: string;
+  email: string;
+  role: 'admin' | 'staff';
+}
+
+/** Proiezione read-only della schermata Stabilimento (GET /api/establishment/overview). */
+export interface EstablishmentOverviewDTO {
+  establishment: { id: string; name: string };
+  activeSeason: { name: string; startDate: string; endDate: string } | null; // copre oggi, else null
+  timeSlots: { id: string; name: string }[]; // fasce operative, ordinate per sortOrder
+  structure: {
+    sectors: number;
+    umbrellas: number;
+    types: number;
+    packages: number; // solo non archiviati
+  };
+  team: EstablishmentMemberDTO[]; // admin-first, poi email asc
+}
