@@ -430,3 +430,10 @@ export interface EstablishmentStructureDTO {
 /** Input creazione tipologia (admin-only). icon = chiave icon-registry ui-kit. */
 export interface CreateUmbrellaTypeInput { name: string; icon: string; }
 export interface UpdateUmbrellaTypeInput { name?: string; icon?: string; }
+
+/** Settori (editor struttura, admin-only). */
+export interface CreateSectorInput { name: string; kind: SectorKind; }
+export interface UpdateSectorInput { name?: string; kind?: SectorKind; }
+/** File (editor struttura, admin-only). Slice 2 = create-fila (label); il generatore è Slice 3. */
+export interface CreateRowInput { sectorId: string; label: string; }
+export interface UpdateRowInput { label?: string; }
