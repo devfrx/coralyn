@@ -1,4 +1,4 @@
-import type { EstablishmentStructureDTO, UmbrellaTypeDTO, CreateUmbrellaTypeInput, UpdateUmbrellaTypeInput, StructureSectorDTO, StructureRowDTO, CreateSectorInput, UpdateSectorInput, CreateRowInput, UpdateRowInput } from '@coralyn/contracts';
+import type { EstablishmentStructureDTO, UmbrellaTypeDTO, CreateUmbrellaTypeInput, UpdateUmbrellaTypeInput, StructureSectorDTO, StructureRowDTO, CreateSectorInput, UpdateSectorInput, CreateRowInput, UpdateRowInput, StructureUmbrellaDTO, CreateUmbrellaInput, UpdateUmbrellaInput, GenerateUmbrellasInput, GenerateUmbrellasResultDTO } from '@coralyn/contracts';
 import { apiFetch } from '@/lib/http';
 import { queryKeys } from '@/lib/queryKeys';
 import { useSessionStore } from '@/stores/session';
@@ -86,6 +86,41 @@ export function useDeleteRow() {
   const session = useSessionStore();
   return mutationResource({
     mutationFn: (id: string) => apiFetch<StructureRowDTO>(`/establishment/rows/${id}`, { method: 'DELETE' }),
+    invalidates: () => [queryKeys.establishmentStructure(session.establishmentId)],
+  });
+}
+
+export function useCreateUmbrella() {
+  const session = useSessionStore();
+  return mutationResource({
+    mutationFn: (input: CreateUmbrellaInput) =>
+      apiFetch<StructureUmbrellaDTO>('/establishment/umbrellas', { method: 'POST', body: JSON.stringify(input) }),
+    invalidates: () => [queryKeys.establishmentStructure(session.establishmentId)],
+  });
+}
+
+export function useUpdateUmbrella() {
+  const session = useSessionStore();
+  return mutationResource({
+    mutationFn: (vars: { id: string } & UpdateUmbrellaInput) =>
+      apiFetch<StructureUmbrellaDTO>(`/establishment/umbrellas/${vars.id}`, { method: 'PATCH', body: JSON.stringify({ label: vars.label, umbrellaTypeId: vars.umbrellaTypeId }) }),
+    invalidates: () => [queryKeys.establishmentStructure(session.establishmentId)],
+  });
+}
+
+export function useDeleteUmbrella() {
+  const session = useSessionStore();
+  return mutationResource({
+    mutationFn: (id: string) => apiFetch<StructureUmbrellaDTO>(`/establishment/umbrellas/${id}`, { method: 'DELETE' }),
+    invalidates: () => [queryKeys.establishmentStructure(session.establishmentId)],
+  });
+}
+
+export function useGenerateUmbrellas() {
+  const session = useSessionStore();
+  return mutationResource({
+    mutationFn: (input: GenerateUmbrellasInput) =>
+      apiFetch<GenerateUmbrellasResultDTO>('/establishment/umbrellas/generate', { method: 'POST', body: JSON.stringify(input) }),
     invalidates: () => [queryKeys.establishmentStructure(session.establishmentId)],
   });
 }

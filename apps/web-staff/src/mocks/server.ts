@@ -394,6 +394,21 @@ export const server = setupServer(
   }),
   http.delete('/api/establishment/rows/:id', ({ params }) =>
     HttpResponse.json({ id: params.id as string, label: 'Fila 1', sortOrder: 1, umbrellas: [] })),
+  http.post('/api/establishment/umbrellas', async ({ request }) => {
+    const b = (await request.json()) as { rowId: string; label: string; umbrellaTypeId: string | null };
+    return HttpResponse.json({ id: `omb-${b.label}`, label: b.label, umbrellaTypeId: b.umbrellaTypeId }, { status: 201 });
+  }),
+  http.post('/api/establishment/umbrellas/generate', async ({ request }) => {
+    const b = (await request.json()) as { prefix: string; start: number; count: number };
+    const umbrellas = Array.from({ length: b.count }, (_v, i) => ({ id: `omb-${b.prefix}${b.start + i}`, label: `${b.prefix}${b.start + i}`, umbrellaTypeId: null }));
+    return HttpResponse.json({ created: b.count, skipped: 0, umbrellas }, { status: 201 });
+  }),
+  http.patch('/api/establishment/umbrellas/:id', async ({ params, request }) => {
+    const b = (await request.json()) as { label?: string; umbrellaTypeId?: string | null };
+    return HttpResponse.json({ id: params.id as string, label: b.label ?? '1', umbrellaTypeId: b.umbrellaTypeId ?? null });
+  }),
+  http.delete('/api/establishment/umbrellas/:id', ({ params }) =>
+    HttpResponse.json({ id: params.id as string, label: '1', umbrellaTypeId: null })),
   http.patch('/api/bookings/:id/payment', async ({ params, request }) => {
     const b = (await request.json()) as { amountCollected: number; paymentMethod?: string; collectionDate?: string };
     const paid = b.amountCollected > 0;

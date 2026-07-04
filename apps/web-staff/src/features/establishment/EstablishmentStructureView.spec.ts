@@ -213,4 +213,159 @@ describe('EstablishmentStructureView', () => {
     expect(w.find('[data-testid="edit-row"]').exists()).toBe(false);
     expect(w.find('[data-testid="delete-row"]').exists()).toBe(false);
   });
+
+  it('admin: aggiunge un ombrellone alla fila', async () => {
+    const seen: Array<{ rowId: string; label: string; umbrellaTypeId: string | null }> = [];
+    server.use(http.post('/api/establishment/umbrellas', async ({ request }) => {
+      const b = (await request.json()) as { rowId: string; label: string; umbrellaTypeId: string | null };
+      seen.push(b);
+      return HttpResponse.json({ id: 'omb-new', label: b.label, umbrellaTypeId: b.umbrellaTypeId }, { status: 201 });
+    }));
+    const w = mountApp(EstablishmentStructureView, { attachTo: document.body });
+    const session = useSessionStore();
+    session.user = { id: 'u-1', email: 'admin@coralyn.dev', role: Role.Admin, establishmentId: 'e-1' };
+    await settle();
+    await w.find('[data-testid="add-umbrella"]').trigger('click');
+    await settle();
+    (document.querySelector('[data-testid="umbrella-label"]') as HTMLInputElement).value = '3';
+    (document.querySelector('[data-testid="umbrella-label"]') as HTMLInputElement).dispatchEvent(new Event('input'));
+    (document.querySelector('[data-testid="umbrella-save"]') as HTMLElement).click();
+    await settle();
+    expect(seen).toEqual([{ rowId: 'row-1', label: '3', umbrellaTypeId: null }]);
+    w.unmount();
+  });
+
+  it('admin: modifica un ombrellone (click sul chip)', async () => {
+    const seen: Array<{ id: string; label?: string }> = [];
+    server.use(http.patch('/api/establishment/umbrellas/:id', async ({ params, request }) => {
+      const b = (await request.json()) as { label?: string };
+      seen.push({ id: params.id as string, label: b.label });
+      return HttpResponse.json({ id: params.id as string, label: b.label ?? '1', umbrellaTypeId: null });
+    }));
+    const w = mountApp(EstablishmentStructureView, { attachTo: document.body });
+    const session = useSessionStore();
+    session.user = { id: 'u-1', email: 'admin@coralyn.dev', role: Role.Admin, establishmentId: 'e-1' };
+    await settle();
+    await w.findAll('[data-testid="umbrella-chip"]')[0].trigger('click');
+    await settle();
+    (document.querySelector('[data-testid="umbrella-label"]') as HTMLInputElement).value = '9';
+    (document.querySelector('[data-testid="umbrella-label"]') as HTMLInputElement).dispatchEvent(new Event('input'));
+    (document.querySelector('[data-testid="umbrella-save"]') as HTMLElement).click();
+    await settle();
+    expect(seen).toEqual([{ id: 'omb-1', label: '9' }]);
+    w.unmount();
+  });
+
+  it('admin: elimina un ombrellone solo dopo conferma', async () => {
+    const seen: string[] = [];
+    server.use(http.delete('/api/establishment/umbrellas/:id', ({ params }) => {
+      seen.push(params.id as string);
+      return HttpResponse.json({ id: params.id as string, label: '1', umbrellaTypeId: null });
+    }));
+    const w = mountApp(EstablishmentStructureView, { attachTo: document.body });
+    const session = useSessionStore();
+    session.user = { id: 'u-1', email: 'admin@coralyn.dev', role: Role.Admin, establishmentId: 'e-1' };
+    await settle();
+    await w.findAll('[data-testid="umbrella-chip"]')[0].trigger('click');
+    await settle();
+    (document.querySelector('[data-testid="umbrella-delete"]') as HTMLElement).click();
+    await settle();
+    expect(seen).toEqual([]);
+    const confirmBtn = Array.from(document.body.querySelectorAll('button')).find((b) => b.textContent?.trim() === 'Elimina');
+    confirmBtn!.click();
+    await settle();
+    expect(seen).toEqual(['omb-1']);
+    w.unmount();
+  });
+
+  it('admin: genera ombrelloni su una fila', async () => {
+    const seen: Array<{ rowId: string; prefix: string; start: number; count: number }> = [];
+    server.use(http.post('/api/establishment/umbrellas/generate', async ({ request }) => {
+      const b = (await request.json()) as { rowId: string; prefix: string; start: number; count: number };
+      seen.push(b);
+      return HttpResponse.json({ created: b.count, skipped: 0, umbrellas: [] }, { status: 201 });
+    }));
+    const w = mountApp(EstablishmentStructureView, { attachTo: document.body });
+    const session = useSessionStore();
+    session.user = { id: 'u-1', email: 'admin@coralyn.dev', role: Role.Admin, establishmentId: 'e-1' };
+    await settle();
+    await w.find('[data-testid="generate-umbrellas"]').trigger('click');
+    await settle();
+    (document.querySelector('[data-testid="gen-prefix"]') as HTMLInputElement).value = 'P';
+    (document.querySelector('[data-testid="gen-prefix"]') as HTMLInputElement).dispatchEvent(new Event('input'));
+    (document.querySelector('[data-testid="gen-count"]') as HTMLInputElement).value = '4';
+    (document.querySelector('[data-testid="gen-count"]') as HTMLInputElement).dispatchEvent(new Event('input'));
+    (document.querySelector('[data-testid="gen-save"]') as HTMLElement).click();
+    await settle();
+    expect(seen).toEqual([{ rowId: 'row-1', prefix: 'P', start: 1, count: 4, umbrellaTypeId: null }]);
+    w.unmount();
+  });
+
+  it('admin: «Nuova fila» crea la fila e genera gli ombrelloni', async () => {
+    const rows: Array<{ sectorId: string; label: string }> = [];
+    const gens: Array<{ rowId: string; count: number }> = [];
+    server.use(
+      http.post('/api/establishment/rows', async ({ request }) => {
+        const b = (await request.json()) as { sectorId: string; label: string };
+        rows.push(b);
+        return HttpResponse.json({ id: 'row-new', label: b.label, sortOrder: 9, umbrellas: [] }, { status: 201 });
+      }),
+      http.post('/api/establishment/umbrellas/generate', async ({ request }) => {
+        const b = (await request.json()) as { rowId: string; count: number };
+        gens.push({ rowId: b.rowId, count: b.count });
+        return HttpResponse.json({ created: b.count, skipped: 0, umbrellas: [] }, { status: 201 });
+      }),
+    );
+    const w = mountApp(EstablishmentStructureView, { attachTo: document.body });
+    const session = useSessionStore();
+    session.user = { id: 'u-1', email: 'admin@coralyn.dev', role: Role.Admin, establishmentId: 'e-1' };
+    await settle();
+    await w.find('[data-testid="add-row"]').trigger('click');
+    await settle();
+    (document.querySelector('[data-testid="row-label"]') as HTMLInputElement).value = 'Fila Nuova';
+    (document.querySelector('[data-testid="row-label"]') as HTMLInputElement).dispatchEvent(new Event('input'));
+    (document.querySelector('[data-testid="gen-count"]') as HTMLInputElement).value = '6';
+    (document.querySelector('[data-testid="gen-count"]') as HTMLInputElement).dispatchEvent(new Event('input'));
+    (document.querySelector('[data-testid="row-save"]') as HTMLElement).click();
+    await settle();
+    expect(rows).toEqual([{ sectorId: 'sec-1', label: 'Fila Nuova' }]);
+    expect(gens).toEqual([{ rowId: 'row-new', count: 6 }]);
+    w.unmount();
+  });
+
+  it('«Nuova fila»: se il generate fallisce, la fila è creata una sola volta e la modale si chiude', async () => {
+    const rows: Array<{ sectorId: string; label: string }> = [];
+    server.use(
+      http.post('/api/establishment/rows', async ({ request }) => {
+        rows.push((await request.json()) as { sectorId: string; label: string });
+        return HttpResponse.json({ id: 'row-new', label: 'Fila Z', sortOrder: 9, umbrellas: [] }, { status: 201 });
+      }),
+      http.post('/api/establishment/umbrellas/generate', () => HttpResponse.json({ message: 'boom' }, { status: 500 })),
+    );
+    const w = mountApp(EstablishmentStructureView, { attachTo: document.body });
+    const session = useSessionStore();
+    session.user = { id: 'u-1', email: 'admin@coralyn.dev', role: Role.Admin, establishmentId: 'e-1' };
+    await settle();
+    await w.find('[data-testid="add-row"]').trigger('click');
+    await settle();
+    (document.querySelector('[data-testid="row-label"]') as HTMLInputElement).value = 'Fila Z';
+    (document.querySelector('[data-testid="row-label"]') as HTMLInputElement).dispatchEvent(new Event('input'));
+    (document.querySelector('[data-testid="gen-count"]') as HTMLInputElement).value = '3';
+    (document.querySelector('[data-testid="gen-count"]') as HTMLInputElement).dispatchEvent(new Event('input'));
+    (document.querySelector('[data-testid="row-save"]') as HTMLElement).click();
+    await settle();
+    expect(rows).toHaveLength(1);
+    expect(document.querySelector('[data-testid="row-label"]')).toBeNull(); // modale chiusa
+    w.unmount();
+  });
+
+  it('staff: ombrelloni non editabili (nessun chip cliccabile né Genera/Aggiungi)', async () => {
+    const w = mountApp(EstablishmentStructureView);
+    const session = useSessionStore();
+    session.user = { id: 'u-2', email: 'marco@lidomaestrale.it', role: Role.Staff, establishmentId: 'e-1' };
+    await settle();
+    expect(w.find('[data-testid="umbrella-chip"]').exists()).toBe(false);
+    expect(w.find('[data-testid="add-umbrella"]').exists()).toBe(false);
+    expect(w.find('[data-testid="generate-umbrellas"]').exists()).toBe(false);
+  });
 });

@@ -3,13 +3,15 @@ import { computed, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { Card, Badge, Button, Icon, Modal, Field, Input, Select, ConfirmDialog } from '@coralyn/ui-kit';
 import { Role } from '@coralyn/contracts';
-import type { StructureRowDTO, StructureSectorDTO, UmbrellaTypeDTO, SectorKind } from '@coralyn/contracts';
+import type { StructureRowDTO, StructureSectorDTO, StructureUmbrellaDTO, UmbrellaTypeDTO, SectorKind } from '@coralyn/contracts';
 import { useSessionStore } from '@/stores/session';
+import { pushToast } from '@/lib/toasts';
 import {
   useEstablishmentStructure,
   useCreateUmbrellaType, useUpdateUmbrellaType, useDeleteUmbrellaType,
   useCreateSector, useUpdateSector, useDeleteSector,
   useCreateRow, useUpdateRow, useDeleteRow,
+  useCreateUmbrella, useUpdateUmbrella, useDeleteUmbrella, useGenerateUmbrellas,
 } from './useEstablishmentStructure';
 
 const session = useSessionStore();
@@ -76,35 +78,108 @@ function submitSector() {
 }
 const savingSector = computed(() => createSector.isPending.value || updateSector.isPending.value);
 
-// --- File CRUD ---
+// --- Generatore (condiviso da «Nuova fila» e «Genera») ---
+const genPrefix = ref('');
+const genStart = ref(1);
+const genCount = ref(10);
+const genTypeId = ref<string>(''); // '' = Normale
+function resetGen() { genPrefix.value = ''; genStart.value = 1; genCount.value = 10; genTypeId.value = ''; }
+const genPreview = computed(() => {
+  const s = Number(genStart.value) || 0;
+  const c = Math.max(0, Math.min(60, Number(genCount.value) || 0));
+  return Array.from({ length: c }, (_v, i) => `${genPrefix.value}${s + i}`);
+});
+function genTypeArg(): string | null { return genTypeId.value === '' ? null : genTypeId.value; }
+
+// --- File CRUD (create compone create-fila + generate) ---
 const createRow = useCreateRow();
 const updateRow = useUpdateRow();
 const removeRow = useDeleteRow();
+const generateUmbrellas = useGenerateUmbrellas();
 const rowModalOpen = ref(false);
 const editingRowId = ref<string | null>(null);
 const rowLabel = ref('');
-function openNewRow() { editingRowId.value = null; rowLabel.value = ''; rowModalOpen.value = true; }
+function openNewRow() { editingRowId.value = null; rowLabel.value = ''; resetGen(); rowModalOpen.value = true; }
 function openEditRow(r: StructureRowDTO) { editingRowId.value = r.id; rowLabel.value = r.label; rowModalOpen.value = true; }
 function submitRow() {
   const label = rowLabel.value.trim();
   if (!label) return;
+  if (editingRowId.value) {
+    updateRow.mutate({ id: editingRowId.value, label }, { onSuccess: () => { rowModalOpen.value = false; } });
+    return;
+  }
   const sector = selectedSector.value;
-  const close = { onSuccess: () => { rowModalOpen.value = false; } };
-  if (editingRowId.value) updateRow.mutate({ id: editingRowId.value, label }, close);
-  else if (sector) createRow.mutate({ sectorId: sector.id, label }, close);
+  if (!sector) return;
+  createRow.mutate({ sectorId: sector.id, label }, {
+    onSuccess: (row: StructureRowDTO) => {
+      rowModalOpen.value = false; // fila creata: chiudi subito → niente doppio-create su retry
+      const count = Math.max(0, Math.min(60, Number(genCount.value) || 0));
+      if (count <= 0) return;
+      generateUmbrellas.mutate(
+        { rowId: row.id, prefix: genPrefix.value, start: Number(genStart.value) || 0, count, umbrellaTypeId: genTypeArg() },
+        { onSuccess: (res) => { pushToast(`Fila creata · ${res.created} ombrelloni`); } },
+      );
+    },
+  });
 }
-const savingRow = computed(() => createRow.isPending.value || updateRow.isPending.value);
+const savingRow = computed(() => createRow.isPending.value || updateRow.isPending.value || generateUmbrellas.isPending.value);
+
+// --- Genera (su fila esistente) ---
+const genModalOpen = ref(false);
+const genRowId = ref<string | null>(null);
+function openGenerate(rowId: string) { genRowId.value = rowId; resetGen(); genModalOpen.value = true; }
+function submitGenerate() {
+  const rowId = genRowId.value;
+  const count = Math.max(0, Math.min(60, Number(genCount.value) || 0));
+  if (!rowId || count <= 0) return;
+  generateUmbrellas.mutate(
+    { rowId, prefix: genPrefix.value, start: Number(genStart.value) || 0, count, umbrellaTypeId: genTypeArg() },
+    { onSuccess: (res) => { genModalOpen.value = false; pushToast(`Creati ${res.created} · saltati ${res.skipped}`); } },
+  );
+}
+const savingGenerate = computed(() => generateUmbrellas.isPending.value);
+
+// --- Ombrelloni CRUD (singolo) ---
+const createUmbrella = useCreateUmbrella();
+const updateUmbrella = useUpdateUmbrella();
+const removeUmbrella = useDeleteUmbrella();
+const umbModalOpen = ref(false);
+const editingUmbId = ref<string | null>(null);
+const umbRowId = ref<string | null>(null);
+const umbLabel = ref('');
+const umbTypeId = ref<string>(''); // '' = Normale
+function openNewUmbrella(rowId: string) { editingUmbId.value = null; umbRowId.value = rowId; umbLabel.value = ''; umbTypeId.value = ''; umbModalOpen.value = true; }
+function openEditUmbrella(u: StructureUmbrellaDTO, rowId: string) {
+  editingUmbId.value = u.id; umbRowId.value = rowId; umbLabel.value = u.label; umbTypeId.value = u.umbrellaTypeId ?? '';
+  umbModalOpen.value = true;
+}
+function submitUmbrella() {
+  const label = umbLabel.value.trim();
+  if (!label) return;
+  const typeArg: string | null = umbTypeId.value === '' ? null : umbTypeId.value;
+  const close = { onSuccess: () => { umbModalOpen.value = false; } };
+  if (editingUmbId.value) updateUmbrella.mutate({ id: editingUmbId.value, label, umbrellaTypeId: typeArg }, close);
+  else if (umbRowId.value) createUmbrella.mutate({ rowId: umbRowId.value, label, umbrellaTypeId: typeArg }, close);
+}
+const savingUmb = computed(() => createUmbrella.isPending.value || updateUmbrella.isPending.value);
+function deleteFromUmbModal() {
+  if (!editingUmbId.value) return;
+  askDeleteUmbrella({ id: editingUmbId.value, name: umbLabel.value });
+  umbModalOpen.value = false;
+}
 
 // --- Elimina (ConfirmDialog generalizzato) ---
-const pendingDelete = ref<{ kind: 'type' | 'sector' | 'row'; id: string; name: string } | null>(null);
+const pendingDelete = ref<{ kind: 'type' | 'sector' | 'row' | 'umbrella'; id: string; name: string } | null>(null);
 const confirmDeleteOpen = ref(false);
 function askDeleteType(t: UmbrellaTypeDTO) { pendingDelete.value = { kind: 'type', id: t.id, name: t.name }; confirmDeleteOpen.value = true; }
 function askDeleteSector(s: StructureSectorDTO) { pendingDelete.value = { kind: 'sector', id: s.id, name: s.name }; confirmDeleteOpen.value = true; }
 function askDeleteRow(r: StructureRowDTO) { pendingDelete.value = { kind: 'row', id: r.id, name: r.label }; confirmDeleteOpen.value = true; }
+function askDeleteUmbrella(u: { id: string; name: string }) { pendingDelete.value = { kind: 'umbrella', id: u.id, name: u.name }; confirmDeleteOpen.value = true; }
 const confirmCopy = computed(() => {
   const p = pendingDelete.value;
   if (p?.kind === 'sector') return { title: 'Eliminare il settore?', description: `«${p.name}». Se contiene file o è usato da tariffe non sarà eliminato.` };
   if (p?.kind === 'row') return { title: 'Eliminare la fila?', description: `«${p.name}». Se contiene ombrelloni o è usata da tariffe non sarà eliminata.` };
+  if (p?.kind === 'umbrella') return { title: 'Eliminare l’ombrellone?', description: `«${p.name}». Se ha prenotazioni non sarà eliminato.` };
   if (p?.kind === 'type') return { title: 'Eliminare definitivamente?', description: `«${p.name}» verrà rimossa in modo irreversibile dal catalogo. Se è in uso da ombrelloni non sarà eliminata.` };
   return { title: '', description: '' };
 });
@@ -113,7 +188,8 @@ function onConfirmDelete() {
   if (!p) return;
   if (p.kind === 'type') removeType.mutate(p.id);
   else if (p.kind === 'sector') removeSector.mutate(p.id);
-  else removeRow.mutate(p.id);
+  else if (p.kind === 'row') removeRow.mutate(p.id);
+  else removeUmbrella.mutate(p.id);
   confirmDeleteOpen.value = false;
   pendingDelete.value = null;
 }
@@ -196,13 +272,23 @@ function onConfirmDelete() {
                 <div class="flex items-center gap-2">
                   <span class="text-xs text-[var(--color-text-muted)]">{{ r.umbrellas.length }} {{ r.umbrellas.length === 1 ? 'ombrellone' : 'ombrelloni' }}</span>
                   <template v-if="isAdmin">
+                    <Button data-testid="generate-umbrellas" variant="secondary" @click="openGenerate(r.id)">Genera</Button>
+                    <Button data-testid="add-umbrella" variant="secondary" @click="openNewUmbrella(r.id)"><Icon name="plus" :size="12" />Aggiungi</Button>
                     <Button data-testid="edit-row" variant="secondary" @click="openEditRow(r)"><Icon name="edit" :size="12" /></Button>
                     <Button data-testid="delete-row" variant="secondary" @click="askDeleteRow(r)"><Icon name="trash-2" :size="12" /></Button>
                   </template>
                 </div>
               </div>
               <div class="flex flex-wrap gap-2">
-                <span v-for="u in r.umbrellas" :key="u.id" class="grid size-9 place-items-center rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] text-[12.5px] font-semibold tabular-nums text-[var(--color-text-2nd)]">{{ u.label }}</span>
+                <template v-if="isAdmin">
+                  <button v-for="u in r.umbrellas" :key="u.id" data-testid="umbrella-chip" type="button"
+                    class="grid size-9 place-items-center rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] text-[12.5px] font-semibold tabular-nums text-[var(--color-text-2nd)] hover:border-[var(--color-brand)]"
+                    @click="openEditUmbrella(u, r.id)">{{ u.label }}</button>
+                </template>
+                <template v-else>
+                  <span v-for="u in r.umbrellas" :key="u.id" class="grid size-9 place-items-center rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] text-[12.5px] font-semibold tabular-nums text-[var(--color-text-2nd)]">{{ u.label }}</span>
+                </template>
+                <p v-if="r.umbrellas.length === 0" class="py-1 text-xs text-[var(--color-text-muted)]">Nessun ombrellone. Usa «Aggiungi» o «Genera».</p>
               </div>
             </div>
             <p v-if="selectedSector.rows.length === 0" class="py-2 text-sm text-[var(--color-text-muted)]">Nessuna fila in questo settore.</p>
@@ -214,9 +300,7 @@ function onConfirmDelete() {
 
     <Modal v-model:open="sectorModalOpen" :title="editingSectorId ? 'Modifica settore' : 'Nuovo settore'" eyebrow="Settori">
       <form class="flex flex-col gap-4" @submit.prevent="submitSector">
-        <Field label="Nome">
-          <Input name="sector-name" data-testid="sector-name" v-model="sectorName" placeholder="es. Prima fila mare" />
-        </Field>
+        <Field label="Nome"><Input name="sector-name" data-testid="sector-name" v-model="sectorName" placeholder="es. Prima fila mare" /></Field>
         <Field label="Disposizione">
           <Select v-model="sectorKind" data-testid="sector-kind">
             <option value="grid">Griglia</option>
@@ -232,10 +316,21 @@ function onConfirmDelete() {
 
     <Modal v-model:open="rowModalOpen" :title="editingRowId ? 'Modifica fila' : 'Nuova fila'" eyebrow="File">
       <form class="flex flex-col gap-4" @submit.prevent="submitRow">
-        <Field label="Etichetta">
-          <Input name="row-label" data-testid="row-label" v-model="rowLabel" placeholder="es. Fila 1" />
-        </Field>
-        <p class="text-xs text-[var(--color-text-muted)]">Gli ombrelloni si aggiungono dopo aver creato la fila.</p>
+        <Field label="Etichetta"><Input name="row-label" data-testid="row-label" v-model="rowLabel" placeholder="es. Fila 1" /></Field>
+        <template v-if="!editingRowId">
+          <div class="grid grid-cols-3 gap-3">
+            <Field label="Prefisso"><Input name="gen-prefix" data-testid="gen-prefix" v-model="genPrefix" placeholder="es. A" /></Field>
+            <Field label="Da numero"><Input name="gen-start" data-testid="gen-start" v-model.number="genStart" type="number" step="1" min="0" /></Field>
+            <Field label="Quantità"><Input name="gen-count" data-testid="gen-count" v-model.number="genCount" type="number" step="1" min="1" /></Field>
+          </div>
+          <Field label="Tipologia">
+            <Select v-model="genTypeId" data-testid="gen-type">
+              <option value="">Normale</option>
+              <option v-for="t in types" :key="t.id" :value="t.id">{{ t.name }}</option>
+            </Select>
+          </Field>
+          <p class="text-xs text-[var(--color-text-muted)]">Anteprima: {{ genPreview.slice(0, 6).join(', ') }}{{ genPreview.length > 6 ? '…' : '' }} ({{ genPreview.length }} ombrelloni). Quantità 0 = crea solo la fila.</p>
+        </template>
         <div class="flex justify-end gap-2">
           <Button variant="secondary" type="button" @click="rowModalOpen = false">Annulla</Button>
           <Button type="submit" data-testid="row-save" :disabled="savingRow">Salva fila</Button>
@@ -243,11 +338,49 @@ function onConfirmDelete() {
       </form>
     </Modal>
 
+    <Modal v-model:open="genModalOpen" title="Genera ombrelloni" eyebrow="File">
+      <form class="flex flex-col gap-4" @submit.prevent="submitGenerate">
+        <div class="grid grid-cols-3 gap-3">
+          <Field label="Prefisso"><Input name="gen-prefix" data-testid="gen-prefix" v-model="genPrefix" placeholder="es. A" /></Field>
+          <Field label="Da numero"><Input name="gen-start" data-testid="gen-start" v-model.number="genStart" type="number" step="1" min="0" /></Field>
+          <Field label="Quantità"><Input name="gen-count" data-testid="gen-count" v-model.number="genCount" type="number" step="1" min="1" /></Field>
+        </div>
+        <Field label="Tipologia">
+          <Select v-model="genTypeId" data-testid="gen-type">
+            <option value="">Normale</option>
+            <option v-for="t in types" :key="t.id" :value="t.id">{{ t.name }}</option>
+          </Select>
+        </Field>
+        <p class="text-xs text-[var(--color-text-muted)]">Anteprima: {{ genPreview.slice(0, 6).join(', ') }}{{ genPreview.length > 6 ? '…' : '' }} ({{ genPreview.length }} ombrelloni). Le etichette già esistenti vengono saltate.</p>
+        <div class="flex justify-end gap-2">
+          <Button variant="secondary" type="button" @click="genModalOpen = false">Annulla</Button>
+          <Button type="submit" data-testid="gen-save" :disabled="savingGenerate">Genera</Button>
+        </div>
+      </form>
+    </Modal>
+
+    <Modal v-model:open="umbModalOpen" :title="editingUmbId ? 'Modifica ombrellone' : 'Nuovo ombrellone'" eyebrow="Ombrelloni">
+      <form class="flex flex-col gap-4" @submit.prevent="submitUmbrella">
+        <Field label="Etichetta"><Input name="umbrella-label" data-testid="umbrella-label" v-model="umbLabel" placeholder="es. 12 o P1" /></Field>
+        <Field label="Tipologia">
+          <Select v-model="umbTypeId" data-testid="umbrella-type">
+            <option value="">Normale</option>
+            <option v-for="t in types" :key="t.id" :value="t.id">{{ t.name }}</option>
+          </Select>
+        </Field>
+        <div class="flex items-center justify-between gap-2">
+          <Button v-if="editingUmbId" data-testid="umbrella-delete" variant="secondary" type="button" @click="deleteFromUmbModal"><Icon name="trash-2" :size="13" />Elimina</Button>
+          <div class="ml-auto flex gap-2">
+            <Button variant="secondary" type="button" @click="umbModalOpen = false">Annulla</Button>
+            <Button type="submit" data-testid="umbrella-save" :disabled="savingUmb">Salva ombrellone</Button>
+          </div>
+        </div>
+      </form>
+    </Modal>
+
     <Modal v-model:open="typeModalOpen" :title="editingTypeId ? 'Modifica tipologia' : 'Nuova tipologia'" eyebrow="Tipologie">
       <form class="flex flex-col gap-4" @submit.prevent="submitType">
-        <Field label="Nome">
-          <Input name="type-name" data-testid="type-name" v-model="typeName" placeholder="es. Gazebo" />
-        </Field>
+        <Field label="Nome"><Input name="type-name" data-testid="type-name" v-model="typeName" placeholder="es. Gazebo" /></Field>
         <Field label="Icona sulla mappa">
           <Select v-model="typeIcon" data-testid="type-icon">
             <option value="umbrella">Ombrellone</option>
