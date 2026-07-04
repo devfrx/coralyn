@@ -321,6 +321,22 @@ export const server = setupServer(
       ],
     });
   }),
+  http.get('/api/establishment/overview', () =>
+    HttpResponse.json({
+      establishment: { id: 'e-1', name: 'Lido Maestrale' },
+      activeSeason: { name: 'Estate 2026', startDate: '2026-06-01', endDate: '2026-09-15' },
+      timeSlots: [
+        { id: 'ts-1', name: 'Giornata' },
+        { id: 'ts-2', name: 'Mattina' },
+        { id: 'ts-3', name: 'Pomeriggio' },
+      ],
+      structure: { sectors: 3, umbrellas: 41, types: 3, packages: 3 },
+      team: [
+        { id: 'u-1', email: 'admin@coralyn.dev', role: 'admin' },
+        { id: 'u-2', email: 'marco@lidomaestrale.it', role: 'staff' },
+      ],
+    }),
+  ),
   http.patch('/api/bookings/:id/payment', async ({ params, request }) => {
     const b = (await request.json()) as { amountCollected: number; paymentMethod?: string; collectionDate?: string };
     const paid = b.amountCollected > 0;
