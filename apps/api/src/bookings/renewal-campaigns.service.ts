@@ -74,8 +74,14 @@ export class RenewalCampaignsService {
   /** Campagna rinnovi attualmente aperta (se esiste) + finestre. Fonte unica per il Report (read-only). */
   async getActiveCampaign(): Promise<{ deadline: string; windows: RenewalWindowItemDTO[] } | null> {
     const tenantId = this.tenant.require();
+    // Solo campagne ancora APERTE: deadline non passata (il giorno-scadenza è incluso, cfr.
+    // computeRenewalWindowState: today == deadline → ancora aperta). Fra queste, la più imminente.
+    const today = toDbDate(todayInRome());
     return this.prisma.forTenant(tenantId, async (tx) => {
-      const campaign = await tx.renewalCampaign.findFirst({ orderBy: { deadline: 'asc' } });
+      const campaign = await tx.renewalCampaign.findFirst({
+        where: { deadline: { gte: today } },
+        orderBy: { deadline: 'asc' },
+      });
       if (!campaign) return null;
       const windows = await this.buildWindows(tx, campaign);
       if (windows === null) return null;

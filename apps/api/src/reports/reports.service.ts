@@ -26,8 +26,18 @@ export class ReportsService {
     weekAgo.setUTCDate(weekAgo.getUTCDate() - 6);
 
     const { revenueRows, outstanding, activeSubscriptions } = await this.prisma.forTenant(tenantId, async (tx) => {
+      // L'incasso è quello INCASSATO nel periodo. La week (e la serie giornaliera) usa gli ultimi 7 giorni;
+      // la season somma l'intera stagione attiva (se presente), altrimenti ripiega sulla week.
+      let revenueFrom = weekAgo;
+      if (period === 'season') {
+        const activeSeason = await tx.season.findFirst({
+          where: { startDate: { lte: today }, endDate: { gte: today } },
+          select: { startDate: true },
+        });
+        if (activeSeason) revenueFrom = activeSeason.startDate;
+      }
       const paid = await tx.booking.findMany({
-        where: { collectionDate: { gte: weekAgo, lte: today } },
+        where: { collectionDate: { gte: revenueFrom, lte: today } },
         select: { collectionDate: true, amountCollected: true },
       });
       const unpaid = await tx.booking.findMany({
