@@ -82,8 +82,17 @@ function ariaLabel(u: UmbrellaDTO, sector: string, row: string): string {
   return `Ombrellone ${u.label}, Settore ${sector} ${row}, tipologia ${typeName(u)}, mattina ${STATE_LABEL[slotState(u, 0)]}, pomeriggio ${STATE_LABEL[slotState(u, 1)]}`;
 }
 
+const selectedSlotId = ref<string>('');
+watch(timeSlots, (list) => { if (!selectedSlotId.value && list.length) selectedSlotId.value = list[0].id; }, { immediate: true });
+
 const sel = ref<{ u: UmbrellaDTO; sector: string; row: string } | null>(null);
-function open(u: UmbrellaDTO, sector: string, row: string) { sel.value = { u, sector, row }; }
+function open(u: UmbrellaDTO, sector: string, row: string) {
+  sel.value = { u, sector, row };
+  // Auto-seleziona la fascia che HA una prenotazione per questo ombrellone (fix §5a): altrimenti una
+  // prenotazione solo-pomeridiana resta invisibile (selectedSlotId parte sulla prima fascia = Mattina).
+  const booked = (bookings.value ?? []).find((b) => b.umbrellaId === u.id);
+  selectedSlotId.value = booked?.timeSlotId ?? halfSlots.value[0]?.id ?? timeSlots.value[0]?.id ?? '';
+}
 function close() { sel.value = null; }
 
 function liveSlotState(idx: number): SlotState {
@@ -95,8 +104,10 @@ const afternoon = computed<SlotState>(() => (sel.value ? liveSlotState(1) : 'fre
 function tintBg(s: SlotState) { return `color-mix(in srgb, ${STATE_COLOR[s]} 18%, var(--color-surface))`; }
 function tintBorder(s: SlotState) { return `color-mix(in srgb, ${STATE_COLOR[s]} 40%, var(--color-surface))`; }
 
-const selectedSlotId = ref<string>('');
-watch(timeSlots, (list) => { if (!selectedSlotId.value && list.length) selectedSlotId.value = list[0].id; }, { immediate: true });
+// Id delle due metà: cliccando i box Mattina/Pomeriggio si cambia la fascia in vista (fix §5b).
+const morningSlotId = computed(() => halfSlots.value[0]?.id ?? '');
+const afternoonSlotId = computed(() => halfSlots.value[1]?.id ?? '');
+function selectSlot(id: string) { if (id) selectedSlotId.value = id; }
 
 const currentBooking = computed<BookingDTO | null>(() => {
   if (!sel.value) return null;
@@ -293,14 +304,18 @@ const freeSlotOptions = computed(() =>
           <span class="text-xs text-[var(--color-text-muted)]">Settore {{ sel.sector }} · {{ sel.row }}</span>
         </div>
         <div class="mt-3 flex gap-2.5">
-          <div class="flex-1 rounded-[11px] p-3" :style="{ background: tintBg(morning), border: `1px solid ${tintBorder(morning)}` }">
+          <button type="button" @click="selectSlot(morningSlotId)" :aria-pressed="selectedSlotId === morningSlotId"
+            class="flex-1 rounded-[11px] p-3 text-left focus-visible:outline-none focus-visible:[box-shadow:var(--ring-focus)]"
+            :style="{ background: tintBg(morning), border: `1px solid ${tintBorder(morning)}`, boxShadow: selectedSlotId === morningSlotId ? 'inset 0 0 0 2px var(--color-accent)' : undefined }">
             <span class="mb-1 block text-[9.5px] font-semibold uppercase tracking-[.07em] text-[var(--color-ink-600)]">Mattina</span>
             <span class="text-[13px] font-semibold" :style="{ color: STATE_COLOR[morning] }">{{ STATE_LABEL[morning] }}</span>
-          </div>
-          <div class="flex-1 rounded-[11px] p-3" :style="{ background: tintBg(afternoon), border: `1px solid ${tintBorder(afternoon)}` }">
+          </button>
+          <button type="button" @click="selectSlot(afternoonSlotId)" :aria-pressed="selectedSlotId === afternoonSlotId"
+            class="flex-1 rounded-[11px] p-3 text-left focus-visible:outline-none focus-visible:[box-shadow:var(--ring-focus)]"
+            :style="{ background: tintBg(afternoon), border: `1px solid ${tintBorder(afternoon)}`, boxShadow: selectedSlotId === afternoonSlotId ? 'inset 0 0 0 2px var(--color-accent)' : undefined }">
             <span class="mb-1 block text-[9.5px] font-semibold uppercase tracking-[.07em] text-[var(--color-ink-600)]">Pomeriggio</span>
             <span class="text-[13px] font-semibold" :style="{ color: STATE_COLOR[afternoon] }">{{ STATE_LABEL[afternoon] }}</span>
-          </div>
+          </button>
         </div>
         <template v-if="currentBooking">
           <div class="mt-3 text-[12.5px]">

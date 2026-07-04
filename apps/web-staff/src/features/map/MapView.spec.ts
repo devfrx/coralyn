@@ -307,5 +307,112 @@ describe('MapView', () => {
     w.unmount();
   });
 
+  it('mostra dettaglio + azioni per una prenotazione SOLO pomeridiana (bug fascia §5)', async () => {
+    // Ombrellone la cui UNICA prenotazione è sulla fascia Pomeriggio.
+    const mapPom = {
+      date: '2026-06-27',
+      umbrellaTypes: [{ id: 't1', name: 'Palma', sortOrder: 1, icon: 'palmtree' }],
+      timeSlots: [
+        { id: 'f-mat', name: 'Mattina', startTime: '08:00', endTime: '13:00', sortOrder: 1 },
+        { id: 'f-pom', name: 'Pomeriggio', startTime: '13:00', endTime: '19:00', sortOrder: 2 },
+      ],
+      sectors: [{
+        id: 'sec', name: 'Centro', sortOrder: 1,
+        rows: [{ id: 'r1', label: 'Fila 1', sortOrder: 1, umbrellas: [
+          { id: 'o-pom', label: '7', umbrellaTypeId: 't1', rowId: 'r1',
+            stateBySlot: { 'f-mat': 'free', 'f-pom': 'daily' } },
+        ] }],
+      }],
+    };
+    server.use(
+      http.get('/api/map', () => HttpResponse.json(mapPom)),
+      http.get('/api/bookings', () => HttpResponse.json([
+        { id: 'bk-pom', customerId: 'c-1', umbrellaId: 'o-pom', timeSlotId: 'f-pom',
+          startDate: '2026-06-27', endDate: '2026-06-27', type: 'daily', status: 'confirmed',
+          totalPrice: 30, paymentStatus: 'unpaid', amountCollected: 0 },
+      ])),
+    );
+
+    const w = mountApp(MapView, { attachTo: document.body });
+    await flushPromises();
+    await new Promise((r) => setTimeout(r, 0));
+    await flushPromises();
+
+    await w.findComponent({ name: 'UmbrellaCell' }).find('button').trigger('click');
+    await flushPromises();
+    await new Promise((r) => setTimeout(r, 0));
+    await flushPromises();
+
+    const aside = w.find('aside');
+    expect(aside.exists()).toBe(true);
+    // Bug: selectedSlotId parte su Mattina, la prenotazione è su Pomeriggio → "Postazione disponibile".
+    // Atteso: la fascia CON prenotazione è auto-selezionata → dettaglio + azioni incasso/annulla.
+    expect(aside.text()).toContain('Registra incasso');
+    expect(aside.text()).toContain('Annulla prenotazione');
+    expect(aside.text()).not.toContain('Postazione disponibile');
+
+    w.unmount();
+  });
+
+  it('cliccando le fasce Mattina/Pomeriggio cambia la prenotazione mostrata (fix §5b)', async () => {
+    // Ombrellone con DUE prenotazioni distinte: mattina (€30) e pomeriggio (€55).
+    const mapBoth = {
+      date: '2026-06-27',
+      umbrellaTypes: [{ id: 't1', name: 'Palma', sortOrder: 1, icon: 'palmtree' }],
+      timeSlots: [
+        { id: 'f-mat', name: 'Mattina', startTime: '08:00', endTime: '13:00', sortOrder: 1 },
+        { id: 'f-pom', name: 'Pomeriggio', startTime: '13:00', endTime: '19:00', sortOrder: 2 },
+      ],
+      sectors: [{
+        id: 'sec', name: 'Centro', sortOrder: 1,
+        rows: [{ id: 'r1', label: 'Fila 1', sortOrder: 1, umbrellas: [
+          { id: 'o-both', label: '9', umbrellaTypeId: 't1', rowId: 'r1',
+            stateBySlot: { 'f-mat': 'daily', 'f-pom': 'daily' } },
+        ] }],
+      }],
+    };
+    server.use(
+      http.get('/api/map', () => HttpResponse.json(mapBoth)),
+      http.get('/api/bookings', () => HttpResponse.json([
+        { id: 'bk-m', customerId: 'c-1', umbrellaId: 'o-both', timeSlotId: 'f-mat',
+          startDate: '2026-06-27', endDate: '2026-06-27', type: 'daily', status: 'confirmed',
+          totalPrice: 30, paymentStatus: 'unpaid', amountCollected: 0 },
+        { id: 'bk-p', customerId: 'c-1', umbrellaId: 'o-both', timeSlotId: 'f-pom',
+          startDate: '2026-06-27', endDate: '2026-06-27', type: 'daily', status: 'confirmed',
+          totalPrice: 55, paymentStatus: 'unpaid', amountCollected: 0 },
+      ])),
+    );
+
+    const w = mountApp(MapView, { attachTo: document.body });
+    await flushPromises();
+    await new Promise((r) => setTimeout(r, 0));
+    await flushPromises();
+
+    await w.findComponent({ name: 'UmbrellaCell' }).find('button').trigger('click');
+    await flushPromises();
+    await new Promise((r) => setTimeout(r, 0));
+    await flushPromises();
+
+    const aside = w.find('aside');
+    // Default: la prima fascia con prenotazione (Mattina) → €30.
+    expect(aside.text()).toContain('30');
+
+    // Clic sul box "Pomeriggio" → mostra la prenotazione pomeridiana (€55).
+    const pomBox = aside.findAll('button').find((b) => b.text().includes('Pomeriggio'));
+    expect(pomBox).toBeTruthy();
+    await pomBox!.trigger('click');
+    await flushPromises();
+    expect(aside.text()).toContain('55');
+
+    // Clic sul box "Mattina" → torna alla prenotazione mattutina (€30).
+    const matBox = aside.findAll('button').find((b) => b.text().includes('Mattina'));
+    expect(matBox).toBeTruthy();
+    await matBox!.trigger('click');
+    await flushPromises();
+    expect(aside.text()).toContain('30');
+
+    w.unmount();
+  });
+
   afterEach(() => { vi.restoreAllMocks(); });
 });
