@@ -379,6 +379,7 @@ export interface EstablishmentMemberDTO {
   id: string;
   email: string;
   role: 'admin' | 'staff';
+  disabledAt: string | null; // ISO datetime = disabilitato (soft); null = attivo
 }
 
 /** Proiezione read-only della schermata Stabilimento (GET /api/establishment/overview). */
@@ -398,4 +399,17 @@ export interface EstablishmentOverviewDTO {
 /** Input rinomina stabilimento (admin-only). */
 export interface UpdateEstablishmentInput {
   name: string;
+}
+
+/** Input creazione staff (admin-only). Password iniziale impostata dall'admin;
+ *  invito-via-email deferito (D-025). Ruolo mai `superuser`. */
+export interface CreateStaffUserInput {
+  email: string;
+  password: string;
+  role: 'admin' | 'staff';
+}
+
+/** Input abilita/disabilita utente (admin-only, soft-disable). */
+export interface UpdateStaffUserInput {
+  disabled: boolean;
 }
