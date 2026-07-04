@@ -1,6 +1,11 @@
 import { ConflictException, Injectable, NotFoundException, UnprocessableEntityException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
-import type { OpenRenewalCampaignInput, RenewalCampaignDTO, RenewalCampaignDetailDTO } from '@coralyn/contracts';
+import type {
+  OpenRenewalCampaignInput,
+  RenewalCampaignDTO,
+  RenewalCampaignDetailDTO,
+  RenewalWindowItemDTO,
+} from '@coralyn/contracts';
 import { PrismaService } from '../prisma/prisma.service';
 import { TenantContext } from '../tenant/tenant-context';
 import { CatalogService } from '../catalog/catalog.service';
@@ -53,44 +58,69 @@ export class RenewalCampaignsService {
     return this.prisma.forTenant(tenantId, async (tx) => {
       const campaign = await tx.renewalCampaign.findFirst({ where: { destinationSeasonId: seasonId } });
       if (!campaign) return null;
-      const origin = await tx.season.findFirst({ where: { id: campaign.originSeasonId } });
-      if (!origin) return null;
-      const dest = await tx.season.findFirst({ where: { id: campaign.destinationSeasonId } });
-      if (!dest) return null;
-
-      // Aventi-diritto: abbonati CONFERMATI della stagione di ORIGINE.
-      // Overlap inclusivo con la stagione di origine (cfr. dateRangesOverlap): tenere in sync.
-      const subs = await tx.booking.findMany({
-        where: {
-          type: 'subscription',
-          status: 'confirmed',
-          startDate: { lte: origin.endDate },
-          endDate: { gte: origin.startDate },
-        },
-        include: { renewals: true },
-      });
-      const seniorityById = await computeSeniority(tx, subs.map((b) => b.id));
-
-      const destStart = dest.startDate;
-      const destEnd = dest.endDate;
-      const deadlineIso = formatDbDate(campaign.deadline);
-      const todayIso = todayInRome();
-
-      const windows = subs
-        .map((b) => {
-          const state = computeRenewalWindowState(b.renewals, destStart, destEnd, deadlineIso, todayIso);
-          return toRenewalWindowItemDTO(b, seniorityById.get(b.id) ?? 1, state);
-        })
-        .sort((a, z) => z.seniority - a.seniority || (a.sourceBookingId < z.sourceBookingId ? -1 : 1));
+      const windows = await this.buildWindows(tx, campaign);
+      if (windows === null) return null;
 
       return {
         id: campaign.id,
         originSeasonId: campaign.originSeasonId,
         destinationSeasonId: campaign.destinationSeasonId,
-        deadline: deadlineIso,
+        deadline: formatDbDate(campaign.deadline),
         windows,
       };
     });
+  }
+
+  /** Campagna rinnovi attualmente aperta (se esiste) + finestre. Fonte unica per il Report (read-only). */
+  async getActiveCampaign(): Promise<{ deadline: string; windows: RenewalWindowItemDTO[] } | null> {
+    const tenantId = this.tenant.require();
+    return this.prisma.forTenant(tenantId, async (tx) => {
+      const campaign = await tx.renewalCampaign.findFirst({ orderBy: { deadline: 'asc' } });
+      if (!campaign) return null;
+      const windows = await this.buildWindows(tx, campaign);
+      if (windows === null) return null;
+      return { deadline: formatDbDate(campaign.deadline), windows };
+    });
+  }
+
+  /**
+   * Costruisce le finestre di rinnovo per una campagna: aventi-diritto (abbonati CONFERMATI
+   * della stagione di ORIGINE), anzianità, stato finestra (fonte unica: computeRenewalWindowState),
+   * mappatura a DTO, ordinamento per anzianità. Ritorna null se origine/destinazione non trovate.
+   */
+  private async buildWindows(
+    tx: Prisma.TransactionClient,
+    campaign: { originSeasonId: string; destinationSeasonId: string; deadline: Date },
+  ): Promise<RenewalWindowItemDTO[] | null> {
+    const origin = await tx.season.findFirst({ where: { id: campaign.originSeasonId } });
+    if (!origin) return null;
+    const dest = await tx.season.findFirst({ where: { id: campaign.destinationSeasonId } });
+    if (!dest) return null;
+
+    // Aventi-diritto: abbonati CONFERMATI della stagione di ORIGINE.
+    // Overlap inclusivo con la stagione di origine (cfr. dateRangesOverlap): tenere in sync.
+    const subs = await tx.booking.findMany({
+      where: {
+        type: 'subscription',
+        status: 'confirmed',
+        startDate: { lte: origin.endDate },
+        endDate: { gte: origin.startDate },
+      },
+      include: { renewals: true },
+    });
+    const seniorityById = await computeSeniority(tx, subs.map((b) => b.id));
+
+    const destStart = dest.startDate;
+    const destEnd = dest.endDate;
+    const deadlineIso = formatDbDate(campaign.deadline);
+    const todayIso = todayInRome();
+
+    return subs
+      .map((b) => {
+        const state = computeRenewalWindowState(b.renewals, destStart, destEnd, deadlineIso, todayIso);
+        return toRenewalWindowItemDTO(b, seniorityById.get(b.id) ?? 1, state);
+      })
+      .sort((a, z) => z.seniority - a.seniority || (a.sourceBookingId < z.sourceBookingId ? -1 : 1));
   }
 
   /** Chiude/annulla una campagna: gli hold derivati cadono subito. */
