@@ -1,5 +1,11 @@
 # Handoff / Delega — Mappa (fix pomeriggio + «Abbonamento») fatta · D-035 · prossimo Report/Stabilimento
 
+> ## ⛔ SUPERATO (2026-07-04, notte) — snapshot storico, NON eseguire il "prossimo passo" qui
+> Il **Report cruscotto** (che questo handoff dava come prossimo) è ora **FATTO e su `main`** (ECharts/ADR-0038,
+> endpoint `GET /reports/summary`, `ReportView` reale). Handoff autorevole corrente:
+> **[2026-07-04-report-done-e-prossimi.md](2026-07-04-report-done-e-prossimi.md)**. Il testo sotto resta come
+> fotografia; il prossimo passo reale è **Stabilimento**.
+
 > Documento di consegna per la **prossima sessione/macchina**. **Supera** l'handoff
 > [2026-07-03-scheda-cliente-redesign-mock-e-pending.md](2026-07-03-scheda-cliente-redesign-mock-e-pending.md)
 > (il cui "prossimo passo" — redesign Scheda cliente, fix mappa, bottoni drawer — è ora **fatto e su `main`**).
