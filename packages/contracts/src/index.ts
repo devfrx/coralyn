@@ -241,6 +241,23 @@ export interface CustomerBookingDTO {
   };
 }
 
+export type ReportPeriod = 'today' | 'week' | 'season';
+
+export interface ReportSummaryDTO {
+  period: ReportPeriod;
+  kpis: {
+    revenue: number;             // incasso nel periodo
+    outstanding: number;         // da incassare ora
+    occupancyPct: number;        // occupazione attuale (oggi)
+    activeSubscriptions: number; // abbonamenti attivi ora
+  };
+  revenueSeries: { label: string; value: number }[];
+  umbrellaStateMix: { state: SlotState; count: number; pct: number }[];
+  expiringRenewals: {
+    customerId: string; customerName: string; umbrellaLabel: string; seniority: number; deadline: string;
+  }[];
+}
+
 /** Voce dell'elenco abbonati di una stagione (campagna rinnovi, A4.2). */
 export interface SubscriptionListItemDTO {
   id: string;
