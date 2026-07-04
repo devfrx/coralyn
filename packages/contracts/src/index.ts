@@ -394,3 +394,8 @@ export interface EstablishmentOverviewDTO {
   };
   team: EstablishmentMemberDTO[]; // admin-first, poi email asc
 }
+
+/** Input rinomina stabilimento (admin-only). */
+export interface UpdateEstablishmentInput {
+  name: string;
+}
