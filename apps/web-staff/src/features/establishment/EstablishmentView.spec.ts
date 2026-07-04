@@ -64,4 +64,36 @@ describe('EstablishmentView', () => {
     await settle();
     expect(w.text()).toContain('Impossibile caricare i dati dello stabilimento');
   });
+
+  it('admin: apre il modale «Modifica» e invia la rinomina', async () => {
+    const seen: string[] = [];
+    server.use(http.patch('/api/establishment', async ({ request }) => {
+      const b = (await request.json()) as { name: string };
+      seen.push(b.name);
+      return HttpResponse.json({ id: 'e-1', name: b.name });
+    }));
+    const w = mountApp(EstablishmentView, { attachTo: document.body });
+    const session = useSessionStore();
+    session.user = { id: 'u-1', email: 'admin@coralyn.dev', role: Role.Admin, establishmentId: 'e-1' };
+    await settle();
+    await w.find('[data-testid="edit-establishment"]').trigger('click');
+    await settle();
+    // Il modale è teleportato (DialogPortal): leggiamo i nodi da document.body.
+    const input = document.querySelector('[data-testid="establishment-name-input"]') as HTMLInputElement;
+    input.value = 'Nuovo Nome Lido';
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+    (document.querySelector('[data-testid="establishment-name-save"]') as HTMLButtonElement).click();
+    await settle();
+    expect(seen).toContain('Nuovo Nome Lido');
+    w.unmount();
+  });
+
+  it('staff: nessun bottone «Modifica» attivo (resta "in arrivo")', async () => {
+    const w = mountApp(EstablishmentView);
+    const session = useSessionStore();
+    session.user = { id: 'u-2', email: 'marco@lidomaestrale.it', role: Role.Staff, establishmentId: 'e-1' };
+    await settle();
+    expect(w.find('[data-testid="edit-establishment"]').exists()).toBe(false);
+    expect(w.text()).toContain('Modifica · in arrivo');
+  });
 });

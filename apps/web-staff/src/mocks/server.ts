@@ -337,6 +337,10 @@ export const server = setupServer(
       ],
     }),
   ),
+  http.patch('/api/establishment', async ({ request }) => {
+    const body = (await request.json()) as { name: string };
+    return HttpResponse.json({ id: 'e-1', name: body.name });
+  }),
   http.patch('/api/bookings/:id/payment', async ({ params, request }) => {
     const b = (await request.json()) as { amountCollected: number; paymentMethod?: string; collectionDate?: string };
     const paid = b.amountCollected > 0;

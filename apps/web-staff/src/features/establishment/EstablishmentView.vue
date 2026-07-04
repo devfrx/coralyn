@@ -1,10 +1,10 @@
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 import { useRouter } from 'vue-router';
-import { Card, StatTile, Badge, Button, Avatar, Icon } from '@coralyn/ui-kit';
+import { Card, StatTile, Badge, Button, Avatar, Icon, Modal, Field, Input } from '@coralyn/ui-kit';
 import { Role } from '@coralyn/contracts';
 import { useSessionStore } from '@/stores/session';
-import { useEstablishmentOverview } from './useEstablishment';
+import { useEstablishmentOverview, useRenameEstablishment } from './useEstablishment';
 
 const session = useSessionStore();
 const router = useRouter();
@@ -48,6 +48,24 @@ const team = computed(() =>
     you: session.userEmail === m.email,
   })),
 );
+
+const isAdmin = computed(() => session.role === Role.Admin);
+const renameOpen = ref(false);
+const nameDraft = ref('');
+const rename = useRenameEstablishment();
+
+function openRename() {
+  nameDraft.value = data.value?.establishment.name ?? '';
+  renameOpen.value = true;
+}
+function submitRename() {
+  const name = nameDraft.value.trim();
+  if (!name) return;
+  rename.mutate(
+    { name },
+    { onSuccess: () => { renameOpen.value = false; } },
+  );
+}
 </script>
 
 <template>
@@ -59,7 +77,8 @@ const team = computed(() =>
           <h2 class="text-[23px] font-bold tracking-[-.015em] text-[var(--color-text)]">{{ data?.establishment.name ?? '…' }}</h2>
           <div class="mt-1 text-[13px] text-[var(--color-text-muted)]">{{ currentUserRoleLabel }} · {{ session.userEmail }} · <span class="tabular-nums">{{ seasonName }}</span></div>
         </div>
-        <div class="flex items-center gap-2">
+        <Button v-if="isAdmin" data-testid="edit-establishment" variant="secondary" @click="openRename"><Icon name="edit" :size="15" />Modifica</Button>
+        <div v-else class="flex items-center gap-2">
           <Badge tone="soon">Modifica · in arrivo</Badge>
           <Button variant="secondary" disabled><Icon name="edit" :size="15" />Modifica</Button>
         </div>
@@ -120,5 +139,17 @@ const team = computed(() =>
         <Button variant="danger" data-testid="sign-out" @click="signOut"><Icon name="logout" :size="16" />Esci</Button>
       </div>
     </Card>
+
+    <Modal v-model:open="renameOpen" title="Rinomina stabilimento" eyebrow="Modifica">
+      <form class="flex flex-col gap-4" @submit.prevent="submitRename">
+        <Field label="Nome">
+          <Input name="establishment-name" data-testid="establishment-name-input" v-model="nameDraft" placeholder="Nome del lido" />
+        </Field>
+        <div class="flex justify-end gap-2">
+          <Button variant="secondary" type="button" @click="renameOpen = false">Annulla</Button>
+          <Button type="submit" data-testid="establishment-name-save">Salva</Button>
+        </div>
+      </form>
+    </Modal>
   </section>
 </template>
