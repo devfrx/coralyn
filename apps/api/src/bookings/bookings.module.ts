@@ -9,6 +9,6 @@ import { RenewalCampaignsService } from './renewal-campaigns.service';
   imports: [CatalogModule],
   controllers: [BookingsController, RenewalCampaignsController],
   providers: [BookingsService, RenewalCampaignsService],
-  exports: [BookingsService],
+  exports: [BookingsService, RenewalCampaignsService],
 })
 export class BookingsModule {}

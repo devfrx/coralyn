@@ -8,6 +8,7 @@ import { MapModule } from './map/map.module';
 import { BookingsModule } from './bookings/bookings.module';
 import { IdentityModule } from './identity/identity.module';
 import { CatalogModule } from './catalog/catalog.module';
+import { ReportsModule } from './reports/reports.module';
 
 @Module({
   imports: [
@@ -19,6 +20,7 @@ import { CatalogModule } from './catalog/catalog.module';
     MapModule,
     CatalogModule,
     BookingsModule,
+    ReportsModule,
   ],
   controllers: [HealthController],
 })
