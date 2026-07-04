@@ -413,3 +413,20 @@ export interface CreateStaffUserInput {
 export interface UpdateStaffUserInput {
   disabled: boolean;
 }
+
+/** Disposizione di un settore (editor struttura). */
+export type SectorKind = 'grid' | 'special';
+
+/** Ombrellone nell'editor struttura (senza stato prenotazioni, a differenza di UmbrellaDTO della mappa). */
+export interface StructureUmbrellaDTO { id: string; label: string; umbrellaTypeId: string | null; }
+export interface StructureRowDTO { id: string; label: string; sortOrder: number; umbrellas: StructureUmbrellaDTO[]; }
+export interface StructureSectorDTO { id: string; name: string; sortOrder: number; kind: SectorKind; rows: StructureRowDTO[]; }
+/** Albero completo (GET /api/establishment/structure, admin-only). */
+export interface EstablishmentStructureDTO {
+  sectors: StructureSectorDTO[];   // ordinati per sortOrder; ogni fila per sortOrder, ombrelloni per logicalOrder
+  umbrellaTypes: UmbrellaTypeDTO[]; // ordinati per sortOrder ("Normale" = null, non in lista)
+}
+
+/** Input creazione tipologia (admin-only). icon = chiave icon-registry ui-kit. */
+export interface CreateUmbrellaTypeInput { name: string; icon: string; }
+export interface UpdateUmbrellaTypeInput { name?: string; icon?: string; }
