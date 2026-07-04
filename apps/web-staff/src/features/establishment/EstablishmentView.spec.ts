@@ -96,4 +96,119 @@ describe('EstablishmentView', () => {
     expect(w.find('[data-testid="edit-establishment"]').exists()).toBe(false);
     expect(w.text()).toContain('Modifica · in arrivo');
   });
+
+  it('admin: «Aggiungi utente» apre il modale e invia la create', async () => {
+    const seen: Array<{ email: string; role: string }> = [];
+    server.use(http.post('/api/establishment/users', async ({ request }) => {
+      const b = (await request.json()) as { email: string; password: string; role: 'admin' | 'staff' };
+      seen.push({ email: b.email, role: b.role });
+      return HttpResponse.json({ id: 'u-new', email: b.email, role: b.role, disabledAt: null }, { status: 201 });
+    }));
+    const w = mountApp(EstablishmentView, { attachTo: document.body });
+    const session = useSessionStore();
+    session.user = { id: 'u-1', email: 'admin@coralyn.dev', role: Role.Admin, establishmentId: 'e-1' };
+    await settle();
+    await w.find('[data-testid="add-user"]').trigger('click');
+    await settle();
+    (document.querySelector('[data-testid="new-user-email"]') as HTMLInputElement).value = 'nuovo@lido.it';
+    (document.querySelector('[data-testid="new-user-email"]') as HTMLInputElement).dispatchEvent(new Event('input'));
+    (document.querySelector('[data-testid="new-user-password"]') as HTMLInputElement).value = 'password123';
+    (document.querySelector('[data-testid="new-user-password"]') as HTMLInputElement).dispatchEvent(new Event('input'));
+    (document.querySelector('[data-testid="new-user-save"]') as HTMLElement).click();
+    await settle();
+    expect(seen).toEqual([{ email: 'nuovo@lido.it', role: 'staff' }]);
+    w.unmount();
+  });
+
+  it('admin: disabilita una riga del team', async () => {
+    const seen: Array<{ id: string; disabled: boolean }> = [];
+    server.use(http.patch('/api/establishment/users/:id', async ({ params, request }) => {
+      const b = (await request.json()) as { disabled: boolean };
+      seen.push({ id: params.id as string, disabled: b.disabled });
+      return HttpResponse.json({ id: params.id as string, email: 'marco@lidomaestrale.it', role: 'staff', disabledAt: '2026-07-04T10:00:00.000Z' });
+    }));
+    const w = mountApp(EstablishmentView);
+    const session = useSessionStore();
+    session.user = { id: 'u-1', email: 'admin@coralyn.dev', role: Role.Admin, establishmentId: 'e-1' };
+    await settle();
+    const row = w.findAll('[data-testid="team-row"]').find((r) => r.text().includes('marco@lidomaestrale.it'))!;
+    await row.find('[data-testid="toggle-user-disabled"]').trigger('click');
+    await settle();
+    expect(seen).toEqual([{ id: 'u-2', disabled: true }]);
+  });
+
+  it('staff: lista team read-only (nessun bottone gestione)', async () => {
+    const w = mountApp(EstablishmentView);
+    const session = useSessionStore();
+    session.user = { id: 'u-2', email: 'marco@lidomaestrale.it', role: Role.Staff, establishmentId: 'e-1' };
+    await settle();
+    expect(w.find('[data-testid="add-user"]').exists()).toBe(false);
+    expect(w.find('[data-testid="toggle-user-disabled"]').exists()).toBe(false);
+  });
+
+  it('mostra lo stato "Disabilitato" per i membri disabilitati', async () => {
+    server.use(http.get('/api/establishment/overview', () =>
+      HttpResponse.json({
+        establishment: { id: 'e-1', name: 'Lido Maestrale' },
+        activeSeason: null,
+        timeSlots: [{ id: 'ts-1', name: 'Giornata' }],
+        structure: { sectors: 0, umbrellas: 0, types: 0, packages: 0 },
+        team: [
+          { id: 'u-1', email: 'admin@coralyn.dev', role: 'admin', disabledAt: null },
+          { id: 'u-2', email: 'marco@lidomaestrale.it', role: 'staff', disabledAt: '2026-07-04T10:00:00.000Z' },
+        ],
+      })));
+    const w = mountApp(EstablishmentView);
+    await settle();
+    const row = w.findAll('[data-testid="team-row"]').find((r) => r.text().includes('marco@lidomaestrale.it'))!;
+    expect(row.text()).toContain('Disabilitato');
+  });
+
+  it('admin: riabilita una riga disabilitata (PATCH disabled:false)', async () => {
+    server.use(http.get('/api/establishment/overview', () =>
+      HttpResponse.json({
+        establishment: { id: 'e-1', name: 'Lido Maestrale' },
+        activeSeason: null,
+        timeSlots: [{ id: 'ts-1', name: 'Giornata' }],
+        structure: { sectors: 0, umbrellas: 0, types: 0, packages: 0 },
+        team: [
+          { id: 'u-1', email: 'admin@coralyn.dev', role: 'admin', disabledAt: null },
+          { id: 'u-2', email: 'marco@lidomaestrale.it', role: 'staff', disabledAt: '2026-07-04T10:00:00.000Z' },
+        ],
+      })));
+    const seen: Array<{ id: string; disabled: boolean }> = [];
+    server.use(http.patch('/api/establishment/users/:id', async ({ params, request }) => {
+      const b = (await request.json()) as { disabled: boolean };
+      seen.push({ id: params.id as string, disabled: b.disabled });
+      return HttpResponse.json({ id: params.id as string, email: 'marco@lidomaestrale.it', role: 'staff', disabledAt: null });
+    }));
+    const w = mountApp(EstablishmentView);
+    const session = useSessionStore();
+    session.user = { id: 'u-1', email: 'admin@coralyn.dev', role: Role.Admin, establishmentId: 'e-1' };
+    await settle();
+    const row = w.findAll('[data-testid="team-row"]').find((r) => r.text().includes('marco@lidomaestrale.it'))!;
+    expect(row.find('[data-testid="toggle-user-disabled"]').text()).toContain('Riabilita');
+    await row.find('[data-testid="toggle-user-disabled"]').trigger('click');
+    await settle();
+    expect(seen).toEqual([{ id: 'u-2', disabled: false }]);
+  });
+
+  it('admin: il modale create resta aperto in caso di 409', async () => {
+    server.use(http.post('/api/establishment/users', () =>
+      HttpResponse.json({ message: 'Email già in uso' }, { status: 409 })));
+    const w = mountApp(EstablishmentView, { attachTo: document.body });
+    const session = useSessionStore();
+    session.user = { id: 'u-1', email: 'admin@coralyn.dev', role: Role.Admin, establishmentId: 'e-1' };
+    await settle();
+    await w.find('[data-testid="add-user"]').trigger('click');
+    await settle();
+    (document.querySelector('[data-testid="new-user-email"]') as HTMLInputElement).value = 'esistente@lido.it';
+    (document.querySelector('[data-testid="new-user-email"]') as HTMLInputElement).dispatchEvent(new Event('input'));
+    (document.querySelector('[data-testid="new-user-password"]') as HTMLInputElement).value = 'password123';
+    (document.querySelector('[data-testid="new-user-password"]') as HTMLInputElement).dispatchEvent(new Event('input'));
+    (document.querySelector('[data-testid="new-user-save"]') as HTMLElement).click();
+    await settle();
+    expect(document.querySelector('[data-testid="new-user-email"]')).not.toBeNull();
+    w.unmount();
+  });
 });

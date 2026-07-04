@@ -332,11 +332,19 @@ export const server = setupServer(
       ],
       structure: { sectors: 3, umbrellas: 41, types: 3, packages: 3 },
       team: [
-        { id: 'u-1', email: 'admin@coralyn.dev', role: 'admin' },
-        { id: 'u-2', email: 'marco@lidomaestrale.it', role: 'staff' },
+        { id: 'u-1', email: 'admin@coralyn.dev', role: 'admin', disabledAt: null },
+        { id: 'u-2', email: 'marco@lidomaestrale.it', role: 'staff', disabledAt: null },
       ],
     }),
   ),
+  http.post('/api/establishment/users', async ({ request }) => {
+    const b = (await request.json()) as { email: string; role: 'admin' | 'staff' };
+    return HttpResponse.json({ id: 'u-new', email: b.email, role: b.role, disabledAt: null }, { status: 201 });
+  }),
+  http.patch('/api/establishment/users/:id', async ({ params, request }) => {
+    const b = (await request.json()) as { disabled: boolean };
+    return HttpResponse.json({ id: params.id as string, email: 'x@x.it', role: 'staff', disabledAt: b.disabled ? '2026-07-04T10:00:00.000Z' : null });
+  }),
   http.patch('/api/establishment', async ({ request }) => {
     const body = (await request.json()) as { name: string };
     return HttpResponse.json({ id: 'e-1', name: body.name });

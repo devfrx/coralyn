@@ -1,4 +1,10 @@
-import type { EstablishmentOverviewDTO, UpdateEstablishmentInput } from '@coralyn/contracts';
+import type {
+  EstablishmentOverviewDTO,
+  UpdateEstablishmentInput,
+  CreateStaffUserInput,
+  UpdateStaffUserInput,
+  EstablishmentMemberDTO,
+} from '@coralyn/contracts';
 import { apiFetch } from '@/lib/http';
 import { queryKeys } from '@/lib/queryKeys';
 import { useSessionStore } from '@/stores/session';
@@ -17,6 +23,24 @@ export function useRenameEstablishment() {
   return mutationResource({
     mutationFn: (input: UpdateEstablishmentInput) =>
       apiFetch<{ id: string; name: string }>('/establishment', { method: 'PATCH', body: JSON.stringify(input) }),
+    invalidates: () => [queryKeys.establishmentOverview(session.establishmentId)],
+  });
+}
+
+export function useCreateStaffUser() {
+  const session = useSessionStore();
+  return mutationResource({
+    mutationFn: (input: CreateStaffUserInput) =>
+      apiFetch<EstablishmentMemberDTO>('/establishment/users', { method: 'POST', body: JSON.stringify(input) }),
+    invalidates: () => [queryKeys.establishmentOverview(session.establishmentId)],
+  });
+}
+
+export function useSetStaffUserDisabled() {
+  const session = useSessionStore();
+  return mutationResource({
+    mutationFn: (vars: { id: string } & UpdateStaffUserInput) =>
+      apiFetch<EstablishmentMemberDTO>(`/establishment/users/${vars.id}`, { method: 'PATCH', body: JSON.stringify({ disabled: vars.disabled }) }),
     invalidates: () => [queryKeys.establishmentOverview(session.establishmentId)],
   });
 }

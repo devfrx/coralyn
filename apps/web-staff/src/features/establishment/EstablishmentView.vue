@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
 import { useRouter } from 'vue-router';
-import { Card, StatTile, Badge, Button, Avatar, Icon, Modal, Field, Input } from '@coralyn/ui-kit';
+import { Card, StatTile, Badge, Button, Avatar, Icon, Modal, Field, Input, Select } from '@coralyn/ui-kit';
 import { Role } from '@coralyn/contracts';
 import { useSessionStore } from '@/stores/session';
-import { useEstablishmentOverview, useRenameEstablishment } from './useEstablishment';
+import { useEstablishmentOverview, useRenameEstablishment, useCreateStaffUser, useSetStaffUserDisabled } from './useEstablishment';
 
 const session = useSessionStore();
 const router = useRouter();
@@ -46,6 +46,7 @@ const team = computed(() =>
     tone: m.role === 'admin' ? ('brand' as const) : ('neutral' as const),
     ini: m.email.slice(0, 2).toUpperCase(),
     you: session.userEmail === m.email,
+    disabled: m.disabledAt !== null,
   })),
 );
 
@@ -65,6 +66,34 @@ function submitRename() {
     { name },
     { onSuccess: () => { renameOpen.value = false; } },
   );
+}
+
+const addOpen = ref(false);
+const newEmail = ref('');
+const newPassword = ref('');
+const newRole = ref<'admin' | 'staff'>('staff');
+const createUser = useCreateStaffUser();
+const setDisabled = useSetStaffUserDisabled();
+const creating = computed(() => createUser.isPending.value);
+const togglingDisabled = computed(() => setDisabled.isPending.value);
+
+function openAddUser() {
+  newEmail.value = '';
+  newPassword.value = '';
+  newRole.value = 'staff';
+  addOpen.value = true;
+}
+function submitAddUser() {
+  const email = newEmail.value.trim();
+  const password = newPassword.value;
+  if (!email || !password) return;
+  createUser.mutate(
+    { email, password, role: newRole.value },
+    { onSuccess: () => { addOpen.value = false; } },
+  );
+}
+function toggleDisabled(u: { id: string; disabled: boolean }) {
+  setDisabled.mutate({ id: u.id, disabled: !u.disabled });
 }
 </script>
 
@@ -112,18 +141,21 @@ function submitRename() {
       <div class="p-5">
         <div class="mb-1.5 flex items-center justify-between">
           <span class="text-sm font-bold text-[var(--color-text)]">Utenti e ruoli</span>
-          <Badge tone="soon"><Icon name="plus" :size="13" />Inviti e gestione · in arrivo</Badge>
+          <Button v-if="isAdmin" data-testid="add-user" variant="secondary" @click="openAddUser"><Icon name="plus" :size="13" />Aggiungi utente</Button>
+          <Badge v-else tone="soon"><Icon name="plus" :size="13" />Inviti e gestione · in arrivo</Badge>
         </div>
         <p class="mb-3 text-xs leading-relaxed text-[var(--color-text-muted)]">Il team dello stabilimento ha ruoli <strong class="text-[var(--color-text-2nd)]">Amministratore</strong> e <strong class="text-[var(--color-text-2nd)]">Staff</strong>. Il ruolo <strong class="text-[var(--color-text-2nd)]">Superuser</strong> è di piattaforma (console cross-stabilimento) e non appartiene al team del lido.</p>
         <p v-if="!isPending && team.length === 0" class="py-3 text-sm text-[var(--color-text-muted)]">Nessun utente nel team.</p>
         <div class="flex flex-col">
-          <div v-for="u in team" :key="u.id" data-testid="team-row" class="flex items-center gap-3 border-b border-[var(--color-border-row)] py-3 last:border-0">
+          <div v-for="u in team" :key="u.id" data-testid="team-row" class="flex items-center gap-3 border-b border-[var(--color-border-row)] py-3 last:border-0" :class="u.disabled && 'opacity-55'">
             <Avatar :initials="u.ini" size="md" :tone="u.tone === 'brand' ? 'brand' : 'accent'" />
             <div class="flex flex-1 items-center gap-2">
               <span class="text-[13.5px] font-semibold text-[var(--color-text)]">{{ u.email }}</span>
               <Badge v-if="u.you" tone="accent">Tu</Badge>
+              <Badge v-if="u.disabled" tone="neutral">Disabilitato</Badge>
             </div>
             <Badge :tone="u.tone">{{ u.roleLabel }}</Badge>
+            <Button v-if="isAdmin && !u.you" data-testid="toggle-user-disabled" variant="secondary" :disabled="togglingDisabled" @click="toggleDisabled(u)">{{ u.disabled ? 'Riabilita' : 'Disabilita' }}</Button>
           </div>
         </div>
       </div>
@@ -148,6 +180,27 @@ function submitRename() {
         <div class="flex justify-end gap-2">
           <Button variant="secondary" type="button" @click="renameOpen = false">Annulla</Button>
           <Button type="submit" data-testid="establishment-name-save">Salva</Button>
+        </div>
+      </form>
+    </Modal>
+
+    <Modal v-model:open="addOpen" title="Aggiungi utente" eyebrow="Team">
+      <form class="flex flex-col gap-4" @submit.prevent="submitAddUser">
+        <Field label="Email">
+          <Input name="new-user-email" data-testid="new-user-email" v-model="newEmail" type="email" placeholder="nome@stabilimento.it" />
+        </Field>
+        <Field label="Password iniziale">
+          <Input name="new-user-password" data-testid="new-user-password" v-model="newPassword" type="password" placeholder="Almeno 8 caratteri" />
+        </Field>
+        <Field label="Ruolo">
+          <Select v-model="newRole" data-testid="new-user-role">
+            <option value="staff">Staff</option>
+            <option value="admin">Amministratore</option>
+          </Select>
+        </Field>
+        <div class="flex justify-end gap-2">
+          <Button variant="secondary" type="button" @click="addOpen = false">Annulla</Button>
+          <Button type="submit" data-testid="new-user-save" :disabled="creating">Crea utente</Button>
         </div>
       </form>
     </Modal>
