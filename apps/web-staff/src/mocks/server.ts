@@ -349,6 +349,31 @@ export const server = setupServer(
     const body = (await request.json()) as { name: string };
     return HttpResponse.json({ id: 'e-1', name: body.name });
   }),
+  http.get('/api/establishment/structure', () =>
+    HttpResponse.json({
+      sectors: [
+        { id: 'sec-1', name: 'Centro', sortOrder: 1, kind: 'grid', rows: [
+          { id: 'row-1', label: 'Fila 1', sortOrder: 1, umbrellas: [
+            { id: 'omb-1', label: '1', umbrellaTypeId: 'typ-1' },
+            { id: 'omb-2', label: '2', umbrellaTypeId: null },
+          ] },
+        ] },
+      ],
+      umbrellaTypes: [
+        { id: 'typ-1', name: 'Palma', sortOrder: 1, icon: 'palmtree' },
+        { id: 'typ-2', name: 'Mini-palma', sortOrder: 2, icon: 'leaf' },
+      ],
+    })),
+  http.post('/api/establishment/umbrella-types', async ({ request }) => {
+    const b = (await request.json()) as { name: string; icon: string };
+    return HttpResponse.json({ id: `typ-${b.name}`, name: b.name, sortOrder: 9, icon: b.icon }, { status: 201 });
+  }),
+  http.patch('/api/establishment/umbrella-types/:id', async ({ params, request }) => {
+    const b = (await request.json()) as { name?: string; icon?: string };
+    return HttpResponse.json({ id: params.id as string, name: b.name ?? 'Palma', sortOrder: 1, icon: b.icon ?? 'palmtree' });
+  }),
+  http.delete('/api/establishment/umbrella-types/:id', ({ params }) =>
+    HttpResponse.json({ id: params.id as string, name: 'Palma', sortOrder: 1, icon: 'palmtree' })),
   http.patch('/api/bookings/:id/payment', async ({ params, request }) => {
     const b = (await request.json()) as { amountCollected: number; paymentMethod?: string; collectionDate?: string };
     const paid = b.amountCollected > 0;

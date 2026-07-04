@@ -15,4 +15,5 @@ export const queryKeys = {
   renewalCampaign: (tenantId: string, destinationSeasonId: string) => ['renewalCampaign', tenantId, destinationSeasonId] as const,
   reportSummary: (tenantId: string, period: string) => ['report', tenantId, 'summary', period] as const,
   establishmentOverview: (tenantId: string) => ['establishment', tenantId, 'overview'] as const,
+  establishmentStructure: (tenantId: string) => ['establishment', tenantId, 'structure'] as const,
 };

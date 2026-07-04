@@ -129,7 +129,11 @@ function toggleDisabled(u: { id: string; disabled: boolean }) {
       </Card>
       <Card>
         <div class="p-5">
-          <div class="mb-4 flex items-center justify-between"><span class="text-sm font-bold text-[var(--color-text)]">Struttura della spiaggia</span><Badge tone="soon">Configura · in arrivo</Badge></div>
+          <div class="mb-4 flex items-center justify-between">
+            <span class="text-sm font-bold text-[var(--color-text)]">Struttura della spiaggia</span>
+            <Button v-if="isAdmin" data-testid="configure-structure" variant="secondary" @click="$router.push('/establishment/structure')"><Icon name="settings" :size="13" />Configura</Button>
+            <Badge v-else tone="soon">Configura · in arrivo</Badge>
+          </div>
           <div class="grid grid-cols-2 gap-3.5">
             <StatTile v-for="s in structureTiles" :key="s.label" :value="s.value" :label="s.label" />
           </div>

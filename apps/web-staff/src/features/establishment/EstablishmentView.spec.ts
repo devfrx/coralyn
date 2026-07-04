@@ -48,14 +48,23 @@ describe('EstablishmentView', () => {
     expect(w.text()).toContain('Nessuna stagione attiva');
   });
 
-  it('espone le affordance "in arrivo" e il logout', async () => {
+  it('admin: mostra «Configura» attivo (struttura) e il logout', async () => {
     const w = mountApp(EstablishmentView);
     const session = useSessionStore();
     session.user = { id: 'u-1', email: 'admin@coralyn.dev', role: Role.Admin, establishmentId: 'e-1' };
     await settle();
-    expect(w.text()).toContain('in arrivo');
+    expect(w.find('[data-testid="configure-structure"]').exists()).toBe(true);
     await w.find('[data-testid="sign-out"]').trigger('click');
     expect(session.authenticated).toBe(false);
+  });
+
+  it('staff: la struttura resta "in arrivo"', async () => {
+    const w = mountApp(EstablishmentView);
+    const session = useSessionStore();
+    session.user = { id: 'u-2', email: 'marco@lidomaestrale.it', role: Role.Staff, establishmentId: 'e-1' };
+    await settle();
+    expect(w.text()).toContain('Configura · in arrivo');
+    expect(w.find('[data-testid="configure-structure"]').exists()).toBe(false);
   });
 
   it('su errore di rete mostra il banner d\'errore', async () => {
