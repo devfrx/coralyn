@@ -126,6 +126,7 @@ model Sector {
   rates           Rate[]
 
   @@index([establishmentId])
+  @@unique([establishmentId, name])
 }
 
 model Row {

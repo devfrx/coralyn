@@ -3,6 +3,7 @@ import type { EstablishmentStructureDTO } from '@coralyn/contracts';
 import { PrismaService } from '../prisma/prisma.service';
 import { TenantContext } from '../tenant/tenant-context';
 import { toEstablishmentStructure } from './establishment-structure.projection';
+import { SECTOR_SELECT } from './establishment-structure.select';
 
 @Injectable()
 export class EstablishmentStructureService {
@@ -16,17 +17,7 @@ export class EstablishmentStructureService {
     return this.prisma.forTenant(tenantId, async (tx) => {
       const [umbrellaTypes, sectors] = await Promise.all([
         tx.umbrellaType.findMany({ orderBy: { sortOrder: 'asc' }, select: { id: true, name: true, sortOrder: true, icon: true } }),
-        tx.sector.findMany({
-          orderBy: { sortOrder: 'asc' },
-          select: {
-            id: true, name: true, sortOrder: true, kind: true,
-            rows: {
-              orderBy: { sortOrder: 'asc' },
-              select: { id: true, label: true, sortOrder: true,
-                umbrellas: { orderBy: { logicalOrder: 'asc' }, select: { id: true, label: true, umbrellaTypeId: true, logicalOrder: true } } },
-            },
-          },
-        }),
+        tx.sector.findMany({ orderBy: { sortOrder: 'asc' }, select: SECTOR_SELECT }),
       ]);
       return toEstablishmentStructure({ sectors, umbrellaTypes });
     });
