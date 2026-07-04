@@ -17,10 +17,12 @@ Portare [`ReportView.vue`](../../../apps/web-staff/src/features/report/ReportVie
   (snapshot). Il KPI **"Presenze"** del mock è **ELIMINATO**: la presenza non è catturabile in un lido a prevalenza
   abbonati (stesso motivo della rimozione del bottone «Presenza» in mappa; vedi [D-035](../../architecture/deferred.md)).
 - **Selettore periodo**: `Oggi` / `Settimana` / `Stagione` → `?period=today|week|season`.
-- **Semantica periodo (correttezza, non pigrizia)**: il periodo guida **Incasso** (somma) e **Occupazione** (media).
-  `Da incassare` (saldo corrente dovuto) e `Abbonamenti attivi` (span stagionale) sono **snapshot "ora"**: un valore
-  "per la settimana scorsa" sarebbe privo di senso. Quando `period ≠ today`, i due tile snapshot sono **etichettati
-  esplicitamente come "ora/attuale"** perché non cambiano col periodo.
+- **Semantica periodo (correttezza, non pigrizia)**: il periodo guida **solo l'Incasso** (somma) — KPI `revenue` +
+  grafico `revenueSeries`. È lo scopo primario del selettore ("quanto ho incassato oggi/settimana/stagione").
+  `Occupazione`, `Da incassare`, `Abbonamenti attivi` e il mix stati sono **snapshot "ora"** (sono intrinsecamente
+  correnti: un "da incassare della settimana scorsa" sarebbe un numero privo di senso; l'occupazione media di periodo è
+  costosa e di basso valore in v1 → deferita, vedi §7). Quando `period ≠ today`, i tile snapshot sono **etichettati
+  esplicitamente "ora/attuale"** perché non cambiano col periodo.
 - **Grafici (2)**: `Incassi` (serie temporale bucketizzata) + `Stato ombrelloni` (donut). **Heatmap occupazione =
   DEFERITA** (incremento analitico futuro tracciato, non gold-plating in questo slice).
 - **Scadenze**: riuso della **prelazione D-011** (`computeRenewalWindowState`, **fonte unica** già usata dalla Scheda
@@ -36,10 +38,10 @@ type ReportPeriod = 'today' | 'week' | 'season';
 interface ReportSummaryDTO {
   period: ReportPeriod;
   kpis: {
-    revenue: number;              // incasso NEL periodo (Σ amountCollected)
+    revenue: number;              // incasso NEL periodo (Σ amountCollected su collectionDate nel periodo)
     outstanding: number;          // da incassare ORA (Σ totalPrice − amountCollected su confirmed non saldate)
-    occupancyPct: number;         // occupazione: oggi = corrente; week/season = media sui giorni del periodo
-    activeSubscriptions: number;  // abbonamenti attivi ORA (subscription con stagione corrente)
+    occupancyPct: number;         // occupazione ATTUALE (snapshot di oggi): slot occupati / slot totali
+    activeSubscriptions: number;  // abbonamenti attivi ORA (subscription confirmed che coprono oggi)
   };
   revenueSeries: { label: string; value: number }[]; // today+week → giorni (ultimi 7); season → settimane
   umbrellaStateMix: { state: SlotState; count: number; pct: number }[]; // snapshot di oggi
@@ -76,6 +78,8 @@ interface ReportSummaryDTO {
 
 ## 7. Fuori scope / deferiti (tracciati, non tagliati in silenzio)
 - **Heatmap occupazione** (giorno×fascia o settimana×giorno) → incremento analitico futuro.
+- **Occupazione media di periodo** (settimana/stagione) → v1 mostra lo snapshot di oggi; la media storica per range è
+  costosa e di basso valore ora.
 - Selettore a **date arbitrarie**, **export** CSV/PDF, persistenza del periodo scelto.
 - Azione di rinnovo **inline** nel Report (resta la navigazione al flusso esistente).
 
