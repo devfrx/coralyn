@@ -12,7 +12,9 @@
   },
   "dependencies": {
     "@coralyn/contracts": "workspace:*",
-    "reka-ui": "^2.0.0"
+    "echarts": "^5.5.1",
+    "reka-ui": "^2.0.0",
+    "vue-echarts": "^7.0.3"
   },
   "scripts": {
     "test": "vitest run",
