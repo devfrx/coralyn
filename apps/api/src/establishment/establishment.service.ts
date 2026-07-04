@@ -20,7 +20,7 @@ export class EstablishmentService {
         tx.establishment.findUniqueOrThrow({ where: { id: tenantId }, select: { id: true, name: true } }),
         tx.season.findMany({ select: { name: true, startDate: true, endDate: true } }),
         tx.timeSlot.findMany({ orderBy: { sortOrder: 'asc' }, select: { id: true, name: true } }),
-        tx.user.findMany({ where: { establishmentId: tenantId }, select: { id: true, email: true, role: true } }),
+        tx.user.findMany({ where: { establishmentId: tenantId }, select: { id: true, email: true, role: true, disabledAt: true } }),
         tx.sector.count(),
         tx.umbrella.count(),
         tx.umbrellaType.count(),
@@ -30,7 +30,7 @@ export class EstablishmentService {
         establishment,
         seasons,
         timeSlots,
-        users, // il select restituisce già { id, email, role }: nessun re-map necessario
+        users, // il select restituisce già { id, email, role, disabledAt }: nessun re-map necessario
         structure: { sectors, umbrellas, types, packages },
         todayIso,
       });

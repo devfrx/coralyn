@@ -11,7 +11,7 @@ export interface OverviewRaw {
   seasons: RawSeason[];
   timeSlots: { id: string; name: string }[];
   structure: EstablishmentOverviewDTO['structure'];
-  users: { id: string; email: string; role: string }[];
+  users: { id: string; email: string; role: string; disabledAt: Date | null }[];
   todayIso: string;
 }
 
@@ -33,7 +33,7 @@ export function pickActiveSeason(
 export function toEstablishmentOverview(raw: OverviewRaw): EstablishmentOverviewDTO {
   const team: EstablishmentMemberDTO[] = raw.users
     .filter((u) => u.role === 'admin' || u.role === 'staff')
-    .map((u) => ({ id: u.id, email: u.email, role: u.role as 'admin' | 'staff' }))
+    .map((u) => ({ id: u.id, email: u.email, role: u.role as 'admin' | 'staff', disabledAt: u.disabledAt ? u.disabledAt.toISOString() : null }))
     .sort((a, b) => ROLE_RANK[a.role] - ROLE_RANK[b.role] || a.email.localeCompare(b.email));
   return {
     establishment: raw.establishment,

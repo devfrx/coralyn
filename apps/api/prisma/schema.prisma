@@ -77,6 +77,7 @@ model User {
   email           String         @unique // globally unique: identifies the user at login
   passwordHash    String // argon2id; never exposed in DTOs
   role            Role
+  disabledAt      DateTime? // null = attivo; valorizzato = disabilitato (soft), il login lo respinge (D-025)
   establishment   Establishment? @relation(fields: [establishmentId], references: [id])
 
   @@index([establishmentId])

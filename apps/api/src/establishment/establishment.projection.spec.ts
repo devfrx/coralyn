@@ -27,10 +27,10 @@ describe('toEstablishmentOverview', () => {
     timeSlots: [{ id: 't1', name: 'Mattina' }, { id: 't2', name: 'Pomeriggio' }],
     structure: { sectors: 3, umbrellas: 41, types: 3, packages: 3 },
     users: [
-      { id: 'u3', email: 'sara@lido.it', role: 'staff' },
-      { id: 'u1', email: 'giulia@lido.it', role: 'admin' },
-      { id: 'u2', email: 'marco@lido.it', role: 'staff' },
-      { id: 'u4', email: 'root@platform.it', role: 'superuser' },
+      { id: 'u3', email: 'sara@lido.it', role: 'staff', disabledAt: d('2026-07-01') },
+      { id: 'u1', email: 'giulia@lido.it', role: 'admin', disabledAt: null },
+      { id: 'u2', email: 'marco@lido.it', role: 'staff', disabledAt: null },
+      { id: 'u4', email: 'root@platform.it', role: 'superuser', disabledAt: null },
     ],
     todayIso: '2026-07-04',
   };
@@ -39,6 +39,14 @@ describe('toEstablishmentOverview', () => {
     const dto = toEstablishmentOverview(raw);
     expect(dto.team.map((m) => m.email)).toEqual(['giulia@lido.it', 'marco@lido.it', 'sara@lido.it']);
     expect(dto.team.some((m) => (m.role as string) === 'superuser')).toBe(false);
+  });
+
+  it('espone disabledAt come ISO per i disabilitati, null per gli attivi', () => {
+    const dto = toEstablishmentOverview(raw);
+    const byEmail = Object.fromEntries(dto.team.map((m) => [m.email, m.disabledAt]));
+    expect(byEmail['sara@lido.it']).toBe('2026-07-01T00:00:00.000Z');
+    expect(byEmail['giulia@lido.it']).toBeNull();
+    expect(byEmail['marco@lido.it']).toBeNull();
   });
 
   it('compone establishment, activeSeason, timeSlots e structure', () => {

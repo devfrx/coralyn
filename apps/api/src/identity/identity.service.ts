@@ -30,6 +30,11 @@ export class IdentityService {
       // 401 generico identico: niente user-enumeration.
       throw new UnauthorizedException('Credenziali non valide');
     }
+    if (user.disabledAt) {
+      // Utente disabilitato (soft-disable, D-025): stesso 401 generico, nessuna enumerazione.
+      // La revoca immediata di un token già emesso resta a D-026 (il token scade a 8h).
+      throw new UnauthorizedException('Credenziali non valide');
+    }
     const dto = this.toDTO(user);
     const accessToken = this.tokens.sign({
       sub: dto.id,
