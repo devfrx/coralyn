@@ -7,6 +7,7 @@ import { IdentityService } from './identity.service';
 import { PasswordHasher } from './password-hasher';
 import { TokenService } from './token.service';
 import { JwtAuthGuard } from './jwt-auth.guard';
+import { RolesGuard } from './roles.guard';
 
 @Module({
   imports: [
@@ -24,6 +25,7 @@ import { JwtAuthGuard } from './jwt-auth.guard';
     PasswordHasher,
     TokenService,
     { provide: APP_GUARD, useClass: JwtAuthGuard },
+    { provide: APP_GUARD, useClass: RolesGuard },
   ],
 })
 export class IdentityModule {}

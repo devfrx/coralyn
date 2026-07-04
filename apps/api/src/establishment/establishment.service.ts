@@ -36,4 +36,13 @@ export class EstablishmentService {
       });
     });
   }
+
+  async rename(name: string): Promise<{ id: string; name: string }> {
+    const tenantId = this.tenant.require();
+    return this.prisma.establishment.update({
+      where: { id: tenantId },
+      data: { name },
+      select: { id: true, name: true },
+    });
+  }
 }
