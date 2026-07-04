@@ -1,5 +1,11 @@
 # Handoff / Delega — Redesign Scheda Cliente (mock) + fix mappa + pagine mock + D-0xx
 
+> ## ⛔ SUPERATO (2026-07-04) — snapshot storico, NON eseguire i "task" qui sotto
+> Tutto ciò che questo handoff dava come "da fare" è **fatto e su `main`**: redesign Scheda cliente (§2), **fix mappa**
+> pomeriggio (§5), bottone «Abbonamento» collegato e «Presenza» **rimosso** (§4). Handoff autorevole corrente:
+> **[2026-07-04-mappa-abbonamento-e-prossimi.md](2026-07-04-mappa-abbonamento-e-prossimi.md)**. Il testo sotto è
+> conservato come fotografia del 2026-07-03 (tracciabilità), ma è **datato**: il prossimo passo reale è Report/Stabilimento.
+
 > Documento di consegna per la **prossima sessione**. **Supera** il precedente handoff
 > [2026-07-03-scheda-cliente-e-pagine-mock.md](2026-07-03-scheda-cliente-e-pagine-mock.md) (il cui "prossimo passo" —
 > lo slice funzionale Scheda Cliente 360° — è ora **fatto**). Workflow **[ADR-0009](../architecture/decisions/0009-documentazione-di-design.md)**:
