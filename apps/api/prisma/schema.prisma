@@ -47,6 +47,11 @@ enum Role {
   superuser
 }
 
+enum SectorKind {
+  grid    // file regolari, impilate verso il mare
+  special // ombrelloni fuori griglia (es. palme)
+}
+
 enum BookingType {
   daily
   periodic
@@ -92,6 +97,7 @@ model UmbrellaType {
   establishment   Establishment @relation(fields: [establishmentId], references: [id])
   umbrellas       Umbrella[]
 
+  @@unique([establishmentId, name])
   @@index([establishmentId])
 }
 
@@ -114,6 +120,7 @@ model Sector {
   establishmentId String        @db.Uuid
   name            String
   sortOrder       Int
+  kind            SectorKind    @default(grid)
   establishment   Establishment @relation(fields: [establishmentId], references: [id])
   rows            Row[]
   rates           Rate[]
