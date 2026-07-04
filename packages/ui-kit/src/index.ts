@@ -21,6 +21,8 @@ export { default as Select } from './components/Select.vue';
 export { default as ModalFooter } from './components/ModalFooter.vue';
 export { default as PageToolbar } from './components/PageToolbar.vue';
 export { default as KpiCard } from './components/KpiCard.vue';
+export { default as ChartBar } from './components/ChartBar.vue';
+export { default as ChartDonut } from './components/ChartDonut.vue';
 export { default as StatTile } from './components/StatTile.vue';
 export { default as BarChart } from './components/BarChart.vue';
 export { default as StackedBar } from './components/StackedBar.vue';
