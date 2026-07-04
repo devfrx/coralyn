@@ -374,6 +374,26 @@ export const server = setupServer(
   }),
   http.delete('/api/establishment/umbrella-types/:id', ({ params }) =>
     HttpResponse.json({ id: params.id as string, name: 'Palma', sortOrder: 1, icon: 'palmtree' })),
+  http.post('/api/establishment/sectors', async ({ request }) => {
+    const b = (await request.json()) as { name: string; kind: string };
+    return HttpResponse.json({ id: `sec-${b.name}`, name: b.name, sortOrder: 9, kind: b.kind, rows: [] }, { status: 201 });
+  }),
+  http.patch('/api/establishment/sectors/:id', async ({ params, request }) => {
+    const b = (await request.json()) as { name?: string; kind?: string };
+    return HttpResponse.json({ id: params.id as string, name: b.name ?? 'Centro', sortOrder: 1, kind: b.kind ?? 'grid', rows: [] });
+  }),
+  http.delete('/api/establishment/sectors/:id', ({ params }) =>
+    HttpResponse.json({ id: params.id as string, name: 'Centro', sortOrder: 1, kind: 'grid', rows: [] })),
+  http.post('/api/establishment/rows', async ({ request }) => {
+    const b = (await request.json()) as { sectorId: string; label: string };
+    return HttpResponse.json({ id: `row-${b.label}`, label: b.label, sortOrder: 9, umbrellas: [] }, { status: 201 });
+  }),
+  http.patch('/api/establishment/rows/:id', async ({ params, request }) => {
+    const b = (await request.json()) as { label?: string };
+    return HttpResponse.json({ id: params.id as string, label: b.label ?? 'Fila 1', sortOrder: 1, umbrellas: [] });
+  }),
+  http.delete('/api/establishment/rows/:id', ({ params }) =>
+    HttpResponse.json({ id: params.id as string, label: 'Fila 1', sortOrder: 1, umbrellas: [] })),
   http.patch('/api/bookings/:id/payment', async ({ params, request }) => {
     const b = (await request.json()) as { amountCollected: number; paymentMethod?: string; collectionDate?: string };
     const paid = b.amountCollected > 0;

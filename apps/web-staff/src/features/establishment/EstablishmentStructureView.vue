@@ -3,10 +3,13 @@ import { computed, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { Card, Badge, Button, Icon, Modal, Field, Input, Select, ConfirmDialog } from '@coralyn/ui-kit';
 import { Role } from '@coralyn/contracts';
-import type { UmbrellaTypeDTO } from '@coralyn/contracts';
+import type { StructureRowDTO, StructureSectorDTO, UmbrellaTypeDTO, SectorKind } from '@coralyn/contracts';
 import { useSessionStore } from '@/stores/session';
 import {
-  useEstablishmentStructure, useCreateUmbrellaType, useUpdateUmbrellaType, useDeleteUmbrellaType,
+  useEstablishmentStructure,
+  useCreateUmbrellaType, useUpdateUmbrellaType, useDeleteUmbrellaType,
+  useCreateSector, useUpdateSector, useDeleteSector,
+  useCreateRow, useUpdateRow, useDeleteRow,
 } from './useEstablishmentStructure';
 
 const session = useSessionStore();
@@ -28,17 +31,16 @@ const selectedSector = computed(() => sectors.value.find((s) => s.id === selecte
 function selectSector(id: string) { selectedSectorId.value = id; }
 
 // --- Tipologie CRUD ---
-const create = useCreateUmbrellaType();
-const update = useUpdateUmbrellaType();
-const remove = useDeleteUmbrellaType();
+const createType = useCreateUmbrellaType();
+const updateType = useUpdateUmbrellaType();
+const removeType = useDeleteUmbrellaType();
 const typeModalOpen = ref(false);
-const editingId = ref<string | null>(null);
+const editingTypeId = ref<string | null>(null);
 const typeName = ref('');
 const typeIcon = ref<'umbrella' | 'leaf' | 'palmtree'>('umbrella');
-
-function openNewType() { editingId.value = null; typeName.value = ''; typeIcon.value = 'umbrella'; typeModalOpen.value = true; }
+function openNewType() { editingTypeId.value = null; typeName.value = ''; typeIcon.value = 'umbrella'; typeModalOpen.value = true; }
 function openEditType(t: UmbrellaTypeDTO) {
-  editingId.value = t.id; typeName.value = t.name;
+  editingTypeId.value = t.id; typeName.value = t.name;
   typeIcon.value = (t.icon as 'umbrella' | 'leaf' | 'palmtree') ?? 'umbrella';
   typeModalOpen.value = true;
 }
@@ -46,20 +48,75 @@ function submitType() {
   const name = typeName.value.trim();
   if (!name) return;
   const close = { onSuccess: () => { typeModalOpen.value = false; } };
-  if (editingId.value) update.mutate({ id: editingId.value, name, icon: typeIcon.value }, close);
-  else create.mutate({ name, icon: typeIcon.value }, close);
+  if (editingTypeId.value) updateType.mutate({ id: editingTypeId.value, name, icon: typeIcon.value }, close);
+  else createType.mutate({ name, icon: typeIcon.value }, close);
 }
-const pendingDelete = ref<{ id: string; name: string } | null>(null);
+const savingType = computed(() => createType.isPending.value || updateType.isPending.value);
+
+// --- Settori CRUD ---
+const createSector = useCreateSector();
+const updateSector = useUpdateSector();
+const removeSector = useDeleteSector();
+const sectorModalOpen = ref(false);
+const editingSectorId = ref<string | null>(null);
+const sectorName = ref('');
+const sectorKind = ref<SectorKind>('grid');
+function openNewSector() { editingSectorId.value = null; sectorName.value = ''; sectorKind.value = 'grid'; sectorModalOpen.value = true; }
+function openEditSector(s: StructureSectorDTO) { editingSectorId.value = s.id; sectorName.value = s.name; sectorKind.value = s.kind; sectorModalOpen.value = true; }
+function submitSector() {
+  const name = sectorName.value.trim();
+  if (!name) return;
+  if (editingSectorId.value) {
+    updateSector.mutate({ id: editingSectorId.value, name, kind: sectorKind.value }, { onSuccess: () => { sectorModalOpen.value = false; } });
+  } else {
+    createSector.mutate({ name, kind: sectorKind.value }, {
+      onSuccess: (res: StructureSectorDTO) => { sectorModalOpen.value = false; selectedSectorId.value = res.id; },
+    });
+  }
+}
+const savingSector = computed(() => createSector.isPending.value || updateSector.isPending.value);
+
+// --- File CRUD ---
+const createRow = useCreateRow();
+const updateRow = useUpdateRow();
+const removeRow = useDeleteRow();
+const rowModalOpen = ref(false);
+const editingRowId = ref<string | null>(null);
+const rowLabel = ref('');
+function openNewRow() { editingRowId.value = null; rowLabel.value = ''; rowModalOpen.value = true; }
+function openEditRow(r: StructureRowDTO) { editingRowId.value = r.id; rowLabel.value = r.label; rowModalOpen.value = true; }
+function submitRow() {
+  const label = rowLabel.value.trim();
+  if (!label) return;
+  const sector = selectedSector.value;
+  const close = { onSuccess: () => { rowModalOpen.value = false; } };
+  if (editingRowId.value) updateRow.mutate({ id: editingRowId.value, label }, close);
+  else if (sector) createRow.mutate({ sectorId: sector.id, label }, close);
+}
+const savingRow = computed(() => createRow.isPending.value || updateRow.isPending.value);
+
+// --- Elimina (ConfirmDialog generalizzato) ---
+const pendingDelete = ref<{ kind: 'type' | 'sector' | 'row'; id: string; name: string } | null>(null);
 const confirmDeleteOpen = ref(false);
-function askDeleteType(t: UmbrellaTypeDTO) { pendingDelete.value = { id: t.id, name: t.name }; confirmDeleteOpen.value = true; }
-function onConfirmDeleteType() {
+function askDeleteType(t: UmbrellaTypeDTO) { pendingDelete.value = { kind: 'type', id: t.id, name: t.name }; confirmDeleteOpen.value = true; }
+function askDeleteSector(s: StructureSectorDTO) { pendingDelete.value = { kind: 'sector', id: s.id, name: s.name }; confirmDeleteOpen.value = true; }
+function askDeleteRow(r: StructureRowDTO) { pendingDelete.value = { kind: 'row', id: r.id, name: r.label }; confirmDeleteOpen.value = true; }
+const confirmCopy = computed(() => {
+  const p = pendingDelete.value;
+  if (p?.kind === 'sector') return { title: 'Eliminare il settore?', description: `«${p.name}». Se contiene file o è usato da tariffe non sarà eliminato.` };
+  if (p?.kind === 'row') return { title: 'Eliminare la fila?', description: `«${p.name}». Se contiene ombrelloni o è usata da tariffe non sarà eliminata.` };
+  if (p?.kind === 'type') return { title: 'Eliminare definitivamente?', description: `«${p.name}» verrà rimossa in modo irreversibile dal catalogo. Se è in uso da ombrelloni non sarà eliminata.` };
+  return { title: '', description: '' };
+});
+function onConfirmDelete() {
   const p = pendingDelete.value;
   if (!p) return;
-  remove.mutate(p.id);
+  if (p.kind === 'type') removeType.mutate(p.id);
+  else if (p.kind === 'sector') removeSector.mutate(p.id);
+  else removeRow.mutate(p.id);
   confirmDeleteOpen.value = false;
   pendingDelete.value = null;
 }
-const savingType = computed(() => create.isPending.value || update.isPending.value);
 </script>
 
 <template>
@@ -81,15 +138,23 @@ const savingType = computed(() => create.isPending.value || update.isPending.val
       <div class="flex flex-col gap-4">
         <Card>
           <div class="p-4">
-            <div class="mb-3 text-sm font-bold text-[var(--color-text)]">Settori</div>
+            <div class="mb-3 flex items-center justify-between">
+              <span class="text-sm font-bold text-[var(--color-text)]">Settori</span>
+              <Button v-if="isAdmin" data-testid="add-sector" variant="secondary" @click="openNewSector"><Icon name="plus" :size="13" />Nuovo</Button>
+            </div>
             <div class="flex flex-col gap-2">
-              <button v-for="s in sectors" :key="s.id" data-testid="sector-row"
-                class="flex items-center justify-between rounded-[10px] border px-3 py-2 text-left"
-                :class="(selectedSector && selectedSector.id === s.id) ? 'border-[var(--color-brand)] bg-[var(--color-accent-tint)]' : 'border-[var(--color-border)]'"
-                @click="selectSector(s.id)">
-                <span class="text-[13px] font-semibold text-[var(--color-text)]">{{ s.name }}</span>
-                <Badge tone="neutral">{{ s.kind === 'special' ? 'Speciali' : 'Griglia' }}</Badge>
-              </button>
+              <div v-for="s in sectors" :key="s.id" data-testid="sector-row"
+                class="flex items-center gap-1 rounded-[10px] border px-2 py-1"
+                :class="(selectedSector && selectedSector.id === s.id) ? 'border-[var(--color-brand)] bg-[var(--color-accent-tint)]' : 'border-[var(--color-border)]'">
+                <button class="flex flex-1 items-center justify-between gap-2 py-1 text-left" @click="selectSector(s.id)">
+                  <span class="text-[13px] font-semibold text-[var(--color-text)]">{{ s.name }}</span>
+                  <Badge tone="neutral">{{ s.kind === 'special' ? 'Speciali' : 'Griglia' }}</Badge>
+                </button>
+                <template v-if="isAdmin">
+                  <Button data-testid="edit-sector" variant="secondary" @click="openEditSector(s)"><Icon name="edit" :size="12" /></Button>
+                  <Button data-testid="delete-sector" variant="secondary" @click="askDeleteSector(s)"><Icon name="trash-2" :size="12" /></Button>
+                </template>
+              </div>
               <p v-if="sectors.length === 0" class="py-2 text-sm text-[var(--color-text-muted)]">Nessun settore.</p>
             </div>
           </div>
@@ -122,12 +187,19 @@ const savingType = computed(() => create.isPending.value || update.isPending.val
           <div class="mb-3 flex items-center gap-2">
             <span class="text-sm font-bold text-[var(--color-text)]">Settore {{ selectedSector?.name ?? '—' }}</span>
             <Badge v-if="selectedSector" tone="neutral">{{ selectedSector.kind === 'special' ? 'Speciali' : 'Griglia' }}</Badge>
+            <Button v-if="isAdmin && selectedSector" data-testid="add-row" variant="secondary" class="ml-auto" @click="openNewRow"><Icon name="plus" :size="13" />Nuova fila</Button>
           </div>
           <div v-if="selectedSector" class="flex flex-col gap-3">
             <div v-for="r in selectedSector.rows" :key="r.id" data-testid="row-block" class="rounded-[12px] border border-[var(--color-border)] p-3">
-              <div class="mb-2 flex items-center justify-between">
+              <div class="mb-2 flex items-center justify-between gap-2">
                 <span class="text-[13px] font-semibold text-[var(--color-text)]">{{ r.label }}</span>
-                <span class="text-xs text-[var(--color-text-muted)]">{{ r.umbrellas.length }} {{ r.umbrellas.length === 1 ? 'ombrellone' : 'ombrelloni' }}</span>
+                <div class="flex items-center gap-2">
+                  <span class="text-xs text-[var(--color-text-muted)]">{{ r.umbrellas.length }} {{ r.umbrellas.length === 1 ? 'ombrellone' : 'ombrelloni' }}</span>
+                  <template v-if="isAdmin">
+                    <Button data-testid="edit-row" variant="secondary" @click="openEditRow(r)"><Icon name="edit" :size="12" /></Button>
+                    <Button data-testid="delete-row" variant="secondary" @click="askDeleteRow(r)"><Icon name="trash-2" :size="12" /></Button>
+                  </template>
+                </div>
               </div>
               <div class="flex flex-wrap gap-2">
                 <span v-for="u in r.umbrellas" :key="u.id" class="grid size-9 place-items-center rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] text-[12.5px] font-semibold tabular-nums text-[var(--color-text-2nd)]">{{ u.label }}</span>
@@ -140,7 +212,38 @@ const savingType = computed(() => create.isPending.value || update.isPending.val
       </Card>
     </div>
 
-    <Modal v-model:open="typeModalOpen" :title="editingId ? 'Modifica tipologia' : 'Nuova tipologia'" eyebrow="Tipologie">
+    <Modal v-model:open="sectorModalOpen" :title="editingSectorId ? 'Modifica settore' : 'Nuovo settore'" eyebrow="Settori">
+      <form class="flex flex-col gap-4" @submit.prevent="submitSector">
+        <Field label="Nome">
+          <Input name="sector-name" data-testid="sector-name" v-model="sectorName" placeholder="es. Prima fila mare" />
+        </Field>
+        <Field label="Disposizione">
+          <Select v-model="sectorKind" data-testid="sector-kind">
+            <option value="grid">Griglia</option>
+            <option value="special">Speciali</option>
+          </Select>
+        </Field>
+        <div class="flex justify-end gap-2">
+          <Button variant="secondary" type="button" @click="sectorModalOpen = false">Annulla</Button>
+          <Button type="submit" data-testid="sector-save" :disabled="savingSector">Salva settore</Button>
+        </div>
+      </form>
+    </Modal>
+
+    <Modal v-model:open="rowModalOpen" :title="editingRowId ? 'Modifica fila' : 'Nuova fila'" eyebrow="File">
+      <form class="flex flex-col gap-4" @submit.prevent="submitRow">
+        <Field label="Etichetta">
+          <Input name="row-label" data-testid="row-label" v-model="rowLabel" placeholder="es. Fila 1" />
+        </Field>
+        <p class="text-xs text-[var(--color-text-muted)]">Gli ombrelloni si aggiungono dopo aver creato la fila.</p>
+        <div class="flex justify-end gap-2">
+          <Button variant="secondary" type="button" @click="rowModalOpen = false">Annulla</Button>
+          <Button type="submit" data-testid="row-save" :disabled="savingRow">Salva fila</Button>
+        </div>
+      </form>
+    </Modal>
+
+    <Modal v-model:open="typeModalOpen" :title="editingTypeId ? 'Modifica tipologia' : 'Nuova tipologia'" eyebrow="Tipologie">
       <form class="flex flex-col gap-4" @submit.prevent="submitType">
         <Field label="Nome">
           <Input name="type-name" data-testid="type-name" v-model="typeName" placeholder="es. Gazebo" />
@@ -161,11 +264,11 @@ const savingType = computed(() => create.isPending.value || update.isPending.val
 
     <ConfirmDialog
       v-model:open="confirmDeleteOpen"
-      title="Eliminare definitivamente?"
-      :description="pendingDelete ? `«${pendingDelete.name}» verrà rimossa in modo irreversibile dal catalogo. Se è in uso da ombrelloni non sarà eliminata.` : ''"
+      :title="confirmCopy.title"
+      :description="confirmCopy.description"
       confirm-label="Elimina"
       tone="danger"
-      @confirm="onConfirmDeleteType"
+      @confirm="onConfirmDelete"
     />
   </section>
 </template>
