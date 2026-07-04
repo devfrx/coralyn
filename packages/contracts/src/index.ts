@@ -437,3 +437,16 @@ export interface UpdateSectorInput { name?: string; kind?: SectorKind; }
 /** File (editor struttura, admin-only). Slice 2 = create-fila (label); il generatore è Slice 3. */
 export interface CreateRowInput { sectorId: string; label: string; }
 export interface UpdateRowInput { label?: string; }
+
+/** Ombrelloni singoli (editor struttura, admin-only). umbrellaTypeId null = Normale. */
+export interface CreateUmbrellaInput { rowId: string; label: string; umbrellaTypeId: string | null; }
+export interface UpdateUmbrellaInput { label?: string; umbrellaTypeId?: string | null; }
+/** Generatore a numerazione automatica in una fila (admin-only). */
+export interface GenerateUmbrellasInput {
+  rowId: string;
+  prefix: string;                // '' = solo numero
+  start: number;                 // "Da numero"
+  count: number;                 // "Quantità" (1..60)
+  umbrellaTypeId: string | null; // tipologia predefinita del batch
+}
+export interface GenerateUmbrellasResultDTO { created: number; skipped: number; umbrellas: StructureUmbrellaDTO[]; }
