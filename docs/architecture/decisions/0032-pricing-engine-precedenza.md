@@ -63,16 +63,35 @@ specifica, anche se quest'ultima è più specifica sulle dimensioni 2–6.
 
 ### 3. Vincolo di non-ambiguità per costruzione (`@@unique` + `NULLS NOT DISTINCT`)
 
-Due `Rate` con la **stessa identica firma di dimensioni** sono impossibili per costruzione:
+Due `Rate` con la **stessa identica firma di dimensioni** sono impossibili per costruzione: un indice
+unico sulle otto colonne della firma, con **`NULLS NOT DISTINCT`** (Postgres 16), fa sì che due righe
+con le stesse dimensioni null violino il vincolo esattamente come due righe con gli stessi valori
+non-null. Conseguenza: nessun pareggio finale possibile tra candidati nell'engine — il vincolo lo
+esclude a livello DB, prima ancora che l'engine debba arbitrare.
 
-```prisma
-@@unique([pricingId, type, sectorId, rowId, packageId, timeSlotId, periodStart, periodEnd])
+**Implementazione (risoluzione [D-039], 2026-07-04).** Prisma **non sa emettere** `NULLS NOT DISTINCT`,
+quindi l'indice è creato in **raw SQL** dalla migrazione `20260630203447_pricing` — quella migrazione è
+**autoritativa** per il modificatore:
+
+```sql
+CREATE UNIQUE INDEX "Rate_signature_key" ON "Rate"
+  ("pricingId", "type", "sectorId", "rowId", "packageId", "timeSlotId", "periodStart", "periodEnd")
+  NULLS NOT DISTINCT;
 ```
 
-L'indice usa **`NULLS NOT DISTINCT`** (Postgres 16): due righe con le stesse dimensioni null
-violano il vincolo esattamente come due righe con gli stessi valori non-null. Conseguenza:
-nessun pareggio finale possibile tra candidati nell'engine — il vincolo lo esclude a livello DB,
-prima ancora che l'engine debba arbitrare.
+Lo `schema.prisma` dichiara lo **stesso** indice come annotazione, agganciato per nome:
+
+```prisma
+@@unique([pricingId, type, sectorId, rowId, packageId, timeSlotId, periodStart, periodEnd], map: "Rate_signature_key")
+```
+
+Questo `@@unique` serve **solo** a rendere Prisma **consapevole** dell'indice: Prisma è "cieco" al
+modificatore `NULLS NOT DISTINCT` (non lo modella né prova a ricrearlo), quindi `migrate diff` /
+`migrate dev` vedono lo schema e il DB **allineati** e **non** generano più un `DROP INDEX` spurio a
+ogni migrazione (il difetto che aveva colpito la migrazione `add_user_disabled_at` di Fase 2).
+Verificato: `migrate diff` (DB→schema e migrazioni→schema via shadow DB) = *empty migration*. ⚠️ **Non
+usare `prisma db push`**: ricrea l'indice **senza** `NULLS NOT DISTINCT`. Il modificatore vive nella
+migrazione raw, che resta l'unica fonte per la creazione dell'indice.
 
 ### 4. Engine puro (`resolvePrice`)
 

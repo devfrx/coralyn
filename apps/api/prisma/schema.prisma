@@ -269,6 +269,12 @@ model Rate {
   package         Package?      @relation(fields: [packageId], references: [id])
   timeSlot        TimeSlot?     @relation(fields: [timeSlotId], references: [id])
 
+  // Firma unica delle dimensioni (ADR-0032). L'indice è creato in raw SQL con NULLS NOT DISTINCT
+  // dalla migrazione 20260630203447_pricing (Prisma non emette il modificatore): questo @@unique
+  // serve SOLO a rendere Prisma consapevole dell'indice (stesso nome via map) ed evitare il drift
+  // (DROP INDEX spurio a ogni migrate dev). ⚠️ NON usare `prisma db push` (creerebbe l'indice senza
+  // NULLS NOT DISTINCT); il modificatore vive nella migrazione, autoritativa. Vedi D-039.
+  @@unique([pricingId, type, sectorId, rowId, packageId, timeSlotId, periodStart, periodEnd], map: "Rate_signature_key")
   @@index([establishmentId])
   @@index([pricingId])
 }
