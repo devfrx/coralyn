@@ -150,11 +150,11 @@ function firstFreeSlot(): string {
   const free = timeSlots.value.find((s) => (u.stateBySlot[s.id] ?? 'free') === 'free');
   return free?.id ?? timeSlots.value[0]?.id ?? '';
 }
-function openModal(): void {
+function openModal(presetType: BookingType = 'daily'): void {
   selectedSlotId.value = firstFreeSlot();
   customerId.value = '';
   packageId.value = '';
-  bookingType.value = 'daily';
+  bookingType.value = presetType;
   endDate.value = '';
   modalBooking.value = true;
 }
@@ -334,11 +334,8 @@ const freeSlotOptions = computed(() =>
           Postazione disponibile<br />per l'intera giornata.
         </div>
         <div class="mt-auto flex flex-col gap-2 pt-4">
-          <Button @click="openModal"><Icon name="plus" :size="17" />Nuova prenotazione</Button>
-          <div class="flex gap-2">
-            <Button variant="secondary" class="flex-1"><Icon name="star" :size="15" />Abbonamento</Button>
-            <Button variant="secondary" class="flex-1"><Icon name="check" :size="15" />Presenza</Button>
-          </div>
+          <Button @click="openModal()"><Icon name="plus" :size="17" />Nuova prenotazione</Button>
+          <Button variant="secondary" @click="openModal('subscription')"><Icon name="star" :size="15" />Abbonamento</Button>
         </div>
       </aside>
     </div>

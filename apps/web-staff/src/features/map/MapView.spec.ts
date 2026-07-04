@@ -414,5 +414,48 @@ describe('MapView', () => {
     w.unmount();
   });
 
+  it('il bottone «Abbonamento» apre il modale con Tipo preimpostato su Abbonamento', async () => {
+    const w = mountApp(MapView, { attachTo: document.body });
+    await flushPromises();
+    await new Promise((r) => setTimeout(r, 0));
+    await flushPromises();
+
+    // Apri il drawer su un ombrellone.
+    await w.findComponent({ name: 'UmbrellaCell' }).find('button').trigger('click');
+    await flushPromises();
+
+    // Clic sul bottone «Abbonamento» del drawer (oggi morto → il modale non si apre).
+    const abbBtn = w.findAll('button').find((b) => b.text().includes('Abbonamento'));
+    expect(abbBtn).toBeTruthy();
+    await abbBtn!.trigger('click');
+    await flushPromises();
+    await new Promise((r) => setTimeout(r, 0));
+    await flushPromises();
+
+    // Modale aperto e Tipo preimpostato su Abbonamento (help text specifico + valore del select).
+    expect(document.body.textContent).toContain('Conferma prenotazione');
+    expect(document.body.textContent).toContain('Tutta la stagione, prezzo forfait.');
+    const typeSelect = document.body.querySelectorAll('select')[0] as HTMLSelectElement;
+    expect(typeSelect.value).toBe('subscription');
+
+    w.unmount();
+  });
+
+  it('il bottone «Presenza» è stato rimosso dal drawer', async () => {
+    const w = mountApp(MapView, { attachTo: document.body });
+    await flushPromises();
+    await new Promise((r) => setTimeout(r, 0));
+    await flushPromises();
+
+    await w.findComponent({ name: 'UmbrellaCell' }).find('button').trigger('click');
+    await flushPromises();
+
+    const aside = w.find('aside');
+    expect(aside.exists()).toBe(true);
+    expect(aside.findAll('button').some((b) => b.text().includes('Presenza'))).toBe(false);
+
+    w.unmount();
+  });
+
   afterEach(() => { vi.restoreAllMocks(); });
 });
