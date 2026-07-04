@@ -13,4 +13,5 @@ export const queryKeys = {
   rates: (tenantId: string, seasonId: string) => ['rates', tenantId, seasonId] as const,
   timeSlots: (tenantId: string) => ['time-slots', tenantId] as const,
   renewalCampaign: (tenantId: string, destinationSeasonId: string) => ['renewalCampaign', tenantId, destinationSeasonId] as const,
+  reportSummary: (tenantId: string, period: string) => ['report', tenantId, 'summary', period] as const,
 };

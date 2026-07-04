@@ -303,6 +303,24 @@ export const server = setupServer(
     );
   }),
   http.delete('/api/bookings/:id', () => new HttpResponse(null, { status: 200 })),
+  http.get('/api/reports/summary', ({ request }) => {
+    const period = new URL(request.url).searchParams.get('period') ?? 'week';
+    return HttpResponse.json({
+      period,
+      kpis: { revenue: 2340, outstanding: 180, occupancyPct: 78, activeSubscriptions: 64 },
+      revenueSeries: [
+        { label: 'Lun', value: 1280 }, { label: 'Mar', value: 1540 }, { label: 'Mer', value: 1180 },
+        { label: 'Gio', value: 1720 }, { label: 'Ven', value: 1960 }, { label: 'Sab', value: 2340 }, { label: 'Dom', value: 1760 },
+      ],
+      umbrellaStateMix: [
+        { state: 'season', count: 48, pct: 48 }, { state: 'daily', count: 18, pct: 18 },
+        { state: 'booked', count: 12, pct: 12 }, { state: 'free', count: 22, pct: 22 },
+      ],
+      expiringRenewals: [
+        { customerId: 'c-1', customerName: 'Mario Rossi', umbrellaLabel: '8', seniority: 6, deadline: '2026-07-04' },
+      ],
+    });
+  }),
   http.patch('/api/bookings/:id/payment', async ({ params, request }) => {
     const b = (await request.json()) as { amountCollected: number; paymentMethod?: string; collectionDate?: string };
     const paid = b.amountCollected > 0;
