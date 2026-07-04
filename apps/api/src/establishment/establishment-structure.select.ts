@@ -17,3 +17,10 @@ export const SECTOR_SELECT = Prisma.validator<Prisma.SectorSelect>()({
   kind: true,
   rows: { orderBy: { sortOrder: 'asc' }, select: ROW_SELECT },
 });
+
+export const UMBRELLA_SELECT = Prisma.validator<Prisma.UmbrellaSelect>()({
+  id: true,
+  label: true,
+  umbrellaTypeId: true,
+  logicalOrder: true,
+});

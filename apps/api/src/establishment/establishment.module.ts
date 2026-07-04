@@ -11,6 +11,8 @@ import { SectorsController } from './sectors.controller';
 import { SectorsService } from './sectors.service';
 import { RowsController } from './rows.controller';
 import { RowsService } from './rows.service';
+import { UmbrellasController } from './umbrellas.controller';
+import { UmbrellasService } from './umbrellas.service';
 import { PasswordHasher } from '../identity/password-hasher';
 
 @Module({
@@ -21,6 +23,7 @@ import { PasswordHasher } from '../identity/password-hasher';
     UmbrellaTypesController,
     SectorsController,
     RowsController,
+    UmbrellasController,
   ],
   providers: [
     EstablishmentService,
@@ -29,6 +32,7 @@ import { PasswordHasher } from '../identity/password-hasher';
     UmbrellaTypesService,
     SectorsService,
     RowsService,
+    UmbrellasService,
     PasswordHasher,
   ],
 })

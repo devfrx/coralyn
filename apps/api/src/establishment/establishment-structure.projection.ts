@@ -1,15 +1,16 @@
-import type { EstablishmentStructureDTO, SectorKind, StructureRowDTO, StructureSectorDTO, UmbrellaTypeDTO } from '@coralyn/contracts';
+import type { EstablishmentStructureDTO, SectorKind, StructureRowDTO, StructureSectorDTO, StructureUmbrellaDTO, UmbrellaTypeDTO } from '@coralyn/contracts';
 
 type RawUmbrella = { id: string; label: string; umbrellaTypeId: string | null; logicalOrder: number };
 type RawRow = { id: string; label: string; sortOrder: number; umbrellas: RawUmbrella[] };
 type RawSector = { id: string; name: string; sortOrder: number; kind: string; rows: RawRow[] };
 type RawType = { id: string; name: string; sortOrder: number; icon: string | null };
 
+export function toStructureUmbrella(u: RawUmbrella): StructureUmbrellaDTO {
+  return { id: u.id, label: u.label, umbrellaTypeId: u.umbrellaTypeId };
+}
+
 export function toStructureRow(r: RawRow): StructureRowDTO {
-  return {
-    id: r.id, label: r.label, sortOrder: r.sortOrder,
-    umbrellas: r.umbrellas.map((u) => ({ id: u.id, label: u.label, umbrellaTypeId: u.umbrellaTypeId })),
-  };
+  return { id: r.id, label: r.label, sortOrder: r.sortOrder, umbrellas: r.umbrellas.map(toStructureUmbrella) };
 }
 
 export function toStructureSector(s: RawSector): StructureSectorDTO {
