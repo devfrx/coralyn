@@ -83,4 +83,12 @@ describe('CredentialSetupService', () => {
     await expect(svc.issueAndSend('u1', 'a@lido.test', 'invite', 'su1')).resolves.toEqual({ expiresAt: expect.any(Date) });
     expect(tokens).toHaveLength(1); // token persistito nonostante il fallimento invio
   });
+
+  it('issueAndSend: esegue auditWithinTx dentro la transazione', async () => {
+    const { client } = makePrisma();
+    const svc = new CredentialSetupService(client, hasher, mailer, config);
+    const audit = jest.fn().mockResolvedValue(undefined);
+    await svc.issueAndSend('u1', 'a@lido.test', 'reset', 'su1', audit);
+    expect(audit).toHaveBeenCalledTimes(1);
+  });
 });

@@ -20,7 +20,10 @@ function makeService(txOverrides: any = {}) {
   } as any;
   const hasher = { hash: jest.fn().mockResolvedValue('hashed') } as any;
   const metrics = { getOne: jest.fn().mockResolvedValue(DTO) } as any;
-  const credentials = { issueAndSend: jest.fn().mockResolvedValue({ expiresAt: EXPIRES }) } as any;
+  const credentials = { issueAndSend: jest.fn().mockImplementation(async (_u, _e, _p, _a, auditWithinTx) => {
+    if (auditWithinTx) await auditWithinTx(prisma); // esegue l'audit come farebbe la vera tx
+    return { expiresAt: EXPIRES };
+  }) } as any;
   return { service: new PlatformProvisioningService(prisma, hasher, metrics, credentials), tx, prisma, hasher, metrics, credentials };
 }
 
@@ -53,7 +56,7 @@ describe('PlatformProvisioningService', () => {
   it('resetAdminPassword: emette invito reset e scrive audit quando c’è un unico admin attivo', async () => {
     const { service, prisma, credentials } = makeService();
     const res = await service.resetAdminPassword('e-new', 'su-1');
-    expect(credentials.issueAndSend).toHaveBeenCalledWith('admin-1', 'admin@lidox.it', 'reset', 'su-1');
+    expect(credentials.issueAndSend).toHaveBeenCalledWith('admin-1', 'admin@lidox.it', 'reset', 'su-1', expect.any(Function));
     expect(prisma.platformAuditLog.create).toHaveBeenCalledWith(expect.objectContaining({
       data: expect.objectContaining({ actorUserId: 'su-1', action: 'reset_admin_password', targetEstablishmentId: 'e-new' }),
     }));

@@ -54,17 +54,21 @@ export class PlatformProvisioningService {
   async resetAdminPassword(establishmentId: string, actorUserId: string): Promise<ResetAdminPasswordResponse> {
     const est = await this.prisma.establishment.findUnique({ where: { id: establishmentId }, select: { id: true } });
     if (!est) throw new NotFoundException('Stabilimento non trovato');
+    // TOCTOU accettata: azione superuser umana, bassa concorrenza; nessun lock necessario.
     const admins = await this.prisma.user.findMany({
       where: { establishmentId, role: 'admin', disabledAt: null },
       select: { id: true, email: true },
     });
+    // 409 volutamente unico per 0 e >1 admin: entrambi = "reset non risolvibile automaticamente da qui".
     if (admins.length !== 1) {
       throw new ConflictException('Il lido non ha un unico admin attivo: reset non disponibile da qui');
     }
     const admin = admins[0];
-    const { expiresAt } = await this.credentials.issueAndSend(admin.id, admin.email, 'reset', actorUserId);
-    await this.prisma.platformAuditLog.create({
-      data: { actorUserId, action: 'reset_admin_password', targetEstablishmentId: establishmentId, metadata: { adminEmail: admin.email } },
+    // Audit dentro la stessa transazione dell'emissione token (coerente con create/setSuspended).
+    const { expiresAt } = await this.credentials.issueAndSend(admin.id, admin.email, 'reset', actorUserId, async (tx) => {
+      await tx.platformAuditLog.create({
+        data: { actorUserId, action: 'reset_admin_password', targetEstablishmentId: establishmentId, metadata: { adminEmail: admin.email } },
+      });
     });
     return { adminEmail: admin.email, expiresAt: expiresAt.toISOString() };
   }

@@ -1,5 +1,6 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import type { Prisma } from '@prisma/client';
 import type { CredentialSetupContext, CredentialTokenPurpose } from '@coralyn/contracts';
 import { PrismaService } from '../prisma/prisma.service';
 import { PasswordHasher } from '../identity/password-hasher';
@@ -30,6 +31,7 @@ export class CredentialSetupService {
     email: string,
     purpose: CredentialTokenPurpose,
     createdByUserId: string,
+    auditWithinTx?: (tx: Prisma.TransactionClient) => Promise<void>,
   ): Promise<{ expiresAt: Date }> {
     const raw = generateRawToken();
     const tokenHash = hashToken(raw);
@@ -37,6 +39,7 @@ export class CredentialSetupService {
     await this.prisma.$transaction(async (tx) => {
       await tx.credentialSetupToken.updateMany({ where: { userId, consumedAt: null }, data: { consumedAt: new Date() } });
       await tx.credentialSetupToken.create({ data: { userId, tokenHash, purpose, expiresAt, createdByUserId } });
+      if (auditWithinTx) await auditWithinTx(tx);
     });
     // Contratto: persist-then-best-effort-send. Il token è già persistito; se l'invio fallisce
     // il link è comunque ri-emettibile via reset-admin-password. Non facciamo 500 su una create
