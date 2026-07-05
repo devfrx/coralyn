@@ -3,6 +3,7 @@ import { computed } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { Button, Icon } from '@coralyn/ui-kit';
 import { useSessionStore } from '@/stores/session';
+import ToastHost from './ToastHost.vue';
 
 const route = useRoute();
 const router = useRouter();
@@ -49,4 +50,5 @@ function logout(): void {
       <RouterView />
     </main>
   </div>
+  <ToastHost />
 </template>

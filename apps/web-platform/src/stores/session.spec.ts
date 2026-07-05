@@ -32,4 +32,13 @@ describe('session store (platform)', () => {
     expect(s.authenticated).toBe(false);
     expect(spy).not.toHaveBeenCalled();
   });
+
+  it('rehydrate: token presente ma /me non-superuser → logout, non autenticato', async () => {
+    localStorage.setItem(TOKEN_KEY, 'tok');
+    vi.spyOn(http, 'apiFetch').mockResolvedValue({ id: 'a', email: 'a@lido.test', role: Role.Admin, establishmentId: 'e-1' } as any);
+    const s = useSessionStore();
+    await s.rehydrate();
+    expect(s.authenticated).toBe(false);
+    expect(localStorage.getItem(TOKEN_KEY)).toBeNull();
+  });
 });

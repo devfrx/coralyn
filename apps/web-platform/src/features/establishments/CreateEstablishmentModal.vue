@@ -5,7 +5,6 @@ import type { CreateEstablishmentResponse } from '@coralyn/contracts';
 import { useCreateEstablishment } from './usePlatformEstablishments';
 
 const open = defineModel<boolean>('open', { required: true });
-const emit = defineEmits<{ created: [] }>();
 
 const phase = ref<'form' | 'result'>('form');
 const name = ref('');
@@ -56,7 +55,6 @@ async function copyPassword(): Promise<void> {
 
 function done(): void {
   open.value = false;
-  emit('created');
 }
 </script>
 
