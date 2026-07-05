@@ -35,7 +35,12 @@ export const handlers = [
     const body = (await request.json()) as { name: string; adminEmail: string };
     const dto = baseDto({ id: `e-${seed.length + 1}`, name: body.name });
     seed.push(dto);
-    return HttpResponse.json({ establishment: dto, adminEmail: body.adminEmail, temporaryPassword: 'Tmp-abc123XYZ' }, { status: 201 });
+    return HttpResponse.json({ establishment: dto, adminEmail: body.adminEmail, expiresAt: '2026-07-08T10:00:00.000Z' }, { status: 201 });
+  }),
+  http.post('/api/platform/establishments/:id/reset-admin-password', ({ params }) => {
+    const e = seed.find((x) => x.id === params.id);
+    if (!e) return new HttpResponse(null, { status: 404 });
+    return HttpResponse.json({ adminEmail: 'admin@lido.test', expiresAt: '2026-07-08T10:00:00.000Z' }, { status: 201 });
   }),
   http.post('/api/platform/establishments/:id/suspend', ({ params }) => {
     const e = seed.find((x) => x.id === params.id);

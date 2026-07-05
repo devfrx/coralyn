@@ -2,7 +2,8 @@
 import { computed, ref } from 'vue';
 import { useRoute } from 'vue-router';
 import { Badge, Button, ConfirmDialog, EmptyState, StatTile, formatEuro } from '@coralyn/ui-kit';
-import { useEstablishmentDetail, useSuspendEstablishment, useReactivateEstablishment } from './usePlatformEstablishments';
+import { useEstablishmentDetail, useSuspendEstablishment, useReactivateEstablishment, useResetAdminPassword } from './usePlatformEstablishments';
+import { pushToast } from '@/lib/toasts';
 
 const route = useRoute();
 const id = () => String(route.params.id);
@@ -16,8 +17,10 @@ function fmtDate(iso: string | null | undefined): string {
 
 const suspend = useSuspendEstablishment();
 const reactivate = useReactivateEstablishment();
+const resetPw = useResetAdminPassword();
 
 const confirmOpen = ref(false);
+const resetOpen = ref(false);
 
 const confirmCopy = computed(() => {
   const e = data.value;
@@ -39,6 +42,18 @@ async function onConfirmAction(): Promise<void> {
   if (!e.suspendedAt) await suspend.mutateAsync(e.id);
   else await reactivate.mutateAsync(e.id);
   await refetch();
+}
+
+function askReset(): void {
+  resetOpen.value = true;
+}
+
+async function onConfirmReset(): Promise<void> {
+  resetOpen.value = false;
+  const e = data.value;
+  if (!e) return;
+  const res = await resetPw.mutateAsync(e.id);
+  pushToast(`Invito di reset inviato a ${res.adminEmail}.`);
 }
 </script>
 
@@ -64,6 +79,12 @@ async function onConfirmAction(): Promise<void> {
           :disabled="suspend.isPending.value || reactivate.isPending.value"
           @click="askAction"
         >{{ data.suspendedAt ? 'Riattiva' : 'Sospendi' }}</Button>
+        <Button
+          data-testid="reset-admin"
+          variant="secondary"
+          :disabled="resetPw.isPending.value"
+          @click="askReset"
+        >Reset password admin</Button>
       </div>
 
       <div class="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
@@ -86,6 +107,14 @@ async function onConfirmAction(): Promise<void> {
       :description="confirmCopy.description"
       :confirm-label="confirmCopy.confirmLabel"
       @confirm="onConfirmAction"
+    />
+
+    <ConfirmDialog
+      v-model:open="resetOpen"
+      title="Reset password admin?"
+      :description="`Invieremo a «${data?.name}» un'email con un link per reimpostare la password dell'amministratore.`"
+      confirm-label="Invia invito di reset"
+      @confirm="onConfirmReset"
     />
   </section>
 </template>

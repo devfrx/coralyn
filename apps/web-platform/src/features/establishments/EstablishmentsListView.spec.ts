@@ -18,7 +18,7 @@ describe('EstablishmentsListView', () => {
     w.unmount();
   });
 
-  it('crea un lido → mostra la password temporanea una-tantum', async () => {
+  it('crea un lido → mostra la conferma di invito email (nessuna password)', async () => {
     const w = mountApp(EstablishmentsListView, { attachTo: document.body });
     await settle();
     await w.find('[data-testid="new-establishment"]').trigger('click');
@@ -29,7 +29,9 @@ describe('EstablishmentsListView', () => {
     mail.value = 'a@gamma.test'; mail.dispatchEvent(new Event('input', { bubbles: true }));
     (document.querySelector('[data-testid="create-submit"]') as HTMLButtonElement).click();
     await settle();
-    expect(document.querySelector('[data-testid="temp-password"]')!.textContent).toBeTruthy();
+    expect(document.querySelector('[data-testid="invite-email"]')!.textContent).toContain('a@gamma.test');
+    expect(document.querySelector('[data-testid="invite-expires"]')!.textContent).toBeTruthy();
+    expect(document.querySelector('[data-testid="temp-password"]')).toBeNull();
     w.unmount();
   });
 

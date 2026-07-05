@@ -11,9 +11,13 @@ const name = ref('');
 const adminEmail = ref('');
 const errorMessage = ref('');
 const result = ref<CreateEstablishmentResponse | null>(null);
-const copied = ref(false);
 
 const create = useCreateEstablishment();
+
+const EXPIRES_FMT = new Intl.DateTimeFormat('it-IT', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Rome' });
+function fmtExpires(iso: string | undefined): string {
+  return iso ? EXPIRES_FMT.format(new Date(iso)) : '—';
+}
 
 function resetForm(): void {
   phase.value = 'form';
@@ -21,7 +25,6 @@ function resetForm(): void {
   adminEmail.value = '';
   errorMessage.value = '';
   result.value = null;
-  copied.value = false;
 }
 
 watch(open, (isOpen) => {
@@ -39,17 +42,6 @@ async function submit(): Promise<void> {
     phase.value = 'result';
   } catch (error) {
     errorMessage.value = error instanceof Error ? error.message : 'Impossibile creare il lido.';
-  }
-}
-
-async function copyPassword(): Promise<void> {
-  const pwd = result.value?.temporaryPassword;
-  if (!pwd) return;
-  try {
-    await navigator.clipboard?.writeText(pwd);
-    copied.value = true;
-  } catch {
-    // clipboard non disponibile: nessuna azione, la password resta visibile per copia manuale.
   }
 }
 
@@ -76,17 +68,16 @@ function done(): void {
 
     <div v-else class="flex flex-col gap-4">
       <p class="text-sm text-[var(--color-text)]">
-        Lido <strong>{{ result?.establishment.name }}</strong> creato. Credenziali iniziali per
-        <strong>{{ result?.adminEmail }}</strong>:
+        Lido <strong>{{ result?.establishment.name }}</strong> creato. Abbiamo inviato un invito per impostare la password
+        dell'amministratore a:
       </p>
       <div class="rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-raised)] p-4">
-        <div class="mb-1 text-[11px] font-semibold uppercase tracking-[.05em] text-[var(--color-text-muted)]">Password temporanea</div>
-        <div class="flex items-center gap-3">
-          <span data-testid="temp-password" class="flex-1 font-mono text-sm font-semibold tabular-nums text-[var(--color-text)]">{{ result?.temporaryPassword }}</span>
-          <Button variant="secondary" type="button" @click="copyPassword">{{ copied ? 'Copiata' : 'Copia' }}</Button>
-        </div>
+        <div class="mb-1 text-[11px] font-semibold uppercase tracking-[.05em] text-[var(--color-text-muted)]">Email amministratore</div>
+        <div data-testid="invite-email" class="text-sm font-semibold text-[var(--color-text)]">{{ result?.adminEmail }}</div>
+        <div class="mb-1 mt-3 text-[11px] font-semibold uppercase tracking-[.05em] text-[var(--color-text-muted)]">Il link scade il</div>
+        <div data-testid="invite-expires" class="text-sm font-semibold tabular-nums text-[var(--color-text)]">{{ fmtExpires(result?.expiresAt) }}</div>
       </div>
-      <p class="text-xs text-[var(--color-danger)]">Questa password viene mostrata una sola volta: annotala ora, non potrà essere recuperata di nuovo.</p>
+      <p class="text-xs text-[var(--color-text-muted)]">L'amministratore dovrà impostare la password seguendo il link ricevuto via email prima della scadenza.</p>
       <div class="flex justify-end">
         <Button data-testid="create-done" @click="done">Fatto</Button>
       </div>
