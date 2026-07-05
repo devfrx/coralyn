@@ -4,6 +4,7 @@ import type {
   CreateStaffUserInput,
   UpdateStaffUserInput,
   EstablishmentMemberDTO,
+  ResetStaffPasswordResponse,
 } from '@coralyn/contracts';
 import { apiFetch } from '@/lib/http';
 import { queryKeys } from '@/lib/queryKeys';
@@ -42,5 +43,14 @@ export function useSetStaffUserDisabled() {
     mutationFn: (vars: { id: string } & UpdateStaffUserInput) =>
       apiFetch<EstablishmentMemberDTO>(`/establishment/users/${vars.id}`, { method: 'PATCH', body: JSON.stringify({ disabled: vars.disabled }) }),
     invalidates: () => [queryKeys.establishmentOverview(session.establishmentId)],
+  });
+}
+
+export function useResetStaffPassword() {
+  return mutationResource({
+    mutationFn: (id: string) =>
+      apiFetch<ResetStaffPasswordResponse>(`/establishment/users/${id}/reset-password`, { method: 'POST' }),
+    // Il reset non modifica l'overview: nessuna query da invalidare.
+    invalidates: () => [],
   });
 }

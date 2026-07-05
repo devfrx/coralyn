@@ -1,10 +1,11 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
 import { useRouter } from 'vue-router';
-import { Card, StatTile, Badge, Button, Avatar, Icon, Modal, Field, Input, Select } from '@coralyn/ui-kit';
+import { Card, StatTile, Badge, Button, Avatar, Icon, Modal, Field, Input, Select, ConfirmDialog } from '@coralyn/ui-kit';
 import { Role } from '@coralyn/contracts';
 import { useSessionStore } from '@/stores/session';
-import { useEstablishmentOverview, useRenameEstablishment, useCreateStaffUser, useSetStaffUserDisabled } from './useEstablishment';
+import { pushToast } from '@/lib/toasts';
+import { useEstablishmentOverview, useRenameEstablishment, useCreateStaffUser, useSetStaffUserDisabled, useResetStaffPassword } from './useEstablishment';
 
 const session = useSessionStore();
 const router = useRouter();
@@ -70,30 +71,41 @@ function submitRename() {
 
 const addOpen = ref(false);
 const newEmail = ref('');
-const newPassword = ref('');
 const newRole = ref<'admin' | 'staff'>('staff');
 const createUser = useCreateStaffUser();
 const setDisabled = useSetStaffUserDisabled();
+const resetStaff = useResetStaffPassword();
 const creating = computed(() => createUser.isPending.value);
 const togglingDisabled = computed(() => setDisabled.isPending.value);
 
 function openAddUser() {
   newEmail.value = '';
-  newPassword.value = '';
   newRole.value = 'staff';
   addOpen.value = true;
 }
 function submitAddUser() {
   const email = newEmail.value.trim();
-  const password = newPassword.value;
-  if (!email || !password) return;
+  if (!email) return;
   createUser.mutate(
-    { email, password, role: newRole.value },
-    { onSuccess: () => { addOpen.value = false; } },
+    { email, role: newRole.value },
+    { onSuccess: () => { addOpen.value = false; pushToast(`Invito inviato a ${email}.`); } },
   );
 }
 function toggleDisabled(u: { id: string; disabled: boolean }) {
   setDisabled.mutate({ id: u.id, disabled: !u.disabled });
+}
+
+const resetOpen = ref(false);
+const resetTarget = ref<{ id: string; email: string } | null>(null);
+function askReset(u: { id: string; email: string }) {
+  resetTarget.value = { id: u.id, email: u.email };
+  resetOpen.value = true;
+}
+function onConfirmReset() {
+  const t = resetTarget.value;
+  if (!t) return;
+  resetOpen.value = false;
+  resetStaff.mutate(t.id, { onSuccess: () => pushToast(`Link di reset inviato a ${t.email}.`) });
 }
 </script>
 
@@ -160,6 +172,7 @@ function toggleDisabled(u: { id: string; disabled: boolean }) {
             </div>
             <Badge :tone="u.tone">{{ u.roleLabel }}</Badge>
             <Button v-if="isAdmin && !u.you" data-testid="toggle-user-disabled" variant="secondary" :disabled="togglingDisabled" @click="toggleDisabled(u)">{{ u.disabled ? 'Riabilita' : 'Disabilita' }}</Button>
+            <Button v-if="isAdmin && !u.you && !u.disabled" data-testid="reset-user-password" variant="secondary" :disabled="resetStaff.isPending.value" @click="askReset(u)">Reset password</Button>
           </div>
         </div>
       </div>
@@ -193,20 +206,26 @@ function toggleDisabled(u: { id: string; disabled: boolean }) {
         <Field label="Email">
           <Input name="new-user-email" data-testid="new-user-email" v-model="newEmail" type="email" placeholder="nome@stabilimento.it" />
         </Field>
-        <Field label="Password iniziale">
-          <Input name="new-user-password" data-testid="new-user-password" v-model="newPassword" type="password" placeholder="Almeno 8 caratteri" />
-        </Field>
         <Field label="Ruolo">
           <Select v-model="newRole" data-testid="new-user-role">
             <option value="staff">Staff</option>
             <option value="admin">Amministratore</option>
           </Select>
         </Field>
+        <p class="text-xs leading-relaxed text-[var(--color-text-muted)]">Riceverà un'email per impostare la propria password.</p>
         <div class="flex justify-end gap-2">
           <Button variant="secondary" type="button" @click="addOpen = false">Annulla</Button>
-          <Button type="submit" data-testid="new-user-save" :disabled="creating">Crea utente</Button>
+          <Button type="submit" data-testid="new-user-save" :disabled="creating">Invia invito</Button>
         </div>
       </form>
     </Modal>
+
+    <ConfirmDialog
+      v-model:open="resetOpen"
+      title="Reset password?"
+      :description="`Invieremo a ${resetTarget?.email ?? ''} un'email per impostare una nuova password. La password attuale resta valida finché non ne imposta una nuova.`"
+      confirm-label="Invia link di reset"
+      @confirm="onConfirmReset"
+    />
   </section>
 </template>

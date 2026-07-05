@@ -5,6 +5,7 @@ import { http, HttpResponse } from 'msw';
 import { mountApp } from '@/test/utils';
 import { server } from '@/mocks/server';
 import { useSessionStore } from '@/stores/session';
+import { useToasts } from '@/lib/toasts';
 import EstablishmentView from './EstablishmentView.vue';
 
 const settle = async () => { await flushPromises(); await new Promise((r) => setTimeout(r, 0)); await flushPromises(); };
@@ -106,11 +107,11 @@ describe('EstablishmentView', () => {
     expect(w.text()).toContain('Modifica · in arrivo');
   });
 
-  it('admin: «Aggiungi utente» apre il modale e invia la create', async () => {
-    const seen: Array<{ email: string; role: string }> = [];
+  it('admin: «Aggiungi utente» invia l\'invito (senza password) e mostra il toast', async () => {
+    const seen: Array<{ email: string; role: string; hasPassword: boolean }> = [];
     server.use(http.post('/api/establishment/users', async ({ request }) => {
-      const b = (await request.json()) as { email: string; password: string; role: 'admin' | 'staff' };
-      seen.push({ email: b.email, role: b.role });
+      const b = (await request.json()) as { email: string; role: 'admin' | 'staff'; password?: string };
+      seen.push({ email: b.email, role: b.role, hasPassword: 'password' in b });
       return HttpResponse.json({ id: 'u-new', email: b.email, role: b.role, disabledAt: null }, { status: 201 });
     }));
     const w = mountApp(EstablishmentView, { attachTo: document.body });
@@ -121,11 +122,10 @@ describe('EstablishmentView', () => {
     await settle();
     (document.querySelector('[data-testid="new-user-email"]') as HTMLInputElement).value = 'nuovo@lido.it';
     (document.querySelector('[data-testid="new-user-email"]') as HTMLInputElement).dispatchEvent(new Event('input'));
-    (document.querySelector('[data-testid="new-user-password"]') as HTMLInputElement).value = 'password123';
-    (document.querySelector('[data-testid="new-user-password"]') as HTMLInputElement).dispatchEvent(new Event('input'));
     (document.querySelector('[data-testid="new-user-save"]') as HTMLElement).click();
     await settle();
-    expect(seen).toEqual([{ email: 'nuovo@lido.it', role: 'staff' }]);
+    expect(seen).toEqual([{ email: 'nuovo@lido.it', role: 'staff', hasPassword: false }]);
+    expect(useToasts().items.map((t) => t.message)).toContain('Invito inviato a nuovo@lido.it.');
     w.unmount();
   });
 
@@ -213,11 +213,37 @@ describe('EstablishmentView', () => {
     await settle();
     (document.querySelector('[data-testid="new-user-email"]') as HTMLInputElement).value = 'esistente@lido.it';
     (document.querySelector('[data-testid="new-user-email"]') as HTMLInputElement).dispatchEvent(new Event('input'));
-    (document.querySelector('[data-testid="new-user-password"]') as HTMLInputElement).value = 'password123';
-    (document.querySelector('[data-testid="new-user-password"]') as HTMLInputElement).dispatchEvent(new Event('input'));
     (document.querySelector('[data-testid="new-user-save"]') as HTMLElement).click();
     await settle();
     expect(document.querySelector('[data-testid="new-user-email"]')).not.toBeNull();
     w.unmount();
+  });
+
+  it('admin: «Reset password» su un membro apre la conferma e invia il reset con toast', async () => {
+    const seen: string[] = [];
+    server.use(http.post('/api/establishment/users/:id/reset-password', ({ params }) => {
+      seen.push(params.id as string);
+      return HttpResponse.json({ email: 'marco@lidomaestrale.it', expiresAt: '2026-07-08T10:00:00.000Z' });
+    }));
+    const w = mountApp(EstablishmentView, { attachTo: document.body });
+    const session = useSessionStore();
+    session.user = { id: 'u-1', email: 'admin@coralyn.dev', role: Role.Admin, establishmentId: 'e-1' };
+    await settle();
+    const row = w.findAll('[data-testid="team-row"]').find((r) => r.text().includes('marco@lidomaestrale.it'))!;
+    await row.find('[data-testid="reset-user-password"]').trigger('click');
+    await settle();
+    Array.from(document.body.querySelectorAll('button')).find((b) => b.textContent?.trim() === 'Invia link di reset')!.click();
+    await settle();
+    expect(seen).toEqual(['u-2']);
+    expect(useToasts().items.map((t) => t.message)).toContain('Link di reset inviato a marco@lidomaestrale.it.');
+    w.unmount();
+  });
+
+  it('staff: nessun bottone «Reset password»', async () => {
+    const w = mountApp(EstablishmentView);
+    const session = useSessionStore();
+    session.user = { id: 'u-2', email: 'marco@lidomaestrale.it', role: Role.Staff, establishmentId: 'e-1' };
+    await settle();
+    expect(w.find('[data-testid="reset-user-password"]').exists()).toBe(false);
   });
 });
