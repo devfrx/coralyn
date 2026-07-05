@@ -86,6 +86,7 @@ model User {
   role            Role
   disabledAt      DateTime? // null = attivo; valorizzato = disabilitato (soft), il login lo respinge (D-025)
   establishment   Establishment? @relation(fields: [establishmentId], references: [id])
+  setupTokens     CredentialSetupToken[]
 
   @@index([establishmentId])
 }
@@ -319,6 +320,7 @@ enum PlatformAction {
   create_establishment
   suspend_establishment
   reactivate_establishment
+  reset_admin_password
 }
 
 // Audit di piattaforma (ADR-0015): SOLO mutazioni del superuser. Volutamente FUORI RLS
@@ -334,4 +336,28 @@ model PlatformAuditLog {
 
   @@index([targetEstablishmentId])
   @@index([createdAt])
+}
+
+enum CredentialTokenPurpose {
+  invite // imposta password per un account appena creato (admin ora, staff in futuro)
+  reset  // reset password avviato dal console superuser
+}
+
+// Token di impostazione password (invito/reset). Volutamente FUORI RLS (dato di identità
+// pre-tenant, come User/PlatformAuditLog, ADR-0026). Il raw NON è mai persistito: si salva
+// solo sha256(raw). Monouso via consumedAt; un solo token vivo per utente (l'emit invalida i
+// precedenti). Vedi spec 2026-07-05-credential-invite-email + ADR-0042.
+model CredentialSetupToken {
+  id              String                 @id @default(uuid()) @db.Uuid
+  userId          String                 @db.Uuid
+  tokenHash       String                 @unique
+  purpose         CredentialTokenPurpose
+  expiresAt       DateTime
+  consumedAt      DateTime?
+  createdByUserId String?                @db.Uuid
+  createdAt       DateTime               @default(now())
+  user            User                   @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([expiresAt])
 }
