@@ -35,6 +35,17 @@ export class IdentityService {
       // La revoca immediata di un token già emesso resta a D-026 (il token scade a 8h).
       throw new UnauthorizedException('Credenziali non valide');
     }
+    // Sospensione a livello tenant: se il lido dell'utente è sospeso, stesso 401 generico
+    // (nessuna enumerazione). Il superuser (establishmentId null) non è mai sospendibile.
+    if (user.establishmentId) {
+      const est = await this.prisma.establishment.findUnique({
+        where: { id: user.establishmentId },
+        select: { suspendedAt: true },
+      });
+      if (est?.suspendedAt) {
+        throw new UnauthorizedException('Credenziali non valide');
+      }
+    }
     const dto = this.toDTO(user);
     const accessToken = this.tokens.sign({
       sub: dto.id,
