@@ -115,6 +115,9 @@ describe('Establishment users (e2e)', () => {
     await request(app.getHttpServer()).patch(`/api/establishment/users/${admin2Id}`).set(...bearer(adminT)).send({ disabled: false }).expect(200);
   });
 
+  // DEVE restare l'ultimo test del file: muta la password di u.staff (pw-staff-1 → pw-staff-2)
+  // e, a differenza dei test di disable, non la ripristina. Non aggiungere test dopo questo che
+  // assumano pw-staff-1 ancora valida.
   it('admin resetta lo staff → 201; dopo redeem la nuova pw funziona e la vecchia dà 401', async () => {
     mailer.reset();
     const res = await request(app.getHttpServer()).post(`/api/establishment/users/${staffId}/reset-password`).set(...bearer(adminT)).expect(201);
