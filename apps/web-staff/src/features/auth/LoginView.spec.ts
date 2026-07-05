@@ -6,7 +6,8 @@ import { clearToken } from '@/lib/authToken';
 import LoginView from './LoginView.vue';
 
 const push = vi.fn();
-vi.mock('vue-router', () => ({ useRouter: () => ({ push }) }));
+const routeMock: { query: Record<string, string> } = { query: {} };
+vi.mock('vue-router', () => ({ useRouter: () => ({ push }), useRoute: () => routeMock }));
 // AuthLayout importa un asset (logo) che vitest non risolve: lo sostituiamo con uno
 // stub che renderizza solo lo slot di default (il form), che è ciò che testiamo.
 vi.mock('@/app/AuthLayout.vue', () => ({ default: { template: '<div><slot /></div>' } }));
@@ -19,6 +20,7 @@ beforeEach(() => {
   setActivePinia(createPinia());
   clearToken();
   push.mockClear();
+  routeMock.query = {};
 });
 
 function mountLogin() {
@@ -47,5 +49,17 @@ describe('LoginView', () => {
     expect(useSessionStore().authenticated).toBe(false);
     expect(push).not.toHaveBeenCalled();
     expect(w.text()).toContain('Email o password non corretti');
+  });
+
+  it('mostra la conferma quando si arriva da set-password (?setPassword=1)', () => {
+    routeMock.query = { setPassword: '1' };
+    const w = mountLogin();
+    expect(w.find('[data-testid="login-set-password-ok"]').exists()).toBe(true);
+    expect(w.text()).toContain('Password impostata');
+  });
+
+  it('nessuna conferma senza il parametro setPassword', () => {
+    const w = mountLogin();
+    expect(w.find('[data-testid="login-set-password-ok"]').exists()).toBe(false);
   });
 });

@@ -1,15 +1,19 @@
 <script setup lang="ts">
-import { ref } from 'vue';
-import { useRouter } from 'vue-router';
+import { computed, ref } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
 import { Field, Input, Button } from '@coralyn/ui-kit';
 import { useSessionStore } from '@/stores/session';
 import AuthLayout from '@/app/AuthLayout.vue';
 const router = useRouter();
+const route = useRoute();
 const session = useSessionStore();
 const email = ref('');
 const password = ref('');
 const errore = ref<string | null>(null);
 const loading = ref(false);
+// Conferma di ritorno dalla pagina pubblica set-password (/imposta-password → /login?setPassword=1):
+// l'utente ha appena impostato/reimpostato la password, invitiamolo ad accedere con quella.
+const justSetPassword = computed(() => route.query.setPassword === '1');
 async function accedi() {
   errore.value = null;
   loading.value = true;
@@ -32,6 +36,7 @@ async function accedi() {
     <template #footer>Stagione 2026 · sessione protetta</template>
     <h1 class="mb-1.5 text-[27px] font-bold tracking-[-.02em] text-[var(--color-text)]">Bentornato</h1>
     <p class="mb-6 text-sm text-[var(--color-text-muted)]">Accedi al gestionale del tuo stabilimento.</p>
+    <p v-if="justSetPassword && !errore" role="status" data-testid="login-set-password-ok" class="mb-4 rounded-[var(--radius-md)] border border-[var(--color-success)] px-3.5 py-2.5 text-[13px] font-medium text-[var(--color-success)]">Password impostata. Ora accedi con le tue nuove credenziali.</p>
     <p v-if="errore" role="alert" class="mb-4 rounded-[var(--radius-md)] border border-[var(--color-danger)] px-3.5 py-2.5 text-[13px] font-medium text-[var(--color-danger)]">{{ errore }}</p>
     <form class="flex flex-col gap-4" @submit.prevent="accedi">
       <Field label="Email"><Input v-model="email" type="email" placeholder="nome@stabilimento.it" /></Field>
