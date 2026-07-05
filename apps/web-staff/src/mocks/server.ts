@@ -2,7 +2,7 @@ import { setupServer } from 'msw/node';
 import { http, HttpResponse } from 'msw';
 import { handlers } from './handlers';
 import { mapSeed, timeSlotsSeed } from './data/seed';
-import { Role, type CustomerDTO, type CustomerBookingDTO, type EquipmentTypeDTO, type PackageDTO, type RateDTO, type RenewalCampaignDetailDTO, type SeasonDTO, type TimeSlotDTO, type CreateTimeSlotInput, type UpdateTimeSlotInput, type UserDTO } from '@coralyn/contracts';
+import { Role, type CustomerDTO, type CustomerBookingDTO, type EquipmentTypeDTO, type PackageDTO, type RateDTO, type RenewalCampaignDetailDTO, type SeasonDTO, type TimeSlotDTO, type CreateTimeSlotInput, type UpdateTimeSlotInput, type UserDTO, type CredentialSetupContext } from '@coralyn/contracts';
 
 const INITIAL_CUSTOMERS: CustomerDTO[] = [
   { id: 'c-1', firstName: 'Mario', lastName: 'Rossi', phone: '+39 333 1111111', email: 'mario.rossi@email.it', notes: '' },
@@ -72,6 +72,11 @@ export const MOCK_ADMIN: UserDTO = {
   establishmentId: '00000000-0000-0000-0000-000000000001',
 };
 
+// Set-password su invito/reset (D-025): token → contesto minimo; qualsiasi token diverso
+// da quello valido simula il 404 "link non valido o scaduto" del backend reale.
+export const CREDENTIAL_SETUP_VALID_TOKEN = 'valid-setup-token';
+const CREDENTIAL_SETUP_CONTEXT: CredentialSetupContext = { email: 'nuovo.staff@coralyn.dev', purpose: 'invite' };
+
 export const server = setupServer(
   ...handlers,
   // Mock della mappa SOLO nei test (in dev il FE usa il backend reale). Fixture = mapSeed.
@@ -88,6 +93,16 @@ export const server = setupServer(
       return HttpResponse.json(MOCK_ADMIN);
     }
     return new HttpResponse(null, { status: 401 });
+  }),
+  http.get('/api/auth/credential-setup/:token', ({ params }) => {
+    if (params.token === CREDENTIAL_SETUP_VALID_TOKEN) return HttpResponse.json(CREDENTIAL_SETUP_CONTEXT);
+    return HttpResponse.json({ message: 'Link non valido o scaduto' }, { status: 404 });
+  }),
+  http.post('/api/auth/credential-setup', async ({ request }) => {
+    const { token, password } = (await request.json()) as { token: string; password: string };
+    if (token !== CREDENTIAL_SETUP_VALID_TOKEN) return HttpResponse.json({ message: 'Link non valido o scaduto' }, { status: 404 });
+    if (password.length < 10) return HttpResponse.json({ message: 'Password troppo debole' }, { status: 400 });
+    return new HttpResponse(null, { status: 204 });
   }),
   http.get('/api/customers', () => HttpResponse.json(customers)),
   http.get('/api/customers/:id', ({ params }) => {

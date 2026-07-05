@@ -6,6 +6,7 @@ const routes: RouteRecordRaw[] = [
   { path: '/', redirect: '/map' },
   { path: '/login', name: 'login', component: () => import('@/features/auth/LoginView.vue'), meta: { public: true, bare: true } },
   { path: '/register', name: 'register', component: () => import('@/features/auth/RegisterView.vue'), meta: { public: true, bare: true } },
+  { path: '/imposta-password', name: 'set-password', component: () => import('@/features/auth/SetPasswordView.vue'), meta: { public: true, bare: true } },
   { path: '/map', name: 'map', component: () => import('@/features/map/MapView.vue'), meta: { title: 'Mappa', subtitle: 'Lido Maestrale · 47 ombrelloni · vista per giornata' } },
   { path: '/bookings', name: 'bookings', component: () => import('@/features/bookings/BookingsView.vue'), meta: { title: 'Prenotazioni', subtitle: 'Prenotazioni e incassi della giornata' } },
   { path: '/renewals', name: 'renewals', component: () => import('@/features/renewals/RenewalsView.vue'), meta: { title: 'Rinnovi', subtitle: 'Campagna rinnovi abbonamenti' } },
