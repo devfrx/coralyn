@@ -14,8 +14,8 @@ export class EstablishmentUsersController {
 
   @Post()
   @Roles(Role.Admin)
-  create(@Body() body: CreateStaffUserDto): Promise<EstablishmentMemberDTO> {
-    return this.users.create(body);
+  create(@Body() body: CreateStaffUserDto, @CurrentUser() user: AuthUser): Promise<EstablishmentMemberDTO> {
+    return this.users.create(body, user.id);
   }
 
   @Patch(':id')

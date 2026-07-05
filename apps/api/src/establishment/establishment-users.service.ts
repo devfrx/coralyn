@@ -1,9 +1,11 @@
 import { ConflictException, Injectable, NotFoundException, UnprocessableEntityException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
+import { randomBytes } from 'node:crypto';
 import type { CreateStaffUserInput, EstablishmentMemberDTO } from '@coralyn/contracts';
 import { PrismaService } from '../prisma/prisma.service';
 import { TenantContext } from '../tenant/tenant-context';
 import { PasswordHasher } from '../identity/password-hasher';
+import { CredentialSetupService } from '../credential/credential-setup.service';
 
 type UserRow = { id: string; email: string; role: string; disabledAt: Date | null };
 const MEMBER_SELECT = { id: true, email: true, role: true, disabledAt: true } as const;
@@ -14,27 +16,33 @@ export class EstablishmentUsersService {
     private readonly prisma: PrismaService,
     private readonly tenant: TenantContext,
     private readonly hasher: PasswordHasher,
+    private readonly credentials: CredentialSetupService,
   ) {}
 
   private toMember(u: UserRow): EstablishmentMemberDTO {
     return { id: u.id, email: u.email, role: u.role as 'admin' | 'staff', disabledAt: u.disabledAt ? u.disabledAt.toISOString() : null };
   }
 
-  async create(input: CreateStaffUserInput): Promise<EstablishmentMemberDTO> {
+  async create(input: CreateStaffUserInput, adminId: string): Promise<EstablishmentMemberDTO> {
     const tenantId = this.tenant.require();
-    const passwordHash = await this.hasher.hash(input.password);
+    // Hash INUTILIZZABILE: lo staff imposta la password via link d'invito (ADR-0042); nessuna
+    // password in chiaro esiste finché non fa redeem. Speculare a platform-provisioning.create.
+    const unusableHash = await this.hasher.hash(randomBytes(32).toString('base64url'));
+    let user: UserRow;
     try {
-      const user = await this.prisma.user.create({
-        data: { establishmentId: tenantId, email: input.email, passwordHash, role: input.role },
+      user = await this.prisma.user.create({
+        data: { establishmentId: tenantId, email: input.email, passwordHash: unusableHash, role: input.role },
         select: MEMBER_SELECT,
       });
-      return this.toMember(user);
     } catch (e) {
       if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002') {
         throw new ConflictException('Email già in uso');
       }
       throw e;
     }
+    // persist-then-best-effort-send (issueAndSend ha la propria transazione + gestione errori mail).
+    await this.credentials.issueAndSend(user.id, input.email, 'invite', adminId);
+    return this.toMember(user);
   }
 
   async setDisabled(id: string, disabled: boolean, currentUserId: string): Promise<EstablishmentMemberDTO> {

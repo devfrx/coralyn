@@ -14,8 +14,10 @@ import { RowsService } from './rows.service';
 import { UmbrellasController } from './umbrellas.controller';
 import { UmbrellasService } from './umbrellas.service';
 import { PasswordHasher } from '../identity/password-hasher';
+import { CredentialModule } from '../credential/credential.module';
 
 @Module({
+  imports: [CredentialModule],
   controllers: [
     EstablishmentController,
     EstablishmentUsersController,

@@ -11,26 +11,29 @@ function makeService(overrides: {
   const prisma = { user } as any;
   const tenant = { require: () => TENANT } as any;
   const hasher = { hash: jest.fn().mockResolvedValue('HASH') } as any;
-  return { service: new EstablishmentUsersService(prisma, tenant, hasher), user, hasher };
+  const credentials = { issueAndSend: jest.fn().mockResolvedValue({ expiresAt: new Date('2026-07-08T10:00:00Z') }) } as any;
+  return { service: new EstablishmentUsersService(prisma, tenant, hasher, credentials), user, hasher, credentials };
 }
 
 describe('EstablishmentUsersService', () => {
   describe('create', () => {
-    it('hasha la password e ritorna il member attivo', async () => {
-      const { service, user, hasher } = makeService();
+    it('crea con hash inutilizzabile ed emette un invito (issueAndSend invite)', async () => {
+      const { service, user, hasher, credentials } = makeService();
       user.create.mockResolvedValue({ id: 'u-1', email: 'a@x.it', role: 'staff', disabledAt: null });
-      const res = await service.create({ email: 'a@x.it', password: 'password123', role: 'staff' });
-      expect(hasher.hash).toHaveBeenCalledWith('password123');
+      const res = await service.create({ email: 'a@x.it', role: 'staff' }, 'admin-1');
+      expect(hasher.hash).toHaveBeenCalledTimes(1);
       expect(user.create).toHaveBeenCalledWith(
         expect.objectContaining({ data: expect.objectContaining({ establishmentId: TENANT, email: 'a@x.it', passwordHash: 'HASH', role: 'staff' }) }),
       );
+      expect(credentials.issueAndSend).toHaveBeenCalledWith('u-1', 'a@x.it', 'invite', 'admin-1');
       expect(res).toEqual({ id: 'u-1', email: 'a@x.it', role: 'staff', disabledAt: null });
     });
 
-    it('mappa la violazione di unicità email (P2002) in 409', async () => {
-      const { service, user } = makeService();
+    it('mappa la violazione di unicità email (P2002) in 409 e NON invita', async () => {
+      const { service, user, credentials } = makeService();
       user.create.mockRejectedValue(new Prisma.PrismaClientKnownRequestError('dup', { code: 'P2002', clientVersion: 'x' }));
-      await expect(service.create({ email: 'dup@x.it', password: 'password123', role: 'staff' })).rejects.toBeInstanceOf(ConflictException);
+      await expect(service.create({ email: 'dup@x.it', role: 'staff' }, 'admin-1')).rejects.toBeInstanceOf(ConflictException);
+      expect(credentials.issueAndSend).not.toHaveBeenCalled();
     });
   });
 

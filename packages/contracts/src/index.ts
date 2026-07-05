@@ -401,11 +401,10 @@ export interface UpdateEstablishmentInput {
   name: string;
 }
 
-/** Input creazione staff (admin-only). Password iniziale impostata dall'admin;
- *  invito-via-email deferito (D-025). Ruolo mai `superuser`. */
+/** Input creazione staff (admin-only). Lo staff riceve un invito via email per
+ *  impostare la password (ADR-0042); nessuna password in chiaro. Ruolo mai `superuser`. */
 export interface CreateStaffUserInput {
   email: string;
-  password: string;
   role: 'admin' | 'staff';
 }
 
@@ -492,6 +491,12 @@ export interface CreateEstablishmentResponse {
 /** Esito di un reset-password admin avviato dal console superuser. */
 export interface ResetAdminPasswordResponse {
   adminEmail: string;
+  expiresAt: string; // ISO — scadenza del link di reset
+}
+
+/** Esito di un reset-password staff avviato dall'admin del lido (tenant-scoped). */
+export interface ResetStaffPasswordResponse {
+  email: string;
   expiresAt: string; // ISO — scadenza del link di reset
 }
 
