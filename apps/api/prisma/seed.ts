@@ -28,6 +28,19 @@ async function main(): Promise<void> {
     create: { email, passwordHash, role: Role.admin, establishmentId: DEV_ESTABLISHMENT_ID },
   });
 
+  // Bootstrap del primo superuser di piattaforma (env-gated, idempotente). establishmentId null =
+  // cross-tenant (ADR-0026). No-op se le env non sono impostate. Vedi spec Platform Console.
+  const suEmail = process.env.PLATFORM_SUPERUSER_EMAIL;
+  const suPassword = process.env.PLATFORM_SUPERUSER_PASSWORD;
+  if (suEmail && suPassword) {
+    const suHash = await argon2.hash(suPassword, { type: argon2.argon2id });
+    await prisma.user.upsert({
+      where: { email: suEmail },
+      update: { passwordHash: suHash, role: Role.superuser, establishmentId: null },
+      create: { email: suEmail, passwordHash: suHash, role: Role.superuser, establishmentId: null },
+    });
+  }
+
   // --- Map demo (idempotente) per il tenant dev. Forma allineata a mapSeed FE. ---
   // Le tabelle map hanno RLS FORCE: gli upsert devono girare con la GUC
   // app.current_tenant impostata, dentro UNA transazione (come PrismaService.forTenant).
