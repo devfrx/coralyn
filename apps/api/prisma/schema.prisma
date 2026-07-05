@@ -10,6 +10,8 @@ datasource db {
 model Establishment {
   id                String             @id @default(uuid()) @db.Uuid
   name              String
+  createdAt         DateTime           @default(now())
+  suspendedAt       DateTime? // null = attivo; valorizzato = lido sospeso (il login lo respinge)
   customers         Customer[]
   users             User[]
   sectors           Sector[]
@@ -311,4 +313,25 @@ model PackageEquipment {
   @@id([packageId, equipmentTypeId])
   @@index([equipmentTypeId])
   @@index([establishmentId])
+}
+
+enum PlatformAction {
+  create_establishment
+  suspend_establishment
+  reactivate_establishment
+}
+
+// Audit di piattaforma (ADR-0015): SOLO mutazioni del superuser. Volutamente FUORI RLS
+// (dato di piattaforma, non di tenant). Nessuna relation su Establishment: targetEstablishmentId
+// è un soft-ref (l'audit sopravvive alla cancellazione del lido). Mai PII dei bagnanti nel metadata.
+model PlatformAuditLog {
+  id                    String         @id @default(uuid()) @db.Uuid
+  actorUserId           String         @db.Uuid
+  action                PlatformAction
+  targetEstablishmentId String?        @db.Uuid
+  metadata              Json?          @db.JsonB
+  createdAt             DateTime       @default(now())
+
+  @@index([targetEstablishmentId])
+  @@index([createdAt])
 }
