@@ -1,7 +1,8 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { mount, flushPromises } from '@vue/test-utils';
 import { createPinia, setActivePinia } from 'pinia';
-import { CREDENTIAL_SETUP_VALID_TOKEN } from '@/mocks/server';
+import { http, HttpResponse } from 'msw';
+import { CREDENTIAL_SETUP_VALID_TOKEN, server } from '@/mocks/server';
 import SetPasswordView from './SetPasswordView.vue';
 
 const push = vi.fn();
@@ -35,12 +36,27 @@ beforeEach(() => {
 });
 
 describe('SetPasswordView', () => {
-  it('token valido: carica il contesto e mostra l’email dell’account', async () => {
+  it('token valido (invito): carica il contesto, intestazione "Attiva" e email', async () => {
     const w = mountSetPassword();
     await settle();
 
+    // Il seed MSW ha purpose 'invite' → intestazione di primo accesso.
+    expect(w.find('h1').text()).toBe('Attiva il tuo accesso');
     expect(w.find('[data-testid="sp-email"]').text()).toBe('nuovo.staff@coralyn.dev');
     expect(w.find('[data-testid="sp-submit"]').exists()).toBe(true);
+  });
+
+  it('token valido (reset): intestazione "Reimposta la password"', async () => {
+    // Override MSW: stesso token valido ma purpose 'reset'.
+    server.use(
+      http.get('/api/auth/credential-setup/:token', () =>
+        HttpResponse.json({ email: 'admin@coralyn.dev', purpose: 'reset' })),
+    );
+    const w = mountSetPassword();
+    await settle();
+
+    expect(w.find('h1').text()).toBe('Reimposta la password');
+    expect(w.find('[data-testid="sp-email"]').text()).toBe('admin@coralyn.dev');
   });
 
   it('token invalido: mostra lo stato di errore con link al login', async () => {
@@ -91,5 +107,26 @@ describe('SetPasswordView', () => {
 
     expect(w.find('[data-testid="sp-error"]').text()).toContain('non coincidono');
     expect(push).not.toHaveBeenCalled();
+  });
+
+  it('POST fallito: mostra il messaggio del server, non naviga e riabilita il submit', async () => {
+    const w = mountSetPassword();
+    await settle();
+
+    // Override MSW solo per questo test: il redeem fallisce (es. token scaduto lato server).
+    // afterEach (setup.ts) chiama server.resetHandlers(): l'override non contamina gli altri test.
+    server.use(
+      http.post('/api/auth/credential-setup', () =>
+        HttpResponse.json({ statusCode: 404, message: 'Link non valido o scaduto' }, { status: 404 })),
+    );
+
+    await w.find('[data-testid="sp-password"]').setValue('password-lunga-1');
+    await w.find('[data-testid="sp-confirm"]').setValue('password-lunga-1');
+    await w.find('form').trigger('submit.prevent');
+    await settle();
+
+    expect(w.find('[data-testid="sp-error"]').text()).toContain('Link non valido o scaduto');
+    expect(push).not.toHaveBeenCalled();
+    expect(w.find('[data-testid="sp-submit"]').attributes('disabled')).toBeUndefined();
   });
 });

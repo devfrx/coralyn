@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { Field, Input, Button } from '@coralyn/ui-kit';
-import type { CredentialSetupContext } from '@coralyn/contracts';
+import type { CredentialSetupContext, SetPasswordInput } from '@coralyn/contracts';
 import AuthLayout from '@/app/AuthLayout.vue';
 import { apiFetch } from '@/lib/http';
 
@@ -13,10 +13,14 @@ const token = String(route.query.token ?? '');
 type Phase = 'loading' | 'form' | 'invalid';
 const phase = ref<Phase>('loading');
 const email = ref('');
+const purpose = ref<'invite' | 'reset'>('invite');
 const password = ref('');
 const confirm = ref('');
 const error = ref('');
 const submitting = ref(false);
+
+// Invito (primo accesso) vs reset: stesso flusso, intestazione diversa così il contesto è chiaro.
+const heading = computed(() => (purpose.value === 'reset' ? 'Reimposta la password' : 'Attiva il tuo accesso'));
 
 onMounted(async () => {
   if (!token) {
@@ -26,6 +30,7 @@ onMounted(async () => {
   try {
     const ctx = await apiFetch<CredentialSetupContext>(`/auth/credential-setup/${encodeURIComponent(token)}`);
     email.value = ctx.email;
+    purpose.value = ctx.purpose;
     phase.value = 'form';
   } catch {
     phase.value = 'invalid';
@@ -44,9 +49,11 @@ async function submit(): Promise<void> {
   }
   submitting.value = true;
   try {
-    await apiFetch<null>('/auth/credential-setup', { method: 'POST', body: JSON.stringify({ token, password: password.value }) });
+    const payload = { token, password: password.value } satisfies SetPasswordInput;
+    await apiFetch<null>('/auth/credential-setup', { method: 'POST', body: JSON.stringify(payload) });
     await router.push({ name: 'login', query: { setPassword: '1' } });
   } catch (e) {
+    // A differenza di LoginView (messaggio generico anti-enumerazione), qui mostriamo il messaggio del server: il possessore del token ha già il link, e distinguere "link scaduto" da "password troppo corta" è utile e non fa enumerazione.
     error.value = e instanceof Error ? e.message : 'Impossibile impostare la password.';
   } finally {
     submitting.value = false;
@@ -70,7 +77,7 @@ async function submit(): Promise<void> {
 
     <form v-else-if="phase === 'form'" class="flex flex-col gap-4" @submit.prevent="submit">
       <div>
-        <h1 class="mb-1.5 text-[27px] font-bold tracking-[-.02em] text-[var(--color-text)]">Imposta la password</h1>
+        <h1 class="mb-1.5 text-[27px] font-bold tracking-[-.02em] text-[var(--color-text)]">{{ heading }}</h1>
         <p class="text-sm text-[var(--color-text-muted)]">Per l'account <strong data-testid="sp-email">{{ email }}</strong>.</p>
       </div>
       <Field label="Nuova password">
