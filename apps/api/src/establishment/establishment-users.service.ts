@@ -1,7 +1,7 @@
 import { ConflictException, Injectable, NotFoundException, UnprocessableEntityException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { randomBytes } from 'node:crypto';
-import type { CreateStaffUserInput, EstablishmentMemberDTO } from '@coralyn/contracts';
+import type { CreateStaffUserInput, EstablishmentMemberDTO, ResetStaffPasswordResponse } from '@coralyn/contracts';
 import { PrismaService } from '../prisma/prisma.service';
 import { TenantContext } from '../tenant/tenant-context';
 import { PasswordHasher } from '../identity/password-hasher';
@@ -43,6 +43,23 @@ export class EstablishmentUsersService {
     // persist-then-best-effort-send (issueAndSend ha la propria transazione + gestione errori mail).
     await this.credentials.issueAndSend(user.id, input.email, 'invite', adminId);
     return this.toMember(user);
+  }
+
+  /** Reset password di un membro del tenant: emette un invito `reset` via email. Tenant-scoped
+   *  (il target deve appartenere al lido dell'admin). issueAndSend NON tocca l'hash corrente →
+   *  nessun rischio di lockout: il target mantiene la password finché non fa redeem. */
+  async resetPassword(id: string, adminId: string): Promise<ResetStaffPasswordResponse> {
+    const tenantId = this.tenant.require();
+    const target = await this.prisma.user.findFirst({
+      where: { id, establishmentId: tenantId },
+      select: { id: true, email: true, disabledAt: true },
+    });
+    if (!target) throw new NotFoundException('Utente non trovato');
+    if (target.disabledAt !== null) {
+      throw new UnprocessableEntityException('Non puoi resettare la password di un utente disabilitato');
+    }
+    const { expiresAt } = await this.credentials.issueAndSend(target.id, target.email, 'reset', adminId);
+    return { email: target.email, expiresAt: expiresAt.toISOString() };
   }
 
   async setDisabled(id: string, disabled: boolean, currentUserId: string): Promise<EstablishmentMemberDTO> {

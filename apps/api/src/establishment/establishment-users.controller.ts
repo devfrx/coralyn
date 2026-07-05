@@ -1,6 +1,6 @@
 import { Body, Controller, Param, Patch, Post } from '@nestjs/common';
 import { Role } from '@coralyn/contracts';
-import type { EstablishmentMemberDTO } from '@coralyn/contracts';
+import type { EstablishmentMemberDTO, ResetStaffPasswordResponse } from '@coralyn/contracts';
 import { Roles } from '../identity/roles.decorator';
 import { CurrentUser } from '../identity/current-user.decorator';
 import type { AuthUser } from '../identity/auth-user';
@@ -22,5 +22,11 @@ export class EstablishmentUsersController {
   @Roles(Role.Admin)
   setDisabled(@Param('id') id: string, @Body() body: UpdateStaffUserDto, @CurrentUser() user: AuthUser): Promise<EstablishmentMemberDTO> {
     return this.users.setDisabled(id, body.disabled, user.id);
+  }
+
+  @Post(':id/reset-password')
+  @Roles(Role.Admin)
+  resetPassword(@Param('id') id: string, @CurrentUser() user: AuthUser): Promise<ResetStaffPasswordResponse> {
+    return this.users.resetPassword(id, user.id);
   }
 }

@@ -96,4 +96,35 @@ describe('Establishment users (e2e)', () => {
     expect(res.body.disabledAt).toEqual(expect.any(String));
     await request(app.getHttpServer()).patch(`/api/establishment/users/${admin2Id}`).set(...bearer(adminT)).send({ disabled: false }).expect(200);
   });
+
+  it('reset da non-admin → 403; anonimo → 401', async () => {
+    await request(app.getHttpServer()).post(`/api/establishment/users/${staffId}/reset-password`).set(...bearer(staffT)).expect(403);
+    await request(app.getHttpServer()).post(`/api/establishment/users/${staffId}/reset-password`).expect(401);
+  });
+
+  it('reset di un id fuori tenant → 404', async () => {
+    const otherEst = await prisma.establishment.create({ data: { name: 'USERS B' } });
+    await createUser(prisma, { email: 'u.other@e2e.test', password: 'pw-o-1', role: Role.staff, establishmentId: otherEst.id });
+    const otherId = (await prisma.user.findUniqueOrThrow({ where: { email: 'u.other@e2e.test' } })).id;
+    await request(app.getHttpServer()).post(`/api/establishment/users/${otherId}/reset-password`).set(...bearer(adminT)).expect(404);
+  });
+
+  it('reset di un utente disabilitato → 422', async () => {
+    await request(app.getHttpServer()).patch(`/api/establishment/users/${admin2Id}`).set(...bearer(adminT)).send({ disabled: true }).expect(200);
+    await request(app.getHttpServer()).post(`/api/establishment/users/${admin2Id}/reset-password`).set(...bearer(adminT)).expect(422);
+    await request(app.getHttpServer()).patch(`/api/establishment/users/${admin2Id}`).set(...bearer(adminT)).send({ disabled: false }).expect(200);
+  });
+
+  it('admin resetta lo staff → 201; dopo redeem la nuova pw funziona e la vecchia dà 401', async () => {
+    mailer.reset();
+    const res = await request(app.getHttpServer()).post(`/api/establishment/users/${staffId}/reset-password`).set(...bearer(adminT)).expect(201);
+    expect(res.body).toEqual(expect.objectContaining({ email: 'u.staff@e2e.test', expiresAt: expect.any(String) }));
+    expect(mailer.last().purpose).toBe('reset');
+
+    await request(app.getHttpServer()).post('/api/auth/login').send({ email: 'u.staff@e2e.test', password: 'pw-staff-1' }).expect(200);
+
+    await request(app.getHttpServer()).post('/api/auth/credential-setup').send({ token: mailer.last().rawToken, password: 'pw-staff-2' }).expect(204);
+    await request(app.getHttpServer()).post('/api/auth/login').send({ email: 'u.staff@e2e.test', password: 'pw-staff-2' }).expect(200);
+    await request(app.getHttpServer()).post('/api/auth/login').send({ email: 'u.staff@e2e.test', password: 'pw-staff-1' }).expect(401);
+  });
 });

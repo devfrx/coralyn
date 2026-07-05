@@ -79,4 +79,28 @@ describe('EstablishmentUsersService', () => {
       expect(res.disabledAt).toBeNull();
     });
   });
+
+  describe('resetPassword', () => {
+    it('404 se il target non è nel tenant', async () => {
+      const { service, user, credentials } = makeService();
+      user.findFirst.mockResolvedValue(null);
+      await expect(service.resetPassword('u-x', 'admin-1')).rejects.toBeInstanceOf(NotFoundException);
+      expect(credentials.issueAndSend).not.toHaveBeenCalled();
+    });
+
+    it('422 se il target è disabilitato', async () => {
+      const { service, user, credentials } = makeService();
+      user.findFirst.mockResolvedValue({ id: 'u-9', email: 's@x.it', disabledAt: new Date() });
+      await expect(service.resetPassword('u-9', 'admin-1')).rejects.toBeInstanceOf(UnprocessableEntityException);
+      expect(credentials.issueAndSend).not.toHaveBeenCalled();
+    });
+
+    it('emette un reset (issueAndSend reset) e ritorna email+expiresAt', async () => {
+      const { service, user, credentials } = makeService();
+      user.findFirst.mockResolvedValue({ id: 'u-9', email: 's@x.it', disabledAt: null });
+      const res = await service.resetPassword('u-9', 'admin-1');
+      expect(credentials.issueAndSend).toHaveBeenCalledWith('u-9', 's@x.it', 'reset', 'admin-1');
+      expect(res).toEqual({ email: 's@x.it', expiresAt: '2026-07-08T10:00:00.000Z' });
+    });
+  });
 });
