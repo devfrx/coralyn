@@ -18,7 +18,7 @@ export class CredentialSetupService {
   ) {}
 
   private ttlHours(): number {
-    return Number(this.config.get<string>('CREDENTIAL_TOKEN_TTL_HOURS') ?? '72');
+    return Number(this.config.get<string>('CREDENTIAL_TOKEN_TTL_HOURS') || '72');
   }
 
   /** Emette un token (invalidando i precedenti dello stesso utente) e invia l'email. Il raw
@@ -36,6 +36,8 @@ export class CredentialSetupService {
       await tx.credentialSetupToken.updateMany({ where: { userId, consumedAt: null }, data: { consumedAt: new Date() } });
       await tx.credentialSetupToken.create({ data: { userId, tokenHash, purpose, expiresAt, createdByUserId } });
     });
+    // Contratto: persist-then-best-effort-send. Se l'invio fallisce il token è già persistito;
+    // la gestione del fallimento (resend/report) è del chiamante (provisioning/reset).
     await this.mailer.sendCredentialSetup({ to: email, rawToken: raw, purpose, expiresAt });
     return { expiresAt };
   }
@@ -56,7 +58,16 @@ export class CredentialSetupService {
     if (!token || token.consumedAt || token.expiresAt <= new Date()) throw new NotFoundException(INVALID);
     const passwordHash = await this.hasher.hash(newPassword);
     await this.prisma.$transaction(async (tx) => {
+      // Claim atomico di QUESTO token: la updateMany con id+consumedAt:null è race-safe
+      // (row-lock Postgres). Sotto concorrenza, il primo redeem ottiene count=1; il secondo,
+      // ri-valutando il predicato dopo il lock, ottiene count=0 → stesso errore generico.
+      const claim = await tx.credentialSetupToken.updateMany({
+        where: { id: token.id, consumedAt: null },
+        data: { consumedAt: new Date() },
+      });
+      if (claim.count !== 1) throw new NotFoundException(INVALID);
       await tx.user.update({ where: { id: token.userId }, data: { passwordHash } });
+      // invalida eventuali altri token vivi dello stesso utente
       await tx.credentialSetupToken.updateMany({ where: { userId: token.userId, consumedAt: null }, data: { consumedAt: new Date() } });
     });
   }

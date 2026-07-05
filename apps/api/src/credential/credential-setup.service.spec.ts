@@ -9,7 +9,13 @@ function makePrisma() {
   const client: any = {
     credentialSetupToken: {
       create: ({ data }: any) => { const row = { id: `t${tokens.length + 1}`, consumedAt: null, ...data }; tokens.push(row); return Promise.resolve(row); },
-      updateMany: ({ where, data }: any) => { tokens.filter((t) => t.userId === where.userId && t.consumedAt === null).forEach((t) => Object.assign(t, data)); return Promise.resolve({ count: 0 }); },
+      updateMany: ({ where, data }: any) => {
+        const match = tokens.filter((t) =>
+          (where.id !== undefined ? t.id === where.id : t.userId === where.userId) &&
+          (where.consumedAt === null ? t.consumedAt === null : true));
+        match.forEach((t) => Object.assign(t, data));
+        return Promise.resolve({ count: match.length });
+      },
       findUnique: ({ where, include }: any) => { const t = tokens.find((x) => x.tokenHash === where.tokenHash) ?? null; if (t && include?.user) t.user = users.find((u) => u.id === t.userId); return Promise.resolve(t); },
     },
     user: { update: ({ where, data }: any) => { const u = users.find((x) => x.id === where.id); Object.assign(u, data); return Promise.resolve(u); } },
@@ -50,6 +56,15 @@ describe('CredentialSetupService', () => {
     const raw = 'expired-raw';
     tokens.push({ id: 't1', userId: 'u1', tokenHash: hashToken(raw), purpose: 'invite', consumedAt: null, expiresAt: new Date(Date.now() - 1000) });
     await expect(svc.redeem(raw, 'x')).rejects.toBeInstanceOf(NotFoundException);
+  });
+
+  it('redeem: secondo redeem dello stesso token → NotFoundException (monouso)', async () => {
+    const { client, tokens } = makePrisma();
+    const svc = new CredentialSetupService(client, hasher, mailer, config);
+    const raw = 'once-raw';
+    tokens.push({ id: 't1', userId: 'u1', tokenHash: hashToken(raw), purpose: 'invite', consumedAt: null, expiresAt: new Date(Date.now() + 3600_000) });
+    await svc.redeem(raw, 'prima-password-1');
+    await expect(svc.redeem(raw, 'seconda-password-2')).rejects.toBeInstanceOf(NotFoundException);
   });
 
   it('getContext: token valido → email+purpose; inesistente → NotFoundException', async () => {
