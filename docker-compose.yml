@@ -28,6 +28,13 @@ services:
       timeout: 5s
       retries: 20
 
+  mailpit:
+    image: axllent/mailpit:latest
+    container_name: coralyn-mailpit
+    ports:
+      - "8025:8025"   # UI web
+      - "1025:1025"   # SMTP
+
   api:
     profiles: ["full"]
     build:
@@ -46,9 +53,21 @@ services:
       # Seed al primo avvio: Stabilimento dev (00000000-...-0001) + primo admin,
       # così si può fare login reale (POST /api/auth/login) sul backend dockerizzato.
       SEED_ON_START: "true"
+      # Sottosistema email (ADR-0042): l'api invia gli inviti set-password via SMTP a Mailpit in dev.
+      MAIL_HOST: "mailpit"
+      MAIL_PORT: "1025"
+      MAIL_SECURE: "false"
+      MAIL_FROM: "Coralyn <no-reply@coralyn.dev>"
+      APP_WEB_STAFF_URL: "http://localhost:8080"
+      CREDENTIAL_TOKEN_TTL_HOURS: "72"
+      # Bootstrap superuser di piattaforma (seed env-gated, idempotente upsert).
+      PLATFORM_SUPERUSER_EMAIL: "super@coralyn.dev"
+      PLATFORM_SUPERUSER_PASSWORD: "coralyn-super-9182"
     depends_on:
       db:
         condition: service_healthy
+      mailpit:
+        condition: service_started
     ports:
       - "3000:3000"
 
