@@ -75,4 +75,12 @@ describe('CredentialSetupService', () => {
     expect(await svc.getContext(raw)).toEqual({ email: 'a@lido.test', purpose: 'reset' });
     await expect(svc.getContext('nope')).rejects.toBeInstanceOf(NotFoundException);
   });
+
+  it('issueAndSend: se l’invio email fallisce, il token resta persistito e non propaga (best-effort)', async () => {
+    const { client, tokens } = makePrisma();
+    const failingMailer = { sendCredentialSetup: jest.fn().mockRejectedValue(new Error('smtp down')) } as any;
+    const svc = new CredentialSetupService(client, hasher, failingMailer, config);
+    await expect(svc.issueAndSend('u1', 'a@lido.test', 'invite', 'su1')).resolves.toEqual({ expiresAt: expect.any(Date) });
+    expect(tokens).toHaveLength(1); // token persistito nonostante il fallimento invio
+  });
 });

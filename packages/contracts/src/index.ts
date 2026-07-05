@@ -482,15 +482,11 @@ export interface CreateEstablishmentInput {
 }
 
 /** Risposta della create: il DTO del lido + esito dell'invito email all'admin.
- *  Nessuna password in chiaro: l'admin la imposta via link.
- *  NOTA transitoria: `temporaryPassword` è ancora emesso dal provisioning attuale;
- *  verrà rimosso quando la Task 6 (invio email invito in create) sostituirà il flusso.
- *  `expiresAt` è opzionale finché quel layer non lo popola. */
+ *  Nessuna password in chiaro: l'admin la imposta via link. */
 export interface CreateEstablishmentResponse {
   establishment: PlatformEstablishmentDTO;
   adminEmail: string;
-  temporaryPassword?: string;
-  expiresAt?: string; // ISO — scadenza del link di invito
+  expiresAt: string; // ISO — scadenza del link di invito
 }
 
 /** Esito di un reset-password admin avviato dal console superuser. */

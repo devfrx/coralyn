@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import type { CredentialSetupContext, CredentialTokenPurpose } from '@coralyn/contracts';
 import { PrismaService } from '../prisma/prisma.service';
@@ -10,6 +10,8 @@ const INVALID = 'Link non valido o scaduto';
 
 @Injectable()
 export class CredentialSetupService {
+  private readonly logger = new Logger(CredentialSetupService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly hasher: PasswordHasher,
@@ -36,9 +38,14 @@ export class CredentialSetupService {
       await tx.credentialSetupToken.updateMany({ where: { userId, consumedAt: null }, data: { consumedAt: new Date() } });
       await tx.credentialSetupToken.create({ data: { userId, tokenHash, purpose, expiresAt, createdByUserId } });
     });
-    // Contratto: persist-then-best-effort-send. Se l'invio fallisce il token è già persistito;
-    // la gestione del fallimento (resend/report) è del chiamante (provisioning/reset).
-    await this.mailer.sendCredentialSetup({ to: email, rawToken: raw, purpose, expiresAt });
+    // Contratto: persist-then-best-effort-send. Il token è già persistito; se l'invio fallisce
+    // il link è comunque ri-emettibile via reset-admin-password. Non facciamo 500 su una create
+    // già committata; logghiamo (segnale ops) e proseguiamo.
+    try {
+      await this.mailer.sendCredentialSetup({ to: email, rawToken: raw, purpose, expiresAt });
+    } catch (err) {
+      this.logger.warn(`Invio email set-password fallito per ${email} (purpose=${purpose}): ${err instanceof Error ? err.message : String(err)}`);
+    }
     return { expiresAt };
   }
 

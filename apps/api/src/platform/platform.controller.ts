@@ -1,6 +1,6 @@
 import { Body, Controller, Get, Param, Post } from '@nestjs/common';
 import { Role } from '@coralyn/contracts';
-import type { CreateEstablishmentResponse, PlatformEstablishmentDTO } from '@coralyn/contracts';
+import type { CreateEstablishmentResponse, PlatformEstablishmentDTO, ResetAdminPasswordResponse } from '@coralyn/contracts';
 import { Roles } from '../identity/roles.decorator';
 import { CurrentUser } from '../identity/current-user.decorator';
 import type { AuthUser } from '../identity/auth-user';
@@ -39,5 +39,10 @@ export class PlatformController {
   @Post('establishments/:id/reactivate')
   reactivate(@Param('id') id: string, @CurrentUser() user: AuthUser): Promise<PlatformEstablishmentDTO> {
     return this.provisioning.reactivate(id, user.id);
+  }
+
+  @Post('establishments/:id/reset-admin-password')
+  resetAdminPassword(@Param('id') id: string, @CurrentUser() user: AuthUser): Promise<ResetAdminPasswordResponse> {
+    return this.provisioning.resetAdminPassword(id, user.id);
   }
 }
