@@ -6,7 +6,7 @@
   [0015](../../architecture/decisions/0015-osservabilita-e-console-superuser.md) ·
   [0026](../../architecture/decisions/0026-identita-rls-utente.md) ·
   [0028](../../architecture/decisions/0028-provisioning-tenant.md)
-- **ADR nuovi prodotti da questa spec:** **0040** (lettura aggregata cross-tenant) · **0041** (app FE dedicata `web-platform`)
+- **ADR nuovi prodotti da questa spec:** [0040](../../architecture/decisions/0040-lettura-aggregata-cross-tenant.md) (lettura aggregata cross-tenant) · [0041](../../architecture/decisions/0041-app-frontend-dedicata-platform.md) (app FE dedicata `web-platform`)
 - **Deferred nuovi:** impersonation-supporto (accesso PII puntuale) · vista materializzata metriche
 
 ---
