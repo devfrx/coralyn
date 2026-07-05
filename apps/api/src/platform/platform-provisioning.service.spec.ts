@@ -35,7 +35,7 @@ describe('PlatformProvisioningService', () => {
     }));
     expect(res.adminEmail).toBe('admin@lidox.it');
     expect(typeof res.temporaryPassword).toBe('string');
-    expect(res.temporaryPassword.length).toBeGreaterThanOrEqual(12);
+    expect(res.temporaryPassword!.length).toBeGreaterThanOrEqual(12);
     expect(res.establishment).toEqual(DTO);
   });
 

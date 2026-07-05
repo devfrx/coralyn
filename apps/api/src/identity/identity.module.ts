@@ -8,6 +8,7 @@ import { PasswordHasher } from './password-hasher';
 import { TokenService } from './token.service';
 import { JwtAuthGuard } from './jwt-auth.guard';
 import { RolesGuard } from './roles.guard';
+import { CredentialModule } from '../credential/credential.module';
 
 @Module({
   imports: [
@@ -18,6 +19,7 @@ import { RolesGuard } from './roles.guard';
         signOptions: { expiresIn: config.get<string>('JWT_EXPIRES_IN') ?? '8h' },
       }),
     }),
+    CredentialModule,
   ],
   controllers: [AuthController],
   providers: [
