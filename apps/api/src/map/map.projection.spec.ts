@@ -13,6 +13,7 @@ const source: MapSource = {
       establishmentId: 'e',
       name: 'Centro',
       sortOrder: 1,
+      kind: 'grid',
       rows: [
         {
           id: 'row1',
