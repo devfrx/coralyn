@@ -481,9 +481,29 @@ export interface CreateEstablishmentInput {
   adminEmail: string;
 }
 
-/** Risposta della create: il DTO del lido + credenziali iniziali dell'admin, mostrate UNA volta. */
+/** Risposta della create: il DTO del lido + esito dell'invito email all'admin.
+ *  Nessuna password in chiaro: l'admin la imposta via link. */
 export interface CreateEstablishmentResponse {
   establishment: PlatformEstablishmentDTO;
   adminEmail: string;
-  temporaryPassword: string;
+  expiresAt: string; // ISO — scadenza del link di invito
+}
+
+/** Esito di un reset-password admin avviato dal console superuser. */
+export interface ResetAdminPasswordResponse {
+  adminEmail: string;
+  expiresAt: string; // ISO — scadenza del link di reset
+}
+
+/** Contesto minimo mostrato dalla pagina set-password (nessun dato sensibile). */
+export type CredentialTokenPurpose = 'invite' | 'reset';
+export interface CredentialSetupContext {
+  email: string;
+  purpose: CredentialTokenPurpose;
+}
+
+/** Input del redeem: token dal link + nuova password scelta dall'utente. */
+export interface SetPasswordInput {
+  token: string;
+  password: string;
 }
