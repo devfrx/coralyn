@@ -15,9 +15,12 @@ export class SmtpMailerService extends MailerService {
     super();
     const user = this.config.get<string>('MAIL_USER');
     const pass = this.config.get<string>('MAIL_PASS');
+    if ((user && !pass) || (!user && pass)) {
+      throw new Error('MAIL_USER e MAIL_PASS vanno impostati insieme (o entrambi assenti per SMTP senza auth).');
+    }
     this.transporter = nodemailer.createTransport({
       host: this.config.getOrThrow<string>('MAIL_HOST'),
-      port: Number(this.config.get<string>('MAIL_PORT') ?? '1025'),
+      port: Number(this.config.get<string>('MAIL_PORT') || '1025'),
       secure: this.config.get<string>('MAIL_SECURE') === 'true',
       auth: user && pass ? { user, pass } : undefined,
     });
