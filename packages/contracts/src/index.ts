@@ -450,3 +450,40 @@ export interface GenerateUmbrellasInput {
   umbrellaTypeId: string | null; // tipologia predefinita del batch
 }
 export interface GenerateUmbrellasResultDTO { created: number; skipped: number; umbrellas: StructureUmbrellaDTO[]; }
+
+// --- Platform Console (superuser) --------------------------------------------
+
+/** Metriche aggregate di un lido per la Platform Console (superuser). PII-free per costruzione
+ *  (solo count/sum/timestamp): nessun dato personale dei bagnanti. Vedi ADR-0040. */
+export interface PlatformEstablishmentDTO {
+  id: string;
+  name: string;
+  createdAt: string; // ISO
+  suspendedAt: string | null; // ISO | null
+  // capacità (struttura)
+  sectors: number;
+  rows: number;
+  umbrellas: number;
+  // vitalità / engagement
+  staffUsersActive: number;
+  lastActivityAt: string | null; // max(Booking.createdAt) del lido — proxy "è vivo?" (D-044)
+  // valore commerciale
+  revenueSeasonTotal: number; // somma incassato della stagione attiva
+  activeSubscriptions: number;
+  bookingsThisSeason: number;
+  // operatività live
+  occupancyPctToday: number; // 0..100 — quota ombrelloni con prenotazione confermata oggi
+}
+
+/** Input di provisioning di un nuovo lido (superuser). */
+export interface CreateEstablishmentInput {
+  name: string;
+  adminEmail: string;
+}
+
+/** Risposta della create: il DTO del lido + credenziali iniziali dell'admin, mostrate UNA volta. */
+export interface CreateEstablishmentResponse {
+  establishment: PlatformEstablishmentDTO;
+  adminEmail: string;
+  temporaryPassword: string;
+}
