@@ -50,4 +50,33 @@ describe('Modal', () => {
     expect(contentCls).toContain('data-[state=open]:[animation:dialog-in');
     expect(contentCls).toContain('data-[state=closed]:[animation:dialog-out');
   });
+
+  it('rende lo slot #footer in una regione dedicata quando presente', async () => {
+    mount(Modal, {
+      props: { open: true, title: 'Titolo' },
+      slots: { default: '<p>corpo</p>', footer: '<button data-test="cta">Salva</button>' },
+      attachTo: document.body,
+    });
+    await nextTick();
+    const footerBtn = document.body.querySelector('[data-test="cta"]');
+    expect(footerBtn).not.toBeNull();
+    const footerRegion = document.body.querySelector('[data-test="modal-footer-region"]')!;
+    expect(footerRegion).not.toBeNull();
+    expect(footerRegion.contains(footerBtn)).toBe(true);
+  });
+
+  it('senza slot #footer non rende la regione footer', async () => {
+    mount(Modal, { props: { open: true, title: 'Titolo' }, slots: { default: 'x' }, attachTo: document.body });
+    await nextTick();
+    expect(document.body.querySelector('[data-test="modal-footer-region"]')).toBeNull();
+  });
+
+  it('il body è la regione scrollabile (overflow-auto), non il content', async () => {
+    mount(Modal, { props: { open: true, title: 'Titolo' }, slots: { default: 'x' }, attachTo: document.body });
+    await nextTick();
+    const body = document.body.querySelector('[data-test="modal-body"]')!;
+    expect(body.className).toContain('overflow-auto');
+    const content = document.body.querySelector('[role="dialog"]')!;
+    expect(content.className).not.toContain('overflow-auto');
+  });
 });
