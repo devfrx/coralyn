@@ -1,10 +1,16 @@
 <script setup lang="ts">
 import { computed } from 'vue';
-import { SectionCard, Callout, Badge, Icon } from '@coralyn/ui-kit';
+import { SectionCard, Callout, Badge, Button, Icon, formatEuro } from '@coralyn/ui-kit';
 import type { CustomerBookingDTO } from '@coralyn/contracts';
+import { todayIso } from '@/lib/dates';
 
-const props = defineProps<{ bookings: CustomerBookingDTO[] }>();
+const props = defineProps<{ bookings: CustomerBookingDTO[]; isAdmin: boolean }>();
+const emit = defineEmits<{ terminate: [CustomerBookingDTO] }>();
 const subs = computed(() => props.bookings.filter((b) => b.type === 'subscription'));
+
+const canTerminate = (b: CustomerBookingDTO): boolean =>
+  b.status === 'confirmed' && !b.terminatedAt && b.endDate >= todayIso();
+const terminatedDay = (iso: string): string => iso.slice(0, 10);
 </script>
 <template>
   <SectionCard title="Abbonamento e anzianità" icon="star">
@@ -21,15 +27,21 @@ const subs = computed(() => props.bookings.filter((b) => b.type === 'subscriptio
             <div class="mt-1.5 text-[13px] font-semibold text-[var(--color-text)]">{{ b.seasonName ?? '—' }} · posto riservato</div>
             <div class="mt-0.5 text-xs text-[var(--color-text-muted)]">Abbonato da {{ b.seniority ?? 1 }} {{ (b.seniority ?? 1) === 1 ? 'stagione' : 'stagioni consecutive' }}</div>
           </div>
-          <div class="shrink-0 text-right">
-            <div class="text-[26px] font-bold leading-none tabular-nums text-[var(--color-text)]">{{ b.seniority ?? 1 }}</div>
-            <div class="mt-1 text-[10px] font-semibold uppercase tracking-[.06em] text-[var(--color-text-muted)]">{{ (b.seniority ?? 1) === 1 ? 'STAGIONE' : 'STAGIONI' }}</div>
+          <div class="flex shrink-0 flex-col items-end gap-2">
+            <div class="text-right">
+              <div class="text-[26px] font-bold leading-none tabular-nums text-[var(--color-text)]">{{ b.seniority ?? 1 }}</div>
+              <div class="mt-1 text-[10px] font-semibold uppercase tracking-[.06em] text-[var(--color-text-muted)]">{{ (b.seniority ?? 1) === 1 ? 'STAGIONE' : 'STAGIONI' }}</div>
+            </div>
+            <Button v-if="isAdmin && canTerminate(b)" variant="secondary" :data-testid="`terminate-${b.id}`" @click="emit('terminate', b)"><Icon name="trash-2" :size="15" />Disdici</Button>
           </div>
         </div>
         <Callout v-if="b.prelazione" tone="warm" class="mt-3">
           <template #icon><Icon name="clock" :size="15" /></template>
           Prelazione aperta per {{ b.prelazione.destinationSeasonName }} · scade {{ b.prelazione.deadline }}
         </Callout>
+        <div v-if="b.terminatedAt" class="mt-3 rounded-[var(--radius-sm)] bg-[var(--color-raised)] px-2.5 py-2 text-[12px] text-[var(--color-text-2nd)]">
+          Disdetto il {{ terminatedDay(b.terminatedAt) }} · rimborso {{ formatEuro(b.refundedAmount ?? 0) }}<span v-if="b.terminationReason"> · {{ b.terminationReason }}</span>
+        </div>
       </li>
     </ul>
   </SectionCard>
