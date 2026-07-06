@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { DialogRoot, DialogPortal, DialogOverlay, DialogContent, DialogTitle, DialogDescription, DialogClose } from 'reka-ui';
-import Icon from './Icon.vue';
+import IconButton from './IconButton.vue';
 defineProps<{ title: string; eyebrow?: string; description?: string }>();
 const open = defineModel<boolean>('open', { required: true });
 </script>
@@ -17,7 +17,7 @@ const open = defineModel<boolean>('open', { required: true });
               {{ description ?? title }}
             </DialogDescription>
           </div>
-          <DialogClose aria-label="Chiudi" class="grid size-8 place-items-center rounded-full border border-[var(--color-border)] bg-[var(--color-raised)] text-[var(--color-text-muted)]"><Icon name="x" :size="16" /></DialogClose>
+          <DialogClose as-child><IconButton icon="x" label="Chiudi" variant="subtle" /></DialogClose>
         </div>
         <div class="p-5"><slot /></div>
       </DialogContent>
