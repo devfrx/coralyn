@@ -68,6 +68,23 @@ describe('projectDayMap', () => {
     expect(dto.sectors[0].rows[0].umbrellas[1].stateBySlot).toEqual({ s1: 'free', s2: 'free' });
   });
 
+  it('popola stateBySlot per OGNI fascia configurata (N=3, non solo 2) — §5 FE-only lock', () => {
+    const source3: MapSource = {
+      ...source,
+      timeSlots: [
+        ...source.timeSlots, // s1 (Mattina), s2 (Pomeriggio)
+        { id: 's3', establishmentId: 'e', name: 'Sera', startTime: new Date('1970-01-01T19:00:00Z'), endTime: new Date('1970-01-01T23:00:00Z'), sortOrder: 3 },
+      ],
+      bookings: [{ umbrellaId: 'u1', timeSlotId: 's2', type: 'daily' as const }],
+    };
+    const dto = projectDayMap('2026-07-15', source3);
+    const u1 = dto.sectors[0].rows[0].umbrellas[0];
+    // Tutte e 3 le fasce presenti come chiavi (la centrale/s2 non "sparisce")
+    expect(Object.keys(u1.stateBySlot).sort()).toEqual(['s1', 's2', 's3']);
+    // La prenotazione daily accende SOLO la fascia sovrapposta; le altre restano free
+    expect(u1.stateBySlot).toEqual({ s1: 'free', s2: 'daily', s3: 'free' });
+  });
+
   it('due confermate sullo stesso slot: stato deterministico (prima per createdAt)', () => {
     const withBookings = {
       ...source,
