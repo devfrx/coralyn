@@ -6,7 +6,7 @@ import { KpiCard, ChartBar, ChartDonut, SegmentedControl, Card, Avatar, Button, 
 import { useReportSummary } from './useReport';
 import { stateColor, accentColor } from '@/lib/chartColors';
 
-const STATE_LABEL: Record<SlotState, string> = { free: 'Libero', season: 'Abbonato', daily: 'Giornaliero', booked: 'Prenotato' };
+const STATE_LABEL: Record<SlotState, string> = { free: 'Libero', season: 'Abbonato', daily: 'Giornaliero', booked: 'Prenotato', covered: 'Non disponibile' };
 
 const router = useRouter();
 const period = ref<ReportPeriod>('week');

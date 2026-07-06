@@ -25,9 +25,11 @@ const cancelBooking = useCancelBooking();
 const STATE_COLOR: Record<SlotState, string> = {
   free: 'var(--color-state-free)', season: 'var(--color-state-season)',
   daily: 'var(--color-state-daily)', booked: 'var(--color-state-booked)',
+  covered: 'var(--color-state-covered)',
 };
 const STATE_LABEL: Record<SlotState, string> = {
   free: 'Libero', season: 'Abbonato', daily: 'Giornaliero', booked: 'Prenotato',
+  covered: 'Non disponibile',
 };
 const TYPE_LABEL: Record<BookingType, string> = {
   daily: 'Giornaliera', periodic: 'Periodica', subscription: 'Abbonamento',
@@ -182,6 +184,22 @@ const { data: quote, isError: quoteError, isFetching: quoteLoading } = useBookin
 // Provenienza prezzo (ADR-0032): label composta dal FE dai nomi già in vista.
 const packagesById = computed(() => new Map((packages.value ?? []).map((p) => [p.id, p.name])));
 const slotsById = computed(() => new Map(timeSlots.value.map((s) => [s.id, s.name])));
+
+interface CoverInfo { slotName: string; customer: string; amount: number | null; }
+/** Per una fascia coperta, elenca le fasce copritrici col dettaglio della loro prenotazione (D-048). */
+function coveringInfo(slotId: string): CoverInfo[] {
+  if (!sel.value) return [];
+  const coveringIds = liveU.value.coveredBySlot?.[slotId] ?? [];
+  return coveringIds.map((cid) => {
+    const b = (bookings.value ?? []).find((x) => x.umbrellaId === sel.value!.u.id && x.timeSlotId === cid);
+    const cust = b ? (customers.value ?? []).find((c) => c.id === b.customerId) : undefined;
+    return {
+      slotName: slotsById.value.get(cid) ?? 'Fascia',
+      customer: cust ? `${cust.firstName} ${cust.lastName}` : (b?.customerId ?? ''),
+      amount: b ? b.totalPrice : null,
+    };
+  });
+}
 const sectorsById = computed(() => new Map(sectors.value.map((s) => [s.id, s.name])));
 const rowsById = computed(
   () => new Map(sectors.value.flatMap((s) => s.rows.map((r) => [r.id, r.label]))),
@@ -263,6 +281,7 @@ const freeSlotOptions = computed(() =>
               <span class="inline-flex items-center gap-1.5"><i class="size-[13px] rounded-full" style="background:var(--color-state-season)"></i>Abbonato</span>
               <span class="inline-flex items-center gap-1.5"><i class="size-[13px] rounded-full" style="background:var(--color-state-daily)"></i>Giornaliero</span>
               <span class="inline-flex items-center gap-1.5"><i class="size-[13px] rounded-full" style="background:var(--color-state-booked)"></i>Prenotato</span>
+              <span class="inline-flex items-center gap-1.5"><i class="size-[13px] rounded-full" style="background:var(--color-state-covered)"></i>Non disponibile</span>
               <span class="inline-flex items-center gap-1.5"><i class="size-[13px] rounded-full" style="background:conic-gradient(from 0deg,var(--color-state-booked) 0 33.333%,var(--color-state-daily) 33.333% 66.666%,var(--color-state-free) 66.666% 100%)"></i>Stato misto</span>
             </div>
           </div>
@@ -312,8 +331,16 @@ const freeSlotOptions = computed(() =>
             <button type="button" @click="onCancel" class="p-0.5 text-xs font-semibold text-[var(--color-danger)] focus-visible:outline-none focus-visible:[box-shadow:var(--ring-focus)]">Annulla prenotazione</button>
           </div>
         </template>
-        <div v-else class="mt-3.5 rounded-xl border border-dashed border-[var(--color-warm-border-seg)] bg-[var(--color-warm-075)] p-4 text-center text-[12.5px] leading-relaxed text-[var(--color-text-muted)]">
-          {{ availabilityMessage }}
+        <div v-else class="mt-3.5 rounded-xl border border-dashed border-[var(--color-warm-border-seg)] bg-[var(--color-warm-075)] p-4 text-[12.5px] leading-relaxed text-[var(--color-text-muted)]">
+          <template v-if="liveStateFor(selectedSlotId) === 'covered'">
+            <div class="mb-1.5 text-center text-[13px] font-semibold text-[var(--color-text)]">Non disponibile</div>
+            <ul class="space-y-1">
+              <li v-for="(c, i) in coveringInfo(selectedSlotId)" :key="i">
+                coperta da <span class="font-semibold text-[var(--color-text-2nd)]">{{ c.slotName }}</span><template v-if="c.customer"> — {{ c.customer }}<template v-if="c.amount !== null"> · € {{ c.amount }}</template></template>
+              </li>
+            </ul>
+          </template>
+          <div v-else class="text-center">{{ availabilityMessage }}</div>
         </div>
         <div class="mt-auto flex flex-col gap-2 pt-4">
           <Button @click="openModal()"><Icon name="plus" :size="17" />Nuova prenotazione</Button>

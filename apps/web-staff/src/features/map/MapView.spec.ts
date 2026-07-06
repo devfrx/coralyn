@@ -519,5 +519,98 @@ describe('MapView', () => {
     w.unmount();
   });
 
+  it('fascia coperta (metà prenotate → full-day coperta): box "Non disponibile" + dettaglio copritori, senza azioni', async () => {
+    const mapOv = {
+      date: '2026-06-27',
+      umbrellaTypes: [{ id: 't1', name: 'Palma', sortOrder: 1, icon: 'palmtree' }],
+      timeSlots: [
+        { id: 'mat', name: 'Mattina', startTime: '08:00', endTime: '13:00', sortOrder: 1 },
+        { id: 'pom', name: 'Pomeriggio', startTime: '13:00', endTime: '19:00', sortOrder: 2 },
+        { id: 'full', name: 'Giornata int.', startTime: '08:00', endTime: '19:00', sortOrder: 3 },
+      ],
+      sectors: [{ id: 'sec', name: 'Centro', sortOrder: 1, rows: [{ id: 'r1', label: 'Fila 1', sortOrder: 1, umbrellas: [
+        { id: 'o9', label: '9', umbrellaTypeId: 't1', rowId: 'r1',
+          stateBySlot: { mat: 'daily', pom: 'booked', full: 'covered' },
+          coveredBySlot: { full: ['mat', 'pom'] } },
+      ] }] }],
+    };
+    server.use(
+      http.get('/api/map', () => HttpResponse.json(mapOv)),
+      http.get('/api/bookings', () => HttpResponse.json([
+        { id: 'bm', customerId: 'c-1', umbrellaId: 'o9', timeSlotId: 'mat', startDate: '2026-06-27', endDate: '2026-06-27', type: 'daily', status: 'confirmed', totalPrice: 30, paymentStatus: 'unpaid', amountCollected: 0 },
+        { id: 'bp', customerId: 'c-1', umbrellaId: 'o9', timeSlotId: 'pom', startDate: '2026-06-27', endDate: '2026-06-27', type: 'periodic', status: 'confirmed', totalPrice: 55, paymentStatus: 'unpaid', amountCollected: 0 },
+      ])),
+    );
+
+    const w = mountApp(MapView, { attachTo: document.body });
+    await flushPromises();
+    await new Promise((r) => setTimeout(r, 0));
+    await flushPromises();
+
+    await w.findComponent({ name: 'UmbrellaCell' }).find('button').trigger('click');
+    await flushPromises();
+    const aside = w.find('aside');
+
+    // Il box "Giornata int." mostra "Non disponibile"
+    const fullBox = aside.findAll('button').find((b) => b.text().includes('Giornata int.'));
+    expect(fullBox).toBeTruthy();
+    expect(fullBox!.text()).toContain('Non disponibile');
+
+    // Selezionandolo → dettaglio copertura: fasce copritrici + clienti + importi; nessuna azione di booking
+    await fullBox!.trigger('click');
+    await flushPromises();
+    expect(aside.text()).toContain('coperta da');
+    expect(aside.text()).toContain('Mattina');
+    expect(aside.text()).toContain('Pomeriggio');
+    expect(aside.text()).toContain('30');
+    expect(aside.text()).toContain('55');
+    expect(aside.text()).not.toContain('Registra incasso');
+
+    w.unmount();
+  });
+
+  it('fascia coperta (full-day prenotata → metà coperte): la metà nomina la full-day come copritrice', async () => {
+    const mapOv2 = {
+      date: '2026-06-27',
+      umbrellaTypes: [{ id: 't1', name: 'Palma', sortOrder: 1, icon: 'palmtree' }],
+      timeSlots: [
+        { id: 'mat', name: 'Mattina', startTime: '08:00', endTime: '13:00', sortOrder: 1 },
+        { id: 'pom', name: 'Pomeriggio', startTime: '13:00', endTime: '19:00', sortOrder: 2 },
+        { id: 'full', name: 'Giornata int.', startTime: '08:00', endTime: '19:00', sortOrder: 3 },
+      ],
+      sectors: [{ id: 'sec', name: 'Centro', sortOrder: 1, rows: [{ id: 'r1', label: 'Fila 1', sortOrder: 1, umbrellas: [
+        { id: 'o9', label: '9', umbrellaTypeId: 't1', rowId: 'r1',
+          stateBySlot: { mat: 'covered', pom: 'covered', full: 'season' },
+          coveredBySlot: { mat: ['full'], pom: ['full'] } },
+      ] }] }],
+    };
+    server.use(
+      http.get('/api/map', () => HttpResponse.json(mapOv2)),
+      http.get('/api/bookings', () => HttpResponse.json([
+        { id: 'bf', customerId: 'c-1', umbrellaId: 'o9', timeSlotId: 'full', startDate: '2026-06-27', endDate: '2026-06-27', type: 'subscription', status: 'confirmed', totalPrice: 800, paymentStatus: 'unpaid', amountCollected: 0 },
+      ])),
+    );
+
+    const w = mountApp(MapView, { attachTo: document.body });
+    await flushPromises();
+    await new Promise((r) => setTimeout(r, 0));
+    await flushPromises();
+
+    await w.findComponent({ name: 'UmbrellaCell' }).find('button').trigger('click');
+    await flushPromises();
+    const aside = w.find('aside');
+
+    // Seleziona la fascia "Mattina" (coperta dalla full-day)
+    const matBox = aside.findAll('button').find((b) => b.text().includes('Mattina'));
+    expect(matBox).toBeTruthy();
+    await matBox!.trigger('click');
+    await flushPromises();
+    expect(aside.text()).toContain('coperta da');
+    expect(aside.text()).toContain('Giornata int.');
+    expect(aside.text()).toContain('800');
+
+    w.unmount();
+  });
+
   afterEach(() => { vi.restoreAllMocks(); });
 });

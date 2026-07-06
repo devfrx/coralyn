@@ -2,6 +2,7 @@ import type { SlotState } from '@coralyn/contracts';
 
 const STATE_VAR: Record<SlotState, string> = {
   free: '--color-state-free', season: '--color-state-season', daily: '--color-state-daily', booked: '--color-state-booked',
+  covered: '--color-state-covered',
 };
 
 export function resolveVar(name: string): string {
