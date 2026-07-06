@@ -3,6 +3,7 @@ import { setActivePinia, createPinia } from 'pinia';
 import { useSessionStore } from './session';
 import { getToken, setToken, clearToken } from '@/lib/authToken';
 import { MOCK_TOKEN } from '@/mocks/server';
+import { todayIso } from '@/lib/dates';
 
 beforeEach(() => {
   setActivePinia(createPinia());
@@ -10,6 +11,12 @@ beforeEach(() => {
 });
 
 describe('session store', () => {
+  it('activeDate parte da oggi (todayIso), non da una data fissa', () => {
+    const s = useSessionStore();
+    expect(s.activeDate).toBe(todayIso());
+    expect(s.activeDate).not.toBe('2026-06-27');
+  });
+
   it('parte non autenticato', () => {
     const s = useSessionStore();
     expect(s.authenticated).toBe(false);

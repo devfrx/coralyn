@@ -3,11 +3,12 @@ import { ref, computed } from 'vue';
 import { Role, type UserDTO, type LoginResponse } from '@coralyn/contracts';
 import { apiFetch } from '@/lib/http';
 import { getToken, setToken, clearToken } from '@/lib/authToken';
+import { todayIso } from '@/lib/dates';
 
 export const useSessionStore = defineStore('session', () => {
   // Utente autenticato (null = sessione assente). I dati di identità derivano da qui.
   const user = ref<UserDTO | null>(null);
-  const activeDate = ref<string>('2026-06-27'); // ISO yyyy-mm-dd
+  const activeDate = ref<string>(todayIso()); // ISO yyyy-mm-dd — default: oggi operativo (Europe/Rome)
   // Il nome stabilimento non è esposto dagli endpoint auth (UserDTO ha solo l'id):
   // resta un default finché un endpoint dedicato non lo fornirà.
   const establishmentName = ref<string>('Lido Maestrale');
