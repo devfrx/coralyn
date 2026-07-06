@@ -25,6 +25,14 @@ vi.mock('vue-router', async (importOriginal) => {
   return { ...actual, useRouter: () => ({ push }) };
 });
 
+// L'hint erasure GDPR usa todayIso() (oggi reale) e non session.activeDate: fissiamo
+// il "oggi" a una data di riferimento per rendere deterministico il confronto con
+// l'endDate futura del seed (cb-1: 2027-09-15), indipendentemente dalla data corrente.
+vi.mock('@/lib/dates', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/lib/dates')>();
+  return { ...actual, todayIso: () => '2026-07-06' };
+});
+
 const RouterLinkStub = { props: ['to'], template: '<a><slot /></a>' };
 
 function mountDetail(id: string) {
@@ -155,6 +163,17 @@ describe('CustomerDetailView', () => {
       await settle();
       const btn = w.find('[data-testid="delete-customer"]');
       expect(btn.exists()).toBe(true);
+      expect(btn.attributes('disabled')).toBeDefined();
+      expect(w.find('[data-testid="delete-customer-hint"]').exists()).toBe(true);
+    });
+
+    it('l hint attive/future usa todayIso() e NON activeDate (indipendente dalla navigazione)', async () => {
+      const w = mountAndTrack('c-1'); // c-1: cb-1 confirmed endDate 2027-09-15 → attiva rispetto a todayIso()=2026-07-06
+      setRole(Role.Admin);
+      const s = useSessionStore();
+      s.activeDate = '2028-01-01'; // data di navigazione ben oltre gli endDate di c-1: se l hint usasse activeDate, sarebbe FALSE
+      await settle();
+      const btn = w.find('[data-testid="delete-customer"]');
       expect(btn.attributes('disabled')).toBeDefined();
       expect(w.find('[data-testid="delete-customer-hint"]').exists()).toBe(true);
     });

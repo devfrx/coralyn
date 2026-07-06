@@ -5,6 +5,7 @@ import { Card, Avatar, Button, Field, Input, Textarea, Icon, SectionCard, Confir
 import { Role } from '@coralyn/contracts';
 import { useSessionStore } from '@/stores/session';
 import { pushToast } from '@/lib/toasts';
+import { todayIso } from '@/lib/dates';
 import { useCustomer, useUpdateCustomer, useCustomerBookings, useDeleteCustomer } from './useCustomers';
 import CustomerHistoryCard from './CustomerHistoryCard.vue';
 import CustomerSubscriptionsCard from './CustomerSubscriptionsCard.vue';
@@ -30,7 +31,7 @@ const ini = computed(() => (customer.value ? ((customer.value.firstName[0] ?? ''
 const isAdmin = computed(() => session.role === Role.Admin);
 const hasBookings = computed(() => (bookings.value ?? []).length > 0);
 const hasActiveOrFuture = computed(() =>
-  (bookings.value ?? []).some((b) => b.status === 'confirmed' && b.endDate >= session.activeDate),
+  (bookings.value ?? []).some((b) => b.status === 'confirmed' && b.endDate >= todayIso()),
 );
 const deleteLabel = computed(() => (hasBookings.value ? 'Anonimizza dati personali (GDPR)' : 'Elimina cliente'));
 const deleteDescription = computed(() =>
