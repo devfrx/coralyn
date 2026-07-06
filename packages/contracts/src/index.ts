@@ -195,6 +195,9 @@ export interface BookingDTO {
   collectionDate?: string;       // A2 (additivo): ISO yyyy-mm-dd, assente finché non si incassa
   packageId?: string;            // A3.1 (additivo): valorizzato dal selettore Pacchetto (A3.2); assente = nessun pacchetto
   previousBookingId?: string;    // A4.2 (additivo): valorizzato per i rinnovi (link al precedente)
+  refundedAmount?: number;       // D-013 (additivo): rimborso reso alla disdetta; assente/0 = nessuno
+  terminatedAt?: string;         // D-013: ISO datetime della disdetta; assente = non disdetto
+  terminationReason?: string;    // D-013: nota operatore; assente = nessuna
 }
 
 /** Input per creare una prenotazione. Prezzo e (per subscription) durata sono server-autoritativi (A4.1). */
@@ -212,6 +215,14 @@ export interface CreateBookingInput {
  *  tutto il resto è COPIATO dalla sorgente (server-autoritativo). Prezzo ricalcolato sul nuovo listino. */
 export interface RenewBookingInput {
   destinationSeasonId: string;   // id della Season di destinazione
+}
+
+/** Input disdetta anticipata di un abbonamento (D-013, admin-only). `effectiveDate` = primo giorno
+ *  in cui il posto torna libero; `refundAmount` = importo rimborsato deciso dall'operatore. */
+export interface TerminateSubscriptionInput {
+  effectiveDate: string;   // ISO yyyy-mm-dd
+  refundAmount: number;    // ≥ 0, ≤ amountCollected
+  reason?: string;
 }
 
 /**
@@ -234,6 +245,9 @@ export interface CustomerBookingDTO {
   collectionDate?: string;
   packageId?: string;
   previousBookingId?: string;
+  refundedAmount?: number;       // D-013 (additivo)
+  terminatedAt?: string;         // D-013
+  terminationReason?: string;    // D-013
   // — arricchimenti server-side —
   umbrellaLabel: string;          // join Umbrella.label (il FE non carica la mappa)
   packageName?: string;           // nome del Package (se packageId presente); il FE non carica il catalogo
