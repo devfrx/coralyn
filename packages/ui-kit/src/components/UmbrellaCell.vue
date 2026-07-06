@@ -6,8 +6,7 @@ import Icon from './Icon.vue';
 const props = withDefaults(defineProps<{
   label: string;
   ariaLabel: string;
-  morningState: SlotState;
-  afternoonState: SlotState;
+  slotStates: readonly SlotState[];
   typeIcon?: string | null;
   selected?: boolean;
 }>(), { selected: false });
@@ -22,13 +21,23 @@ const ink: Record<SlotState, string> = {
   free: 'var(--color-state-free-ink)', season: 'var(--color-state-season-ink)',
   daily: 'var(--color-state-daily-ink)', booked: 'var(--color-state-booked-ink)',
 };
-const isSplit = computed(() => props.morningState !== props.afternoonState);
-const bg = computed(() =>
-  isSplit.value
-    ? `linear-gradient(90deg, ${fill[props.morningState]} 0 49%, var(--color-surface) 49% 51%, ${fill[props.afternoonState]} 51% 100%)`
-    : fill[props.morningState],
-);
-const color = computed(() => (isSplit.value ? 'var(--color-text)' : ink[props.morningState]));
+
+// N-agnostico: array vuoto → una fascia libera; nessun ramo speciale per N=2.
+const states = computed<readonly SlotState[]>(() => (props.slotStates.length ? props.slotStates : ['free']));
+const uniform = computed(() => states.value.every((s) => s === states.value[0]));
+const bg = computed(() => {
+  if (uniform.value) return fill[states.value[0]];
+  const n = states.value.length;
+  // Spicchi uguali in senso orario da ore 12 (conic-gradient); stop netti tra i colori.
+  const stops = states.value
+    .map((s, i) => `${fill[s]} ${((i / n) * 100).toFixed(3)}% ${(((i + 1) / n) * 100).toFixed(3)}%`)
+    .join(', ');
+  return `conic-gradient(from 0deg, ${stops})`;
+});
+const color = computed(() => (uniform.value ? ink[states.value[0]] : 'var(--color-text)'));
+
+// jsdom non serializza conic-gradient/var() nello style attribute → esponiamo i computed grezzi per i test.
+defineExpose({ bg, uniform });
 </script>
 
 <template>
