@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi, afterEach } from 'vitest';
 import { addDays, todayIso } from './dates';
 
 describe('addDays', () => {
@@ -33,13 +33,25 @@ describe('addDays', () => {
 });
 
 describe('todayIso', () => {
+  afterEach(() => vi.useRealTimers());
+
   it('restituisce il formato yyyy-mm-dd', () => {
     expect(todayIso()).toMatch(/^\d{4}-\d{2}-\d{2}$/);
   });
-  it('e coerente con la data odierna nel fuso Europe/Rome', () => {
-    const expected = new Intl.DateTimeFormat('en-CA', {
-      timeZone: 'Europe/Rome', year: 'numeric', month: '2-digit', day: '2-digit',
-    }).format(new Date());
-    expect(todayIso()).toBe(expected);
+
+  // Oracolo indipendente dall'implementazione: pinniamo istanti UTC fissi e verifichiamo il
+  // giorno di calendario a Roma. Non riusiamo la stessa costruzione Intl dell'impl.
+  it('pinna il fuso Europe/Rome in ora solare (CET, UTC+1)', () => {
+    vi.useFakeTimers();
+    // 28 mar 2026 23:30 UTC = 29 mar 00:30 a Roma (CET) → giorno Rome = 29
+    vi.setSystemTime(new Date('2026-03-28T23:30:00Z'));
+    expect(todayIso()).toBe('2026-03-29');
+  });
+
+  it('pinna il fuso Europe/Rome in ora legale (CEST, UTC+2) e differisce dal giorno UTC', () => {
+    vi.useFakeTimers();
+    // 5 lug 2026 22:30 UTC = 6 lug 00:30 a Roma (CEST): UTC dice 5, Roma dice 6 → il fuso conta davvero
+    vi.setSystemTime(new Date('2026-07-05T22:30:00Z'));
+    expect(todayIso()).toBe('2026-07-06');
   });
 });

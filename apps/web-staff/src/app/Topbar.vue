@@ -10,8 +10,10 @@ const title = computed(() => (route.meta.title as string | undefined) ?? '');
 const subtitle = computed(() => (route.meta.subtitle as string | undefined) ?? '');
 const showDateNav = computed(() => route.meta.usesDate === true);
 const dateLabel = computed(() => {
-  const d = new Date(session.activeDate + 'T00:00:00');
-  const s = new Intl.DateTimeFormat('it-IT', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' }).format(d);
+  // Parse e format entrambi in UTC: la convenzione "niente aritmetica in ora locale" resta uniforme
+  // con addDays/todayIso (il giorno di calendario ISO è preservato su qualunque fuso host).
+  const d = new Date(session.activeDate + 'T00:00:00Z');
+  const s = new Intl.DateTimeFormat('it-IT', { timeZone: 'UTC', weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' }).format(d);
   return s.charAt(0).toUpperCase() + s.slice(1);
 });
 function shiftDay(n: number): void {
