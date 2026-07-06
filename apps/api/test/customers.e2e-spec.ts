@@ -5,6 +5,8 @@ import request from 'supertest';
 import { AppModule } from '../src/app.module';
 import { PrismaService } from '../src/prisma/prisma.service';
 import { createUser, login } from './helpers/seed-auth';
+import { cleanMapTenant, seedMapTenant, type MapSeedIds } from './helpers/seed-map';
+import { seedPricingTenant, cleanPricingTenant } from './helpers/seed-pricing';
 
 describe('Customers (e2e) isolamento per tenant', () => {
   let app: INestApplication;
@@ -184,5 +186,116 @@ describe('Customers (e2e) isolamento per tenant', () => {
       .send({ email: '' })
       .expect(200);
     expect(patched.body.email).toBeUndefined();
+  });
+});
+
+describe('Customers erasure (e2e) — GDPR D-024', () => {
+  const CONFLICT_MSG = 'Il cliente ha prenotazioni attive o future: annullale o attendi la scadenza prima di rimuovere i dati.';
+  const bearer = (t: string): [string, string] => ['Authorization', `Bearer ${t}`];
+
+  let app: INestApplication;
+  let prisma: PrismaService;
+  let s1: string;
+  let s2: string;
+  let adminT: string;
+  let staffT: string;
+  let otherT: string;
+  let ids: MapSeedIds;
+  let adminId: string;
+
+  beforeAll(async () => {
+    const moduleRef = await Test.createTestingModule({ imports: [AppModule] }).compile();
+    app = moduleRef.createNestApplication();
+    app.setGlobalPrefix('api', { exclude: ['health'] });
+    app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
+    await app.init();
+    prisma = app.get(PrismaService);
+
+    s1 = (await prisma.establishment.create({ data: { name: 'DEL A' } })).id;
+    s2 = (await prisma.establishment.create({ data: { name: 'DEL B' } })).id;
+    await createUser(prisma, { email: 'del.admin@e2e.test', password: 'pw-admin', role: Role.admin, establishmentId: s1 });
+    await createUser(prisma, { email: 'del.staff@e2e.test', password: 'pw-staff', role: Role.staff, establishmentId: s1 });
+    await createUser(prisma, { email: 'del.other@e2e.test', password: 'pw-other', role: Role.admin, establishmentId: s2 });
+    adminId = (await prisma.user.findUniqueOrThrow({ where: { email: 'del.admin@e2e.test' } })).id;
+    adminT = await login(app, 'del.admin@e2e.test', 'pw-admin');
+    staffT = await login(app, 'del.staff@e2e.test', 'pw-staff');
+    otherT = await login(app, 'del.other@e2e.test', 'pw-other');
+
+    ids = await seedMapTenant(prisma, s1);
+    await seedPricingTenant(prisma, s1, { afternoonSlotId: ids.slotAfternoon });
+  });
+
+  afterAll(async () => {
+    await prisma.forTenant(s1, (tx) => tx.booking.deleteMany({}));
+    await prisma.forTenant(s1, (tx) => tx.customer.deleteMany({}));
+    await cleanPricingTenant(prisma, s1);
+    await cleanMapTenant(prisma, s1);
+    await prisma.user.deleteMany({ where: { email: { in: ['del.admin@e2e.test', 'del.staff@e2e.test', 'del.other@e2e.test'] } } });
+    await prisma.establishment.deleteMany({ where: { id: { in: [s1, s2] } } });
+    await app.close();
+  });
+
+  it('staff (non-admin) → 403; anonimo → 401', async () => {
+    const c = await prisma.forTenant(s1, (tx) =>
+      tx.customer.create({ data: { establishmentId: s1, firstName: 'Guard', lastName: 'Test' } }),
+    );
+    await request(app.getHttpServer()).delete(`/api/customers/${c.id}`).set(...bearer(staffT)).expect(403);
+    await request(app.getHttpServer()).delete(`/api/customers/${c.id}`).expect(401);
+  });
+
+  it('cliente senza prenotazioni → 200 { outcome: "deleted" }; poi GET /customers non lo elenca', async () => {
+    const c = await prisma.forTenant(s1, (tx) =>
+      tx.customer.create({ data: { establishmentId: s1, firstName: 'Senza', lastName: 'Prenotazioni' } }),
+    );
+    const res = await request(app.getHttpServer()).delete(`/api/customers/${c.id}`).set(...bearer(adminT)).expect(200);
+    expect(res.body).toEqual({ outcome: 'deleted' });
+
+    const list = await request(app.getHttpServer()).get('/api/customers').set(...bearer(adminT)).expect(200);
+    expect(list.body.find((x: { id: string }) => x.id === c.id)).toBeUndefined();
+  });
+
+  it('cliente con SOLA prenotazione passata (confirmed, endDate < oggi) → 200 { outcome: "anonymized" }; GET /customers non lo elenca; la prenotazione resta con "Cliente rimosso"', async () => {
+    const c = await prisma.forTenant(s1, (tx) =>
+      tx.customer.create({ data: { establishmentId: s1, firstName: 'Storico', lastName: 'Passato' } }),
+    );
+    const booking = await request(app.getHttpServer()).post('/api/bookings').set(...bearer(adminT))
+      .send({ customerId: c.id, umbrellaId: ids.u1, timeSlotId: ids.slotMorning, type: 'daily', startDate: '2026-05-05' })
+      .expect(201);
+    expect(booking.body.status).toBe('confirmed');
+
+    const res = await request(app.getHttpServer()).delete(`/api/customers/${c.id}`).set(...bearer(adminT)).expect(200);
+    expect(res.body).toEqual({ outcome: 'anonymized' });
+
+    const list = await request(app.getHttpServer()).get('/api/customers').set(...bearer(adminT)).expect(200);
+    expect(list.body.find((x: { id: string }) => x.id === c.id)).toBeUndefined();
+
+    const anonymized = await prisma.forTenant(s1, (tx) => tx.customer.findFirst({ where: { id: c.id } }));
+    expect(anonymized).toEqual(expect.objectContaining({
+      firstName: 'Cliente', lastName: 'rimosso', phone: null, email: null, notes: null, anonymizedBy: adminId,
+    }));
+    expect(anonymized?.anonymizedAt).toBeInstanceOf(Date);
+
+    // la prenotazione esiste ancora e risolve al cliente ora "Cliente rimosso"
+    const stillThere = await prisma.forTenant(s1, (tx) => tx.booking.findFirst({ where: { id: booking.body.id } }));
+    expect(stillThere).not.toBeNull();
+  });
+
+  it('cliente con prenotazione confirmed endDate >= oggi → 409 (messaggio verbatim)', async () => {
+    const c = await prisma.forTenant(s1, (tx) =>
+      tx.customer.create({ data: { establishmentId: s1, firstName: 'Attivo', lastName: 'Futuro' } }),
+    );
+    await request(app.getHttpServer()).post('/api/bookings').set(...bearer(adminT))
+      .send({ customerId: c.id, umbrellaId: ids.u2, timeSlotId: ids.slotMorning, type: 'daily', startDate: '2026-09-20' })
+      .expect(201);
+
+    const res = await request(app.getHttpServer()).delete(`/api/customers/${c.id}`).set(...bearer(adminT)).expect(409);
+    expect(res.body.message).toBe(CONFLICT_MSG);
+  });
+
+  it('cliente di un ALTRO tenant → 404 (isolamento)', async () => {
+    const c = await prisma.forTenant(s1, (tx) =>
+      tx.customer.create({ data: { establishmentId: s1, firstName: 'Isolato', lastName: 'Tenant' } }),
+    );
+    await request(app.getHttpServer()).delete(`/api/customers/${c.id}`).set(...bearer(otherT)).expect(404);
   });
 });

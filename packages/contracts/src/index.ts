@@ -13,7 +13,11 @@ export interface CustomerDTO {
   phone?: string;
   email?: string;
   notes?: string;
+  anonymizedAt?: string;
 }
+
+/** Esito della cancellazione GDPR di un cliente. */
+export type DeleteCustomerResult = { outcome: 'deleted' | 'anonymized' };
 
 /** Input to create a Customer (optional contacts). */
 export interface CreateCustomerInput {

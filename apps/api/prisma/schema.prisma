@@ -37,6 +37,8 @@ model Customer {
   phone           String?
   email           String?
   notes           String?
+  anonymizedAt    DateTime?
+  anonymizedBy    String?       @db.Uuid
   establishment   Establishment @relation(fields: [establishmentId], references: [id])
   bookings        Booking[]
 
