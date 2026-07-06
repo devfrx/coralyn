@@ -30,6 +30,7 @@ describe('EditCustomerModal', () => {
     expect(val('lastName')).toBe('Rossi');
     expect(val('phone')).toBe('+39 333 1111111');
     expect(val('email')).toBe('mario.rossi@email.it');
+    expect((document.querySelector('textarea[name="notes"]') as HTMLTextAreaElement).value).toBe('VIP');
     w.unmount();
   });
 
@@ -45,7 +46,7 @@ describe('EditCustomerModal', () => {
     setField('phone', '+39 333 9999999');
     submitForm();
     await flushPromises(); await tick();
-    expect(body).toMatchObject({ firstName: 'Marianna', lastName: 'Rossi', phone: '+39 333 9999999', email: 'mario.rossi@email.it' });
+    expect(body).toMatchObject({ firstName: 'Marianna', lastName: 'Rossi', phone: '+39 333 9999999', email: 'mario.rossi@email.it', notes: 'VIP' });
     const emits = w.emitted('update:open');
     expect(emits?.[emits.length - 1]).toEqual([false]);
     w.unmount();
