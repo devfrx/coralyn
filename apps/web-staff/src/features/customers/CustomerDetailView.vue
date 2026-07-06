@@ -1,27 +1,25 @@
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue';
+import { ref, computed } from 'vue';
 import { useRouter } from 'vue-router';
-import { Card, Avatar, Button, Field, Input, Textarea, Icon, SectionCard, ConfirmDialog, Callout } from '@coralyn/ui-kit';
+import { Card, Avatar, Button, Icon, SectionCard, ConfirmDialog, Callout } from '@coralyn/ui-kit';
 import { Role } from '@coralyn/contracts';
 import { useSessionStore } from '@/stores/session';
 import { pushToast } from '@/lib/toasts';
 import { todayIso } from '@/lib/dates';
-import { useCustomer, useUpdateCustomer, useCustomerBookings, useDeleteCustomer } from './useCustomers';
+import { useCustomer, useCustomerBookings, useDeleteCustomer } from './useCustomers';
 import CustomerHistoryCard from './CustomerHistoryCard.vue';
 import CustomerSubscriptionsCard from './CustomerSubscriptionsCard.vue';
 import CustomerPaymentsCard from './CustomerPaymentsCard.vue';
+import EditCustomerModal from './EditCustomerModal.vue';
 
 const props = defineProps<{ id: string }>();
 const router = useRouter();
 const session = useSessionStore();
 const { data: customer, isLoading, isError } = useCustomer(props.id);
-const update = useUpdateCustomer(props.id);
 const { data: bookings } = useCustomerBookings(props.id);
 const deleteCustomer = useDeleteCustomer(props.id);
 
-const phone = ref(''); const email = ref(''); const notes = ref('');
-watch(customer, (c) => { if (c) { phone.value = c.phone ?? ''; email.value = c.email ?? ''; notes.value = c.notes ?? ''; } }, { immediate: true });
-function save() { update.mutate({ phone: phone.value, email: email.value, notes: notes.value }); }
+const editOpen = ref(false);
 
 const ini = computed(() => (customer.value ? ((customer.value.firstName[0] ?? '') + (customer.value.lastName[0] ?? '')).toUpperCase() : ''));
 
@@ -78,7 +76,7 @@ function onConfirmDelete() {
             </div>
           </div>
           <div v-if="!customer.anonymizedAt" class="flex items-center gap-2">
-            <Button variant="secondary"><Icon name="edit" :size="15" />Modifica</Button>
+            <Button variant="secondary" data-testid="edit-customer" @click="editOpen = true"><Icon name="edit" :size="15" />Modifica</Button>
             <Button
               v-if="isAdmin"
               variant="danger"
@@ -94,18 +92,13 @@ function onConfirmDelete() {
       </Card>
 
       <SectionCard v-if="!customer.anonymizedAt" title="Anagrafica e contatti" icon="users" class="mb-4">
-        <template #action>
-          <Button type="submit" form="anagrafica-form" variant="ghost"><Icon name="check" :size="14" />Salva</Button>
-        </template>
-        <form id="anagrafica-form" @submit.prevent="save">
-          <div class="grid grid-cols-2 gap-x-7 gap-y-[18px]">
-            <div><div class="mb-1 text-[11px] font-semibold uppercase tracking-[.05em] text-[var(--color-text-muted)]">Nome</div><div class="text-sm font-medium text-[var(--color-text)]">{{ customer.firstName }}</div></div>
-            <div><div class="mb-1 text-[11px] font-semibold uppercase tracking-[.05em] text-[var(--color-text-muted)]">Cognome</div><div class="text-sm font-medium text-[var(--color-text)]">{{ customer.lastName }}</div></div>
-            <Field label="Telefono"><Input name="phone" v-model="phone" numeric /></Field>
-            <Field label="Email"><Input name="email" v-model="email" type="email" /></Field>
-            <div class="col-span-2"><Field label="Note"><Textarea name="notes" v-model="notes" /></Field></div>
-          </div>
-        </form>
+        <div class="grid grid-cols-2 gap-x-7 gap-y-[18px]">
+          <div><div class="mb-1 text-[11px] font-semibold uppercase tracking-[.05em] text-[var(--color-text-muted)]">Nome</div><div class="text-sm font-medium text-[var(--color-text)]">{{ customer.firstName }}</div></div>
+          <div><div class="mb-1 text-[11px] font-semibold uppercase tracking-[.05em] text-[var(--color-text-muted)]">Cognome</div><div class="text-sm font-medium text-[var(--color-text)]">{{ customer.lastName }}</div></div>
+          <div><div class="mb-1 text-[11px] font-semibold uppercase tracking-[.05em] text-[var(--color-text-muted)]">Telefono</div><div class="text-sm font-medium tabular-nums text-[var(--color-text)]">{{ customer.phone ?? '—' }}</div></div>
+          <div><div class="mb-1 text-[11px] font-semibold uppercase tracking-[.05em] text-[var(--color-text-muted)]">Email</div><div class="text-sm font-medium text-[var(--color-text)]">{{ customer.email ?? '—' }}</div></div>
+          <div class="col-span-2"><div class="mb-1 text-[11px] font-semibold uppercase tracking-[.05em] text-[var(--color-text-muted)]">Note</div><div class="whitespace-pre-wrap text-sm font-medium text-[var(--color-text)]">{{ customer.notes || '—' }}</div></div>
+        </div>
       </SectionCard>
 
       <div class="flex flex-col gap-3.5">
@@ -122,6 +115,7 @@ function onConfirmDelete() {
         tone="danger"
         @confirm="onConfirmDelete"
       />
+      <EditCustomerModal :customer="customer" v-model:open="editOpen" />
     </template>
   </section>
 </template>

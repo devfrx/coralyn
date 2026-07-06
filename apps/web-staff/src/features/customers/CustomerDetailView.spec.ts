@@ -53,14 +53,13 @@ function setRole(role: Role) {
 }
 
 describe('CustomerDetailView', () => {
-  it('mostra header e anagrafica del cliente', async () => {
+  it('mostra header e anagrafica del cliente (sola lettura)', async () => {
     const w = mountApp(CustomerDetailView, { props: { id: 'c-1' } });
     await settle();
     expect(w.text()).toContain('Mario');
     expect(w.text()).toContain('Rossi');
-    // email/telefono sono campi editabili: il valore vive nel DOM dell'input, non nel testo
-    expect((w.find('input[name="email"]').element as HTMLInputElement).value).toBe('mario.rossi@email.it');
-    expect((w.find('input[name="phone"]').element as HTMLInputElement).value).toBe('+39 333 1111111');
+    expect(w.text()).toContain('mario.rossi@email.it');
+    expect(w.text()).toContain('+39 333 1111111');
   });
 
   it('storico: raggruppa per stagione con conteggio, mostra chip settore e stato', async () => {
@@ -103,15 +102,15 @@ describe('CustomerDetailView', () => {
     expect(w.text()).toContain('2028-04-30');
   });
 
-  it('modifica il telefono e lo rilegge aggiornato', async () => {
-    const w = mountApp(CustomerDetailView, { props: { id: 'c-1' } });
+  it('«Modifica» apre la modale di modifica precompilata', async () => {
+    const w = mountApp(CustomerDetailView, { props: { id: 'c-1' }, attachTo: document.body });
     await settle();
-    const tel = w.find('input[name="phone"]');
-    await tel.setValue('+39 333 9999999');
-    await w.find('form').trigger('submit.prevent');
+    expect(document.querySelector('[data-test="form-edit-customer"]')).toBeNull();
+    await w.get('[data-testid="edit-customer"]').trigger('click');
     await settle();
-    // dopo il PATCH, l'invalidazione rilegge il dettaglio e il watch ripopola l'input col valore salvato
-    expect((w.find('input[name="phone"]').element as HTMLInputElement).value).toBe('+39 333 9999999');
+    expect(document.querySelector('[data-test="form-edit-customer"]')).not.toBeNull();
+    expect((document.querySelector('input[name="firstName"]') as HTMLInputElement).value).toBe('Mario');
+    w.unmount();
   });
 
   describe('azione GDPR elimina/anonimizza (D-024)', () => {
