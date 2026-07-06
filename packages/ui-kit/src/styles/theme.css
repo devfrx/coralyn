@@ -72,7 +72,24 @@
   --shadow-brand: 0 2px 8px rgba(224,121,90,.3);
   --ease-standard: cubic-bezier(.2,0,.2,1);
   --ease-emphasized: cubic-bezier(.2,0,0,1);
+  --motion-fast: 140ms; --motion-base: 200ms; --motion-slow: 260ms;
 }
+
+/* ===== MOTION — keyframes (guidate dai token --ease-* / --motion-*). Neutralizzate da prefers-reduced-motion (vedi sotto). ===== */
+@keyframes overlay-in  { from { opacity: 0 } to { opacity: 1 } }
+@keyframes overlay-out { from { opacity: 1 } to { opacity: 0 } }
+@keyframes dialog-in {
+  from { opacity: 0; transform: translate(-50%, -50%) scale(.96) }
+  to   { opacity: 1; transform: translate(-50%, -50%) scale(1) }
+}
+@keyframes dialog-out {
+  from { opacity: 1; transform: translate(-50%, -50%) scale(1) }
+  to   { opacity: 0; transform: translate(-50%, -50%) scale(.96) }
+}
+@keyframes drawer-in  { from { opacity: .5; transform: translateX(16px) } to { opacity: 1; transform: translateX(0) } }
+@keyframes drawer-out { from { opacity: 1; transform: translateX(0) } to { opacity: 0; transform: translateX(16px) } }
+@keyframes toast-in   { from { opacity: 0; transform: translateY(8px) } to { opacity: 1; transform: translateY(0) } }
+@keyframes toast-out  { from { opacity: 1; transform: translateY(0) } to { opacity: 0; transform: translateY(8px) } }
 
 :root {
   --ring-focus: 0 0 0 3px rgba(224,121,90,.16);
