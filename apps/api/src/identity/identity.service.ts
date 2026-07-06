@@ -59,6 +59,8 @@ export class IdentityService {
   }
 
   async me(userId: string): Promise<UserDTO> {
+    // Solo `name`: la sospensione NON viene ri-controllata qui di proposito. È verificata al login;
+    // la revoca a sessione in corso (token già emesso) è rinviata a D-026, non compito di /me.
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
       include: { establishment: { select: { name: true } } },
