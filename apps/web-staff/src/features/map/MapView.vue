@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue';
 import { UmbrellaCell, SegmentedControl, Badge, Button, Modal, Icon, Select, ModalFooter, formatEuro } from '@coralyn/ui-kit';
-import type { UmbrellaDTO, SlotState, BookingDTO, BookingType, TimeSlotDTO } from '@coralyn/contracts';
+import type { UmbrellaDTO, SlotState, BookingDTO, BookingType } from '@coralyn/contracts';
 import { PAY_LABEL, PAY_TONE } from '@/lib/statusMaps';
 import { useDayMap } from './useDayMap';
 import { useDayBookings, useCreateBooking, useCancelBooking } from '@/features/bookings/useBookings';
@@ -38,7 +38,7 @@ const TYPE_HELP: Record<BookingType, string> = {
   subscription: 'Tutta la stagione, prezzo forfait.',
 };
 
-const timeSlots = computed(() => map.value?.timeSlots ?? []);
+const timeSlots = computed(() => [...(map.value?.timeSlots ?? [])].sort((a, b) => a.sortOrder - b.sortOrder));
 const typesById = computed(() => new Map((map.value?.umbrellaTypes ?? []).map((t) => [t.id, t])));
 const sectors = computed(() => map.value?.sectors ?? []);
 // Convenzione: il settore "Speciali" è reso come blocco palme dedicato in coda, non come tab.
@@ -51,26 +51,8 @@ const currentSector = computed(() => normalSectors.value.find((s) => s.id === ac
 const sectorOptions = computed(() => normalSectors.value.map((s) => ({ value: s.id, label: s.name })));
 const spotCount = computed(() => currentSector.value?.rows.reduce((n, r) => n + r.umbrellas.length, 0) ?? 0);
 
-// Due metà derivate dagli orari (spec §6). Fallback all'ordine dell'array se mancano gli orari.
-const halfSlots = computed<[TimeSlotDTO | undefined, TimeSlotDTO | undefined]>(() => {
-  const all = timeSlots.value;
-  if (all.length === 0) return [undefined, undefined];
-  const withTimes = all.filter((s) => s.startTime && s.endTime);
-  if (withTimes.length === 0) return [all[0], all[1] ?? all[0]]; // fallback legacy (nessun orario)
-  const dayStart = withTimes.reduce((m, s) => (s.startTime! < m ? s.startTime! : m), withTimes[0].startTime!);
-  const dayEnd = withTimes.reduce((m, s) => (s.endTime! > m ? s.endTime! : m), withTimes[0].endTime!);
-  const halves = withTimes
-    .filter((s) => !(withTimes.length > 1 && s.startTime === dayStart && s.endTime === dayEnd))
-    .sort((a, b) => a.startTime!.localeCompare(b.startTime!));
-  if (halves.length === 0) return [withTimes[0], withTimes[0]]; // solo la "piena"
-  const morning = halves[0];
-  const afternoon = halves[halves.length - 1];
-  return [morning, afternoon];
-});
-
-function slotState(u: UmbrellaDTO, idx: number): SlotState {
-  const s = halfSlots.value[idx] ?? halfSlots.value[0];
-  return (u.stateBySlot[s?.id ?? ''] ?? 'free') as SlotState;
+function slotStatesFor(u: UmbrellaDTO): SlotState[] {
+  return timeSlots.value.map((s) => (u.stateBySlot[s.id] ?? 'free') as SlotState);
 }
 function typeIcon(u: UmbrellaDTO): string | null {
   return u.umbrellaTypeId ? (typesById.value.get(u.umbrellaTypeId)?.icon ?? 'umbrella') : null;
@@ -79,7 +61,10 @@ function typeName(u: UmbrellaDTO): string {
   return u.umbrellaTypeId ? (typesById.value.get(u.umbrellaTypeId)?.name ?? 'Tipologia') : 'Normale';
 }
 function ariaLabel(u: UmbrellaDTO, sector: string, row: string): string {
-  return `Ombrellone ${u.label}, Settore ${sector} ${row}, tipologia ${typeName(u)}, mattina ${STATE_LABEL[slotState(u, 0)]}, pomeriggio ${STATE_LABEL[slotState(u, 1)]}`;
+  const perSlot = timeSlots.value
+    .map((s) => `${s.name} ${STATE_LABEL[(u.stateBySlot[s.id] ?? 'free') as SlotState]}`)
+    .join(', ');
+  return `Ombrellone ${u.label}, Settore ${sector} ${row}, tipologia ${typeName(u)}, ${perSlot}`;
 }
 
 const selectedSlotId = ref<string>('');
@@ -88,25 +73,26 @@ watch(timeSlots, (list) => { if (!selectedSlotId.value && list.length) selectedS
 const sel = ref<{ u: UmbrellaDTO; sector: string; row: string } | null>(null);
 function open(u: UmbrellaDTO, sector: string, row: string) {
   sel.value = { u, sector, row };
-  // Auto-seleziona la fascia che HA una prenotazione per questo ombrellone (fix §5a): altrimenti una
-  // prenotazione solo-pomeridiana resta invisibile (selectedSlotId parte sulla prima fascia = Mattina).
+  // Auto-seleziona la fascia che HA una prenotazione per questo ombrellone; altrimenti la prima fascia.
   const booked = (bookings.value ?? []).find((b) => b.umbrellaId === u.id);
-  selectedSlotId.value = booked?.timeSlotId ?? halfSlots.value[0]?.id ?? timeSlots.value[0]?.id ?? '';
+  selectedSlotId.value = booked?.timeSlotId ?? timeSlots.value[0]?.id ?? '';
 }
 function close() { sel.value = null; }
 
-function liveSlotState(idx: number): SlotState {
-  const s = halfSlots.value[idx] ?? halfSlots.value[0];
-  return (liveU.value.stateBySlot[s?.id ?? ''] ?? 'free') as SlotState;
+function liveStateFor(slotId: string): SlotState {
+  return sel.value ? ((liveU.value.stateBySlot[slotId] ?? 'free') as SlotState) : 'free';
 }
-const morning = computed<SlotState>(() => (sel.value ? liveSlotState(0) : 'free'));
-const afternoon = computed<SlotState>(() => (sel.value ? liveSlotState(1) : 'free'));
+const availabilityMessage = computed<string>(() => {
+  if (!sel.value) return '';
+  const slots = timeSlots.value;
+  if (slots.length === 0) return '';
+  const free = slots.filter((s) => (liveU.value.stateBySlot[s.id] ?? 'free') === 'free');
+  if (free.length === slots.length) return 'Postazione libera tutto il giorno';
+  if (free.length > 0) return `Libera nelle fasce: ${free.map((s) => s.name).join(', ')}`;
+  return 'Nessuna fascia libera';
+});
 function tintBg(s: SlotState) { return `color-mix(in srgb, ${STATE_COLOR[s]} 18%, var(--color-surface))`; }
 function tintBorder(s: SlotState) { return `color-mix(in srgb, ${STATE_COLOR[s]} 40%, var(--color-surface))`; }
-
-// Id delle due metà: cliccando i box Mattina/Pomeriggio si cambia la fascia in vista (fix §5b).
-const morningSlotId = computed(() => halfSlots.value[0]?.id ?? '');
-const afternoonSlotId = computed(() => halfSlots.value[1]?.id ?? '');
 function selectSlot(id: string) { if (id) selectedSlotId.value = id; }
 
 const currentBooking = computed<BookingDTO | null>(() => {
@@ -233,7 +219,7 @@ const freeSlotOptions = computed(() =>
       <SegmentedControl v-if="sectorOptions.length" v-model="activeSector" :options="sectorOptions" />
       <div class="flex-1"></div>
       <div class="flex items-center gap-2 text-xs text-[var(--color-text-muted)]">
-        <Icon name="clock" :size="15" class="text-[var(--color-accent)]" />Stato per fascia · mattina / pomeriggio
+        <Icon name="clock" :size="15" class="text-[var(--color-accent)]" />Stato per fascia
       </div>
     </div>
 
@@ -255,8 +241,8 @@ const freeSlotOptions = computed(() =>
           <span class="w-[46px] flex-none text-right text-[10px] font-semibold text-[var(--color-stage-2)]">{{ r.label }}</span>
           <div class="flex flex-wrap gap-2.5">
             <UmbrellaCell v-for="u in r.umbrellas" :key="u.id" :label="u.label"
-              :ariaLabel="ariaLabel(u, currentSector!.name, r.label)" :morning-state="slotState(u, 0)"
-              :afternoon-state="slotState(u, 1)" :type-icon="typeIcon(u)" :selected="sel?.u.id === u.id"
+              :ariaLabel="ariaLabel(u, currentSector!.name, r.label)" :slot-states="slotStatesFor(u)"
+              :type-icon="typeIcon(u)" :selected="sel?.u.id === u.id"
               @select="open(u, currentSector!.name, r.label)" />
           </div>
         </div>
@@ -264,8 +250,8 @@ const freeSlotOptions = computed(() =>
           <div class="mb-2.5 text-[10px] font-semibold uppercase tracking-[.09em] text-[var(--color-stage-1)]">Settore Speciali · Palme</div>
           <div v-for="r in special.rows" :key="r.id" class="flex flex-wrap gap-3.5">
             <UmbrellaCell v-for="u in r.umbrellas" :key="u.id" :label="u.label"
-              :ariaLabel="ariaLabel(u, 'Speciali', r.label)" :morning-state="slotState(u, 0)"
-              :afternoon-state="slotState(u, 1)" :type-icon="typeIcon(u)" :selected="sel?.u.id === u.id"
+              :ariaLabel="ariaLabel(u, 'Speciali', r.label)" :slot-states="slotStatesFor(u)"
+              :type-icon="typeIcon(u)" :selected="sel?.u.id === u.id"
               @select="open(u, 'Speciali', r.label)" />
           </div>
         </div>
@@ -277,7 +263,7 @@ const freeSlotOptions = computed(() =>
               <span class="inline-flex items-center gap-1.5"><i class="size-[13px] rounded-full" style="background:var(--color-state-season)"></i>Abbonato</span>
               <span class="inline-flex items-center gap-1.5"><i class="size-[13px] rounded-full" style="background:var(--color-state-daily)"></i>Giornaliero</span>
               <span class="inline-flex items-center gap-1.5"><i class="size-[13px] rounded-full" style="background:var(--color-state-booked)"></i>Prenotato</span>
-              <span class="inline-flex items-center gap-1.5"><i class="size-[13px] rounded-full" style="background:linear-gradient(90deg,var(--color-state-booked) 0 50%,var(--color-state-free) 50% 100%)"></i>Mezza giornata</span>
+              <span class="inline-flex items-center gap-1.5"><i class="size-[13px] rounded-full" style="background:conic-gradient(from 0deg,var(--color-state-booked) 0 33.333%,var(--color-state-daily) 33.333% 66.666%,var(--color-state-free) 66.666% 100%)"></i>Stato misto</span>
             </div>
           </div>
           <div>
@@ -303,18 +289,14 @@ const freeSlotOptions = computed(() =>
           <Badge tone="accent"><Icon :name="typeIcon(sel.u) ?? 'umbrella'" :size="12" />{{ typeName(sel.u) }}</Badge>
           <span class="text-xs text-[var(--color-text-muted)]">Settore {{ sel.sector }} · {{ sel.row }}</span>
         </div>
-        <div class="mt-3 flex gap-2.5">
-          <button type="button" @click="selectSlot(morningSlotId)" :aria-pressed="selectedSlotId === morningSlotId"
-            class="flex-1 rounded-[11px] p-3 text-left focus-visible:outline-none focus-visible:[box-shadow:var(--ring-focus)]"
-            :style="{ background: tintBg(morning), border: `1px solid ${tintBorder(morning)}`, boxShadow: selectedSlotId === morningSlotId ? 'inset 0 0 0 2px var(--color-accent)' : undefined }">
-            <span class="mb-1 block text-[9.5px] font-semibold uppercase tracking-[.07em] text-[var(--color-ink-600)]">Mattina</span>
-            <span class="text-[13px] font-semibold" :style="{ color: STATE_COLOR[morning] }">{{ STATE_LABEL[morning] }}</span>
-          </button>
-          <button type="button" @click="selectSlot(afternoonSlotId)" :aria-pressed="selectedSlotId === afternoonSlotId"
-            class="flex-1 rounded-[11px] p-3 text-left focus-visible:outline-none focus-visible:[box-shadow:var(--ring-focus)]"
-            :style="{ background: tintBg(afternoon), border: `1px solid ${tintBorder(afternoon)}`, boxShadow: selectedSlotId === afternoonSlotId ? 'inset 0 0 0 2px var(--color-accent)' : undefined }">
-            <span class="mb-1 block text-[9.5px] font-semibold uppercase tracking-[.07em] text-[var(--color-ink-600)]">Pomeriggio</span>
-            <span class="text-[13px] font-semibold" :style="{ color: STATE_COLOR[afternoon] }">{{ STATE_LABEL[afternoon] }}</span>
+        <div class="mt-3 flex flex-wrap gap-2.5">
+          <button v-for="s in timeSlots" :key="s.id" type="button" @click="selectSlot(s.id)"
+            :aria-pressed="selectedSlotId === s.id"
+            class="min-w-[92px] flex-1 rounded-[11px] p-3 text-left focus-visible:outline-none focus-visible:[box-shadow:var(--ring-focus)]"
+            :style="{ background: tintBg(liveStateFor(s.id)), border: `1px solid ${tintBorder(liveStateFor(s.id))}`, boxShadow: selectedSlotId === s.id ? 'inset 0 0 0 2px var(--color-accent)' : undefined }">
+            <span class="mb-1 block text-[9.5px] font-semibold uppercase tracking-[.07em] text-[var(--color-ink-600)]">{{ s.name }}</span>
+            <span v-if="s.startTime && s.endTime" class="mb-1 block text-[9px] tabular-nums text-[var(--color-text-muted)]">{{ s.startTime }}–{{ s.endTime }}</span>
+            <span class="text-[13px] font-semibold" :style="{ color: STATE_COLOR[liveStateFor(s.id)] }">{{ STATE_LABEL[liveStateFor(s.id)] }}</span>
           </button>
         </div>
         <template v-if="currentBooking">
@@ -331,7 +313,7 @@ const freeSlotOptions = computed(() =>
           </div>
         </template>
         <div v-else class="mt-3.5 rounded-xl border border-dashed border-[var(--color-warm-border-seg)] bg-[var(--color-warm-075)] p-4 text-center text-[12.5px] leading-relaxed text-[var(--color-text-muted)]">
-          Postazione disponibile<br />per l'intera giornata.
+          {{ availabilityMessage }}
         </div>
         <div class="mt-auto flex flex-col gap-2 pt-4">
           <Button @click="openModal()"><Icon name="plus" :size="17" />Nuova prenotazione</Button>

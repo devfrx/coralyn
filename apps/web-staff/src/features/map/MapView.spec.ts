@@ -4,6 +4,7 @@ import { flushPromises } from '@vue/test-utils';
 import { mountApp } from '@/test/utils';
 import { server } from '@/mocks/server';
 import { useToasts } from '@/lib/toasts';
+import { mapSeed3 } from '@/mocks/data/seed';
 import MapView from './MapView.vue';
 
 describe('MapView', () => {
@@ -210,24 +211,21 @@ describe('MapView', () => {
     w.unmount();
   });
 
-  it('deriva le due metà dagli orari: Giornata intera occupa mattina+pomeriggio', async () => {
+  it('rende N spicchi per N fasce: la fascia "piena" NON viene più scartata (regressione anti-compressione)', async () => {
+    // 3 fasce, tra cui una "Giornata intera" che copre l'intera banda: col vecchio codice veniva scartata.
     const map3 = {
       date: '2026-06-27',
       umbrellaTypes: [{ id: 't1', name: 'Palma', sortOrder: 1, icon: 'palmtree' }],
       timeSlots: [
-        { id: 'giorno', name: 'Giornata intera', startTime: '08:00', endTime: '19:00', sortOrder: 3 },
         { id: 'mat', name: 'Mattina', startTime: '08:00', endTime: '13:00', sortOrder: 1 },
         { id: 'pom', name: 'Pomeriggio', startTime: '13:00', endTime: '19:00', sortOrder: 2 },
+        { id: 'giorno', name: 'Giornata intera', startTime: '08:00', endTime: '19:00', sortOrder: 3 },
       ],
       sectors: [{
         id: 'sec', name: 'Centro', sortOrder: 1,
         rows: [{ id: 'r1', label: 'Fila 1', sortOrder: 1, umbrellas: [
-          // Giornata intera occupata → overlap segna occupate tutte e 3 le fasce
-          { id: 'u-full', label: '1', umbrellaTypeId: 't1', rowId: 'r1',
-            stateBySlot: { giorno: 'daily', mat: 'daily', pom: 'daily' } },
-          // Solo Mattina occupata
           { id: 'u-mat', label: '2', umbrellaTypeId: 't1', rowId: 'r1',
-            stateBySlot: { giorno: 'free', mat: 'daily', pom: 'free' } },
+            stateBySlot: { mat: 'daily', pom: 'free', giorno: 'free' } },
         ] }],
       }],
     };
@@ -238,18 +236,82 @@ describe('MapView', () => {
     await new Promise((r) => setTimeout(r, 0));
     await flushPromises();
 
+    const cell = w.findComponent({ name: 'UmbrellaCell' });
+    // Tutte e 3 le fasce nell'ordine sortOrder (nessuna scartata)
+    expect(cell.props('slotStates')).toEqual(['daily', 'free', 'free']);
+    // aria-label elenca le 3 fasce reali col loro stato
+    expect(cell.find('button').attributes('aria-label')).toContain('Mattina Giornaliero');
+    expect(cell.find('button').attributes('aria-label')).toContain('Pomeriggio Libero');
+    expect(cell.find('button').attributes('aria-label')).toContain('Giornata intera Libero');
+
+    w.unmount();
+  });
+
+  it('drawer con N box reali: nomi delle fasce reali, fascia centrale selezionabile', async () => {
+    server.use(http.get('/api/map', () => HttpResponse.json(mapSeed3)));
+
+    const w = mountApp(MapView, { attachTo: document.body });
+    await flushPromises();
+    await new Promise((r) => setTimeout(r, 0));
+    await flushPromises();
+
+    // Apri il drawer sul primo ombrellone (o-mid)
+    await w.findComponent({ name: 'UmbrellaCell' }).find('button').trigger('click');
+    await flushPromises();
+
+    const aside = w.find('aside');
+    expect(aside.exists()).toBe(true);
+    // Nomi reali, NON "Mattina"/"Pomeriggio" hardcoded
+    expect(aside.text()).toContain('Alba');
+    expect(aside.text()).toContain('Pieno giorno');
+    expect(aside.text()).toContain('Tramonto');
+
+    // La fascia centrale è selezionabile: clic sul box "Pieno giorno" → aria-pressed=true
+    const midBox = aside.findAll('button').find((b) => b.text().includes('Pieno giorno'));
+    expect(midBox).toBeTruthy();
+    await midBox!.trigger('click');
+    await flushPromises();
+    expect(midBox!.attributes('aria-pressed')).toBe('true');
+
+    w.unmount();
+  });
+
+  it('messaggio disponibilità: alcune fasce libere → "Libera nelle fasce: <nomi>"', async () => {
+    server.use(http.get('/api/map', () => HttpResponse.json(mapSeed3)));
+
+    const w = mountApp(MapView, { attachTo: document.body });
+    await flushPromises();
+    await new Promise((r) => setTimeout(r, 0));
+    await flushPromises();
+
+    // o-mid: alba/tramonto libere, giorno occupato; nessuna prenotazione reale → drawer mostra il messaggio
+    await w.findComponent({ name: 'UmbrellaCell' }).find('button').trigger('click');
+    await flushPromises();
+
+    const aside = w.find('aside');
+    expect(aside.text()).toContain('Libera nelle fasce:');
+    expect(aside.text()).toContain('Alba');
+    expect(aside.text()).toContain('Tramonto');
+    expect(aside.text()).not.toContain("l'intera giornata");
+
+    w.unmount();
+  });
+
+  it('messaggio disponibilità: tutte le fasce libere → "Postazione libera tutto il giorno"', async () => {
+    server.use(http.get('/api/map', () => HttpResponse.json(mapSeed3)));
+
+    const w = mountApp(MapView, { attachTo: document.body });
+    await flushPromises();
+    await new Promise((r) => setTimeout(r, 0));
+    await flushPromises();
+
+    // Secondo ombrellone (o-free): tutte le fasce libere
     const cells = w.findAllComponents({ name: 'UmbrellaCell' });
-    expect(cells.length).toBe(2);
+    await cells[1].find('button').trigger('click');
+    await flushPromises();
 
-    // u-full: Giornata intera prenotata → entrambe le metà "Giornaliero" (overlap-aware)
-    expect(cells[0].props('morningState')).toBe('daily');
-    expect(cells[0].props('afternoonState')).toBe('daily');
-    expect(cells[0].find('button').attributes('aria-label')).toMatch(/mattina Giornaliero, pomeriggio Giornaliero/);
-
-    // u-mat: solo Mattina occupata → mattina Giornaliero, pomeriggio Libero
-    expect(cells[1].props('morningState')).toBe('daily');
-    expect(cells[1].props('afternoonState')).toBe('free');
-    expect(cells[1].find('button').attributes('aria-label')).toMatch(/mattina Giornaliero, pomeriggio Libero/);
+    const aside = w.find('aside');
+    expect(aside.text()).toContain('Postazione libera tutto il giorno');
 
     w.unmount();
   });
