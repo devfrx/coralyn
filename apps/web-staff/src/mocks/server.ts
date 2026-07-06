@@ -7,6 +7,7 @@ import { Role, type CustomerDTO, type CustomerBookingDTO, type EquipmentTypeDTO,
 const INITIAL_CUSTOMERS: CustomerDTO[] = [
   { id: 'c-1', firstName: 'Mario', lastName: 'Rossi', phone: '+39 333 1111111', email: 'mario.rossi@email.it', notes: '' },
   { id: 'c-2', firstName: 'Luca', lastName: 'Bianchi', phone: '+39 333 2222222', email: 'luca.bianchi@email.it', notes: '' },
+  { id: 'c-3', firstName: 'Anna', lastName: 'Verdi', phone: '+39 333 3333333', email: 'anna.verdi@email.it', notes: '' },
 ];
 let customers: CustomerDTO[] = [...INITIAL_CUSTOMERS];
 export function resetCustomersSeed() { customers = [...INITIAL_CUSTOMERS]; }
@@ -57,6 +58,16 @@ const INITIAL_CUSTOMER_BOOKINGS: Record<string, CustomerBookingDTO[]> = {
       type: 'daily', status: 'confirmed', totalPrice: 30, paymentStatus: 'unpaid', amountCollected: 0,
       umbrellaLabel: 'A12', sectorName: 'Centro', seasonName: 'Estate 2026' },
     { id: 'cb-4', umbrellaId: 'u-1', timeSlotId: 'ts-1', startDate: '2026-08-01', endDate: '2026-08-01',
+      type: 'daily', status: 'cancelled', totalPrice: 30, paymentStatus: 'unpaid', amountCollected: 0,
+      umbrellaLabel: 'A12', sectorName: 'Centro', seasonName: 'Estate 2026' },
+  ],
+  // c-3: solo prenotazioni passate/annullate (nessuna confirmed con endDate futura) → azione "anonimizza"
+  // abilitata (hasBookings=true, hasActiveOrFuture=false), a differenza di c-1 (bloccato) e c-2 (delete reale).
+  'c-3': [
+    { id: 'cb-5', umbrellaId: 'u-1', timeSlotId: 'ts-1', startDate: '2025-07-10', endDate: '2025-07-10',
+      type: 'daily', status: 'confirmed', totalPrice: 30, paymentStatus: 'paid', amountCollected: 30,
+      umbrellaLabel: 'A12', sectorName: 'Centro', seasonName: 'Estate 2025' },
+    { id: 'cb-6', umbrellaId: 'u-1', timeSlotId: 'ts-1', startDate: '2026-05-01', endDate: '2026-05-01',
       type: 'daily', status: 'cancelled', totalPrice: 30, paymentStatus: 'unpaid', amountCollected: 0,
       umbrellaLabel: 'A12', sectorName: 'Centro', seasonName: 'Estate 2026' },
   ],

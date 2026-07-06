@@ -159,7 +159,7 @@ describe('CustomerDetailView', () => {
       expect(w.find('[data-testid="delete-customer-hint"]').exists()).toBe(true);
     });
 
-    it('409 dal server: pushToast con il messaggio d\'errore, nessuna navigazione', async () => {
+    it('409 dal server: pushToast con il messaggio d\'errore, nessuna navigazione, dialog chiuso', async () => {
       const errorMessage = 'Il cliente ha prenotazioni attive o future: annullale o attendi la scadenza prima di rimuovere i dati.';
       server.use(
         http.delete('*/api/customers/:id', () => HttpResponse.json({ message: errorMessage }, { status: 409 })),
@@ -176,6 +176,49 @@ describe('CustomerDetailView', () => {
 
       expect(useToasts().items.map((t) => t.message)).toContain(errorMessage);
       expect(push).not.toHaveBeenCalled();
+      // Il ConfirmDialog deve chiudersi anche sul path d'errore (409): niente bottone "Elimina" residuo in DOM.
+      expect(Array.from(document.body.querySelectorAll('button')).some((b) => b.textContent?.trim() === 'Elimina')).toBe(false);
+    });
+
+    it('admin + cliente con sole prenotazioni passate/annullate: "Anonimizza dati personali (GDPR)" → conferma → toast anonimizzato → naviga', async () => {
+      server.use(
+        http.delete('*/api/customers/:id', () => HttpResponse.json({ outcome: 'anonymized' })),
+      );
+      const w = mountAndTrack('c-3'); // c-3: solo prenotazioni passate/annullate (seed)
+      setRole(Role.Admin);
+      await settle();
+      const btn = w.find('[data-testid="delete-customer"]');
+      expect(btn.exists()).toBe(true);
+      expect(btn.text()).toContain('Anonimizza dati personali (GDPR)');
+      expect(btn.attributes('disabled')).toBeUndefined();
+
+      await btn.trigger('click');
+      await settle();
+      const confirmBtn = Array.from(document.body.querySelectorAll('button'))
+        .find((b) => b.textContent?.trim() === 'Elimina');
+      expect(confirmBtn).toBeTruthy();
+      confirmBtn!.click();
+      await settle();
+
+      expect(useToasts().items.map((t) => t.message)).toContain('Dati personali anonimizzati');
+      expect(push).toHaveBeenCalledWith('/customers');
+    });
+
+    it('cliente anonimizzato: mostra il banner "Dati personali rimossi" e nasconde modifica/eliminazione', async () => {
+      server.use(
+        http.get('/api/customers/:id', ({ params }) =>
+          HttpResponse.json({
+            id: params.id, firstName: 'Mario', lastName: 'Rossi', phone: null, email: null, notes: '',
+            anonymizedAt: '2026-05-01T10:00:00.000Z',
+          })),
+      );
+      const w = mountAndTrack('c-1');
+      setRole(Role.Admin);
+      await settle();
+
+      expect(w.text()).toContain('Dati personali rimossi');
+      expect(w.find('[data-testid="delete-customer"]').exists()).toBe(false);
+      expect(w.text()).not.toContain('Anagrafica e contatti');
     });
   });
 });

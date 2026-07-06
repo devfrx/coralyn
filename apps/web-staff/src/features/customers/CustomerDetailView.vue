@@ -44,8 +44,12 @@ function askDelete() { deleteConfirmOpen.value = true; }
 function onConfirmDelete() {
   deleteCustomer.mutate(undefined, {
     onSuccess: (res) => {
+      deleteConfirmOpen.value = false;
       pushToast(res.outcome === 'anonymized' ? 'Dati personali anonimizzati' : 'Cliente eliminato');
       router.push('/customers');
+    },
+    onError: () => {
+      deleteConfirmOpen.value = false;
     },
   });
 }
