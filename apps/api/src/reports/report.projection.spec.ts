@@ -1,4 +1,5 @@
-import { revenueBuckets, revenueKpi, occupancyPct, stateMix } from './report.projection';
+import type { DayMapDTO } from '@coralyn/contracts';
+import { revenueBuckets, revenueKpi, occupancyPct, stateMix, occupancyStates } from './report.projection';
 
 describe('revenueKpi', () => {
   const rows = [
@@ -33,5 +34,29 @@ describe('stateMix', () => {
     const mix = stateMix(['daily', 'daily', 'free', 'season']);
     expect(mix.find((m) => m.state === 'daily')).toEqual({ state: 'daily', count: 2, pct: 50 });
     expect(mix.find((m) => m.state === 'free')).toEqual({ state: 'free', count: 1, pct: 25 });
+  });
+});
+
+describe('occupancyStates', () => {
+  it('appiattisce ombrellone×fascia ed ESCLUDE le fasce coperte (no doppio conteggio)', () => {
+    const dayMap: DayMapDTO = {
+      date: '2026-07-15',
+      umbrellaTypes: [],
+      timeSlots: [
+        { id: 's1', name: 'M', sortOrder: 1 },
+        { id: 's2', name: 'P', sortOrder: 2 },
+        { id: 'sf', name: 'G', sortOrder: 3 },
+      ],
+      sectors: [{
+        id: 'sec', name: 'C', sortOrder: 1,
+        rows: [{ id: 'r', label: 'F', sortOrder: 1, umbrellas: [
+          // full-day venduto: sf diretta (season), s1/s2 coperte → conta SOLO sf
+          { id: 'u1', label: '1', umbrellaTypeId: null, rowId: 'r', stateBySlot: { s1: 'covered', s2: 'covered', sf: 'season' } },
+          // tutte libere
+          { id: 'u2', label: '2', umbrellaTypeId: null, rowId: 'r', stateBySlot: { s1: 'free', s2: 'free', sf: 'free' } },
+        ] }],
+      }],
+    };
+    expect(occupancyStates(dayMap)).toEqual(['season', 'free', 'free', 'free']);
   });
 });

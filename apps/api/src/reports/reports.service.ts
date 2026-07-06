@@ -1,10 +1,10 @@
 import { Injectable } from '@nestjs/common';
-import type { ReportSummaryDTO, ReportPeriod, SlotState } from '@coralyn/contracts';
+import type { ReportSummaryDTO, ReportPeriod } from '@coralyn/contracts';
 import { PrismaService } from '../prisma/prisma.service';
 import { TenantContext } from '../tenant/tenant-context';
 import { MapService } from '../map/map.service';
 import { RenewalCampaignsService } from '../bookings/renewal-campaigns.service';
-import { revenueKpi, revenueBuckets, occupancyPct, stateMix } from './report.projection';
+import { revenueKpi, revenueBuckets, occupancyPct, stateMix, occupancyStates } from './report.projection';
 import { todayInRome, toDbDate } from '../common/dates';
 
 type ActiveCampaign = Awaited<ReturnType<RenewalCampaignsService['getActiveCampaign']>>;
@@ -58,11 +58,7 @@ export class ReportsService {
     });
 
     const dayMap = await this.map.getDayMap(todayIso);
-    const states: SlotState[] = [];
-    for (const sector of dayMap.sectors)
-      for (const row of sector.rows)
-        for (const u of row.umbrellas)
-          for (const slot of dayMap.timeSlots) states.push(u.stateBySlot[slot.id] ?? 'free');
+    const states = occupancyStates(dayMap);
     const occupied = states.filter((s) => s !== 'free').length;
 
     const campaign = await this.renewals.getActiveCampaign();

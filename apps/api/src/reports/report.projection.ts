@@ -1,4 +1,4 @@
-import type { ReportPeriod, SlotState } from '@coralyn/contracts';
+import type { DayMapDTO, ReportPeriod, SlotState } from '@coralyn/contracts';
 
 const WEEKDAY = ['Dom', 'Lun', 'Mar', 'Mer', 'Gio', 'Ven', 'Sab'];
 type RevRow = { date: string; amount: number };
@@ -29,6 +29,20 @@ export function revenueBuckets(rows: RevRow[], period: ReportPeriod, todayIso: s
 
 export function occupancyPct(occupied: number, total: number): number {
   return total === 0 ? 0 : Math.round((occupied / total) * 100);
+}
+
+/** Stati per l'occupazione: appiattisce (ombrellone × fascia) ESCLUDENDO le fasce coperte — l'ombra di una
+ *  prenotazione contata sulla sua fascia diretta → nessun doppio conteggio con fasce sovrapposte (D-048). */
+export function occupancyStates(dayMap: DayMapDTO): SlotState[] {
+  const states: SlotState[] = [];
+  for (const sector of dayMap.sectors)
+    for (const row of sector.rows)
+      for (const u of row.umbrellas)
+        for (const slot of dayMap.timeSlots) {
+          const st = u.stateBySlot[slot.id] ?? 'free';
+          if (st !== 'covered') states.push(st);
+        }
+  return states;
 }
 
 export function stateMix(states: SlotState[]): { state: SlotState; count: number; pct: number }[] {
