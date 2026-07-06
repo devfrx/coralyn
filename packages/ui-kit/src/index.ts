@@ -8,6 +8,7 @@ export { default as Callout } from './components/Callout.vue';
 export { default as Badge } from './components/Badge.vue';
 export { default as Field } from './components/Field.vue';
 export { default as Input } from './components/Input.vue';
+export { default as SearchInput } from './components/SearchInput.vue';
 export { default as UmbrellaCell } from './components/UmbrellaCell.vue';
 export { default as Drawer } from './components/Drawer.vue';
 export { default as Textarea } from './components/Textarea.vue';
