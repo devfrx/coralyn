@@ -1,7 +1,7 @@
 # Spec — Navigazione data operativa (`activeDate`)
 
-> Design **da confermare** in brainstorming all'avvio della prossima sessione (ADR-0009: risolvere le decisioni con l'utente
-> PRIMA di pianificare). Le decisioni §3 sono **proposte** con raccomandazione, non ancora approvate dall'utente.
+> Design **CONFERMATO** in brainstorming (2026-07-06, sessione successiva). Le decisioni §3 sono state **approvate
+> dall'utente** (tutte come raccomandato; §5 nella variante "professionale senza debito", vedi §5).
 > Slice FE-only, piccola. Nessun cambio backend.
 
 ---
@@ -27,7 +27,7 @@ Poiché tutti i consumatori sono già reattivi, **mutare `activeDate` rende reat
 - Il **Report** ha un proprio selettore di periodo, indipendente da `activeDate` — non toccato.
 - Nessuna persistenza cross-reload (§3.4), nessun backend (map/bookings prendono già il parametro `date`).
 
-## 3. Decisioni (PROPOSTE — confermare con l'utente)
+## 3. Decisioni (CONFERMATE con l'utente 2026-07-06)
 
 1. **Default = oggi (data operativa Europe/Rome), calcolato client-side.** Niente più data fissa. Coerente con la data
    operativa ADR-0031. Serve una util FE `todayIso()` che formatta "oggi" in `Europe/Rome` → `yyyy-mm-dd`
@@ -54,8 +54,13 @@ cambio ora legale). Collocazione: `apps/web-staff/src/lib/dates.ts` (nuovo) o ac
 L'hint erasure in [CustomerDetailView.vue:33](../../../apps/web-staff/src/features/customers/CustomerDetailView.vue) usa
 `session.activeDate` come "oggi". Con la navigazione attiva, se l'operatore porta `activeDate` a una data passata su Mappa e
 poi apre una Scheda cliente, l'hint "attive/future" userebbe quella data passata come riferimento. È **minore** (il **409 del
-server è autoritativo** e usa il vero `todayInRome()`), ma per pulizia l'hint FE dovrebbe usare la nuova `todayIso()`
-(oggi reale) invece di `activeDate`. Includere questo scollegamento nella slice.
+server è autoritativo** e usa il vero `todayInRome()`), ma resta un accoppiamento improprio.
+
+**Decisione CONFERMATA (variante "professionale, senza debito"):** `todayIso()` diventa la **fonte unica del "oggi
+operativo"** (Europe/Rome, coerente ADR-0031). L'hint erasure legge **`todayIso()` direttamente**, NON `activeDate`, così
+resta corretto qualunque data l'operatore stia navigando sulla Mappa. Nessuna duplicazione di logica-data; niente toppa
+isolata. Nessun endpoint di preview lato server (sarebbe over-engineering per un hint UX ed è fuori scope FE-only): il 409
+resta l'autorità finale. Scollegamento incluso nella slice (L3).
 
 ## 6. Layer previsti (indicativi — dettaglio nel piano)
 
