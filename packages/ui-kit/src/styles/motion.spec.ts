@@ -1,5 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
+// NB: sotto jsdom la global `URL` è quella di jsdom e `fs.readFileSync` la rifiuta
+// ("URL must be of scheme file"): si usa esplicitamente la `URL` nativa di Node.
+// I tipi `node:*` arrivano da `@types/node` (vedi tsconfig.json → compilerOptions.types).
 import { URL as NodeURL } from 'node:url';
 
 const css = readFileSync(new NodeURL('./theme.css', import.meta.url), 'utf8');

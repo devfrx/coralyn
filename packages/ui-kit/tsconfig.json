@@ -8,7 +8,9 @@
     // ui-kit è una libreria di componenti browser: gli spec (`src/**/*.spec.ts`) usano `document`,
     // `HTMLElement`, `Event`… → serve la lib DOM (la base ha solo ES2022) o `vue-tsc --noEmit` fallisce.
     "lib": ["ES2022", "DOM", "DOM.Iterable"],
-    "types": ["unplugin-icons/types/vue"]
+    // `node` serve solo agli spec che leggono file da disco (es. styles/motion.spec.ts,
+    // guard sui token/keyframes di theme.css). I componenti restano browser-only.
+    "types": ["unplugin-icons/types/vue", "node"]
   },
   "include": ["src"]
 }
