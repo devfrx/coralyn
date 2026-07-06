@@ -20,5 +20,8 @@ export function toBookingDTO(b: Booking): BookingDTO {
     collectionDate: b.collectionDate ? formatDbDate(b.collectionDate) : undefined,
     packageId: b.packageId ?? undefined,
     previousBookingId: b.previousBookingId ?? undefined,
+    refundedAmount: Number(b.refundedAmount),
+    terminatedAt: b.terminatedAt ? b.terminatedAt.toISOString() : undefined,
+    terminationReason: b.terminationReason ?? undefined,
   };
 }

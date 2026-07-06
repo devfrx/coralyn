@@ -1,6 +1,18 @@
 import { Prisma } from '@prisma/client';
 import { toBookingDTO } from './booking.projection';
 
+const terminatedBase = {
+  id: 'b1', establishmentId: 'e1', customerId: 'c1', umbrellaId: 'u1', timeSlotId: 's1',
+  previousBookingId: null, packageId: null,
+  startDate: new Date('2026-05-01T00:00:00Z'), endDate: new Date('2026-06-30T00:00:00Z'),
+  type: 'subscription' as const, status: 'confirmed' as const,
+  totalPrice: new Prisma.Decimal('800'), extras: null, paymentStatus: 'paid' as const,
+  amountCollected: new Prisma.Decimal('800'), paymentMethod: null, collectionDate: null,
+  createdAt: new Date('2026-05-01T10:00:00Z'), slotStartMin: 0, slotEndMin: 0,
+  terminatedAt: new Date('2026-06-20T09:30:00Z'), terminationReason: 'Trasloco',
+  refundedAmount: new Prisma.Decimal('250'),
+};
+
 const row = {
   id: 'b1',
   establishmentId: 'e1',
@@ -22,6 +34,9 @@ const row = {
   createdAt: new Date(),
   slotStartMin: 480,
   slotEndMin: 780,
+  terminatedAt: null,
+  terminationReason: null,
+  refundedAmount: new Prisma.Decimal('0'),
 };
 
 describe('toBookingDTO', () => {
@@ -31,6 +46,7 @@ describe('toBookingDTO', () => {
       id: 'b1', customerId: 'c1', umbrellaId: 'u1', timeSlotId: 's1',
       startDate: '2026-07-15', endDate: '2026-07-15',
       type: 'daily', status: 'confirmed', totalPrice: 28, paymentStatus: 'unpaid', amountCollected: 0,
+      refundedAmount: 0,
     });
   });
 
@@ -60,5 +76,23 @@ describe('toBookingDTO', () => {
   it('mappa previousBookingId quando valorizzato e null → undefined', () => {
     expect(toBookingDTO({ ...row, previousBookingId: 'prev-1' }).previousBookingId).toBe('prev-1');
     expect(toBookingDTO(row).previousBookingId).toBeUndefined();
+  });
+});
+
+describe('toBookingDTO — campi disdetta (D-013)', () => {
+  it('mappa terminatedAt (ISO), terminationReason e refundedAmount (Decimal→number)', () => {
+    const dto = toBookingDTO(terminatedBase);
+    expect(dto.refundedAmount).toBe(250);
+    expect(dto.terminatedAt).toBe('2026-06-20T09:30:00.000Z');
+    expect(dto.terminationReason).toBe('Trasloco');
+  });
+
+  it('non disdetto: terminatedAt/reason assenti, refundedAmount 0', () => {
+    const dto = toBookingDTO({
+      ...terminatedBase, terminatedAt: null, terminationReason: null, refundedAmount: new Prisma.Decimal('0'),
+    });
+    expect(dto.terminatedAt).toBeUndefined();
+    expect(dto.terminationReason).toBeUndefined();
+    expect(dto.refundedAmount).toBe(0);
   });
 });
