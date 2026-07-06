@@ -3,7 +3,8 @@ import { BookingStatus, type Customer } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { TenantContext } from '../tenant/tenant-context';
 import { CustomerDTO, CreateCustomerInput, UpdateCustomerInput, DeleteCustomerResult } from '@coralyn/contracts';
-import { todayInRome, toDbDate } from '../common/dates';
+import { todayInRome, toDbDate, formatDbDate } from '../common/dates';
+import { computeRenewalWindowState } from '../bookings/renewal-window.projection';
 
 @Injectable()
 export class CustomersService {
@@ -82,6 +83,41 @@ export class CustomersService {
         throw new ConflictException(
           'Il cliente ha prenotazioni attive o future: annullale o attendi la scadenza prima di rimuovere i dati.',
         );
+      }
+
+      // Blocco su prelazione di rinnovo aperta (review finale D-024): un'origine SCADUTA non è
+      // catturata dal controllo `active` sopra, ma una campagna ancora attiva può offrire al
+      // cliente priorità di rinnovo per una stagione futura — è una relazione attiva. Stato
+      // derivato con la fonte UNICA condivisa `computeRenewalWindowState` (no duplicazione).
+      const activeCampaigns = await tx.renewalCampaign.findMany({
+        where: { deadline: { gte: toDbDate(todayInRome()) } },
+      });
+      for (const campaign of activeCampaigns) {
+        const origin = await tx.season.findFirst({ where: { id: campaign.originSeasonId } });
+        const dest = await tx.season.findFirst({ where: { id: campaign.destinationSeasonId } });
+        if (!origin || !dest) continue;
+
+        const eligibleSubs = await tx.booking.findMany({
+          where: {
+            customerId: id,
+            type: 'subscription',
+            status: BookingStatus.confirmed,
+            startDate: { lte: origin.endDate },
+            endDate: { gte: origin.startDate },
+          },
+          include: { renewals: true },
+        });
+
+        const deadlineIso = formatDbDate(campaign.deadline);
+        const todayIso = todayInRome();
+        const hasOpenWindow = eligibleSubs.some(
+          (b) => computeRenewalWindowState(b.renewals, dest.startDate, dest.endDate, deadlineIso, todayIso) === 'open',
+        );
+        if (hasOpenWindow) {
+          throw new ConflictException(
+            'Il cliente ha una prelazione di rinnovo aperta: chiudi la campagna o attendine la scadenza prima di rimuovere i dati.',
+          );
+        }
       }
 
       await tx.customer.update({

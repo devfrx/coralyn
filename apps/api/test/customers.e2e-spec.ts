@@ -191,6 +191,7 @@ describe('Customers (e2e) isolamento per tenant', () => {
 
 describe('Customers erasure (e2e) — GDPR D-024', () => {
   const CONFLICT_MSG = 'Il cliente ha prenotazioni attive o future: annullale o attendi la scadenza prima di rimuovere i dati.';
+  const RENEWAL_CONFLICT_MSG = 'Il cliente ha una prelazione di rinnovo aperta: chiudi la campagna o attendine la scadenza prima di rimuovere i dati.';
   const bearer = (t: string): [string, string] => ['Authorization', `Bearer ${t}`];
 
   let app: INestApplication;
@@ -202,6 +203,8 @@ describe('Customers erasure (e2e) — GDPR D-024', () => {
   let otherT: string;
   let ids: MapSeedIds;
   let adminId: string;
+  let season2026: string;
+  let season2027: string;
 
   beforeAll(async () => {
     const moduleRef = await Test.createTestingModule({ imports: [AppModule] }).compile();
@@ -222,10 +225,13 @@ describe('Customers erasure (e2e) — GDPR D-024', () => {
     otherT = await login(app, 'del.other@e2e.test', 'pw-other');
 
     ids = await seedMapTenant(prisma, s1);
-    await seedPricingTenant(prisma, s1, { afternoonSlotId: ids.slotAfternoon });
+    const pricingIds = await seedPricingTenant(prisma, s1, { afternoonSlotId: ids.slotAfternoon });
+    season2026 = pricingIds.seasonId;
+    season2027 = pricingIds.season2027Id;
   });
 
   afterAll(async () => {
+    await prisma.forTenant(s1, (tx) => tx.renewalCampaign.deleteMany({}));
     await prisma.forTenant(s1, (tx) => tx.booking.deleteMany({}));
     await prisma.forTenant(s1, (tx) => tx.customer.deleteMany({}));
     await cleanPricingTenant(prisma, s1);
@@ -290,6 +296,44 @@ describe('Customers erasure (e2e) — GDPR D-024', () => {
 
     const res = await request(app.getHttpServer()).delete(`/api/customers/${c.id}`).set(...bearer(adminT)).expect(409);
     expect(res.body.message).toBe(CONFLICT_MSG);
+  });
+
+  it('cliente con abbonamento SCADUTO (stagione origine passata) + campagna di rinnovo ATTIVA senza rinnovo esercitato → 409 prelazione (messaggio verbatim)', async () => {
+    const c = await prisma.forTenant(s1, (tx) =>
+      tx.customer.create({ data: { establishmentId: s1, firstName: 'Prelazione', lastName: 'Aperta' } }),
+    );
+    // Ombrellone dedicato per non collidere con altri test del blocco (u1/u2 usati altrove).
+    const u = await prisma.forTenant(s1, (tx) =>
+      tx.umbrella.create({ data: { establishmentId: s1, rowId: ids.rowId, umbrellaTypeId: null, label: 'prelazione-erasure', logicalOrder: 900 } }),
+    );
+
+    // Stagione di ORIGINE già SCADUTA (2024, passata): il controllo "prenotazione attiva/futura"
+    // esistente non la cattura (endDate < oggi), ma una campagna di rinnovo ancora aperta verso
+    // una destinazione futura resta comunque una relazione attiva.
+    const originId = await prisma.forTenant(s1, async (tx) => {
+      const origin = await tx.season.create({
+        data: { establishmentId: s1, name: 'Estate 2024 (erasure-test)', startDate: new Date('2024-05-01T00:00:00Z'), endDate: new Date('2024-09-30T00:00:00Z') },
+      });
+      const pricing = await tx.pricing.create({ data: { establishmentId: s1, seasonId: origin.id } });
+      await tx.rate.create({ data: { establishmentId: s1, pricingId: pricing.id, type: 'subscription', price: 700 } });
+      return origin.id;
+    });
+
+    // Abbonamento CONFERMATO sulla stagione di ORIGINE (2024, scaduta).
+    await request(app.getHttpServer()).post('/api/bookings').set(...bearer(adminT))
+      .send({ customerId: c.id, umbrellaId: u.id, timeSlotId: ids.slotMorning, type: 'subscription', startDate: '2024-05-01' })
+      .expect(201);
+
+    // Campagna di rinnovo ancora APERTA (deadline futura) verso la stagione 2027: nessun rinnovo esercitato.
+    const campaign = await request(app.getHttpServer()).post('/api/renewal-campaigns').set(...bearer(adminT))
+      .send({ originSeasonId: originId, destinationSeasonId: season2027, deadline: '2099-12-31' })
+      .expect(201);
+
+    const res = await request(app.getHttpServer()).delete(`/api/customers/${c.id}`).set(...bearer(adminT)).expect(409);
+    expect(res.body.message).toBe(RENEWAL_CONFLICT_MSG);
+
+    // Cleanup mirato: non lasciare la campagna aperta a inquinare altri test del file.
+    await request(app.getHttpServer()).delete(`/api/renewal-campaigns/${campaign.body.id}`).set(...bearer(adminT)).expect(200);
   });
 
   it('cliente di un ALTRO tenant → 404 (isolamento)', async () => {

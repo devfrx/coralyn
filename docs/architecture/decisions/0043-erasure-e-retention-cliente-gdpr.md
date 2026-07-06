@@ -33,6 +33,14 @@ letto da alcun codice applicativo, quindi non c'è PII da bonificare lì.
   riga e `id` **conservati** (le prenotazioni restano legate a un id, non a una persona).
 - **blocco su relazione attiva:** se esiste almeno una prenotazione `confirmed` con
   `endDate >= oggi` (data operativa `Europe/Rome`) → **409**, l'oblio è **differito**, non negato.
+  Lo stesso vale se il cliente ha una **prelazione di rinnovo aperta** (review finale): una
+  campagna di rinnovo ancora attiva (`deadline >= oggi`) per cui il cliente ha un abbonamento
+  `confirmed` sulla stagione di ORIGINE, con finestra di stato `'open'` (fonte unica
+  `computeRenewalWindowState`, la stessa del Report/Rinnovi) → **409** con messaggio dedicato.
+  Anche se l'abbonamento di origine è ormai scaduto (non catturato dal controllo sopra), la
+  campagna attiva mantiene viva una relazione con il cliente: un cliente anonimizzato non deve più
+  poter comparire come "Cliente rimosso" nelle viste Rinnovi/Report con priorità di rinnovo
+  offerta. Il blocco si scioglie quando la campagna chiude/scade o il rinnovo viene esercitato.
 
 `list()` esclude i clienti anonimizzati (`where: anonymizedAt: null`); `getById()` resta invariato
 (un cliente anonimizzato resta accessibile per id, con lo storico che lo mostra come "Cliente
@@ -60,7 +68,10 @@ una persona.
 **5. Blocco su relazione attiva.** Finché una prenotazione `confirmed` futura è in essere, il dato
 del cliente serve all'esecuzione del contratto (Art. 6(1)(b) GDPR) e l'oblio è correttamente
 **differito**, non negato, ex Art. 17(3) — l'operatore deve annullare la prenotazione o attendere
-la scadenza prima di poter procedere.
+la scadenza prima di poter procedere. Lo stesso principio copre la **prelazione di rinnovo
+aperta**: finché una campagna attiva riserva al cliente una priorità su una stagione futura, il
+rapporto contrattuale non si è ancora chiuso, quindi l'oblio resta differito finché la campagna
+non chiude/scade o il rinnovo viene esercitato.
 
 ## Alternatives considered
 
@@ -91,7 +102,8 @@ la scadenza prima di poter procedere.
 - **Accountability minima** (`anonymizedAt`/`anonymizedBy`) senza dover attendere l'audit di
   tenant completo ([D-047](../deferred.md)).
 - Il blocco 409 su relazione attiva evita lo stato inconsistente di una prenotazione confermata
-  futura senza cliente titolare.
+  futura senza cliente titolare — ed evita, allo stesso modo, che un cliente anonimizzato risorga
+  come "Cliente rimosso" nelle viste Rinnovi/Report con una prelazione ancora offerta.
 
 ### Negative / Trade-off
 
