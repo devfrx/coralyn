@@ -21,6 +21,11 @@ export const useSessionStore = defineStore('session', () => {
       method: 'POST',
       body: JSON.stringify({ email, password }),
     });
+    // web-staff è il gestionale di stabilimento: un superuser di piattaforma ha credenziali
+    // valide ma NON deve entrare qui (la sua superficie è web-platform). D-045.
+    if (res.user.role === Role.Superuser) {
+      throw new Error('Accesso riservato al personale dello stabilimento');
+    }
     setToken(res.accessToken);
     user.value = res.user;
   }
@@ -34,7 +39,13 @@ export const useSessionStore = defineStore('session', () => {
   async function rehydrate(): Promise<void> {
     if (!getToken()) return;
     try {
-      user.value = await apiFetch<UserDTO>('/auth/me');
+      const me = await apiFetch<UserDTO>('/auth/me');
+      // Difesa in profondità: un token superuser non deve dare sessione qui. D-045.
+      if (me.role === Role.Superuser) {
+        logout();
+        return;
+      }
+      user.value = me;
     } catch {
       logout();
     }

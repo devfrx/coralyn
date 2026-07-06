@@ -2,8 +2,10 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { setActivePinia, createPinia } from 'pinia';
 import { useSessionStore } from './session';
 import { getToken, setToken, clearToken } from '@/lib/authToken';
-import { MOCK_TOKEN } from '@/mocks/server';
+import { MOCK_TOKEN, server } from '@/mocks/server';
 import { todayIso } from '@/lib/dates';
+import { Role } from '@coralyn/contracts';
+import { http, HttpResponse } from 'msw';
 
 beforeEach(() => {
   setActivePinia(createPinia());
@@ -61,6 +63,34 @@ describe('session store', () => {
 
   it('rehydrate con token invalido fa logout', async () => {
     setToken('token-scaduto');
+    const s = useSessionStore();
+    await s.rehydrate();
+    expect(s.authenticated).toBe(false);
+    expect(getToken()).toBeNull();
+  });
+
+  it('login di un superuser è rifiutato: throw, nessun token, non autenticato (D-045)', async () => {
+    server.use(
+      http.post('/api/auth/login', () =>
+        HttpResponse.json({
+          accessToken: MOCK_TOKEN,
+          user: { id: 'su-1', email: 'super@coralyn.dev', role: Role.Superuser, establishmentId: null, establishmentName: null },
+        }),
+      ),
+    );
+    const s = useSessionStore();
+    await expect(s.login('super@coralyn.dev', 'coralyn-super')).rejects.toThrow();
+    expect(s.authenticated).toBe(false);
+    expect(getToken()).toBeNull();
+  });
+
+  it('rehydrate con token di un superuser fa logout (D-045)', async () => {
+    setToken(MOCK_TOKEN);
+    server.use(
+      http.get('/api/auth/me', () =>
+        HttpResponse.json({ id: 'su-1', email: 'super@coralyn.dev', role: Role.Superuser, establishmentId: null, establishmentName: null }),
+      ),
+    );
     const s = useSessionStore();
     await s.rehydrate();
     expect(s.authenticated).toBe(false);
