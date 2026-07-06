@@ -328,7 +328,10 @@ const freeSlotOptions = computed(() =>
           </div>
           <div class="mt-2.5 flex items-center gap-3">
             <button type="button" @click="settleOpen = true" class="p-0.5 text-xs font-semibold text-[var(--color-accent)] focus-visible:outline-none focus-visible:[box-shadow:var(--ring-focus)]">Registra incasso</button>
-            <button type="button" @click="onCancel" class="p-0.5 text-xs font-semibold text-[var(--color-danger)] focus-visible:outline-none focus-visible:[box-shadow:var(--ring-focus)]">Annulla prenotazione</button>
+            <!-- L'abbonamento non si annulla col void crudo (perderebbe storico e rimborso): si disdice
+                 dalla Scheda cliente (D-013, admin-only). Solo daily/periodic sono annullabili qui. -->
+            <button v-if="currentBooking.type !== 'subscription'" type="button" @click="onCancel" class="p-0.5 text-xs font-semibold text-[var(--color-danger)] focus-visible:outline-none focus-visible:[box-shadow:var(--ring-focus)]">Annulla prenotazione</button>
+            <RouterLink v-else :to="`/customers/${currentBooking.customerId}`" class="p-0.5 text-xs font-semibold text-[var(--color-accent)] focus-visible:outline-none focus-visible:[box-shadow:var(--ring-focus)]">Gestisci abbonamento</RouterLink>
           </div>
         </template>
         <div v-else class="mt-3.5 rounded-xl border border-dashed border-[var(--color-warm-border-seg)] bg-[var(--color-warm-075)] p-4 text-[12.5px] leading-relaxed text-[var(--color-text-muted)]">

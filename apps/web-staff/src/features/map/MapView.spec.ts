@@ -19,6 +19,45 @@ describe('MapView', () => {
     expect(w.text()).toContain('P1');
   });
 
+  it('su un abbonamento non offre «Annulla prenotazione» ma rimanda alla disdetta', async () => {
+    server.use(
+      http.get('/api/bookings', () =>
+        HttpResponse.json([
+          { id: 'b-sub', umbrellaId: 'o-1', timeSlotId: 'f-mat', customerId: 'c-1', startDate: '2026-07-01', endDate: '2026-09-30', type: 'subscription', status: 'confirmed', totalPrice: 800, paymentStatus: 'paid', amountCollected: 800 },
+        ]),
+      ),
+    );
+    const w = mountApp(MapView, { attachTo: document.body });
+    await flushPromises();
+    await new Promise((r) => setTimeout(r, 0));
+    await flushPromises();
+    await w.findComponent({ name: 'UmbrellaCell' }).find('button').trigger('click');
+    await flushPromises();
+    const aside = w.find('aside');
+    expect(aside.exists()).toBe(true);
+    expect(aside.text()).toContain('Registra incasso');
+    expect(aside.text()).not.toContain('Annulla prenotazione');
+    expect(aside.text()).toContain('Gestisci abbonamento');
+  });
+
+  it('su una prenotazione giornaliera offre «Annulla prenotazione»', async () => {
+    server.use(
+      http.get('/api/bookings', () =>
+        HttpResponse.json([
+          { id: 'b-day', umbrellaId: 'o-1', timeSlotId: 'f-mat', customerId: 'c-1', startDate: '2026-07-15', endDate: '2026-07-15', type: 'daily', status: 'confirmed', totalPrice: 30, paymentStatus: 'unpaid', amountCollected: 0 },
+        ]),
+      ),
+    );
+    const w = mountApp(MapView, { attachTo: document.body });
+    await flushPromises();
+    await new Promise((r) => setTimeout(r, 0));
+    await flushPromises();
+    await w.findComponent({ name: 'UmbrellaCell' }).find('button').trigger('click');
+    await flushPromises();
+    const aside = w.find('aside');
+    expect(aside.text()).toContain('Annulla prenotazione');
+  });
+
   it('apre il drawer selezionando un ombrellone e mostra il modale con "Nuova prenotazione"', async () => {
     const w = mountApp(MapView, { attachTo: document.body });
     await flushPromises();
