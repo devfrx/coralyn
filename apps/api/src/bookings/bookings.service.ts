@@ -15,6 +15,7 @@ import type {
   RenewBookingInput,
   SettlePaymentInput,
   SubscriptionListItemDTO,
+  TerminateSubscriptionInput,
 } from '@coralyn/contracts';
 import { PrismaService } from '../prisma/prisma.service';
 import { TenantContext } from '../tenant/tenant-context';
@@ -457,6 +458,57 @@ export class BookingsService {
         throw new ConflictException('Impossibile incassare una prenotazione annullata');
       if (e === 'OVER_TOTAL') throw new UnprocessableEntityException('Importo superiore al totale');
       throw new UnprocessableEntityException('Metodo di pagamento richiesto'); // METHOD_REQUIRED
+    }
+    return toBookingDTO(outcome.row);
+  }
+
+  /**
+   * Disdetta anticipata di un abbonamento (D-013). Tronca endDate al giorno prima della data
+   * effettiva (E = primo giorno di posto libero), marca terminatedAt e registra il rimborso.
+   * status resta 'confirmed'. Il posto si libera per date ≥ E (occupazione date-ranged).
+   */
+  async terminate(id: string, input: TerminateSubscriptionInput): Promise<BookingDTO> {
+    const tenantId = this.tenant.require();
+    const outcome = await this.prisma.forTenant(tenantId, async (tx) => {
+      const existing = await tx.booking.findFirst({ where: { id } });
+      if (!existing) return { error: 'NOT_FOUND' as const };
+      if (existing.type !== 'subscription') return { error: 'NOT_SUBSCRIPTION' as const };
+      if (existing.status !== 'confirmed') return { error: 'NOT_CONFIRMED' as const };
+      if (existing.terminatedAt) return { error: 'ALREADY_TERMINATED' as const };
+
+      const effective = toDbDate(input.effectiveDate);
+      // E ∈ (startDate, endDate]: prima = "mai usato" (è un void → cancel); dopo = fuori stagione.
+      if (!(effective > existing.startDate && effective <= existing.endDate)) {
+        return { error: 'BAD_DATE' as const };
+      }
+      const collected = Number(existing.amountCollected);
+      if (!(input.refundAmount >= 0 && input.refundAmount <= collected)) {
+        return { error: 'BAD_REFUND' as const };
+      }
+
+      // Ultimo giorno di validità = E - 1 (UTC-safe: le date DB sono a mezzanotte UTC).
+      const lastValid = new Date(effective.getTime() - 24 * 60 * 60 * 1000);
+      const row = await tx.booking.update({
+        where: { id },
+        data: {
+          endDate: lastValid,
+          terminatedAt: new Date(),
+          terminationReason: input.reason ?? null,
+          refundedAmount: input.refundAmount,
+        },
+      });
+      return { row };
+    });
+
+    if ('error' in outcome) {
+      const e = outcome.error;
+      if (e === 'NOT_FOUND') throw new NotFoundException('Prenotazione non trovata');
+      if (e === 'NOT_SUBSCRIPTION')
+        throw new UnprocessableEntityException('Solo gli abbonamenti possono essere disdetti');
+      if (e === 'NOT_CONFIRMED') throw new UnprocessableEntityException('Abbonamento non attivo');
+      if (e === 'ALREADY_TERMINATED') throw new ConflictException('Abbonamento già disdetto');
+      if (e === 'BAD_DATE') throw new UnprocessableEntityException('Data di disdetta non valida');
+      throw new UnprocessableEntityException('Rimborso non valido'); // BAD_REFUND
     }
     return toBookingDTO(outcome.row);
   }
