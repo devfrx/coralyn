@@ -18,7 +18,8 @@ describe('motion tokens & keyframes (theme.css)', () => {
       expect(css).toContain(`@keyframes ${kf}`);
     }
   });
-  it('le keyframes del dialog preservano la centratura (-50%, -50%)', () => {
-    expect(css).toMatch(/@keyframes dialog-in[^}]*translate\(-50%,\s*-50%\)/s);
+  it('la keyframe del dialog anima solo scale/opacity, mai translate (la centratura resta all\'utility: TW v4 usa la proprietà translate, non transform)', () => {
+    expect(css).toMatch(/@keyframes dialog-in[^}]*scale\(\.?96\)/s);
+    expect(css).not.toMatch(/@keyframes dialog-in[^}]*translate\(-50%/s);
   });
 });

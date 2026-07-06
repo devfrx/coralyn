@@ -78,14 +78,12 @@
 /* ===== MOTION — keyframes (guidate dai token --ease-* / --motion-*). Neutralizzate da prefers-reduced-motion (vedi sotto). ===== */
 @keyframes overlay-in  { from { opacity: 0 } to { opacity: 1 } }
 @keyframes overlay-out { from { opacity: 1 } to { opacity: 0 } }
-@keyframes dialog-in {
-  from { opacity: 0; transform: translate(-50%, -50%) scale(.96) }
-  to   { opacity: 1; transform: translate(-50%, -50%) scale(1) }
-}
-@keyframes dialog-out {
-  from { opacity: 1; transform: translate(-50%, -50%) scale(1) }
-  to   { opacity: 0; transform: translate(-50%, -50%) scale(.96) }
-}
+/* NB: la centratura del dialog è data dall'utility Tailwind `-translate-x/y-1/2` che in TW v4
+   scrive la proprietà `translate` (non `transform`). Queste keyframe animano SOLO `transform`
+   (scale) + opacity: se ci rimettessero `translate(-50%,-50%)` si sommerebbe alla proprietà
+   `translate` dell'utility (= -100%,-100%) e il modale "salterebbe" in alto a sinistra. */
+@keyframes dialog-in  { from { opacity: 0; transform: scale(.96) } to { opacity: 1; transform: scale(1) } }
+@keyframes dialog-out { from { opacity: 1; transform: scale(1) } to { opacity: 0; transform: scale(.96) } }
 @keyframes drawer-in  { from { opacity: .5; transform: translateX(16px) } to { opacity: 1; transform: translateX(0) } }
 @keyframes drawer-out { from { opacity: 1; transform: translateX(0) } to { opacity: 0; transform: translateX(16px) } }
 @keyframes toast-in   { from { opacity: 0; transform: translateY(8px) } to { opacity: 1; transform: translateY(0) } }
@@ -96,4 +94,6 @@
 }
 * { box-sizing: border-box; }
 body { font-family: var(--font-sans); color: var(--color-text); background: var(--color-bg); margin: 0; -webkit-font-smoothing: antialiased; }
+/* I <button> nativi hanno cursore freccia: le CTA abilitate mostrano il pointer (universale, tutte le viste). */
+button:not(:disabled) { cursor: pointer; }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
