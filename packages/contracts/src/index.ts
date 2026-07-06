@@ -102,6 +102,7 @@ export interface UserDTO {
   email: string;
   role: Role;
   establishmentId: string | null;
+  establishmentName: string | null;
 }
 
 /** Login credentials. */

@@ -51,6 +51,7 @@ describe('Auth (e2e)', () => {
       email: 'admin.auth@e2e.test',
       role: 'admin',
       establishmentId: estId,
+      establishmentName: 'Auth E2E',
     });
     expect(res.body.user.passwordHash).toBeUndefined();
   });
@@ -82,7 +83,7 @@ describe('Auth (e2e)', () => {
       .get('/api/auth/me')
       .set('Authorization', `Bearer ${token}`)
       .expect(200)
-      .expect((r) => expect(r.body).toMatchObject({ email: 'admin.auth@e2e.test', role: 'admin' }));
+      .expect((r) => expect(r.body).toMatchObject({ email: 'admin.auth@e2e.test', role: 'admin', establishmentName: 'Auth E2E' }));
 
     await request(app.getHttpServer()).get('/api/auth/me').expect(401);
     await request(app.getHttpServer())
@@ -97,7 +98,10 @@ describe('Auth (e2e)', () => {
       .get('/api/auth/me')
       .set('Authorization', `Bearer ${token}`)
       .expect(200)
-      .expect((r) => expect(r.body.establishmentId).toBeNull());
+      .expect((r) => {
+        expect(r.body.establishmentId).toBeNull();
+        expect(r.body.establishmentName).toBeNull();
+      });
 
     await request(app.getHttpServer())
       .get('/api/customers')

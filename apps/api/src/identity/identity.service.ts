@@ -13,10 +13,16 @@ export class IdentityService {
     private readonly tokens: TokenService,
   ) {}
 
-  /** Proietta una riga User nel DTO condiviso (mai passwordHash). */
-  private toDTO(u: User): UserDTO {
+  /** Proietta una riga User (con establishment incluso) nel DTO condiviso (mai passwordHash). */
+  private toDTO(u: User & { establishment: { name: string } | null }): UserDTO {
     // I valori dell'enum Role del DB coincidono con quelli dei contracts.
-    return { id: u.id, email: u.email, role: u.role as Role, establishmentId: u.establishmentId };
+    return {
+      id: u.id,
+      email: u.email,
+      role: u.role as Role,
+      establishmentId: u.establishmentId,
+      establishmentName: u.establishment?.name ?? null,
+    };
   }
 
   async login(input: LoginInput): Promise<LoginResponse> {
@@ -25,7 +31,10 @@ export class IdentityService {
     // di timing → enumerazione). Mitigazione (verify a tempo costante + rate-limiting)
     // rinviata e tracciata: vedi deferred D-029 e D-027.
     // Lookup fuori da forTenant: User non ha RLS (login pre-tenant). ADR-0026.
-    const user = await this.prisma.user.findUnique({ where: { email: input.email } });
+    const user = await this.prisma.user.findUnique({
+      where: { email: input.email },
+      include: { establishment: { select: { name: true, suspendedAt: true } } },
+    });
     if (!user || !(await this.hasher.verify(user.passwordHash, input.password))) {
       // 401 generico identico: niente user-enumeration.
       throw new UnauthorizedException('Credenziali non valide');
@@ -35,16 +44,10 @@ export class IdentityService {
       // La revoca immediata di un token già emesso resta a D-026 (il token scade a 8h).
       throw new UnauthorizedException('Credenziali non valide');
     }
-    // Sospensione a livello tenant: se il lido dell'utente è sospeso, stesso 401 generico
-    // (nessuna enumerazione). Il superuser (establishmentId null) non è mai sospendibile.
-    if (user.establishmentId) {
-      const est = await this.prisma.establishment.findUnique({
-        where: { id: user.establishmentId },
-        select: { suspendedAt: true },
-      });
-      if (est?.suspendedAt) {
-        throw new UnauthorizedException('Credenziali non valide');
-      }
+    // Sospensione a livello tenant, dalla stessa query (nessun round-trip extra).
+    // Superuser (establishmentId null) → establishment null → nessun controllo (invariato).
+    if (user.establishment?.suspendedAt) {
+      throw new UnauthorizedException('Credenziali non valide');
     }
     const dto = this.toDTO(user);
     const accessToken = this.tokens.sign({
@@ -56,7 +59,10 @@ export class IdentityService {
   }
 
   async me(userId: string): Promise<UserDTO> {
-    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      include: { establishment: { select: { name: true } } },
+    });
     if (!user) throw new UnauthorizedException('Sessione non valida');
     return this.toDTO(user);
   }
