@@ -187,6 +187,13 @@ model Booking {
   collectionDate    DateTime?      @db.Date
   createdAt         DateTime       @default(now())
 
+  // Disdetta anticipata abbonamento (D-013). terminatedAt marca la chiusura anticipata
+  // (status resta 'confirmed'); endDate viene troncata al giorno di validità → il posto si
+  // libera per le date successive senza toccare la projection. refundedAmount = rimborso reso.
+  terminatedAt      DateTime?
+  terminationReason String?
+  refundedAmount    Decimal        @default(0) @db.Decimal(10, 2)
+
   // Occupazione oraria denormalizzata da TimeSlot (minuti-dalla-mezzanotte), DB-autoritativa via
   // trigger booking_fill_slot_minutes_trg (l'app NON le scrive). Alimenta l'EXCLUDE constraint
   // booking_no_overlap (raw SQL, non modellato qui). Vedi ADR-0037.
