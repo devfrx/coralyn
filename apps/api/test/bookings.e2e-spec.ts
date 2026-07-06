@@ -16,6 +16,7 @@ describe('Bookings (e2e)', () => {
   let token1: string;
   let token2: string;
   let superToken: string;
+  let staffToken: string;
   let ids: MapSeedIds;
   let customerId: string;
   let packageId: string;
@@ -37,9 +38,11 @@ describe('Bookings (e2e)', () => {
     await createUser(prisma, { email: 'admin.b1@e2e.test', password: 'pw1', role: Role.admin, establishmentId: s1 });
     await createUser(prisma, { email: 'admin.b2@e2e.test', password: 'pw2', role: Role.admin, establishmentId: s2 });
     await createUser(prisma, { email: 'super.b@e2e.test', password: 'pws', role: Role.superuser, establishmentId: null });
+    await createUser(prisma, { email: 'staff.b1@e2e.test', password: 'pws1', role: Role.staff, establishmentId: s1 });
     token1 = await login(app, 'admin.b1@e2e.test', 'pw1');
     token2 = await login(app, 'admin.b2@e2e.test', 'pw2');
     superToken = await login(app, 'super.b@e2e.test', 'pws');
+    staffToken = await login(app, 'staff.b1@e2e.test', 'pws1');
     ids = await seedMapTenant(prisma, s1);
     const seed = await seedPricingTenant(prisma, s1, { afternoonSlotId: ids.slotAfternoon });
     packageId = seed.packageId;
@@ -58,7 +61,7 @@ describe('Bookings (e2e)', () => {
     await cleanPricingTenant(prisma, s1);
     await cleanMapTenant(prisma, s1);
     await cleanMapTenant(prisma, s2);
-    await prisma.user.deleteMany({ where: { email: { in: ['admin.b1@e2e.test', 'admin.b2@e2e.test', 'super.b@e2e.test'] } } });
+    await prisma.user.deleteMany({ where: { email: { in: ['admin.b1@e2e.test', 'admin.b2@e2e.test', 'super.b@e2e.test', 'staff.b1@e2e.test'] } } });
     await prisma.establishment.deleteMany({ where: { id: { in: [s1, s2] } } });
     await app.close();
   });
@@ -492,6 +495,85 @@ describe('Bookings (e2e)', () => {
     it('isolamento: s2 non incassa una prenotazione di s1 → 404', async () => {
       await request(app.getHttpServer()).patch(`/api/bookings/${bId}/payment`).set(...bearer(token2))
         .send({ amountCollected: 0 }).expect(404);
+    });
+  });
+
+  describe('disdetta abbonamento (D-013)', () => {
+    // umbrella dedicata per non collidere con gli altri test di occupazione
+    let uTerm: string;
+    let termSeq = 0;
+
+    const makeSub = async (): Promise<string> => {
+      const label = `T${(termSeq += 1)}`; // label unica per Establishment (evita collisione @@unique)
+      const u = await prisma.forTenant(s1, (tx) =>
+        tx.umbrella.create({ data: { establishmentId: s1, rowId: ids.rowId, umbrellaTypeId: null, label, logicalOrder: 50 } }),
+      );
+      uTerm = u.id;
+      const res = await request(app.getHttpServer()).post('/api/bookings').set(...bearer(token1))
+        .send(body({ umbrellaId: uTerm, type: 'subscription', startDate: '2026-07-01' })).expect(201);
+      return res.body.id as string; // abbonamento 2026-05-01 → 2026-09-30, prezzo 800
+    };
+
+    it('admin disdice → 200, endDate troncata, terminatedAt e refundedAmount valorizzati', async () => {
+      const subId = await makeSub();
+      // incassa il forfait (800) così il rimborso di 400 è entro l'incassato
+      await request(app.getHttpServer()).patch(`/api/bookings/${subId}/payment`).set(...bearer(token1))
+        .send({ amountCollected: 800, paymentMethod: 'cash' }).expect(200);
+      const res = await request(app.getHttpServer()).post(`/api/bookings/${subId}/terminate`).set(...bearer(token1))
+        .send({ effectiveDate: '2026-07-01', refundAmount: 400, reason: 'Trasloco' }).expect(200);
+      expect(res.body.status).toBe('confirmed');
+      expect(res.body.endDate).toBe('2026-06-30'); // E-1
+      expect(res.body.refundedAmount).toBe(400);
+      expect(typeof res.body.terminatedAt).toBe('string');
+      expect(res.body.terminationReason).toBe('Trasloco');
+    });
+
+    it('libera il posto: dopo la disdetta una nuova prenotazione sulle date liberate passa', async () => {
+      const subId = await makeSub();
+      await request(app.getHttpServer()).post(`/api/bookings/${subId}/terminate`).set(...bearer(token1))
+        .send({ effectiveDate: '2026-07-01', refundAmount: 0 }).expect(200);
+      // prima della disdetta questa daily del 2026-07-15 darebbe 409 (occupata dall'abbonamento)
+      await request(app.getHttpServer()).post('/api/bookings').set(...bearer(token1))
+        .send(body({ umbrellaId: uTerm, timeSlotId: ids.slotMorning, type: 'daily', startDate: '2026-07-15' })).expect(201);
+    });
+
+    it('staff → 403 (admin-only)', async () => {
+      const subId = await makeSub();
+      await request(app.getHttpServer()).post(`/api/bookings/${subId}/terminate`).set(...bearer(staffToken))
+        .send({ effectiveDate: '2026-07-01', refundAmount: 0 }).expect(403);
+    });
+
+    it('tenant altrui → 404', async () => {
+      const subId = await makeSub();
+      await request(app.getHttpServer()).post(`/api/bookings/${subId}/terminate`).set(...bearer(token2))
+        .send({ effectiveDate: '2026-07-01', refundAmount: 0 }).expect(404);
+    });
+
+    it('data fuori range (≤ startDate) → 422', async () => {
+      const subId = await makeSub();
+      await request(app.getHttpServer()).post(`/api/bookings/${subId}/terminate`).set(...bearer(token1))
+        .send({ effectiveDate: '2026-05-01', refundAmount: 0 }).expect(422);
+    });
+
+    it('rimborso > incassato → 422', async () => {
+      const subId = await makeSub(); // non pagato: amountCollected = 0
+      await request(app.getHttpServer()).post(`/api/bookings/${subId}/terminate`).set(...bearer(token1))
+        .send({ effectiveDate: '2026-07-01', refundAmount: 50 }).expect(422);
+    });
+
+    it('già disdetto → 409', async () => {
+      const subId = await makeSub();
+      await request(app.getHttpServer()).post(`/api/bookings/${subId}/terminate`).set(...bearer(token1))
+        .send({ effectiveDate: '2026-07-01', refundAmount: 0 }).expect(200);
+      await request(app.getHttpServer()).post(`/api/bookings/${subId}/terminate`).set(...bearer(token1))
+        .send({ effectiveDate: '2026-08-01', refundAmount: 0 }).expect(409);
+    });
+
+    it('non-abbonamento (daily) → 422', async () => {
+      const res = await request(app.getHttpServer()).post('/api/bookings').set(...bearer(token1))
+        .send(body({ umbrellaId: ids.u1, timeSlotId: ids.slotAfternoon, type: 'daily', startDate: '2026-08-20' })).expect(201);
+      await request(app.getHttpServer()).post(`/api/bookings/${res.body.id}/terminate`).set(...bearer(token1))
+        .send({ effectiveDate: '2026-08-20', refundAmount: 0 }).expect(422);
     });
   });
 });

@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, Query } from '@nestjs/common';
+import { Body, Controller, Delete, Get, HttpCode, Param, Patch, Post, Query } from '@nestjs/common';
 import type { BookingDTO, BookingQuoteDTO, SubscriptionListItemDTO } from '@coralyn/contracts';
 import { Role } from '@coralyn/contracts';
 import { BookingsService } from './bookings.service';
@@ -47,6 +47,7 @@ export class BookingsController {
   }
 
   @Post(':id/terminate')
+  @HttpCode(200)
   @Roles(Role.Admin)
   terminate(@Param('id') id: string, @Body() body: TerminateSubscriptionDto): Promise<BookingDTO> {
     return this.bookings.terminate(id, body);
