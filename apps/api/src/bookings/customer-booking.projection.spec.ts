@@ -23,6 +23,9 @@ function bookingRow(over: Partial<Booking> = {}): Booking {
     createdAt: new Date('2026-07-01'),
     slotStartMin: 0,
     slotEndMin: 0,
+    terminatedAt: null,
+    terminationReason: null,
+    refundedAmount: { toString: () => '0' } as unknown as Booking['refundedAmount'],
     ...over,
   } as Booking;
 }
@@ -73,6 +76,28 @@ describe('toCustomerBookingDTO', () => {
     const dto = toCustomerBookingDTO(bookingRow(), { umbrellaLabel: 'A12', sectorName: 'Centro' });
     expect(dto.packageName).toBeUndefined();
     expect(dto.sectorName).toBe('Centro');
+  });
+
+  it('mappa i campi disdetta (refundedAmount, terminatedAt ISO, terminationReason)', () => {
+    const dto = toCustomerBookingDTO(
+      bookingRow({
+        type: 'subscription',
+        terminatedAt: new Date('2026-06-20T09:30:00Z'),
+        terminationReason: 'Trasloco',
+        refundedAmount: { toString: () => '250' } as unknown as Booking['refundedAmount'],
+      }),
+      { umbrellaLabel: 'A12' },
+    );
+    expect(dto.refundedAmount).toBe(250);
+    expect(dto.terminatedAt).toBe('2026-06-20T09:30:00.000Z');
+    expect(dto.terminationReason).toBe('Trasloco');
+  });
+
+  it('non disdetto: terminatedAt/reason assenti, refundedAmount 0', () => {
+    const dto = toCustomerBookingDTO(bookingRow(), { umbrellaLabel: 'A12' });
+    expect(dto.terminatedAt).toBeUndefined();
+    expect(dto.terminationReason).toBeUndefined();
+    expect(dto.refundedAmount).toBe(0);
   });
 });
 
