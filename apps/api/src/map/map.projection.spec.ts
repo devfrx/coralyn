@@ -96,4 +96,44 @@ describe('projectDayMap', () => {
     const dto = projectDayMap('2026-07-15', withBookings);
     expect(dto.sectors[0].rows[0].umbrellas[0].stateBySlot.s1).toBe('daily');
   });
+
+  describe('fasce sovrapposte (D-048)', () => {
+    const overlapSource: MapSource = {
+      ...source,
+      timeSlots: [
+        ...source.timeSlots, // s1 Mattina 08–13, s2 Pomeriggio 13–19 (dalla fixture in cima al file)
+        { id: 'sf', establishmentId: 'e', name: 'Giornata int.', startTime: new Date('1970-01-01T08:00:00Z'), endTime: new Date('1970-01-01T19:00:00Z'), sortOrder: 3 },
+      ],
+    };
+
+    it('full-day prenotato → le fasce sovrapposte risultano coperte + coveredBySlot le nomina', () => {
+      const dto = projectDayMap('2026-07-15', {
+        ...overlapSource,
+        bookings: [{ umbrellaId: 'u1', timeSlotId: 'sf', type: 'subscription' as const }],
+      });
+      const u1 = dto.sectors[0].rows[0].umbrellas[0];
+      expect(u1.stateBySlot).toEqual({ s1: 'covered', s2: 'covered', sf: 'season' });
+      expect(u1.coveredBySlot).toEqual({ s1: ['sf'], s2: ['sf'] });
+    });
+
+    it('entrambe le metà prenotate → la full-day è coperta (coveredBy = le due metà)', () => {
+      const dto = projectDayMap('2026-07-15', {
+        ...overlapSource,
+        bookings: [
+          { umbrellaId: 'u1', timeSlotId: 's1', type: 'daily' as const },
+          { umbrellaId: 'u1', timeSlotId: 's2', type: 'periodic' as const },
+        ],
+      });
+      const u1 = dto.sectors[0].rows[0].umbrellas[0];
+      expect(u1.stateBySlot).toEqual({ s1: 'daily', s2: 'booked', sf: 'covered' });
+      expect(u1.coveredBySlot).toEqual({ sf: ['s1', 's2'] });
+    });
+
+    it('nessuna prenotazione → tutte libere, coveredBySlot vuoto', () => {
+      const dto = projectDayMap('2026-07-15', overlapSource); // bookings: [] dalla fixture
+      const u1 = dto.sectors[0].rows[0].umbrellas[0];
+      expect(u1.stateBySlot).toEqual({ s1: 'free', s2: 'free', sf: 'free' });
+      expect(u1.coveredBySlot).toEqual({});
+    });
+  });
 });

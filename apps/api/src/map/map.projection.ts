@@ -50,15 +50,23 @@ export function projectDayMap(date: string, source: MapSource): DayMapDTO {
     icon: t.icon ?? undefined,
   }));
 
-  // stato di (umbrella, slot): la PRIMA prenotazione la cui fascia si sovrappone vince
-  // (le `bookings` arrivano già ordinate per createdAt dal service).
-  const stateFor = (umbrellaId: string, slot: TimeSlot): SlotState => {
-    for (const b of source.bookings) {
-      if (b.umbrellaId !== umbrellaId) continue;
-      const bookedSlot = slotById.get(b.timeSlotId);
-      if (bookedSlot && slotsOverlap(bookedSlot, slot)) return STATE_BY_TYPE[b.type];
-    }
-    return 'free';
+  // Stato di (umbrella, slot) a DUE FASI: una prenotazione DIRETTA (timeSlotId === slot.id) prevale; altrimenti la
+  // fascia è COPERTA se una prenotazione su un'ALTRA fascia si sovrappone; altrimenti libera. (bookings già ordinate
+  // per createdAt dal service.) Ritorna anche gli ids delle fasce copritrici per una fascia coperta.
+  const resolveSlot = (umbrellaId: string, slot: TimeSlot): { state: SlotState; coveredBy: string[] } => {
+    const direct = source.bookings.find(
+      (b) => b.umbrellaId === umbrellaId && b.timeSlotId === slot.id,
+    );
+    if (direct) return { state: STATE_BY_TYPE[direct.type], coveredBy: [] };
+    const coveringSlotIds = source.bookings
+      .filter((b) => {
+        if (b.umbrellaId !== umbrellaId || b.timeSlotId === slot.id) return false;
+        const bookedSlot = slotById.get(b.timeSlotId);
+        return bookedSlot != null && slotsOverlap(bookedSlot, slot);
+      })
+      .map((b) => b.timeSlotId);
+    if (coveringSlotIds.length > 0) return { state: 'covered', coveredBy: [...new Set(coveringSlotIds)] };
+    return { state: 'free', coveredBy: [] };
   };
 
   const sectors: SectorDTO[] = source.sectors.map((s) => ({
@@ -69,15 +77,16 @@ export function projectDayMap(date: string, source: MapSource): DayMapDTO {
       id: r.id,
       label: r.label,
       sortOrder: r.sortOrder,
-      umbrellas: r.umbrellas.map(
-        (u): UmbrellaDTO => ({
-          id: u.id,
-          label: u.label,
-          umbrellaTypeId: u.umbrellaTypeId,
-          rowId: u.rowId,
-          stateBySlot: Object.fromEntries(source.timeSlots.map((slot) => [slot.id, stateFor(u.id, slot)])),
-        }),
-      ),
+      umbrellas: r.umbrellas.map((u): UmbrellaDTO => {
+        const stateBySlot: Record<string, SlotState> = {};
+        const coveredBySlot: Record<string, string[]> = {};
+        for (const slot of source.timeSlots) {
+          const { state, coveredBy } = resolveSlot(u.id, slot);
+          stateBySlot[slot.id] = state;
+          if (state === 'covered') coveredBySlot[slot.id] = coveredBy;
+        }
+        return { id: u.id, label: u.label, umbrellaTypeId: u.umbrellaTypeId, rowId: u.rowId, stateBySlot, coveredBySlot };
+      }),
     })),
   }));
   return { date, umbrellaTypes, timeSlots, sectors };

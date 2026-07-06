@@ -32,7 +32,7 @@ export interface CreateCustomerInput {
 export type UpdateCustomerInput = Partial<CreateCustomerInput>;
 
 /** State of a slot (umbrella, date, time slot). Derived from the backend. ADR-0013/0020. */
-export type SlotState = 'free' | 'season' | 'daily' | 'booked';
+export type SlotState = 'free' | 'season' | 'daily' | 'booked' | 'covered';
 
 /** Umbrella type (ADR-0016). `icon` = icon-registry key (additive, ADR-0020). */
 export interface UmbrellaTypeDTO {
@@ -72,6 +72,7 @@ export interface UmbrellaDTO {
   umbrellaTypeId: string | null;  // null = Normal
   rowId: string;
   stateBySlot: Record<string, SlotState>; // key = TimeSlotDTO.id
+  coveredBySlot?: Record<string, string[]>; // key = slotId COPERTO → ids fasce copritrici (D-048); assente se nessuna copertura
 }
 
 export interface RowDTO {
