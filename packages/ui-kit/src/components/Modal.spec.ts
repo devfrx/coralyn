@@ -38,4 +38,16 @@ describe('Modal', () => {
     const desc = document.getElementById(dialog.getAttribute('aria-describedby')!)!;
     expect(desc.className).toContain('sr-only');
   });
+
+  it('overlay e content portano le animazioni di entrata/uscita su data-state', async () => {
+    await mountModal({});
+    const overlay = document.body.querySelector('[data-reka-dialog-overlay], .fixed.inset-0')!;
+    const content = document.body.querySelector('[role="dialog"]')!;
+    const overlayCls = overlay.getAttribute('class') ?? '';
+    const contentCls = content.getAttribute('class') ?? '';
+    expect(overlayCls).toContain('data-[state=open]:[animation:overlay-in');
+    expect(overlayCls).toContain('data-[state=closed]:[animation:overlay-out');
+    expect(contentCls).toContain('data-[state=open]:[animation:dialog-in');
+    expect(contentCls).toContain('data-[state=closed]:[animation:dialog-out');
+  });
 });
