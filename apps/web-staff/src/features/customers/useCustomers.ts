@@ -1,4 +1,4 @@
-import type { CustomerDTO, CreateCustomerInput, UpdateCustomerInput, CustomerBookingDTO } from '@coralyn/contracts';
+import type { CustomerDTO, CreateCustomerInput, UpdateCustomerInput, CustomerBookingDTO, DeleteCustomerResult } from '@coralyn/contracts';
 import { apiFetch } from '@/lib/http';
 import { queryKeys } from '@/lib/queryKeys';
 import { useSessionStore } from '@/stores/session';
@@ -43,5 +43,15 @@ export function useCreateCustomer() {
     mutationFn: (input: CreateCustomerInput) =>
       apiFetch<CustomerDTO>('/customers', { method: 'POST', body: JSON.stringify(input) }),
     invalidates: () => [queryKeys.customers(session.establishmentId)],
+  });
+}
+
+/** Diritto all'oblio (GDPR D-024): DELETE reale se il cliente non ha prenotazioni, altrimenti
+ *  anonimizzazione lato server (il `outcome` distingue i due esiti per il messaggio in UI). */
+export function useDeleteCustomer(id: string) {
+  const session = useSessionStore();
+  return mutationResource({
+    mutationFn: () => apiFetch<DeleteCustomerResult>(`/customers/${id}`, { method: 'DELETE' }),
+    invalidates: () => [queryKeys.customers(session.establishmentId), queryKeys.customer(session.establishmentId, id)],
   });
 }

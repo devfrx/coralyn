@@ -6,6 +6,7 @@ import { Role, type CustomerDTO, type CustomerBookingDTO, type EquipmentTypeDTO,
 
 const INITIAL_CUSTOMERS: CustomerDTO[] = [
   { id: 'c-1', firstName: 'Mario', lastName: 'Rossi', phone: '+39 333 1111111', email: 'mario.rossi@email.it', notes: '' },
+  { id: 'c-2', firstName: 'Luca', lastName: 'Bianchi', phone: '+39 333 2222222', email: 'luca.bianchi@email.it', notes: '' },
 ];
 let customers: CustomerDTO[] = [...INITIAL_CUSTOMERS];
 export function resetCustomersSeed() { customers = [...INITIAL_CUSTOMERS]; }
@@ -124,6 +125,7 @@ export const server = setupServer(
   }),
   http.get('/api/customers/:id/bookings', ({ params }) =>
     HttpResponse.json(customerBookings[params.id as string] ?? [])),
+  http.delete('*/api/customers/:id', () => HttpResponse.json({ outcome: 'deleted' })),
   // Seasons
   http.get('/api/seasons', () => HttpResponse.json(seasons)),
   http.post('/api/seasons', async ({ request }) => {
