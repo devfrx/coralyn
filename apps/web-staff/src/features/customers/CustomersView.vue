@@ -1,12 +1,22 @@
 <script setup lang="ts">
-import { ref } from 'vue';
+import { ref, computed } from 'vue';
 import { useRouter } from 'vue-router';
-import { Button, Avatar, DataTable, Modal, Field, Input, Textarea, Icon, PageToolbar } from '@coralyn/ui-kit';
+import { Button, Avatar, DataTable, Modal, Field, Input, Textarea, Icon, PageToolbar, SearchInput, EmptyState } from '@coralyn/ui-kit';
 import { useCustomers, useCreateCustomer } from './useCustomers';
 
 const router = useRouter();
 const { data: customers, isLoading } = useCustomers();
 const create = useCreateCustomer();
+
+const search = ref('');
+const filtered = computed(() => {
+  const q = search.value.trim().toLowerCase();
+  const list = customers.value ?? [];
+  if (!q) return list;
+  return list.filter(
+    (c) => `${c.firstName} ${c.lastName}`.toLowerCase().includes(q) || (c.phone ?? '').toLowerCase().includes(q),
+  );
+});
 
 const open = ref(false);
 const firstName = ref(''); const lastName = ref(''); const phone = ref(''); const email = ref(''); const notes = ref('');
@@ -26,19 +36,18 @@ function ini(c: { firstName: string; lastName: string }) { return ((c.firstName[
   <section class="px-[26px] pb-[30px] pt-[22px]">
     <PageToolbar>
       <template #left>
-        <div class="flex w-[300px] items-center gap-2 rounded-[10px] border border-[var(--color-border)] bg-[var(--color-surface)] px-3.5 py-2.5 text-[var(--color-placeholder)]">
-          <Icon name="search" :size="16" /><span class="text-[13px]">Cerca per nome o telefono…</span>
-        </div>
+        <SearchInput v-model="search" class="w-[300px]" placeholder="Cerca per nome o telefono…" aria-label="Cerca clienti" />
       </template>
       <template #right>
-        <span class="text-[12.5px] tabular-nums text-[var(--color-text-muted)]">{{ customers?.length ?? 0 }} clienti</span>
+        <span class="text-[12.5px] tabular-nums text-[var(--color-text-muted)]">{{ filtered.length }} clienti</span>
         <Button data-test="new-customer" @click="open = true"><Icon name="plus" :size="16" />Nuovo cliente</Button>
       </template>
     </PageToolbar>
 
     <p v-if="isLoading" class="text-[var(--color-text-muted)]">Caricamento…</p>
+    <EmptyState v-else-if="filtered.length === 0" message="Nessun cliente trovato" class="mt-4" />
     <DataTable v-else :columns="cols">
-      <tr v-for="c in customers" :key="c.id" class="cursor-pointer hover:bg-[var(--color-raised)]" @click="router.push({ name: 'customer-detail', params: { id: c.id } })">
+      <tr v-for="c in filtered" :key="c.id" class="cursor-pointer hover:bg-[var(--color-raised)]" @click="router.push({ name: 'customer-detail', params: { id: c.id } })">
         <td class="border-b border-[var(--color-border-row)] px-[18px] py-3.5">
           <div class="flex items-center gap-2.5">
             <Avatar :initials="ini(c)" size="sm" />

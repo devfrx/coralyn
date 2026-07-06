@@ -40,4 +40,32 @@ describe('CustomersView', () => {
     expect(link.exists()).toBe(true);
     expect(link.text()).toContain('Rossi');
   });
+
+  it('filtra per nome: "Rossi" mostra Rossi e nasconde Bianchi/Verdi', async () => {
+    const w = mountApp(CustomersView);
+    await flushPromises();
+    await new Promise((r) => setTimeout(r, 0));
+    await w.find('input[aria-label="Cerca clienti"]').setValue('Rossi');
+    expect(w.text()).toContain('Rossi');
+    expect(w.text()).not.toContain('Bianchi');
+    expect(w.text()).not.toContain('Verdi');
+  });
+
+  it('filtra per telefono: un frammento del numero seleziona Bianchi', async () => {
+    const w = mountApp(CustomersView);
+    await flushPromises();
+    await new Promise((r) => setTimeout(r, 0));
+    await w.find('input[aria-label="Cerca clienti"]').setValue('333 2222');
+    expect(w.text()).toContain('Bianchi');
+    expect(w.text()).not.toContain('Rossi');
+  });
+
+  it('nessun risultato: mostra empty-state e contatore a 0', async () => {
+    const w = mountApp(CustomersView);
+    await flushPromises();
+    await new Promise((r) => setTimeout(r, 0));
+    await w.find('input[aria-label="Cerca clienti"]').setValue('zzz');
+    expect(w.text()).toContain('Nessun cliente trovato');
+    expect(w.text()).toContain('0 clienti');
+  });
 });
