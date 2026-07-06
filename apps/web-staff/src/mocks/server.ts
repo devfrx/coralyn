@@ -82,6 +82,7 @@ export const MOCK_ADMIN: UserDTO = {
   email: 'admin@coralyn.dev',
   role: Role.Admin,
   establishmentId: '00000000-0000-0000-0000-000000000001',
+  establishmentName: 'Lido Maestrale',
 };
 
 // Set-password su invito/reset (D-025): token → contesto minimo; qualsiasi token diverso

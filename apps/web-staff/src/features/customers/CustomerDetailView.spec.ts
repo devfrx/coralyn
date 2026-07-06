@@ -49,7 +49,7 @@ function mountDetail(id: string) {
 
 function setRole(role: Role) {
   const session = useSessionStore();
-  session.user = { id: 'u-1', email: 'admin@coralyn.dev', role, establishmentId: 'e-1' };
+  session.user = { id: 'u-1', email: 'admin@coralyn.dev', role, establishmentId: 'e-1', establishmentName: 'Lido Maestrale' };
 }
 
 describe('CustomerDetailView', () => {

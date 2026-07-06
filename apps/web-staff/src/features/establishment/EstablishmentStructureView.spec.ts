@@ -31,7 +31,7 @@ describe('EstablishmentStructureView', () => {
     }));
     const w = mountApp(EstablishmentStructureView, { attachTo: document.body });
     const session = useSessionStore();
-    session.user = { id: 'u-1', email: 'admin@coralyn.dev', role: Role.Admin, establishmentId: 'e-1' };
+    session.user = { id: 'u-1', email: 'admin@coralyn.dev', role: Role.Admin, establishmentId: 'e-1', establishmentName: 'Lido Maestrale' };
     await settle();
     await w.find('[data-testid="add-type"]').trigger('click');
     await settle();
@@ -51,7 +51,7 @@ describe('EstablishmentStructureView', () => {
     }));
     const w = mountApp(EstablishmentStructureView, { attachTo: document.body });
     const session = useSessionStore();
-    session.user = { id: 'u-1', email: 'admin@coralyn.dev', role: Role.Admin, establishmentId: 'e-1' };
+    session.user = { id: 'u-1', email: 'admin@coralyn.dev', role: Role.Admin, establishmentId: 'e-1', establishmentName: 'Lido Maestrale' };
     await settle();
     // Click sul cestino apre il dialog ma NON invia ancora la DELETE.
     await w.find('[data-testid="delete-type"]').trigger('click');
@@ -69,7 +69,7 @@ describe('EstablishmentStructureView', () => {
   it('staff: tipologie read-only (nessun bottone gestione)', async () => {
     const w = mountApp(EstablishmentStructureView);
     const session = useSessionStore();
-    session.user = { id: 'u-2', email: 'marco@lidomaestrale.it', role: Role.Staff, establishmentId: 'e-1' };
+    session.user = { id: 'u-2', email: 'marco@lidomaestrale.it', role: Role.Staff, establishmentId: 'e-1', establishmentName: 'Lido Maestrale' };
     await settle();
     expect(w.find('[data-testid="add-type"]').exists()).toBe(false);
   });
@@ -83,7 +83,7 @@ describe('EstablishmentStructureView', () => {
     }));
     const w = mountApp(EstablishmentStructureView, { attachTo: document.body });
     const session = useSessionStore();
-    session.user = { id: 'u-1', email: 'admin@coralyn.dev', role: Role.Admin, establishmentId: 'e-1' };
+    session.user = { id: 'u-1', email: 'admin@coralyn.dev', role: Role.Admin, establishmentId: 'e-1', establishmentName: 'Lido Maestrale' };
     await settle();
     await w.find('[data-testid="add-sector"]').trigger('click');
     await settle();
@@ -107,7 +107,7 @@ describe('EstablishmentStructureView', () => {
     }));
     const w = mountApp(EstablishmentStructureView, { attachTo: document.body });
     const session = useSessionStore();
-    session.user = { id: 'u-1', email: 'admin@coralyn.dev', role: Role.Admin, establishmentId: 'e-1' };
+    session.user = { id: 'u-1', email: 'admin@coralyn.dev', role: Role.Admin, establishmentId: 'e-1', establishmentName: 'Lido Maestrale' };
     await settle();
     await w.find('[data-testid="edit-sector"]').trigger('click');
     await settle();
@@ -127,7 +127,7 @@ describe('EstablishmentStructureView', () => {
     }));
     const w = mountApp(EstablishmentStructureView, { attachTo: document.body });
     const session = useSessionStore();
-    session.user = { id: 'u-1', email: 'admin@coralyn.dev', role: Role.Admin, establishmentId: 'e-1' };
+    session.user = { id: 'u-1', email: 'admin@coralyn.dev', role: Role.Admin, establishmentId: 'e-1', establishmentName: 'Lido Maestrale' };
     await settle();
     await w.find('[data-testid="delete-sector"]').trigger('click');
     await settle();
@@ -148,7 +148,7 @@ describe('EstablishmentStructureView', () => {
     }));
     const w = mountApp(EstablishmentStructureView, { attachTo: document.body });
     const session = useSessionStore();
-    session.user = { id: 'u-1', email: 'admin@coralyn.dev', role: Role.Admin, establishmentId: 'e-1' };
+    session.user = { id: 'u-1', email: 'admin@coralyn.dev', role: Role.Admin, establishmentId: 'e-1', establishmentName: 'Lido Maestrale' };
     await settle();
     await w.find('[data-testid="add-row"]').trigger('click');
     await settle();
@@ -169,7 +169,7 @@ describe('EstablishmentStructureView', () => {
     }));
     const w = mountApp(EstablishmentStructureView, { attachTo: document.body });
     const session = useSessionStore();
-    session.user = { id: 'u-1', email: 'admin@coralyn.dev', role: Role.Admin, establishmentId: 'e-1' };
+    session.user = { id: 'u-1', email: 'admin@coralyn.dev', role: Role.Admin, establishmentId: 'e-1', establishmentName: 'Lido Maestrale' };
     await settle();
     await w.find('[data-testid="edit-row"]').trigger('click');
     await settle();
@@ -189,7 +189,7 @@ describe('EstablishmentStructureView', () => {
     }));
     const w = mountApp(EstablishmentStructureView, { attachTo: document.body });
     const session = useSessionStore();
-    session.user = { id: 'u-1', email: 'admin@coralyn.dev', role: Role.Admin, establishmentId: 'e-1' };
+    session.user = { id: 'u-1', email: 'admin@coralyn.dev', role: Role.Admin, establishmentId: 'e-1', establishmentName: 'Lido Maestrale' };
     await settle();
     await w.find('[data-testid="delete-row"]').trigger('click');
     await settle();
@@ -204,7 +204,7 @@ describe('EstablishmentStructureView', () => {
   it('staff: editor read-only (nessun add/edit/delete di settori e file)', async () => {
     const w = mountApp(EstablishmentStructureView);
     const session = useSessionStore();
-    session.user = { id: 'u-2', email: 'marco@lidomaestrale.it', role: Role.Staff, establishmentId: 'e-1' };
+    session.user = { id: 'u-2', email: 'marco@lidomaestrale.it', role: Role.Staff, establishmentId: 'e-1', establishmentName: 'Lido Maestrale' };
     await settle();
     expect(w.find('[data-testid="add-sector"]').exists()).toBe(false);
     expect(w.find('[data-testid="add-row"]').exists()).toBe(false);
@@ -223,7 +223,7 @@ describe('EstablishmentStructureView', () => {
     }));
     const w = mountApp(EstablishmentStructureView, { attachTo: document.body });
     const session = useSessionStore();
-    session.user = { id: 'u-1', email: 'admin@coralyn.dev', role: Role.Admin, establishmentId: 'e-1' };
+    session.user = { id: 'u-1', email: 'admin@coralyn.dev', role: Role.Admin, establishmentId: 'e-1', establishmentName: 'Lido Maestrale' };
     await settle();
     await w.find('[data-testid="add-umbrella"]').trigger('click');
     await settle();
@@ -244,7 +244,7 @@ describe('EstablishmentStructureView', () => {
     }));
     const w = mountApp(EstablishmentStructureView, { attachTo: document.body });
     const session = useSessionStore();
-    session.user = { id: 'u-1', email: 'admin@coralyn.dev', role: Role.Admin, establishmentId: 'e-1' };
+    session.user = { id: 'u-1', email: 'admin@coralyn.dev', role: Role.Admin, establishmentId: 'e-1', establishmentName: 'Lido Maestrale' };
     await settle();
     await w.findAll('[data-testid="umbrella-chip"]')[0].trigger('click');
     await settle();
@@ -264,7 +264,7 @@ describe('EstablishmentStructureView', () => {
     }));
     const w = mountApp(EstablishmentStructureView, { attachTo: document.body });
     const session = useSessionStore();
-    session.user = { id: 'u-1', email: 'admin@coralyn.dev', role: Role.Admin, establishmentId: 'e-1' };
+    session.user = { id: 'u-1', email: 'admin@coralyn.dev', role: Role.Admin, establishmentId: 'e-1', establishmentName: 'Lido Maestrale' };
     await settle();
     await w.findAll('[data-testid="umbrella-chip"]')[0].trigger('click');
     await settle();
@@ -287,7 +287,7 @@ describe('EstablishmentStructureView', () => {
     }));
     const w = mountApp(EstablishmentStructureView, { attachTo: document.body });
     const session = useSessionStore();
-    session.user = { id: 'u-1', email: 'admin@coralyn.dev', role: Role.Admin, establishmentId: 'e-1' };
+    session.user = { id: 'u-1', email: 'admin@coralyn.dev', role: Role.Admin, establishmentId: 'e-1', establishmentName: 'Lido Maestrale' };
     await settle();
     await w.find('[data-testid="generate-umbrellas"]').trigger('click');
     await settle();
@@ -318,7 +318,7 @@ describe('EstablishmentStructureView', () => {
     );
     const w = mountApp(EstablishmentStructureView, { attachTo: document.body });
     const session = useSessionStore();
-    session.user = { id: 'u-1', email: 'admin@coralyn.dev', role: Role.Admin, establishmentId: 'e-1' };
+    session.user = { id: 'u-1', email: 'admin@coralyn.dev', role: Role.Admin, establishmentId: 'e-1', establishmentName: 'Lido Maestrale' };
     await settle();
     await w.find('[data-testid="add-row"]').trigger('click');
     await settle();
@@ -344,7 +344,7 @@ describe('EstablishmentStructureView', () => {
     );
     const w = mountApp(EstablishmentStructureView, { attachTo: document.body });
     const session = useSessionStore();
-    session.user = { id: 'u-1', email: 'admin@coralyn.dev', role: Role.Admin, establishmentId: 'e-1' };
+    session.user = { id: 'u-1', email: 'admin@coralyn.dev', role: Role.Admin, establishmentId: 'e-1', establishmentName: 'Lido Maestrale' };
     await settle();
     await w.find('[data-testid="add-row"]').trigger('click');
     await settle();
@@ -362,7 +362,7 @@ describe('EstablishmentStructureView', () => {
   it('staff: ombrelloni non editabili (nessun chip cliccabile né Genera/Aggiungi)', async () => {
     const w = mountApp(EstablishmentStructureView);
     const session = useSessionStore();
-    session.user = { id: 'u-2', email: 'marco@lidomaestrale.it', role: Role.Staff, establishmentId: 'e-1' };
+    session.user = { id: 'u-2', email: 'marco@lidomaestrale.it', role: Role.Staff, establishmentId: 'e-1', establishmentName: 'Lido Maestrale' };
     await settle();
     expect(w.find('[data-testid="umbrella-chip"]').exists()).toBe(false);
     expect(w.find('[data-testid="add-umbrella"]').exists()).toBe(false);

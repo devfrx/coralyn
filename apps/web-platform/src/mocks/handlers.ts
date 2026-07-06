@@ -2,7 +2,7 @@ import { http, HttpResponse } from 'msw';
 import { Role, type PlatformEstablishmentDTO, type UserDTO } from '@coralyn/contracts';
 
 export const MOCK_TOKEN = 'valid-super-token';
-export const MOCK_SUPERUSER: UserDTO = { id: 'su-1', email: 'super@coralyn.test', role: Role.Superuser, establishmentId: null };
+export const MOCK_SUPERUSER: UserDTO = { id: 'su-1', email: 'super@coralyn.test', role: Role.Superuser, establishmentId: null, establishmentName: null };
 
 function baseDto(over: Partial<PlatformEstablishmentDTO> & { id: string; name: string }): PlatformEstablishmentDTO {
   return {

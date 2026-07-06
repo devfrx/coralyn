@@ -30,6 +30,7 @@ describe('session store', () => {
     expect(getToken()).toBe(MOCK_TOKEN);
     expect(s.userEmail).toBe('admin@coralyn.dev');
     expect(s.establishmentId).toBe('00000000-0000-0000-0000-000000000001');
+    expect(s.establishmentName).toBe('Lido Maestrale');
   });
 
   it('login errato propaga 401 e resta non autenticato', async () => {
@@ -45,6 +46,8 @@ describe('session store', () => {
     s.logout();
     expect(s.authenticated).toBe(false);
     expect(getToken()).toBeNull();
+    // dopo logout, il nome derivato dalla sessione torna vuoto (non resta 'Lido Maestrale')
+    expect(s.establishmentName).toBe('');
   });
 
   it('rehydrate con token valido ripristina la sessione da /me', async () => {
@@ -53,6 +56,7 @@ describe('session store', () => {
     await s.rehydrate();
     expect(s.authenticated).toBe(true);
     expect(s.userEmail).toBe('admin@coralyn.dev');
+    expect(s.establishmentName).toBe('Lido Maestrale');
   });
 
   it('rehydrate con token invalido fa logout', async () => {

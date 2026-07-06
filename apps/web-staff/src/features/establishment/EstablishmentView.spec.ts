@@ -26,7 +26,7 @@ describe('EstablishmentView', () => {
   it('marca "Tu" solo sull\'utente corrente', async () => {
     const w = mountApp(EstablishmentView);
     const session = useSessionStore();
-    session.user = { id: 'u-1', email: 'admin@coralyn.dev', role: Role.Admin, establishmentId: 'e-1' };
+    session.user = { id: 'u-1', email: 'admin@coralyn.dev', role: Role.Admin, establishmentId: 'e-1', establishmentName: 'Lido Maestrale' };
     await settle();
     const rows = w.findAll('[data-testid="team-row"]');
     const mine = rows.find((r) => r.text().includes('admin@coralyn.dev'));
@@ -52,7 +52,7 @@ describe('EstablishmentView', () => {
   it('admin: mostra «Configura» attivo (struttura) e il logout', async () => {
     const w = mountApp(EstablishmentView);
     const session = useSessionStore();
-    session.user = { id: 'u-1', email: 'admin@coralyn.dev', role: Role.Admin, establishmentId: 'e-1' };
+    session.user = { id: 'u-1', email: 'admin@coralyn.dev', role: Role.Admin, establishmentId: 'e-1', establishmentName: 'Lido Maestrale' };
     await settle();
     expect(w.find('[data-testid="configure-structure"]').exists()).toBe(true);
     await w.find('[data-testid="sign-out"]').trigger('click');
@@ -62,7 +62,7 @@ describe('EstablishmentView', () => {
   it('staff: la struttura resta "in arrivo"', async () => {
     const w = mountApp(EstablishmentView);
     const session = useSessionStore();
-    session.user = { id: 'u-2', email: 'marco@lidomaestrale.it', role: Role.Staff, establishmentId: 'e-1' };
+    session.user = { id: 'u-2', email: 'marco@lidomaestrale.it', role: Role.Staff, establishmentId: 'e-1', establishmentName: 'Lido Maestrale' };
     await settle();
     expect(w.text()).toContain('Configura · in arrivo');
     expect(w.find('[data-testid="configure-structure"]').exists()).toBe(false);
@@ -84,7 +84,7 @@ describe('EstablishmentView', () => {
     }));
     const w = mountApp(EstablishmentView, { attachTo: document.body });
     const session = useSessionStore();
-    session.user = { id: 'u-1', email: 'admin@coralyn.dev', role: Role.Admin, establishmentId: 'e-1' };
+    session.user = { id: 'u-1', email: 'admin@coralyn.dev', role: Role.Admin, establishmentId: 'e-1', establishmentName: 'Lido Maestrale' };
     await settle();
     await w.find('[data-testid="edit-establishment"]').trigger('click');
     await settle();
@@ -101,7 +101,7 @@ describe('EstablishmentView', () => {
   it('staff: nessun bottone «Modifica» attivo (resta "in arrivo")', async () => {
     const w = mountApp(EstablishmentView);
     const session = useSessionStore();
-    session.user = { id: 'u-2', email: 'marco@lidomaestrale.it', role: Role.Staff, establishmentId: 'e-1' };
+    session.user = { id: 'u-2', email: 'marco@lidomaestrale.it', role: Role.Staff, establishmentId: 'e-1', establishmentName: 'Lido Maestrale' };
     await settle();
     expect(w.find('[data-testid="edit-establishment"]').exists()).toBe(false);
     expect(w.text()).toContain('Modifica · in arrivo');
@@ -116,7 +116,7 @@ describe('EstablishmentView', () => {
     }));
     const w = mountApp(EstablishmentView, { attachTo: document.body });
     const session = useSessionStore();
-    session.user = { id: 'u-1', email: 'admin@coralyn.dev', role: Role.Admin, establishmentId: 'e-1' };
+    session.user = { id: 'u-1', email: 'admin@coralyn.dev', role: Role.Admin, establishmentId: 'e-1', establishmentName: 'Lido Maestrale' };
     await settle();
     await w.find('[data-testid="add-user"]').trigger('click');
     await settle();
@@ -138,7 +138,7 @@ describe('EstablishmentView', () => {
     }));
     const w = mountApp(EstablishmentView);
     const session = useSessionStore();
-    session.user = { id: 'u-1', email: 'admin@coralyn.dev', role: Role.Admin, establishmentId: 'e-1' };
+    session.user = { id: 'u-1', email: 'admin@coralyn.dev', role: Role.Admin, establishmentId: 'e-1', establishmentName: 'Lido Maestrale' };
     await settle();
     const row = w.findAll('[data-testid="team-row"]').find((r) => r.text().includes('marco@lidomaestrale.it'))!;
     await row.find('[data-testid="toggle-user-disabled"]').trigger('click');
@@ -149,7 +149,7 @@ describe('EstablishmentView', () => {
   it('staff: lista team read-only (nessun bottone gestione)', async () => {
     const w = mountApp(EstablishmentView);
     const session = useSessionStore();
-    session.user = { id: 'u-2', email: 'marco@lidomaestrale.it', role: Role.Staff, establishmentId: 'e-1' };
+    session.user = { id: 'u-2', email: 'marco@lidomaestrale.it', role: Role.Staff, establishmentId: 'e-1', establishmentName: 'Lido Maestrale' };
     await settle();
     expect(w.find('[data-testid="add-user"]').exists()).toBe(false);
     expect(w.find('[data-testid="toggle-user-disabled"]').exists()).toBe(false);
@@ -193,7 +193,7 @@ describe('EstablishmentView', () => {
     }));
     const w = mountApp(EstablishmentView);
     const session = useSessionStore();
-    session.user = { id: 'u-1', email: 'admin@coralyn.dev', role: Role.Admin, establishmentId: 'e-1' };
+    session.user = { id: 'u-1', email: 'admin@coralyn.dev', role: Role.Admin, establishmentId: 'e-1', establishmentName: 'Lido Maestrale' };
     await settle();
     const row = w.findAll('[data-testid="team-row"]').find((r) => r.text().includes('marco@lidomaestrale.it'))!;
     expect(row.find('[data-testid="toggle-user-disabled"]').text()).toContain('Riabilita');
@@ -207,7 +207,7 @@ describe('EstablishmentView', () => {
       HttpResponse.json({ message: 'Email già in uso' }, { status: 409 })));
     const w = mountApp(EstablishmentView, { attachTo: document.body });
     const session = useSessionStore();
-    session.user = { id: 'u-1', email: 'admin@coralyn.dev', role: Role.Admin, establishmentId: 'e-1' };
+    session.user = { id: 'u-1', email: 'admin@coralyn.dev', role: Role.Admin, establishmentId: 'e-1', establishmentName: 'Lido Maestrale' };
     await settle();
     await w.find('[data-testid="add-user"]').trigger('click');
     await settle();
@@ -227,7 +227,7 @@ describe('EstablishmentView', () => {
     }));
     const w = mountApp(EstablishmentView, { attachTo: document.body });
     const session = useSessionStore();
-    session.user = { id: 'u-1', email: 'admin@coralyn.dev', role: Role.Admin, establishmentId: 'e-1' };
+    session.user = { id: 'u-1', email: 'admin@coralyn.dev', role: Role.Admin, establishmentId: 'e-1', establishmentName: 'Lido Maestrale' };
     await settle();
     const row = w.findAll('[data-testid="team-row"]').find((r) => r.text().includes('marco@lidomaestrale.it'))!;
     await row.find('[data-testid="reset-user-password"]').trigger('click');
@@ -242,7 +242,7 @@ describe('EstablishmentView', () => {
   it('staff: nessun bottone «Reset password»', async () => {
     const w = mountApp(EstablishmentView);
     const session = useSessionStore();
-    session.user = { id: 'u-2', email: 'marco@lidomaestrale.it', role: Role.Staff, establishmentId: 'e-1' };
+    session.user = { id: 'u-2', email: 'marco@lidomaestrale.it', role: Role.Staff, establishmentId: 'e-1', establishmentName: 'Lido Maestrale' };
     await settle();
     expect(w.find('[data-testid="reset-user-password"]').exists()).toBe(false);
   });

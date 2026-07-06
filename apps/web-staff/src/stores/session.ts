@@ -9,12 +9,10 @@ export const useSessionStore = defineStore('session', () => {
   // Utente autenticato (null = sessione assente). I dati di identità derivano da qui.
   const user = ref<UserDTO | null>(null);
   const activeDate = ref<string>(todayIso()); // ISO yyyy-mm-dd — default: oggi operativo (Europe/Rome)
-  // Il nome stabilimento non è esposto dagli endpoint auth (UserDTO ha solo l'id):
-  // resta un default finché un endpoint dedicato non lo fornirà.
-  const establishmentName = ref<string>('Lido Maestrale');
-
   const authenticated = computed<boolean>(() => user.value !== null);
   const establishmentId = computed<string>(() => user.value?.establishmentId ?? '');
+  // Nome stabilimento dell'utente, esposto da /auth/me (UserDTO.establishmentName).
+  const establishmentName = computed<string>(() => user.value?.establishmentName ?? '');
   const role = computed<Role>(() => user.value?.role ?? Role.Staff);
   const userEmail = computed<string>(() => user.value?.email ?? '');
 
