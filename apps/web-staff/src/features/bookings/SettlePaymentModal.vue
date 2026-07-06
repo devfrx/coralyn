@@ -92,8 +92,10 @@ async function confirm(): Promise<void> {
       </Field>
 
       <p v-if="error" class="text-[12.5px] text-[var(--color-danger)]">{{ error }}</p>
-
-      <ModalFooter class="pt-2" submit-label="Conferma incasso" :submit-disabled="submitting" @cancel="open = false" @submit="confirm" />
     </div>
+
+    <template v-if="booking" #footer>
+      <ModalFooter submit-label="Conferma incasso" :submit-disabled="submitting" @cancel="open = false" @submit="confirm" />
+    </template>
   </Modal>
 </template>

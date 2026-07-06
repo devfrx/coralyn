@@ -397,8 +397,11 @@ const freeSlotOptions = computed(() =>
             Tariffa applicata: {{ matchedRateLabel }}
           </p>
         </div>
-        <ModalFooter class="pt-2" submit-label="Conferma prenotazione" :submit-disabled="quoteError || quoteLoading" @cancel="modalBooking = false" @submit="confirmBooking" />
       </div>
+
+      <template #footer>
+        <ModalFooter submit-label="Conferma prenotazione" :submit-disabled="quoteError || quoteLoading" @cancel="modalBooking = false" @submit="confirmBooking" />
+      </template>
     </Modal>
 
     <SettlePaymentModal v-model="settleOpen" :booking="currentBooking" />
