@@ -34,6 +34,7 @@ import IconWaves from '~icons/lucide/waves';
 import IconTrash from '~icons/lucide/trash-2';
 import IconAlert from '~icons/lucide/alert-triangle';
 import IconArchive from '~icons/lucide/archive';
+import IconLoader from '~icons/lucide/loader-2';
 
 /** Nomi consentiti (chrome + Tipologia.icona). Confine offline + fallback. */
 export const icons: Record<string, Component> = {
@@ -45,6 +46,7 @@ export const icons: Record<string, Component> = {
   mail: IconMail, renew: IconRenew, edit: IconEdit, logout: IconLogout, building: IconBuilding,
   layers: IconLayers, filter: IconFilter, 'arrow-up': IconArrowUp, 'arrow-down': IconArrowDown,
   waves: IconWaves, 'trash-2': IconTrash, 'alert-triangle': IconAlert, archive: IconArchive,
+  'loader-2': IconLoader,
 };
 
 export const FALLBACK_ICON = 'umbrella';

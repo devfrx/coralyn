@@ -11,7 +11,7 @@ describe('Icon', () => {
     expect(mount(Icon, { props: { name: 'non-esiste' } }).find('svg').exists()).toBe(true);
   });
   it('resolve le nuove chiavi del registry', () => {
-    for (const k of ['bell','settings','euro','clock','phone','mail','renew','edit','logout','building','filter','waves','chevron-down','archive']) {
+    for (const k of ['bell','settings','euro','clock','phone','mail','renew','edit','logout','building','filter','waves','chevron-down','archive','loader-2']) {
       expect(icons[k]).toBeTruthy();
     }
   });
