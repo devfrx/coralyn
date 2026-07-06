@@ -37,12 +37,14 @@ function onCancelButton(): void {
 <template>
   <Modal v-model:open="open" :title="title" :description="description">
     <slot />
-    <ModalFooter
-      :submit-label="confirmLabel"
-      :cancel-label="cancelLabel"
-      :submit-variant="submitVariant"
-      @submit="onConfirm"
-      @cancel="onCancelButton"
-    />
+    <template #footer>
+      <ModalFooter
+        :submit-label="confirmLabel"
+        :cancel-label="cancelLabel"
+        :submit-variant="submitVariant"
+        @submit="onConfirm"
+        @cancel="onCancelButton"
+      />
+    </template>
   </Modal>
 </template>

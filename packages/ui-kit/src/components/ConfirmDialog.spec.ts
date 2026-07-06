@@ -61,4 +61,11 @@ describe('ConfirmDialog', () => {
     expect(w.emitted('cancel')).toHaveLength(1);
     expect(w.emitted('confirm')).toBeUndefined();
   });
+
+  it('monta i bottoni nella regione footer del Modal', async () => {
+    await mountDialog({});
+    const footer = document.body.querySelector('[data-test="modal-footer-region"]')!;
+    expect(footer).not.toBeNull();
+    expect(footer.textContent).toContain('Elimina');
+  });
 });
