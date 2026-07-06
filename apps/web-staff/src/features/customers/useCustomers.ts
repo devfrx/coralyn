@@ -1,4 +1,4 @@
-import type { CustomerDTO, CreateCustomerInput, UpdateCustomerInput, CustomerBookingDTO, DeleteCustomerResult } from '@coralyn/contracts';
+import type { CustomerDTO, CreateCustomerInput, UpdateCustomerInput, CustomerBookingDTO, DeleteCustomerResult, BookingDTO, TerminateSubscriptionInput } from '@coralyn/contracts';
 import { apiFetch } from '@/lib/http';
 import { queryKeys } from '@/lib/queryKeys';
 import { useSessionStore } from '@/stores/session';
@@ -53,5 +53,17 @@ export function useDeleteCustomer(id: string) {
   return mutationResource({
     mutationFn: () => apiFetch<DeleteCustomerResult>(`/customers/${id}`, { method: 'DELETE' }),
     invalidates: () => [queryKeys.customers(session.establishmentId), queryKeys.customer(session.establishmentId, id)],
+  });
+}
+
+/** Disdetta anticipata di un abbonamento (D-013, admin-only). Invalida lo storico della Scheda
+ *  cliente così la card riflette lo stato disdetto. `quiet`: il modale mostra l'errore inline. */
+export function useTerminateSubscription(customerId: string) {
+  const session = useSessionStore();
+  return mutationResource({
+    mutationFn: ({ id, input }: { id: string; input: TerminateSubscriptionInput }) =>
+      apiFetch<BookingDTO>(`/bookings/${id}/terminate`, { method: 'POST', body: JSON.stringify(input) }),
+    invalidates: () => [queryKeys.customerBookings(session.establishmentId, customerId)],
+    quiet: true,
   });
 }
