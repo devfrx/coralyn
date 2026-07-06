@@ -25,4 +25,11 @@ describe('SearchInput', () => {
     expect(input.attributes('placeholder')).toBe('Cerca per nome o telefono…');
     expect(input.attributes('aria-label')).toBe('Cerca clienti');
   });
+
+  it('il bottone di cancellazione ha il focus-ring coerente', () => {
+    const w = mount(SearchInput, { props: { modelValue: 'abc' } });
+    const btn = w.get('[aria-label="Cancella ricerca"]');
+    const cls = btn.classes().join(' ');
+    expect(cls).toContain('focus-visible:[box-shadow:var(--ring-focus)]');
+  });
 });

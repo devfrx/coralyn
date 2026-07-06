@@ -366,6 +366,21 @@ interattivi: **default / hover / active / focus-visible / disabled**; focus = `-
 - **Drawer** — su primitivo dialog/drawer Reka UI: focus trap, ESC, ARIA. `--color-surface`,
   `--radius-lg`, `--shadow-drawer`; scrim `--z-overlay`. Vedi §13.4.
 
+### 10.1 Stato degli interattivi
+
+Regole valide per **ogni** componente interattivo del `ui-kit` (sweep di coerenza,
+verificate su `Button`/`IconButton`/`Input`/`Textarea`/`Select`/`SearchInput`/
+`SegmentedControl`/`PageToolbar`/`DataTable`):
+
+- **Focus visibile**: ogni elemento interattivo mostra l'anello `var(--ring-focus)` — input/select/
+  textarea su `focus:`, bottoni e controlli non testuali su `focus-visible:`. Mai `focus:outline-none`
+  senza un sostituto: rimuovere l'outline nativo senza ridisegnare il focus è una regressione a11y.
+- **Hover**: le superfici che cambiano su hover usano i token (`--color-raised`,
+  `--color-accent-tint`, …), mai colori hardcoded.
+- **Disabled**: `opacity-50 cursor-not-allowed`.
+- **Transizioni**: `--ease-standard` / `--motion-fast`.
+- **Riferimenti canonici**: `Button`, `IconButton`, `Input`.
+
 ## 11. App-shell ([ADR-0019](../architecture/decisions/0019-app-shell-e-ux.md))
 
 Layout **a card su tela neutra** (`--color-canvas`), gutter `--shell-gutter`.

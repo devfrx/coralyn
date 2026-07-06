@@ -33,7 +33,7 @@ describe('Select', () => {
     expect(w.find('select').classes()).toEqual(
       expect.arrayContaining([
         'w-full',
-        'rounded-[11px]',
+        'rounded-[var(--radius-md)]',
         'border-[1.5px]',
         'border-[var(--color-border-input)]',
         'bg-[var(--color-surface)]',
@@ -41,7 +41,9 @@ describe('Select', () => {
         'py-3',
         'text-[13.5px]',
         'text-[var(--color-text)]',
-        'focus:outline-none',
+        'outline-none',
+        'focus:border-[var(--color-brand)]',
+        'focus:[box-shadow:var(--ring-focus)]',
       ]),
     );
   });
@@ -50,5 +52,12 @@ describe('Select', () => {
     const w = mount(Select, { props: { modelValue: '' }, attrs: { name: 'pacchetto', disabled: true } });
     expect(w.find('select').attributes('name')).toBe('pacchetto');
     expect(w.find('select').attributes('disabled')).toBeDefined();
+  });
+
+  it('mostra un anello di focus coerente (come Input/Textarea)', () => {
+    const cls = mount(Select).classes().join(' ');
+    expect(cls).toContain('focus:border-[var(--color-brand)]');
+    expect(cls).toContain('focus:[box-shadow:var(--ring-focus)]');
+    expect(cls).toContain('rounded-[var(--radius-md)]');
   });
 });

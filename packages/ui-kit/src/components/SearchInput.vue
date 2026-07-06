@@ -20,7 +20,7 @@ const model = defineModel<string>({ default: '' });
       v-if="model"
       type="button"
       aria-label="Cancella ricerca"
-      class="grid size-5 shrink-0 place-items-center rounded-full text-[var(--color-text-muted)] hover:bg-[var(--color-raised)]"
+      class="grid size-5 shrink-0 place-items-center rounded-full text-[var(--color-text-muted)] hover:bg-[var(--color-raised)] focus-visible:outline-none focus-visible:[box-shadow:var(--ring-focus)]"
       @click="model = ''"
     ><Icon name="x" :size="14" /></button>
   </div>
