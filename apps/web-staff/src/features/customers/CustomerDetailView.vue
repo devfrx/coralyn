@@ -11,6 +11,8 @@ import CustomerHistoryCard from './CustomerHistoryCard.vue';
 import CustomerSubscriptionsCard from './CustomerSubscriptionsCard.vue';
 import CustomerPaymentsCard from './CustomerPaymentsCard.vue';
 import EditCustomerModal from './EditCustomerModal.vue';
+import TerminateSubscriptionModal from './TerminateSubscriptionModal.vue';
+import type { CustomerBookingDTO } from '@coralyn/contracts';
 
 const props = defineProps<{ id: string }>();
 const router = useRouter();
@@ -20,6 +22,12 @@ const { data: bookings } = useCustomerBookings(props.id);
 const deleteCustomer = useDeleteCustomer(props.id);
 
 const editOpen = ref(false);
+const terminateOpen = ref(false);
+const terminateTarget = ref<CustomerBookingDTO | null>(null);
+function onTerminate(b: CustomerBookingDTO) {
+  terminateTarget.value = b;
+  terminateOpen.value = true;
+}
 
 const ini = computed(() => (customer.value ? ((customer.value.firstName[0] ?? '') + (customer.value.lastName[0] ?? '')).toUpperCase() : ''));
 
@@ -102,7 +110,7 @@ function onConfirmDelete() {
       </SectionCard>
 
       <div class="flex flex-col gap-3.5">
-        <CustomerSubscriptionsCard :bookings="bookings ?? []" />
+        <CustomerSubscriptionsCard :bookings="bookings ?? []" :is-admin="isAdmin" @terminate="onTerminate" />
         <CustomerHistoryCard :bookings="bookings ?? []" />
         <CustomerPaymentsCard :bookings="bookings ?? []" />
       </div>
@@ -116,6 +124,7 @@ function onConfirmDelete() {
         @confirm="onConfirmDelete"
       />
       <EditCustomerModal :customer="customer" v-model:open="editOpen" />
+      <TerminateSubscriptionModal :booking="terminateTarget" :customer-id="id" v-model:open="terminateOpen" />
     </template>
   </section>
 </template>
