@@ -51,4 +51,14 @@ describe('UmbrellaCell', () => {
     expect(w.vm.uniform).toBe(true);
     expect(w.vm.bg).toBe('var(--color-state-free)');
   });
+  it('include la fascia coperta come spicchio col colore neutro', () => {
+    const w = mount(UmbrellaCell, { props: { ...base, slotStates: ['daily', 'covered'] } });
+    expect(w.vm.uniform).toBe(false);
+    expect(w.vm.bg).toContain('var(--color-state-covered)');
+  });
+  it('N=1 coperta: tinta piena neutra', () => {
+    const w = mount(UmbrellaCell, { props: { ...base, slotStates: ['covered'] } });
+    expect(w.vm.uniform).toBe(true);
+    expect(w.vm.bg).toBe('var(--color-state-covered)');
+  });
 });

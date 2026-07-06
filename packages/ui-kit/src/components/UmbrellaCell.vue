@@ -16,10 +16,12 @@ defineEmits<{ select: [] }>();
 const fill: Record<SlotState, string> = {
   free: 'var(--color-state-free)', season: 'var(--color-state-season)',
   daily: 'var(--color-state-daily)', booked: 'var(--color-state-booked)',
+  covered: 'var(--color-state-covered)',
 };
 const ink: Record<SlotState, string> = {
   free: 'var(--color-state-free-ink)', season: 'var(--color-state-season-ink)',
   daily: 'var(--color-state-daily-ink)', booked: 'var(--color-state-booked-ink)',
+  covered: 'var(--color-state-covered-ink)',
 };
 
 // N-agnostico: array vuoto → una fascia libera; nessun ramo speciale per N=2.
