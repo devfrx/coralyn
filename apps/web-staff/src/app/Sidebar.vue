@@ -2,9 +2,15 @@
 import { computed } from 'vue';
 import { useRouter } from 'vue-router';
 import { Icon } from '@coralyn/ui-kit';
+import { Role } from '@coralyn/contracts';
 import { useSessionStore } from '@/stores/session';
+import { useActiveSeason } from '@/lib/useActiveSeason';
 const session = useSessionStore();
 const router = useRouter();
+const { name: seasonName } = useActiveSeason();
+const roleLabel = computed(() =>
+  session.role === Role.Admin ? 'Amministratore' : session.role === Role.Superuser ? 'Superuser' : 'Staff',
+);
 const nav = [
   { to: '/map', label: 'Mappa', icon: 'map' },
   { to: '/bookings', label: 'Prenotazioni', icon: 'calendar' },
@@ -29,7 +35,7 @@ function signOut() { session.logout(); router.push('/login'); }
       <span class="grid size-[30px] flex-none place-items-center rounded-lg text-white" style="background:linear-gradient(150deg,#85B4B2,#5E9AA6);"><Icon name="waves" :size="17" /></span>
       <span class="flex-1 leading-tight">
         <span class="block text-[13px] font-semibold text-[var(--color-on-sidebar-strong)]">{{ session.establishmentName }}</span>
-        <span class="block text-[10.5px] text-[var(--color-on-sidebar-muted)]">Stagione 2026</span>
+        <span v-if="seasonName" class="block text-[10.5px] text-[var(--color-on-sidebar-muted)]">{{ seasonName }}</span>
       </span>
       <Icon name="chevron-down" :size="16" class="flex-none text-[var(--color-on-sidebar-muted)]" />
     </button>
@@ -51,7 +57,7 @@ function signOut() { session.logout(); router.push('/login'); }
         <span class="grid size-8 flex-none place-items-center rounded-full bg-[var(--color-brand)] text-[12px] font-semibold text-white">{{ initials }}</span>
         <span class="min-w-0 flex-1 leading-tight">
           <span class="block truncate text-[12px] font-semibold text-[var(--color-on-sidebar-strong)]">{{ session.userEmail }}</span>
-          <span class="block text-[10.5px] text-[var(--color-on-sidebar-muted)]">Amministratore</span>
+          <span class="block text-[10.5px] text-[var(--color-on-sidebar-muted)]">{{ roleLabel }}</span>
         </span>
         <button @click="signOut" aria-label="Esci" title="Esci" class="grid size-[30px] flex-none place-items-center rounded-lg text-[var(--color-on-sidebar-muted)] hover:bg-white/5 focus-visible:outline-none focus-visible:[box-shadow:var(--ring-focus)]"><Icon name="logout" :size="18" /></button>
       </div>

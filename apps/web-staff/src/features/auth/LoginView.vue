@@ -33,7 +33,7 @@ async function accedi() {
       <h2 class="mb-3.5 text-[30px] font-bold leading-[1.22] tracking-[-.02em] text-[var(--color-on-sidebar-strong)]">La spiaggia, gestita con leggerezza.</h2>
       <p class="text-[14.5px] leading-relaxed text-[var(--color-on-teal-2nd)]">Mappa ombrelloni, prenotazioni, abbonamenti e cassa del tuo stabilimento, in un unico posto.</p>
     </template>
-    <template #footer>Stagione 2026 · sessione protetta</template>
+    <template #footer>Sessione protetta</template>
     <h1 class="mb-1.5 text-[27px] font-bold tracking-[-.02em] text-[var(--color-text)]">Bentornato</h1>
     <p class="mb-6 text-sm text-[var(--color-text-muted)]">Accedi al gestionale del tuo stabilimento.</p>
     <p v-if="justSetPassword && !errore" role="status" data-testid="login-set-password-ok" class="mb-4 rounded-[var(--radius-md)] border border-[var(--color-success)] px-3.5 py-2.5 text-[13px] font-medium text-[var(--color-success)]">Password impostata. Ora accedi con le tue nuove credenziali.</p>
