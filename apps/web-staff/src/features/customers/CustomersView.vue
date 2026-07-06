@@ -66,7 +66,7 @@ function ini(c: { firstName: string; lastName: string }) { return ((c.firstName[
     </DataTable>
 
     <Modal v-model:open="open" title="Nuovo cliente">
-      <form data-test="form-new-customer" class="flex flex-col gap-4" @submit.prevent="submit">
+      <form id="form-new-customer" data-test="form-new-customer" class="flex flex-col gap-4" @submit.prevent="submit">
         <div class="flex gap-3.5">
           <div class="flex-1"><Field label="Nome"><Input name="firstName" v-model="firstName" placeholder="Mario" /></Field></div>
           <div class="flex-1"><Field label="Cognome"><Input name="lastName" v-model="lastName" placeholder="Rossi" /></Field></div>
@@ -74,11 +74,13 @@ function ini(c: { firstName: string; lastName: string }) { return ((c.firstName[
         <Field label="Telefono"><Input name="phone" v-model="phone" placeholder="+39 ___ ___ ____" /></Field>
         <Field label="Email"><Input name="email" v-model="email" type="email" placeholder="nome@email.it" /></Field>
         <Field label="Note"><Textarea name="notes" v-model="notes" placeholder="Preferenze, recapiti aggiuntivi…" /></Field>
-        <div class="flex justify-end gap-2.5 pt-1">
-          <Button variant="secondary" type="button" @click="open = false">Annulla</Button>
-          <Button type="submit">Salva cliente</Button>
-        </div>
       </form>
+      <template #footer>
+        <div class="flex justify-end gap-2.5">
+          <Button variant="secondary" type="button" @click="open = false">Annulla</Button>
+          <Button type="submit" form="form-new-customer">Salva cliente</Button>
+        </div>
+      </template>
     </Modal>
   </section>
 </template>

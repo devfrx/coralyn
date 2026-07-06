@@ -299,7 +299,7 @@ function onConfirmDelete() {
     </div>
 
     <Modal v-model:open="sectorModalOpen" :title="editingSectorId ? 'Modifica settore' : 'Nuovo settore'" eyebrow="Settori">
-      <form class="flex flex-col gap-4" @submit.prevent="submitSector">
+      <form id="form-sector" class="flex flex-col gap-4" @submit.prevent="submitSector">
         <Field label="Nome"><Input name="sector-name" data-testid="sector-name" v-model="sectorName" placeholder="es. Prima fila mare" /></Field>
         <Field label="Disposizione">
           <Select v-model="sectorKind" data-testid="sector-kind">
@@ -307,15 +307,17 @@ function onConfirmDelete() {
             <option value="special">Speciali</option>
           </Select>
         </Field>
+      </form>
+      <template #footer>
         <div class="flex justify-end gap-2">
           <Button variant="secondary" type="button" @click="sectorModalOpen = false">Annulla</Button>
-          <Button type="submit" data-testid="sector-save" :disabled="savingSector">Salva settore</Button>
+          <Button type="submit" form="form-sector" data-testid="sector-save" :disabled="savingSector">Salva settore</Button>
         </div>
-      </form>
+      </template>
     </Modal>
 
     <Modal v-model:open="rowModalOpen" :title="editingRowId ? 'Modifica fila' : 'Nuova fila'" eyebrow="File">
-      <form class="flex flex-col gap-4" @submit.prevent="submitRow">
+      <form id="form-row" class="flex flex-col gap-4" @submit.prevent="submitRow">
         <Field label="Etichetta"><Input name="row-label" data-testid="row-label" v-model="rowLabel" placeholder="es. Fila 1" /></Field>
         <template v-if="!editingRowId">
           <div class="grid grid-cols-3 gap-3">
@@ -331,15 +333,17 @@ function onConfirmDelete() {
           </Field>
           <p class="text-xs text-[var(--color-text-muted)]">Anteprima: {{ genPreview.slice(0, 6).join(', ') }}{{ genPreview.length > 6 ? '…' : '' }} ({{ genPreview.length }} ombrelloni). Quantità 0 = crea solo la fila.</p>
         </template>
+      </form>
+      <template #footer>
         <div class="flex justify-end gap-2">
           <Button variant="secondary" type="button" @click="rowModalOpen = false">Annulla</Button>
-          <Button type="submit" data-testid="row-save" :disabled="savingRow">Salva fila</Button>
+          <Button type="submit" form="form-row" data-testid="row-save" :disabled="savingRow">Salva fila</Button>
         </div>
-      </form>
+      </template>
     </Modal>
 
     <Modal v-model:open="genModalOpen" title="Genera ombrelloni" eyebrow="File">
-      <form class="flex flex-col gap-4" @submit.prevent="submitGenerate">
+      <form id="form-generate" class="flex flex-col gap-4" @submit.prevent="submitGenerate">
         <div class="grid grid-cols-3 gap-3">
           <Field label="Prefisso"><Input name="gen-prefix" data-testid="gen-prefix" v-model="genPrefix" placeholder="es. A" /></Field>
           <Field label="Da numero"><Input name="gen-start" data-testid="gen-start" v-model.number="genStart" type="number" step="1" min="0" /></Field>
@@ -352,15 +356,17 @@ function onConfirmDelete() {
           </Select>
         </Field>
         <p class="text-xs text-[var(--color-text-muted)]">Anteprima: {{ genPreview.slice(0, 6).join(', ') }}{{ genPreview.length > 6 ? '…' : '' }} ({{ genPreview.length }} ombrelloni). Le etichette già esistenti vengono saltate.</p>
+      </form>
+      <template #footer>
         <div class="flex justify-end gap-2">
           <Button variant="secondary" type="button" @click="genModalOpen = false">Annulla</Button>
-          <Button type="submit" data-testid="gen-save" :disabled="savingGenerate">Genera</Button>
+          <Button type="submit" form="form-generate" data-testid="gen-save" :disabled="savingGenerate">Genera</Button>
         </div>
-      </form>
+      </template>
     </Modal>
 
     <Modal v-model:open="umbModalOpen" :title="editingUmbId ? 'Modifica ombrellone' : 'Nuovo ombrellone'" eyebrow="Ombrelloni">
-      <form class="flex flex-col gap-4" @submit.prevent="submitUmbrella">
+      <form id="form-umbrella" class="flex flex-col gap-4" @submit.prevent="submitUmbrella">
         <Field label="Etichetta"><Input name="umbrella-label" data-testid="umbrella-label" v-model="umbLabel" placeholder="es. 12 o P1" /></Field>
         <Field label="Tipologia">
           <Select v-model="umbTypeId" data-testid="umbrella-type">
@@ -368,18 +374,20 @@ function onConfirmDelete() {
             <option v-for="t in types" :key="t.id" :value="t.id">{{ t.name }}</option>
           </Select>
         </Field>
+      </form>
+      <template #footer>
         <div class="flex items-center justify-between gap-2">
           <Button v-if="editingUmbId" data-testid="umbrella-delete" variant="secondary" type="button" @click="deleteFromUmbModal"><Icon name="trash-2" :size="13" />Elimina</Button>
           <div class="ml-auto flex gap-2">
             <Button variant="secondary" type="button" @click="umbModalOpen = false">Annulla</Button>
-            <Button type="submit" data-testid="umbrella-save" :disabled="savingUmb">Salva ombrellone</Button>
+            <Button type="submit" form="form-umbrella" data-testid="umbrella-save" :disabled="savingUmb">Salva ombrellone</Button>
           </div>
         </div>
-      </form>
+      </template>
     </Modal>
 
     <Modal v-model:open="typeModalOpen" :title="editingTypeId ? 'Modifica tipologia' : 'Nuova tipologia'" eyebrow="Tipologie">
-      <form class="flex flex-col gap-4" @submit.prevent="submitType">
+      <form id="form-type" class="flex flex-col gap-4" @submit.prevent="submitType">
         <Field label="Nome"><Input name="type-name" data-testid="type-name" v-model="typeName" placeholder="es. Gazebo" /></Field>
         <Field label="Icona sulla mappa">
           <Select v-model="typeIcon" data-testid="type-icon">
@@ -388,11 +396,13 @@ function onConfirmDelete() {
             <option value="palmtree">Palma</option>
           </Select>
         </Field>
+      </form>
+      <template #footer>
         <div class="flex justify-end gap-2">
           <Button variant="secondary" type="button" @click="typeModalOpen = false">Annulla</Button>
-          <Button type="submit" data-testid="type-save" :disabled="savingType">Salva tipologia</Button>
+          <Button type="submit" form="form-type" data-testid="type-save" :disabled="savingType">Salva tipologia</Button>
         </div>
-      </form>
+      </template>
     </Modal>
 
     <ConfirmDialog

@@ -52,7 +52,7 @@ function done(): void {
 
 <template>
   <Modal v-model:open="open" title="Nuovo lido" eyebrow="Provisioning">
-    <form v-if="phase === 'form'" class="flex flex-col gap-4" @submit.prevent="submit">
+    <form v-if="phase === 'form'" id="form-create-establishment" class="flex flex-col gap-4" @submit.prevent="submit">
       <Field label="Nome del lido">
         <Input name="create-name" data-testid="create-name" v-model="name" placeholder="es. Lido Gamma" />
       </Field>
@@ -60,10 +60,6 @@ function done(): void {
         <Input name="create-admin-email" data-testid="create-admin-email" v-model="adminEmail" type="email" placeholder="admin@lido.it" />
       </Field>
       <p v-if="errorMessage" class="text-xs text-[var(--color-danger)]">{{ errorMessage }}</p>
-      <div class="flex justify-end gap-2">
-        <Button variant="secondary" type="button" @click="open = false">Annulla</Button>
-        <Button type="submit" data-testid="create-submit" :disabled="create.isPending.value">Crea lido</Button>
-      </div>
     </form>
 
     <div v-else class="flex flex-col gap-4">
@@ -78,9 +74,16 @@ function done(): void {
         <div data-testid="invite-expires" class="text-sm font-semibold tabular-nums text-[var(--color-text)]">{{ fmtExpires(result?.expiresAt) }}</div>
       </div>
       <p class="text-xs text-[var(--color-text-muted)]">L'amministratore dovrà impostare la password seguendo il link ricevuto via email prima della scadenza.</p>
-      <div class="flex justify-end">
+    </div>
+
+    <template #footer>
+      <div v-if="phase === 'form'" class="flex justify-end gap-2">
+        <Button variant="secondary" type="button" @click="open = false">Annulla</Button>
+        <Button type="submit" form="form-create-establishment" data-testid="create-submit" :disabled="create.isPending.value">Crea lido</Button>
+      </div>
+      <div v-else class="flex justify-end">
         <Button data-testid="create-done" @click="done">Fatto</Button>
       </div>
-    </div>
+    </template>
   </Modal>
 </template>

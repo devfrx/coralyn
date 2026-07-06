@@ -44,7 +44,7 @@ function submit() {
 </script>
 <template>
   <Modal v-model:open="open" title="Modifica cliente">
-    <form data-test="form-edit-customer" class="flex flex-col gap-4" @submit.prevent="submit">
+    <form id="form-edit-customer" data-test="form-edit-customer" class="flex flex-col gap-4" @submit.prevent="submit">
       <div class="flex gap-3.5">
         <div class="flex-1"><Field label="Nome"><Input name="firstName" v-model="firstName" placeholder="Mario" /></Field></div>
         <div class="flex-1"><Field label="Cognome"><Input name="lastName" v-model="lastName" placeholder="Rossi" /></Field></div>
@@ -52,10 +52,12 @@ function submit() {
       <Field label="Telefono"><Input name="phone" v-model="phone" placeholder="+39 ___ ___ ____" /></Field>
       <Field label="Email"><Input name="email" v-model="email" type="email" placeholder="nome@email.it" /></Field>
       <Field label="Note"><Textarea name="notes" v-model="notes" placeholder="Preferenze, recapiti aggiuntivi…" /></Field>
-      <div class="flex justify-end gap-2.5 pt-1">
-        <Button variant="secondary" type="button" @click="open = false">Annulla</Button>
-        <Button type="submit">Salva</Button>
-      </div>
     </form>
+    <template #footer>
+      <div class="flex justify-end gap-2.5">
+        <Button variant="secondary" type="button" @click="open = false">Annulla</Button>
+        <Button type="submit" form="form-edit-customer">Salva</Button>
+      </div>
+    </template>
   </Modal>
 </template>

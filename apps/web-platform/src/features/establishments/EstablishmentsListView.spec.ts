@@ -27,7 +27,8 @@ describe('EstablishmentsListView', () => {
     name.value = 'Lido Gamma'; name.dispatchEvent(new Event('input', { bubbles: true }));
     const mail = document.querySelector('[data-testid="create-admin-email"]') as HTMLInputElement;
     mail.value = 'a@gamma.test'; mail.dispatchEvent(new Event('input', { bubbles: true }));
-    (document.querySelector('[data-testid="create-submit"]') as HTMLButtonElement).click();
+    (document.querySelector('#form-create-establishment') as HTMLFormElement)
+      .dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
     await settle();
     expect(document.querySelector('[data-testid="invite-email"]')!.textContent).toContain('a@gamma.test');
     expect(document.querySelector('[data-testid="invite-expires"]')!.textContent).toBeTruthy();

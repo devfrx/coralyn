@@ -92,7 +92,8 @@ describe('EstablishmentView', () => {
     const input = document.querySelector('[data-testid="establishment-name-input"]') as HTMLInputElement;
     input.value = 'Nuovo Nome Lido';
     input.dispatchEvent(new Event('input', { bubbles: true }));
-    (document.querySelector('[data-testid="establishment-name-save"]') as HTMLButtonElement).click();
+    (document.querySelector('#form-rename-establishment') as HTMLFormElement)
+      .dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
     await settle();
     expect(seen).toContain('Nuovo Nome Lido');
     w.unmount();
@@ -122,7 +123,8 @@ describe('EstablishmentView', () => {
     await settle();
     (document.querySelector('[data-testid="new-user-email"]') as HTMLInputElement).value = 'nuovo@lido.it';
     (document.querySelector('[data-testid="new-user-email"]') as HTMLInputElement).dispatchEvent(new Event('input'));
-    (document.querySelector('[data-testid="new-user-save"]') as HTMLElement).click();
+    (document.querySelector('#form-add-user') as HTMLFormElement)
+      .dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
     await settle();
     expect(seen).toEqual([{ email: 'nuovo@lido.it', role: 'staff', hasPassword: false }]);
     expect(useToasts().items.map((t) => t.message)).toContain('Invito inviato a nuovo@lido.it.');
@@ -213,7 +215,8 @@ describe('EstablishmentView', () => {
     await settle();
     (document.querySelector('[data-testid="new-user-email"]') as HTMLInputElement).value = 'esistente@lido.it';
     (document.querySelector('[data-testid="new-user-email"]') as HTMLInputElement).dispatchEvent(new Event('input'));
-    (document.querySelector('[data-testid="new-user-save"]') as HTMLElement).click();
+    (document.querySelector('#form-add-user') as HTMLFormElement)
+      .dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
     await settle();
     expect(document.querySelector('[data-testid="new-user-email"]')).not.toBeNull();
     w.unmount();

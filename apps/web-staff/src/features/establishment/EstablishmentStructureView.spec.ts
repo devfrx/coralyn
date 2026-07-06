@@ -37,7 +37,8 @@ describe('EstablishmentStructureView', () => {
     await settle();
     (document.querySelector('[data-testid="type-name"]') as HTMLInputElement).value = 'Gazebo';
     (document.querySelector('[data-testid="type-name"]') as HTMLInputElement).dispatchEvent(new Event('input'));
-    (document.querySelector('[data-testid="type-save"]') as HTMLElement).click();
+    (document.querySelector('#form-type') as HTMLFormElement)
+      .dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
     await settle();
     expect(seen).toEqual([{ name: 'Gazebo', icon: 'umbrella' }]);
     w.unmount();
@@ -92,7 +93,8 @@ describe('EstablishmentStructureView', () => {
     const kind = document.querySelector('[data-testid="sector-kind"]') as HTMLSelectElement;
     kind.value = 'special';
     kind.dispatchEvent(new Event('change'));
-    (document.querySelector('[data-testid="sector-save"]') as HTMLElement).click();
+    (document.querySelector('#form-sector') as HTMLFormElement)
+      .dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
     await settle();
     expect(seen).toEqual([{ name: 'Ponente', kind: 'special' }]);
     w.unmount();
@@ -113,7 +115,8 @@ describe('EstablishmentStructureView', () => {
     await settle();
     (document.querySelector('[data-testid="sector-name"]') as HTMLInputElement).value = 'Centro Mare';
     (document.querySelector('[data-testid="sector-name"]') as HTMLInputElement).dispatchEvent(new Event('input'));
-    (document.querySelector('[data-testid="sector-save"]') as HTMLElement).click();
+    (document.querySelector('#form-sector') as HTMLFormElement)
+      .dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
     await settle();
     expect(seen).toEqual([{ id: 'sec-1', name: 'Centro Mare' }]);
     w.unmount();
@@ -154,7 +157,8 @@ describe('EstablishmentStructureView', () => {
     await settle();
     (document.querySelector('[data-testid="row-label"]') as HTMLInputElement).value = 'Fila 2';
     (document.querySelector('[data-testid="row-label"]') as HTMLInputElement).dispatchEvent(new Event('input'));
-    (document.querySelector('[data-testid="row-save"]') as HTMLElement).click();
+    (document.querySelector('#form-row') as HTMLFormElement)
+      .dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
     await settle();
     expect(seen).toEqual([{ sectorId: 'sec-1', label: 'Fila 2' }]);
     w.unmount();
@@ -175,7 +179,8 @@ describe('EstablishmentStructureView', () => {
     await settle();
     (document.querySelector('[data-testid="row-label"]') as HTMLInputElement).value = 'Fila A';
     (document.querySelector('[data-testid="row-label"]') as HTMLInputElement).dispatchEvent(new Event('input'));
-    (document.querySelector('[data-testid="row-save"]') as HTMLElement).click();
+    (document.querySelector('#form-row') as HTMLFormElement)
+      .dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
     await settle();
     expect(seen).toEqual([{ id: 'row-1', label: 'Fila A' }]);
     w.unmount();
@@ -229,7 +234,8 @@ describe('EstablishmentStructureView', () => {
     await settle();
     (document.querySelector('[data-testid="umbrella-label"]') as HTMLInputElement).value = '3';
     (document.querySelector('[data-testid="umbrella-label"]') as HTMLInputElement).dispatchEvent(new Event('input'));
-    (document.querySelector('[data-testid="umbrella-save"]') as HTMLElement).click();
+    (document.querySelector('#form-umbrella') as HTMLFormElement)
+      .dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
     await settle();
     expect(seen).toEqual([{ rowId: 'row-1', label: '3', umbrellaTypeId: null }]);
     w.unmount();
@@ -250,7 +256,8 @@ describe('EstablishmentStructureView', () => {
     await settle();
     (document.querySelector('[data-testid="umbrella-label"]') as HTMLInputElement).value = '9';
     (document.querySelector('[data-testid="umbrella-label"]') as HTMLInputElement).dispatchEvent(new Event('input'));
-    (document.querySelector('[data-testid="umbrella-save"]') as HTMLElement).click();
+    (document.querySelector('#form-umbrella') as HTMLFormElement)
+      .dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
     await settle();
     expect(seen).toEqual([{ id: 'omb-1', label: '9' }]);
     w.unmount();
@@ -295,7 +302,8 @@ describe('EstablishmentStructureView', () => {
     (document.querySelector('[data-testid="gen-prefix"]') as HTMLInputElement).dispatchEvent(new Event('input'));
     (document.querySelector('[data-testid="gen-count"]') as HTMLInputElement).value = '4';
     (document.querySelector('[data-testid="gen-count"]') as HTMLInputElement).dispatchEvent(new Event('input'));
-    (document.querySelector('[data-testid="gen-save"]') as HTMLElement).click();
+    (document.querySelector('#form-generate') as HTMLFormElement)
+      .dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
     await settle();
     expect(seen).toEqual([{ rowId: 'row-1', prefix: 'P', start: 1, count: 4, umbrellaTypeId: null }]);
     w.unmount();
@@ -326,7 +334,8 @@ describe('EstablishmentStructureView', () => {
     (document.querySelector('[data-testid="row-label"]') as HTMLInputElement).dispatchEvent(new Event('input'));
     (document.querySelector('[data-testid="gen-count"]') as HTMLInputElement).value = '6';
     (document.querySelector('[data-testid="gen-count"]') as HTMLInputElement).dispatchEvent(new Event('input'));
-    (document.querySelector('[data-testid="row-save"]') as HTMLElement).click();
+    (document.querySelector('#form-row') as HTMLFormElement)
+      .dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
     await settle();
     expect(rows).toEqual([{ sectorId: 'sec-1', label: 'Fila Nuova' }]);
     expect(gens).toEqual([{ rowId: 'row-new', count: 6 }]);
@@ -352,7 +361,8 @@ describe('EstablishmentStructureView', () => {
     (document.querySelector('[data-testid="row-label"]') as HTMLInputElement).dispatchEvent(new Event('input'));
     (document.querySelector('[data-testid="gen-count"]') as HTMLInputElement).value = '3';
     (document.querySelector('[data-testid="gen-count"]') as HTMLInputElement).dispatchEvent(new Event('input'));
-    (document.querySelector('[data-testid="row-save"]') as HTMLElement).click();
+    (document.querySelector('#form-row') as HTMLFormElement)
+      .dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
     await settle();
     expect(rows).toHaveLength(1);
     expect(document.querySelector('[data-testid="row-label"]')).toBeNull(); // modale chiusa

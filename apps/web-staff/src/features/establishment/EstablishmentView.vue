@@ -190,19 +190,21 @@ function onConfirmReset() {
     </Card>
 
     <Modal v-model:open="renameOpen" title="Rinomina stabilimento" eyebrow="Modifica">
-      <form class="flex flex-col gap-4" @submit.prevent="submitRename">
+      <form id="form-rename-establishment" class="flex flex-col gap-4" @submit.prevent="submitRename">
         <Field label="Nome">
           <Input name="establishment-name" data-testid="establishment-name-input" v-model="nameDraft" placeholder="Nome del lido" />
         </Field>
+      </form>
+      <template #footer>
         <div class="flex justify-end gap-2">
           <Button variant="secondary" type="button" @click="renameOpen = false">Annulla</Button>
-          <Button type="submit" data-testid="establishment-name-save">Salva</Button>
+          <Button type="submit" form="form-rename-establishment" data-testid="establishment-name-save">Salva</Button>
         </div>
-      </form>
+      </template>
     </Modal>
 
     <Modal v-model:open="addOpen" title="Aggiungi utente" eyebrow="Team">
-      <form class="flex flex-col gap-4" @submit.prevent="submitAddUser">
+      <form id="form-add-user" class="flex flex-col gap-4" @submit.prevent="submitAddUser">
         <Field label="Email">
           <Input name="new-user-email" data-testid="new-user-email" v-model="newEmail" type="email" placeholder="nome@stabilimento.it" />
         </Field>
@@ -213,11 +215,13 @@ function onConfirmReset() {
           </Select>
         </Field>
         <p class="text-xs leading-relaxed text-[var(--color-text-muted)]">Riceverà un'email per impostare la propria password.</p>
+      </form>
+      <template #footer>
         <div class="flex justify-end gap-2">
           <Button variant="secondary" type="button" @click="addOpen = false">Annulla</Button>
-          <Button type="submit" data-testid="new-user-save" :disabled="creating">Invia invito</Button>
+          <Button type="submit" form="form-add-user" data-testid="new-user-save" :disabled="creating">Invia invito</Button>
         </div>
-      </form>
+      </template>
     </Modal>
 
     <ConfirmDialog

@@ -553,22 +553,24 @@ const rateCols = [
 
     <!-- Modale stagione -->
     <Modal v-model:open="seasonModal" title="Nuova stagione">
-      <form data-test="form-season" class="flex flex-col gap-4" @submit.prevent="submitSeason">
+      <form id="form-season" data-test="form-season" class="flex flex-col gap-4" @submit.prevent="submitSeason">
         <Field label="Nome"><Input name="name" v-model="sName" placeholder="Estate 2027" /></Field>
         <div class="flex gap-3.5">
           <div class="flex-1"><Field label="Inizio"><Input name="startDate" v-model="sStart" type="date" /></Field></div>
           <div class="flex-1"><Field label="Fine"><Input name="endDate" v-model="sEnd" type="date" /></Field></div>
         </div>
-        <div class="flex justify-end gap-2.5 pt-1">
-          <Button variant="secondary" type="button" @click="seasonModal = false">Annulla</Button>
-          <Button type="submit">Crea stagione</Button>
-        </div>
       </form>
+      <template #footer>
+        <div class="flex justify-end gap-2.5">
+          <Button variant="secondary" type="button" @click="seasonModal = false">Annulla</Button>
+          <Button type="submit" form="form-season">Crea stagione</Button>
+        </div>
+      </template>
     </Modal>
 
     <!-- Modale pacchetto -->
     <Modal v-model:open="pkgModal" :title="editingPkgId ? 'Modifica pacchetto' : 'Nuovo pacchetto'">
-      <form data-test="form-package" class="flex flex-col gap-4" @submit.prevent="submitPackage">
+      <form id="form-package" data-test="form-package" class="flex flex-col gap-4" @submit.prevent="submitPackage">
         <Field label="Nome"><Input name="name" v-model="pName" placeholder="Comfort" /></Field>
         <div class="flex flex-col gap-2.5">
           <span class="text-[12px] font-semibold text-[var(--color-text-2nd)]">Dotazione</span>
@@ -589,53 +591,61 @@ const rateCols = [
           </div>
           <Button variant="secondary" type="button" data-test="add-equipment-row" @click="addEquipmentRow"><Icon name="plus" :size="16" />Aggiungi voce</Button>
         </div>
-        <div class="flex justify-end gap-2.5 pt-1">
-          <Button variant="secondary" type="button" @click="closePackageModal">Annulla</Button>
-          <Button type="submit">{{ editingPkgId ? 'Salva modifiche' : 'Salva pacchetto' }}</Button>
-        </div>
       </form>
+      <template #footer>
+        <div class="flex justify-end gap-2.5">
+          <Button variant="secondary" type="button" @click="closePackageModal">Annulla</Button>
+          <Button type="submit" form="form-package">{{ editingPkgId ? 'Salva modifiche' : 'Salva pacchetto' }}</Button>
+        </div>
+      </template>
     </Modal>
 
     <!-- Modale tipo di dotazione -->
     <Modal v-model:open="eqtModal" :title="editingEqtId ? 'Modifica tipo di dotazione' : 'Nuovo tipo di dotazione'">
-      <form data-test="form-equipment-type" class="flex flex-col gap-4" @submit.prevent="submitEquipmentType">
+      <form id="form-equipment-type" data-test="form-equipment-type" class="flex flex-col gap-4" @submit.prevent="submitEquipmentType">
         <Field label="Nome"><Input name="name" v-model="eqtName" placeholder="Lettino" /></Field>
-        <div class="flex justify-end gap-2.5 pt-1">
-          <Button variant="secondary" type="button" @click="closeEquipmentTypeModal">Annulla</Button>
-          <Button type="submit">{{ editingEqtId ? 'Salva modifiche' : 'Salva tipo' }}</Button>
-        </div>
       </form>
+      <template #footer>
+        <div class="flex justify-end gap-2.5">
+          <Button variant="secondary" type="button" @click="closeEquipmentTypeModal">Annulla</Button>
+          <Button type="submit" form="form-equipment-type">{{ editingEqtId ? 'Salva modifiche' : 'Salva tipo' }}</Button>
+        </div>
+      </template>
     </Modal>
 
     <!-- Modale creazione al volo di un tipo (dal compositore pacchetto) -->
     <Modal v-model:open="newTypeModal" title="Nuovo tipo di dotazione">
-      <form data-test="form-new-equipment-type" class="flex flex-col gap-4" @submit.prevent="submitNewEquipmentType">
+      <form id="form-new-equipment-type" data-test="form-new-equipment-type" class="flex flex-col gap-4" @submit.prevent="submitNewEquipmentType">
         <Field label="Nome"><Input name="name" v-model="newTypeName" placeholder="Cassaforte" /></Field>
-        <div class="flex justify-end gap-2.5 pt-1">
-          <Button variant="secondary" type="button" @click="closeNewTypeModal">Annulla</Button>
-          <Button type="submit">Crea e seleziona</Button>
-        </div>
       </form>
+      <template #footer>
+        <div class="flex justify-end gap-2.5">
+          <Button variant="secondary" type="button" @click="closeNewTypeModal">Annulla</Button>
+          <Button type="submit" form="form-new-equipment-type">Crea e seleziona</Button>
+        </div>
+      </template>
     </Modal>
 
     <!-- Modale fascia -->
     <Modal v-model:open="slotModal" :title="editingSlotId ? 'Modifica fascia' : 'Nuova fascia'">
-      <form data-test="form-time-slot" class="flex flex-col gap-4" @submit.prevent="submitSlot">
+      <form id="form-time-slot" data-test="form-time-slot" class="flex flex-col gap-4" @submit.prevent="submitSlot">
         <Field label="Nome"><Input name="name" v-model="slotNameField" data-test="slot-name" placeholder="Es. Mattina" /></Field>
         <div class="flex gap-3.5">
           <div class="flex-1"><Field label="Inizio"><Input name="startTime" v-model="slotStart" type="time" data-test="slot-start" /></Field></div>
           <div class="flex-1"><Field label="Fine"><Input name="endTime" v-model="slotEnd" type="time" data-test="slot-end" /></Field></div>
         </div>
-        <div class="flex justify-end gap-2.5 pt-1">
-          <Button variant="secondary" type="button" @click="closeSlotModal">Annulla</Button>
-          <Button type="submit">{{ editingSlotId ? 'Salva modifiche' : 'Salva fascia' }}</Button>
-        </div>
       </form>
+      <template #footer>
+        <div class="flex justify-end gap-2.5">
+          <Button variant="secondary" type="button" @click="closeSlotModal">Annulla</Button>
+          <Button type="submit" form="form-time-slot">{{ editingSlotId ? 'Salva modifiche' : 'Salva fascia' }}</Button>
+        </div>
+      </template>
     </Modal>
 
     <!-- Modale tariffa -->
     <Modal v-model:open="rateModal" :title="editingRateId ? 'Modifica tariffa' : 'Nuova tariffa'">
-      <form data-test="form-rate" class="flex flex-col gap-4" @submit.prevent="submitRate">
+      <form id="form-rate" data-test="form-rate" class="flex flex-col gap-4" @submit.prevent="submitRate">
         <div class="flex gap-3.5">
           <div class="flex-1">
             <Field label="Tipo (opz.)">
@@ -673,11 +683,13 @@ const rateCols = [
           </div>
         </div>
         <Field label="Prezzo (€)"><Input name="price" v-model="rPrice" type="number" step="0.01" placeholder="28.00" /></Field>
-        <div class="flex justify-end gap-2.5 pt-1">
-          <Button variant="secondary" type="button" @click="closeRateModal">Annulla</Button>
-          <Button type="submit">{{ editingRateId ? 'Salva modifiche' : 'Crea tariffa' }}</Button>
-        </div>
       </form>
+      <template #footer>
+        <div class="flex justify-end gap-2.5">
+          <Button variant="secondary" type="button" @click="closeRateModal">Annulla</Button>
+          <Button type="submit" form="form-rate">{{ editingRateId ? 'Salva modifiche' : 'Crea tariffa' }}</Button>
+        </div>
+      </template>
     </Modal>
 
     <ConfirmDialog
