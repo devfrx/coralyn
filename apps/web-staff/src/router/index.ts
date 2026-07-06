@@ -16,7 +16,6 @@ const routes: RouteRecordRaw[] = [
   { path: '/report', name: 'report', component: () => import('@/features/report/ReportView.vue'), meta: { title: 'Report', subtitle: 'Andamento della stagione' } },
   { path: '/establishment', name: 'establishment', component: () => import('@/features/establishment/EstablishmentView.vue'), meta: { title: 'Stabilimento', subtitle: 'Configurazione e team' } },
   { path: '/establishment/structure', name: 'establishment-structure', component: () => import('@/features/establishment/EstablishmentStructureView.vue'), meta: { title: 'Struttura', subtitle: 'Settori, file, ombrelloni e tipologie', role: Role.Admin } },
-  { path: '/console', name: 'console', component: () => import('@/features/console/ConsoleView.vue'), meta: { title: 'Console', subtitle: 'Strumenti di piattaforma', role: Role.Superuser } },
 ];
 
 export const router = createRouter({ history: createWebHistory(), routes });

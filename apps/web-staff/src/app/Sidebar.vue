@@ -2,7 +2,6 @@
 import { computed } from 'vue';
 import { useRouter } from 'vue-router';
 import { Icon } from '@coralyn/ui-kit';
-import { Role } from '@coralyn/contracts';
 import { useSessionStore } from '@/stores/session';
 const session = useSessionStore();
 const router = useRouter();
@@ -48,14 +47,6 @@ function signOut() { session.logout(); router.push('/login'); }
     </nav>
     <div class="mt-auto flex flex-col gap-[3px]">
       <div class="mx-2 my-3 h-px bg-[var(--color-sidebar-divider)]"></div>
-      <RouterLink v-if="session.role === Role.Superuser" to="/console" custom v-slot="{ isActive, navigate }">
-        <button @click="navigate" class="flex items-center gap-2.5 rounded-[10px] px-2.5 py-2.5 text-sm focus-visible:outline-none focus-visible:[box-shadow:var(--ring-focus)]"
-          :class="isActive ? 'bg-[var(--color-sidebar-raised)] text-[var(--color-on-sidebar-strong)]' : 'text-[var(--color-on-sidebar)] hover:bg-white/5'">
-          <Icon name="shield" :size="19" class="flex-none" />
-          <span class="flex-1 text-left">Console</span>
-          <span class="rounded-full bg-white/10 px-[7px] py-0.5 text-[9px] font-semibold uppercase tracking-[.05em] text-[var(--color-on-sidebar-muted)]">super</span>
-        </button>
-      </RouterLink>
       <div class="flex items-center gap-2.5 rounded-[10px] px-2.5 py-2.5">
         <span class="grid size-8 flex-none place-items-center rounded-full bg-[var(--color-brand)] text-[12px] font-semibold text-white">{{ initials }}</span>
         <span class="min-w-0 flex-1 leading-tight">
