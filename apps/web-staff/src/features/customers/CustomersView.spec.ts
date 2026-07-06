@@ -58,6 +58,17 @@ describe('CustomersView', () => {
     await w.find('input[aria-label="Cerca clienti"]').setValue('333 2222');
     expect(w.text()).toContain('Bianchi');
     expect(w.text()).not.toContain('Rossi');
+    expect(w.text()).not.toContain('Verdi');
+  });
+
+  it('filtra per telefono ignorando spazi/prefissi: "3332222" seleziona comunque Bianchi', async () => {
+    const w = mountApp(CustomersView);
+    await flushPromises();
+    await new Promise((r) => setTimeout(r, 0));
+    await w.find('input[aria-label="Cerca clienti"]').setValue('3332222');
+    expect(w.text()).toContain('Bianchi');
+    expect(w.text()).not.toContain('Rossi');
+    expect(w.text()).not.toContain('Verdi');
   });
 
   it('nessun risultato: mostra empty-state e contatore a 0', async () => {

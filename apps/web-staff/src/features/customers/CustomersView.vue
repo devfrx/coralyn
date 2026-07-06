@@ -13,8 +13,13 @@ const filtered = computed(() => {
   const q = search.value.trim().toLowerCase();
   const list = customers.value ?? [];
   if (!q) return list;
+  // Telefono: confronta le sole cifre da entrambi i lati, così "3332222" o "+39 333 2222"
+  // trovano lo stesso numero indipendentemente da spazi/prefissi digitati.
+  const qDigits = q.replace(/\D/g, '');
   return list.filter(
-    (c) => `${c.firstName} ${c.lastName}`.toLowerCase().includes(q) || (c.phone ?? '').toLowerCase().includes(q),
+    (c) =>
+      `${c.firstName} ${c.lastName}`.toLowerCase().includes(q) ||
+      (qDigits.length > 0 && (c.phone ?? '').replace(/\D/g, '').includes(qDigits)),
   );
 });
 
