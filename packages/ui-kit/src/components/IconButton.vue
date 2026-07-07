@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import Icon from './Icon.vue';
 withDefaults(
-  defineProps<{ icon: string; label: string; variant?: 'ghost' | 'subtle'; size?: 'sm' | 'md'; disabled?: boolean }>(),
+  defineProps<{ icon: string; label: string; variant?: 'ghost' | 'subtle' | 'danger'; size?: 'sm' | 'md'; disabled?: boolean }>(),
   { variant: 'ghost', size: 'md', disabled: false },
 );
 const base = 'inline-grid place-items-center rounded-full transition-colors focus-visible:outline-none focus-visible:[box-shadow:var(--ring-focus)] disabled:opacity-50 disabled:cursor-not-allowed';
@@ -10,6 +10,7 @@ const iconSize = { sm: 14, md: 16 } as const;
 const variants = {
   ghost:  'border-0 bg-transparent text-[var(--color-text-muted)] hover:bg-[var(--color-accent-tint)] hover:text-[var(--color-text)]',
   subtle: 'border border-[var(--color-border)] bg-[var(--color-raised)] text-[var(--color-text-muted)] hover:bg-[var(--color-warm-025)] hover:text-[var(--color-text)]',
+  danger: 'border-0 bg-transparent text-[var(--color-text-muted)] hover:bg-[var(--color-danger-tint,var(--color-accent-tint))] hover:text-[var(--color-danger)]',
 } as const;
 </script>
 <template>

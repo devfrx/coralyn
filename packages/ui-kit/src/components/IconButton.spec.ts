@@ -29,4 +29,8 @@ describe('IconButton', () => {
     const cls = mount(IconButton, { props: { icon: 'x', label: 'Chiudi', variant: 'subtle' } }).classes().join(' ');
     expect(cls).toContain('bg-[var(--color-raised)]');
   });
+  it('applica la variante danger (hover su token --color-danger)', () => {
+    const wrapper = mount(IconButton, { props: { icon: 'trash-2', label: 'Elimina', variant: 'danger' } });
+    expect(wrapper.get('button').classes().join(' ')).toContain('--color-danger');
+  });
 });
