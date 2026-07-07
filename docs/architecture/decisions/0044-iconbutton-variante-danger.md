@@ -12,7 +12,7 @@ MapView) restavano `<button>` grezzi con `hover:text-[var(--color-danger)]`, fuo
 
 ## Decision
 Aggiungere a `IconButton` la variante `variant="danger"`: neutra a riposo, hover su `--color-danger`
-(bg tint con fallback su `--color-accent-tint`). Nessun nuovo token di palette (non-obiettivo §2).
+(bg su `--color-danger-bg`, il token superficie danger già usato da `Button`). Nessun nuovo token di palette (non-obiettivo §2).
 Le azioni distruttive solo-icona migrano a `IconButton variant="danger"`.
 
 ## Consequences
