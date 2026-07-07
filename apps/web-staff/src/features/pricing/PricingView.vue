@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, ref, watchEffect } from 'vue';
-import { Button, Card, DataTable, EmptyState, Modal, ConfirmDialog, Field, Input, Select, Icon, IconButton, formatEuro } from '@coralyn/ui-kit';
+import { Button, Card, DataTable, EmptyState, Modal, ConfirmDialog, Field, Input, Select, Icon, IconButton, ActionBar, formatEuro } from '@coralyn/ui-kit';
 import type { BookingType, PackageEquipmentDTO, RateDTO, TimeSlotDTO } from '@coralyn/contracts';
 import { useSeasons, useCreateSeason, useDeleteSeason } from './useSeasons';
 import { useRates, useCreateRate, useUpdateRate, useDeleteRate } from './useRates';
@@ -401,20 +401,24 @@ const rateCols = [
         </Select>
         <span v-if="seasonRange" class="whitespace-nowrap text-[12px] tabular-nums text-[var(--color-text-muted)]">{{ seasonRange }}</span>
       </div>
-      <Button variant="secondary" data-test="new-season" @click="seasonModal = true"><Icon name="plus" :size="16" />Stagione</Button>
-      <IconButton
-        v-if="activeSeasonId"
-        icon="trash-2"
-        label="Elimina stagione"
-        variant="danger"
-        size="sm"
-        data-test="delete-season"
-        @click="askDeleteSeason"
-      />
+      <ActionBar gap="sm" align="start">
+        <Button variant="secondary" size="sm" data-test="new-season" @click="seasonModal = true"><Icon name="plus" :size="16" />Stagione</Button>
+        <IconButton
+          v-if="activeSeasonId"
+          icon="trash-2"
+          label="Elimina stagione"
+          variant="danger"
+          size="sm"
+          data-test="delete-season"
+          @click="askDeleteSeason"
+        />
+      </ActionBar>
       <div class="flex-1"></div>
-      <Button variant="secondary" data-test="new-equipment-type" @click="openCreateEquipmentType"><Icon name="plus" :size="16" />Tipo di dotazione</Button>
-      <Button variant="secondary" data-test="new-package" @click="openCreatePackage"><Icon name="plus" :size="16" />Pacchetto</Button>
-      <Button data-test="new-rate" :disabled="!activeSeasonId" @click="openCreateRate"><Icon name="plus" :size="16" />Nuova tariffa</Button>
+      <ActionBar gap="sm">
+        <Button variant="secondary" size="sm" data-test="new-equipment-type" @click="openCreateEquipmentType"><Icon name="plus" :size="16" />Tipo di dotazione</Button>
+        <Button variant="secondary" size="sm" data-test="new-package" @click="openCreatePackage"><Icon name="plus" :size="16" />Pacchetto</Button>
+        <Button size="sm" data-test="new-rate" :disabled="!activeSeasonId" @click="openCreateRate"><Icon name="plus" :size="16" />Nuova tariffa</Button>
+      </ActionBar>
     </div>
 
     <!-- Catalogo tipi di dotazione -->
@@ -423,12 +427,12 @@ const rateCols = [
       <Card v-for="t in activeEquipmentTypes" :key="t.id">
         <div class="flex items-center justify-between gap-2 p-3.5">
           <span class="text-[13.5px] font-semibold text-[var(--color-text)]">{{ t.name }}</span>
-          <div class="flex shrink-0 items-center gap-2">
+          <ActionBar gap="sm">
             <IconButton icon="edit" label="Modifica" variant="ghost" size="sm"
               :data-test="`edit-eqt-${t.id}`" @click="openEditEquipmentType(t)" />
             <IconButton icon="archive" label="Archivia" variant="ghost" size="sm"
               :data-test="`archive-eqt-${t.id}`" @click="archiveEquipmentType.mutate(t.id)" />
-          </div>
+          </ActionBar>
         </div>
       </Card>
     </div>
@@ -445,12 +449,12 @@ const rateCols = [
         <Card v-for="t in archivedEquipmentTypes" :key="t.id" class="opacity-60">
           <div class="flex items-center justify-between gap-2 p-3.5">
             <span class="text-[13.5px] font-semibold text-[var(--color-text)]">{{ t.name }}</span>
-            <div class="flex shrink-0 items-center gap-2">
+            <ActionBar gap="sm">
               <IconButton icon="renew" label="Ripristina" variant="ghost" size="sm"
                 :data-test="`restore-eqt-${t.id}`" @click="restoreEquipmentType.mutate(t.id)" />
               <IconButton icon="trash-2" label="Elimina definitivamente" variant="danger" size="sm"
                 :data-test="`del-eqt-${t.id}`" @click="askDeleteEquipmentType(t)" />
-            </div>
+            </ActionBar>
           </div>
         </Card>
       </div>
@@ -463,12 +467,12 @@ const rateCols = [
         <div class="flex h-full flex-col p-[18px]">
           <div class="mb-2 flex items-start justify-between gap-2">
             <span class="text-[15px] font-bold text-[var(--color-text)]">{{ p.name }}</span>
-            <div class="flex shrink-0 items-center gap-2.5">
+            <ActionBar gap="sm">
               <IconButton icon="edit" label="Modifica" variant="ghost" size="sm"
                 :data-test="`edit-pkg-${p.id}`" @click="openEditPackage(p)" />
               <IconButton icon="archive" label="Archivia" variant="ghost" size="sm"
                 :data-test="`archive-pkg-${p.id}`" @click="archivePackage.mutate(p.id)" />
-            </div>
+            </ActionBar>
           </div>
           <div class="min-h-[38px] flex-1 text-[12.5px] leading-relaxed text-[var(--color-text-2nd)]">{{ equipmentLabel(p.equipment) }}</div>
           <div class="mt-3 flex items-baseline gap-1.5 border-t border-[var(--color-border-row)] pt-3">
@@ -492,12 +496,12 @@ const rateCols = [
           <div class="flex h-full flex-col p-[18px]">
             <div class="mb-2 flex items-start justify-between gap-2">
               <span class="text-[15px] font-bold text-[var(--color-text)]">{{ p.name }}</span>
-              <div class="flex shrink-0 items-center gap-2.5">
+              <ActionBar gap="sm">
                 <IconButton icon="renew" label="Ripristina" variant="ghost" size="sm"
                   :data-test="`restore-pkg-${p.id}`" @click="restorePackage.mutate(p.id)" />
                 <IconButton icon="trash-2" label="Elimina definitivamente" variant="danger" size="sm"
                   :data-test="`del-pkg-${p.id}`" @click="askDeletePackage(p)" />
-              </div>
+              </ActionBar>
             </div>
             <div class="min-h-[38px] flex-1 text-[12.5px] leading-relaxed text-[var(--color-text-2nd)]">{{ equipmentLabel(p.equipment) }}</div>
           </div>
@@ -509,7 +513,7 @@ const rateCols = [
     <div class="mb-4">
       <div class="mb-2 flex items-center justify-between">
         <span class="text-[13px] font-semibold text-[var(--color-text-2nd)]">Fasce orarie</span>
-        <Button variant="secondary" data-test="new-time-slot" @click="openCreateSlot"><Icon name="plus" :size="16" />Nuova fascia</Button>
+        <Button variant="secondary" size="sm" data-test="new-time-slot" @click="openCreateSlot"><Icon name="plus" :size="16" />Nuova fascia</Button>
       </div>
       <EmptyState v-if="(slots?.length ?? 0) === 0" message="Nessuna fascia. Creane una con «Nuova fascia»." />
       <div v-else class="flex flex-wrap gap-2.5">
@@ -518,10 +522,12 @@ const rateCols = [
           <Icon name="clock" :size="15" class="text-[var(--color-accent)]" />
           <span class="text-[12.5px] font-semibold text-[var(--color-text)]">{{ f.name }}</span>
           <span v-if="f.startTime" class="text-[11.5px] text-[var(--color-text-muted)]">{{ f.startTime }}–{{ f.endTime }}</span>
-          <IconButton icon="edit" label="Modifica" variant="ghost" size="sm"
-            :data-test="`edit-slot-${f.id}`" @click="openEditSlot(f)" />
-          <IconButton icon="trash-2" label="Elimina" variant="danger" size="sm"
-            :data-test="`del-slot-${f.id}`" @click="askDeleteTimeSlot(f)" />
+          <ActionBar gap="sm">
+            <IconButton icon="edit" label="Modifica" variant="ghost" size="sm"
+              :data-test="`edit-slot-${f.id}`" @click="openEditSlot(f)" />
+            <IconButton icon="trash-2" label="Elimina" variant="danger" size="sm"
+              :data-test="`del-slot-${f.id}`" @click="askDeleteTimeSlot(f)" />
+          </ActionBar>
         </div>
       </div>
     </div>
@@ -541,12 +547,12 @@ const rateCols = [
           <span class="ml-1 text-[11px] text-[var(--color-text-muted)]">{{ priceHint(r) }}</span>
         </td>
         <td class="border-b border-[var(--color-border-row)] px-[18px] py-3.5 text-right">
-          <div class="flex items-center justify-end gap-2.5">
+          <ActionBar gap="sm">
             <IconButton icon="edit" label="Modifica" variant="ghost" size="sm"
               :data-test="`edit-rate-${r.id}`" @click="openEditRate(r)" />
             <IconButton icon="trash-2" label="Elimina" variant="danger" size="sm"
               :data-test="`del-rate-${r.id}`" @click="askDeleteRate(r.id)" />
-          </div>
+          </ActionBar>
         </td>
       </tr>
     </DataTable>
@@ -590,7 +596,7 @@ const rateCols = [
             <IconButton icon="trash-2" label="Rimuovi voce" variant="danger" size="sm"
               @click="removeEquipmentRow(i)" />
           </div>
-          <Button variant="secondary" type="button" data-test="add-equipment-row" @click="addEquipmentRow"><Icon name="plus" :size="16" />Aggiungi voce</Button>
+          <Button variant="secondary" size="sm" type="button" data-test="add-equipment-row" @click="addEquipmentRow"><Icon name="plus" :size="16" />Aggiungi voce</Button>
         </div>
       </form>
       <template #footer>
