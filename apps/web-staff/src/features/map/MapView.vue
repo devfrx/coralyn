@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue';
 import { useRouter } from 'vue-router';
-import { UmbrellaCell, SegmentedControl, Badge, Button, IconButton, Modal, Icon, Select, ModalFooter, formatEuro } from '@coralyn/ui-kit';
+import { UmbrellaCell, SegmentedControl, Badge, Button, IconButton, ActionBar, Modal, Icon, Select, ModalFooter, formatEuro } from '@coralyn/ui-kit';
 import type { UmbrellaDTO, SlotState, BookingDTO, BookingType } from '@coralyn/contracts';
 import { PAY_LABEL, PAY_TONE } from '@/lib/statusMaps';
 import { useDayMap } from './useDayMap';
@@ -329,13 +329,13 @@ const freeSlotOptions = computed(() =>
               <Badge :tone="PAY_TONE[currentBooking.paymentStatus]">{{ PAY_LABEL[currentBooking.paymentStatus] }}</Badge>
             </div>
           </div>
-          <div class="mt-2.5 flex items-center gap-2.5">
+          <ActionBar class="mt-2.5" align="start" gap="sm">
             <Button variant="ghost" size="sm" @click="settleOpen = true">Registra incasso</Button>
             <!-- L'abbonamento non si annulla col void crudo (perderebbe storico e rimborso): si disdice
                  dalla Scheda cliente (D-013, admin-only). Solo daily/periodic sono annullabili qui. -->
             <Button v-if="currentBooking.type !== 'subscription'" variant="danger" size="sm" :loading="cancelBooking.isPending.value" @click="onCancel">Annulla prenotazione</Button>
             <Button v-else variant="ghost" size="sm" @click="router.push(`/customers/${currentBooking.customerId}`)">Gestisci abbonamento</Button>
-          </div>
+          </ActionBar>
         </template>
         <div v-else class="mt-3.5 rounded-xl border border-dashed border-[var(--color-warm-border-seg)] bg-[var(--color-warm-075)] p-4 text-[12.5px] leading-relaxed text-[var(--color-text-muted)]">
           <template v-if="liveStateFor(selectedSlotId) === 'covered'">
