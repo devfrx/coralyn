@@ -3,6 +3,7 @@ export { default as IconButton } from './components/IconButton.vue';
 export { icons, FALLBACK_ICON } from './icons/registry';
 export { default as Toast } from './components/Toast.vue';
 export { default as Button } from './components/Button.vue';
+export { default as ActionBar } from './components/ActionBar.vue';
 export { default as Card } from './components/Card.vue';
 export { default as SectionCard } from './components/SectionCard.vue';
 export { default as Callout } from './components/Callout.vue';
