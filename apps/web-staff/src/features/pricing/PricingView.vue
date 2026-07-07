@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, ref, watchEffect } from 'vue';
-import { Button, Card, DataTable, EmptyState, Modal, ConfirmDialog, Field, Input, Select, Icon, formatEuro } from '@coralyn/ui-kit';
+import { Button, Card, DataTable, EmptyState, Modal, ConfirmDialog, Field, Input, Select, Icon, IconButton, formatEuro } from '@coralyn/ui-kit';
 import type { BookingType, PackageEquipmentDTO, RateDTO, TimeSlotDTO } from '@coralyn/contracts';
 import { useSeasons, useCreateSeason, useDeleteSeason } from './useSeasons';
 import { useRates, useCreateRate, useUpdateRate, useDeleteRate } from './useRates';
@@ -402,14 +402,15 @@ const rateCols = [
         <span v-if="seasonRange" class="whitespace-nowrap text-[12px] tabular-nums text-[var(--color-text-muted)]">{{ seasonRange }}</span>
       </div>
       <Button variant="secondary" data-test="new-season" @click="seasonModal = true"><Icon name="plus" :size="16" />Stagione</Button>
-      <button
+      <IconButton
         v-if="activeSeasonId"
+        icon="trash-2"
+        label="Elimina stagione"
+        variant="danger"
+        size="sm"
         data-test="delete-season"
-        type="button"
-        title="Elimina stagione"
-        class="grid h-9 w-9 place-items-center rounded-[10px] border border-[var(--color-border)] text-[var(--color-text-muted)] transition-colors hover:border-[var(--color-danger)] hover:text-[var(--color-danger)] focus-visible:outline-none focus-visible:[box-shadow:var(--ring-focus)]"
         @click="askDeleteSeason"
-      ><Icon name="trash-2" :size="16" /></button>
+      />
       <div class="flex-1"></div>
       <Button variant="secondary" data-test="new-equipment-type" @click="openCreateEquipmentType"><Icon name="plus" :size="16" />Tipo di dotazione</Button>
       <Button variant="secondary" data-test="new-package" @click="openCreatePackage"><Icon name="plus" :size="16" />Pacchetto</Button>
@@ -423,10 +424,10 @@ const rateCols = [
         <div class="flex items-center justify-between gap-2 p-3.5">
           <span class="text-[13.5px] font-semibold text-[var(--color-text)]">{{ t.name }}</span>
           <div class="flex shrink-0 items-center gap-2">
-            <button type="button" title="Modifica" class="text-[var(--color-text-muted)] hover:text-[var(--color-accent)]"
-              :data-test="`edit-eqt-${t.id}`" @click="openEditEquipmentType(t)"><Icon name="edit" :size="14" /></button>
-            <button type="button" title="Archivia" class="text-[var(--color-text-muted)] hover:text-[var(--color-accent)]"
-              :data-test="`archive-eqt-${t.id}`" @click="archiveEquipmentType.mutate(t.id)"><Icon name="archive" :size="14" /></button>
+            <IconButton icon="edit" label="Modifica" variant="ghost" size="sm"
+              :data-test="`edit-eqt-${t.id}`" @click="openEditEquipmentType(t)" />
+            <IconButton icon="archive" label="Archivia" variant="ghost" size="sm"
+              :data-test="`archive-eqt-${t.id}`" @click="archiveEquipmentType.mutate(t.id)" />
           </div>
         </div>
       </Card>
@@ -435,7 +436,7 @@ const rateCols = [
     <!-- Tipi di dotazione archiviati (a scomparsa, chiusa di default) -->
     <div v-if="archivedEquipmentTypes.length > 0" class="mb-4">
       <button type="button" data-test="toggle-archived-eqt"
-        class="mb-2 flex items-center gap-1.5 text-[12.5px] font-semibold text-[var(--color-text-muted)] hover:text-[var(--color-text-2nd)]"
+        class="mb-2 flex items-center gap-1.5 text-[12.5px] font-semibold text-[var(--color-text-muted)] hover:text-[var(--color-text-2nd)] focus-visible:outline-none focus-visible:[box-shadow:var(--ring-focus)]"
         @click="archivedEqtOpen = !archivedEqtOpen">
         <Icon :name="archivedEqtOpen ? 'chevron-down' : 'chevron-right'" :size="15" />
         Archiviati ({{ archivedEquipmentTypes.length }})
@@ -445,10 +446,10 @@ const rateCols = [
           <div class="flex items-center justify-between gap-2 p-3.5">
             <span class="text-[13.5px] font-semibold text-[var(--color-text)]">{{ t.name }}</span>
             <div class="flex shrink-0 items-center gap-2">
-              <button type="button" title="Ripristina" class="text-[var(--color-text-muted)] hover:text-[var(--color-accent)]"
-                :data-test="`restore-eqt-${t.id}`" @click="restoreEquipmentType.mutate(t.id)"><Icon name="renew" :size="14" /></button>
-              <button type="button" title="Elimina definitivamente" class="text-[var(--color-text-muted)] hover:text-[var(--color-danger)]"
-                :data-test="`del-eqt-${t.id}`" @click="askDeleteEquipmentType(t)"><Icon name="trash-2" :size="14" /></button>
+              <IconButton icon="renew" label="Ripristina" variant="ghost" size="sm"
+                :data-test="`restore-eqt-${t.id}`" @click="restoreEquipmentType.mutate(t.id)" />
+              <IconButton icon="trash-2" label="Elimina definitivamente" variant="danger" size="sm"
+                :data-test="`del-eqt-${t.id}`" @click="askDeleteEquipmentType(t)" />
             </div>
           </div>
         </Card>
@@ -463,10 +464,10 @@ const rateCols = [
           <div class="mb-2 flex items-start justify-between gap-2">
             <span class="text-[15px] font-bold text-[var(--color-text)]">{{ p.name }}</span>
             <div class="flex shrink-0 items-center gap-2.5">
-              <button type="button" title="Modifica" class="text-[var(--color-text-muted)] hover:text-[var(--color-accent)]"
-                :data-test="`edit-pkg-${p.id}`" @click="openEditPackage(p)"><Icon name="edit" :size="15" /></button>
-              <button type="button" title="Archivia" class="text-[var(--color-text-muted)] hover:text-[var(--color-accent)]"
-                :data-test="`archive-pkg-${p.id}`" @click="archivePackage.mutate(p.id)"><Icon name="archive" :size="15" /></button>
+              <IconButton icon="edit" label="Modifica" variant="ghost" size="sm"
+                :data-test="`edit-pkg-${p.id}`" @click="openEditPackage(p)" />
+              <IconButton icon="archive" label="Archivia" variant="ghost" size="sm"
+                :data-test="`archive-pkg-${p.id}`" @click="archivePackage.mutate(p.id)" />
             </div>
           </div>
           <div class="min-h-[38px] flex-1 text-[12.5px] leading-relaxed text-[var(--color-text-2nd)]">{{ equipmentLabel(p.equipment) }}</div>
@@ -481,7 +482,7 @@ const rateCols = [
     <!-- Pacchetti archiviati (a scomparsa, chiusa di default) -->
     <div v-if="archivedPackages.length > 0" class="mb-4">
       <button type="button" data-test="toggle-archived"
-        class="mb-2 flex items-center gap-1.5 text-[12.5px] font-semibold text-[var(--color-text-muted)] hover:text-[var(--color-text-2nd)]"
+        class="mb-2 flex items-center gap-1.5 text-[12.5px] font-semibold text-[var(--color-text-muted)] hover:text-[var(--color-text-2nd)] focus-visible:outline-none focus-visible:[box-shadow:var(--ring-focus)]"
         @click="archivedOpen = !archivedOpen">
         <Icon :name="archivedOpen ? 'chevron-down' : 'chevron-right'" :size="15" />
         Archiviati ({{ archivedPackages.length }})
@@ -492,10 +493,10 @@ const rateCols = [
             <div class="mb-2 flex items-start justify-between gap-2">
               <span class="text-[15px] font-bold text-[var(--color-text)]">{{ p.name }}</span>
               <div class="flex shrink-0 items-center gap-2.5">
-                <button type="button" title="Ripristina" class="text-[var(--color-text-muted)] hover:text-[var(--color-accent)]"
-                  :data-test="`restore-pkg-${p.id}`" @click="restorePackage.mutate(p.id)"><Icon name="renew" :size="15" /></button>
-                <button type="button" title="Elimina definitivamente" class="text-[var(--color-text-muted)] hover:text-[var(--color-danger)]"
-                  :data-test="`del-pkg-${p.id}`" @click="askDeletePackage(p)"><Icon name="trash-2" :size="15" /></button>
+                <IconButton icon="renew" label="Ripristina" variant="ghost" size="sm"
+                  :data-test="`restore-pkg-${p.id}`" @click="restorePackage.mutate(p.id)" />
+                <IconButton icon="trash-2" label="Elimina definitivamente" variant="danger" size="sm"
+                  :data-test="`del-pkg-${p.id}`" @click="askDeletePackage(p)" />
               </div>
             </div>
             <div class="min-h-[38px] flex-1 text-[12.5px] leading-relaxed text-[var(--color-text-2nd)]">{{ equipmentLabel(p.equipment) }}</div>
@@ -517,10 +518,10 @@ const rateCols = [
           <Icon name="clock" :size="15" class="text-[var(--color-accent)]" />
           <span class="text-[12.5px] font-semibold text-[var(--color-text)]">{{ f.name }}</span>
           <span v-if="f.startTime" class="text-[11.5px] text-[var(--color-text-muted)]">{{ f.startTime }}–{{ f.endTime }}</span>
-          <button type="button" title="Modifica" class="text-[var(--color-text-muted)] hover:text-[var(--color-accent)]"
-            :data-test="`edit-slot-${f.id}`" @click="openEditSlot(f)"><Icon name="edit" :size="14" /></button>
-          <button type="button" title="Elimina" class="text-[var(--color-text-muted)] hover:text-[var(--color-danger)]"
-            :data-test="`del-slot-${f.id}`" @click="askDeleteTimeSlot(f)"><Icon name="trash-2" :size="14" /></button>
+          <IconButton icon="edit" label="Modifica" variant="ghost" size="sm"
+            :data-test="`edit-slot-${f.id}`" @click="openEditSlot(f)" />
+          <IconButton icon="trash-2" label="Elimina" variant="danger" size="sm"
+            :data-test="`del-slot-${f.id}`" @click="askDeleteTimeSlot(f)" />
         </div>
       </div>
     </div>
@@ -541,10 +542,10 @@ const rateCols = [
         </td>
         <td class="border-b border-[var(--color-border-row)] px-[18px] py-3.5 text-right">
           <div class="flex items-center justify-end gap-2.5">
-            <button type="button" title="Modifica" class="text-[var(--color-text-muted)] hover:text-[var(--color-accent)]"
-              :data-test="`edit-rate-${r.id}`" @click="openEditRate(r)"><Icon name="edit" :size="15" /></button>
-            <button type="button" title="Elimina" class="text-[var(--color-text-muted)] hover:text-[var(--color-danger)]"
-              :data-test="`del-rate-${r.id}`" @click="askDeleteRate(r.id)"><Icon name="trash-2" :size="15" /></button>
+            <IconButton icon="edit" label="Modifica" variant="ghost" size="sm"
+              :data-test="`edit-rate-${r.id}`" @click="openEditRate(r)" />
+            <IconButton icon="trash-2" label="Elimina" variant="danger" size="sm"
+              :data-test="`del-rate-${r.id}`" @click="askDeleteRate(r.id)" />
           </div>
         </td>
       </tr>
@@ -586,8 +587,8 @@ const rateCols = [
               </Select>
             </div>
             <div class="w-20"><Input name="quantity" v-model="row.quantity" type="number" min="1" /></div>
-            <button type="button" title="Rimuovi voce" class="text-[var(--color-text-muted)] hover:text-[var(--color-danger)]"
-              @click="removeEquipmentRow(i)"><Icon name="trash-2" :size="15" /></button>
+            <IconButton icon="trash-2" label="Rimuovi voce" variant="danger" size="sm"
+              @click="removeEquipmentRow(i)" />
           </div>
           <Button variant="secondary" type="button" data-test="add-equipment-row" @click="addEquipmentRow"><Icon name="plus" :size="16" />Aggiungi voce</Button>
         </div>
