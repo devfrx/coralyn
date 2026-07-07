@@ -41,7 +41,7 @@ async function accedi() {
     <form class="flex flex-col gap-4" @submit.prevent="accedi">
       <Field label="Email"><Input v-model="email" type="email" placeholder="nome@stabilimento.it" /></Field>
       <Field label="Password"><Input v-model="password" type="password" placeholder="••••••••" /></Field>
-      <Button type="submit" class="w-full" :disabled="loading">{{ loading ? 'Accesso…' : 'Accedi' }}</Button>
+      <Button type="submit" class="w-full" :loading="loading">Accedi</Button>
     </form>
     <div class="my-6 flex items-center gap-3"><span class="h-px flex-1 bg-[var(--color-border)]"></span><span class="text-[10.5px] font-semibold uppercase tracking-[.1em] text-[var(--color-placeholder)]">oppure</span><span class="h-px flex-1 bg-[var(--color-border)]"></span></div>
     <p class="text-center text-[13.5px] text-[var(--color-text-2nd)]">Non hai un account? <RouterLink :to="{ name: 'register' }" class="font-semibold text-[var(--color-brand-ink)]">Registra il tuo stabilimento</RouterLink></p>
