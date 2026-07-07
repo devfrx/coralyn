@@ -381,6 +381,21 @@ verificate su `Button`/`IconButton`/`Input`/`Textarea`/`Select`/`SearchInput`/
 - **Transizioni**: `--ease-standard` / `--motion-fast`.
 - **Riferimenti canonici**: `Button`, `IconButton`, `Input`.
 
+### Rubrica CTA contestuale (size-by-context)
+
+La CTA eredita la densità del suo contenitore.
+
+| Contesto | Trattamento |
+|---|---|
+| CTA primaria di pagina (header vista) | `Button` size `md` (default) |
+| Azione in header di card/sezione | `Button` size `sm` |
+| Azione inline in riga/lista/toolbar/drawer | `Button` size `sm` |
+| Solo icona (edit/elimina/espandi/chiudi/rimuovi) | `IconButton` (mai `Button` con solo `<Icon>`); variante `ghost`/`subtle`/`danger` |
+| Async | `:loading` col pending osservabile |
+| Distruttiva | `danger` |
+
+I cluster di 2+ azioni si compongono con `<ActionBar>` (layout centralizzato: `align`/`gap`/`wrap`), non con `flex gap` a mano. I controlli bespoke non-CTA (nav, frecce, chip, celle mappa, toggle disclosure, valori cliccabili) restano tali: si verificano solo gli stati.
+
 ## 11. App-shell ([ADR-0019](../architecture/decisions/0019-app-shell-e-ux.md))
 
 Layout **a card su tela neutra** (`--color-canvas`), gutter `--shell-gutter`.
