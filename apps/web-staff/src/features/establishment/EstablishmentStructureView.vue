@@ -197,7 +197,7 @@ function onConfirmDelete() {
 
 <template>
   <section class="max-w-[1040px] px-[26px] pb-[30px] pt-[22px]">
-    <button class="mb-3 flex items-center gap-1 text-[13px] font-semibold text-[var(--color-text-muted)]" @click="router.push('/establishment')">
+    <button class="mb-3 flex items-center gap-1 text-[13px] font-semibold text-[var(--color-text-muted)] focus-visible:outline-none focus-visible:[box-shadow:var(--ring-focus)]" @click="router.push('/establishment')">
       <Icon name="chevron-left" :size="15" />Stabilimento
     </button>
     <h2 class="text-[23px] font-bold tracking-[-.015em] text-[var(--color-text)]">Struttura della spiaggia</h2>
@@ -222,13 +222,13 @@ function onConfirmDelete() {
               <div v-for="s in sectors" :key="s.id" data-testid="sector-row"
                 class="flex items-center gap-1 rounded-[10px] border px-2 py-1"
                 :class="(selectedSector && selectedSector.id === s.id) ? 'border-[var(--color-brand)] bg-[var(--color-accent-tint)]' : 'border-[var(--color-border)]'">
-                <button class="flex flex-1 items-center justify-between gap-2 py-1 text-left" @click="selectSector(s.id)">
+                <button class="flex flex-1 items-center justify-between gap-2 py-1 text-left focus-visible:outline-none focus-visible:[box-shadow:var(--ring-focus)]" @click="selectSector(s.id)">
                   <span class="text-[13px] font-semibold text-[var(--color-text)]">{{ s.name }}</span>
                   <Badge tone="neutral">{{ s.kind === 'special' ? 'Speciali' : 'Griglia' }}</Badge>
                 </button>
                 <template v-if="isAdmin">
                   <Button data-testid="edit-sector" variant="secondary" @click="openEditSector(s)"><Icon name="edit" :size="12" /></Button>
-                  <Button data-testid="delete-sector" variant="secondary" @click="askDeleteSector(s)"><Icon name="trash-2" :size="12" /></Button>
+                  <Button data-testid="delete-sector" variant="danger" @click="askDeleteSector(s)"><Icon name="trash-2" :size="12" /></Button>
                 </template>
               </div>
               <p v-if="sectors.length === 0" class="py-2 text-sm text-[var(--color-text-muted)]">Nessun settore.</p>
@@ -249,7 +249,7 @@ function onConfirmDelete() {
                 <span class="flex-1 text-[13px] font-semibold text-[var(--color-text)]">{{ t.name }}</span>
                 <template v-if="isAdmin">
                   <Button data-testid="edit-type" variant="secondary" @click="openEditType(t)"><Icon name="edit" :size="13" /></Button>
-                  <Button data-testid="delete-type" variant="secondary" @click="askDeleteType(t)"><Icon name="trash-2" :size="13" /></Button>
+                  <Button data-testid="delete-type" variant="danger" @click="askDeleteType(t)"><Icon name="trash-2" :size="13" /></Button>
                 </template>
               </div>
               <p v-if="types.length === 0" class="py-2 text-sm text-[var(--color-text-muted)]">Nessuna tipologia.</p>
@@ -275,14 +275,14 @@ function onConfirmDelete() {
                     <Button data-testid="generate-umbrellas" variant="secondary" @click="openGenerate(r.id)">Genera</Button>
                     <Button data-testid="add-umbrella" variant="secondary" @click="openNewUmbrella(r.id)"><Icon name="plus" :size="12" />Aggiungi</Button>
                     <Button data-testid="edit-row" variant="secondary" @click="openEditRow(r)"><Icon name="edit" :size="12" /></Button>
-                    <Button data-testid="delete-row" variant="secondary" @click="askDeleteRow(r)"><Icon name="trash-2" :size="12" /></Button>
+                    <Button data-testid="delete-row" variant="danger" @click="askDeleteRow(r)"><Icon name="trash-2" :size="12" /></Button>
                   </template>
                 </div>
               </div>
               <div class="flex flex-wrap gap-2">
                 <template v-if="isAdmin">
                   <button v-for="u in r.umbrellas" :key="u.id" data-testid="umbrella-chip" type="button"
-                    class="grid size-9 place-items-center rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] text-[12.5px] font-semibold tabular-nums text-[var(--color-text-2nd)] hover:border-[var(--color-brand)]"
+                    class="grid size-9 place-items-center rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] text-[12.5px] font-semibold tabular-nums text-[var(--color-text-2nd)] hover:border-[var(--color-brand)] focus-visible:outline-none focus-visible:[box-shadow:var(--ring-focus)]"
                     @click="openEditUmbrella(u, r.id)">{{ u.label }}</button>
                 </template>
                 <template v-else>
@@ -377,7 +377,7 @@ function onConfirmDelete() {
       </form>
       <template #footer>
         <div class="flex items-center justify-between gap-2">
-          <Button v-if="editingUmbId" data-testid="umbrella-delete" variant="secondary" type="button" @click="deleteFromUmbModal"><Icon name="trash-2" :size="13" />Elimina</Button>
+          <Button v-if="editingUmbId" data-testid="umbrella-delete" variant="danger" type="button" @click="deleteFromUmbModal"><Icon name="trash-2" :size="13" />Elimina</Button>
           <div class="ml-auto flex gap-2">
             <Button variant="secondary" type="button" @click="umbModalOpen = false">Annulla</Button>
             <Button type="submit" form="form-umbrella" data-testid="umbrella-save" :disabled="savingUmb">Salva ombrellone</Button>
