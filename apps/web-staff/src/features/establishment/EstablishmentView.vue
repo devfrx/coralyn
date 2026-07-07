@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
 import { useRouter } from 'vue-router';
-import { Card, StatTile, Badge, Button, Avatar, Icon, Modal, Field, Input, Select, ConfirmDialog } from '@coralyn/ui-kit';
+import { Card, StatTile, Badge, Button, Avatar, Icon, Modal, Field, Input, Select, ConfirmDialog, ActionBar } from '@coralyn/ui-kit';
 import { Role } from '@coralyn/contracts';
 import { useSessionStore } from '@/stores/session';
 import { pushToast } from '@/lib/toasts';
@@ -118,10 +118,10 @@ function onConfirmReset() {
           <h2 class="text-[23px] font-bold tracking-[-.015em] text-[var(--color-text)]">{{ data?.establishment.name ?? '…' }}</h2>
           <div class="mt-1 text-[13px] text-[var(--color-text-muted)]">{{ currentUserRoleLabel }} · {{ session.userEmail }} · <span class="tabular-nums">{{ seasonName }}</span></div>
         </div>
-        <Button v-if="isAdmin" data-testid="edit-establishment" variant="secondary" @click="openRename"><Icon name="edit" :size="15" />Modifica</Button>
+        <Button v-if="isAdmin" data-testid="edit-establishment" variant="secondary" size="sm" @click="openRename"><Icon name="edit" :size="15" />Modifica</Button>
         <div v-else class="flex items-center gap-2">
           <Badge tone="soon">Modifica · in arrivo</Badge>
-          <Button variant="secondary" disabled><Icon name="edit" :size="15" />Modifica</Button>
+          <Button variant="secondary" size="sm" disabled><Icon name="edit" :size="15" />Modifica</Button>
         </div>
       </div>
     </Card>
@@ -143,7 +143,7 @@ function onConfirmReset() {
         <div class="p-5">
           <div class="mb-4 flex items-center justify-between">
             <span class="text-sm font-bold text-[var(--color-text)]">Struttura della spiaggia</span>
-            <Button v-if="isAdmin" data-testid="configure-structure" variant="secondary" @click="$router.push('/establishment/structure')"><Icon name="settings" :size="13" />Configura</Button>
+            <Button v-if="isAdmin" data-testid="configure-structure" variant="secondary" size="sm" @click="$router.push('/establishment/structure')"><Icon name="settings" :size="13" />Configura</Button>
             <Badge v-else tone="soon">Configura · in arrivo</Badge>
           </div>
           <div class="grid grid-cols-2 gap-3.5">
@@ -157,7 +157,7 @@ function onConfirmReset() {
       <div class="p-5">
         <div class="mb-1.5 flex items-center justify-between">
           <span class="text-sm font-bold text-[var(--color-text)]">Utenti e ruoli</span>
-          <Button v-if="isAdmin" data-testid="add-user" variant="secondary" @click="openAddUser"><Icon name="plus" :size="13" />Aggiungi utente</Button>
+          <Button v-if="isAdmin" data-testid="add-user" variant="secondary" size="sm" @click="openAddUser"><Icon name="plus" :size="13" />Aggiungi utente</Button>
           <Badge v-else tone="soon"><Icon name="plus" :size="13" />Inviti e gestione · in arrivo</Badge>
         </div>
         <p class="mb-3 text-xs leading-relaxed text-[var(--color-text-muted)]">Il team dello stabilimento ha ruoli <strong class="text-[var(--color-text-2nd)]">Amministratore</strong> e <strong class="text-[var(--color-text-2nd)]">Staff</strong>. Il ruolo <strong class="text-[var(--color-text-2nd)]">Superuser</strong> è di piattaforma (console cross-stabilimento) e non appartiene al team del lido.</p>
@@ -171,8 +171,10 @@ function onConfirmReset() {
               <Badge v-if="u.disabled" tone="neutral">Disabilitato</Badge>
             </div>
             <Badge :tone="u.tone">{{ u.roleLabel }}</Badge>
-            <Button v-if="isAdmin && !u.you" data-testid="toggle-user-disabled" variant="secondary" :disabled="togglingDisabled" @click="toggleDisabled(u)">{{ u.disabled ? 'Riabilita' : 'Disabilita' }}</Button>
-            <Button v-if="isAdmin && !u.you && !u.disabled" data-testid="reset-user-password" variant="secondary" :disabled="resetStaff.isPending.value" @click="askReset(u)">Reset password</Button>
+            <ActionBar v-if="isAdmin && !u.you" gap="sm">
+              <Button data-testid="toggle-user-disabled" variant="secondary" size="sm" :disabled="togglingDisabled" @click="toggleDisabled(u)">{{ u.disabled ? 'Riabilita' : 'Disabilita' }}</Button>
+              <Button v-if="!u.disabled" data-testid="reset-user-password" variant="secondary" size="sm" :disabled="resetStaff.isPending.value" @click="askReset(u)">Reset password</Button>
+            </ActionBar>
           </div>
         </div>
       </div>
@@ -185,7 +187,7 @@ function onConfirmReset() {
           <div class="text-[13.5px] font-bold text-[var(--color-text)]">Sessione</div>
           <div class="mt-0.5 text-xs text-[var(--color-text-muted)]">Accesso protetto · la sessione scade dopo 8 ore.</div>
         </div>
-        <Button variant="danger" data-testid="sign-out" @click="signOut"><Icon name="logout" :size="16" />Esci</Button>
+        <Button variant="danger" size="sm" data-testid="sign-out" @click="signOut"><Icon name="logout" :size="16" />Esci</Button>
       </div>
     </Card>
 
