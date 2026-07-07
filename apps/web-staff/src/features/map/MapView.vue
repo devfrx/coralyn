@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue';
+import { useRouter } from 'vue-router';
 import { UmbrellaCell, SegmentedControl, Badge, Button, IconButton, Modal, Icon, Select, ModalFooter, formatEuro } from '@coralyn/ui-kit';
 import type { UmbrellaDTO, SlotState, BookingDTO, BookingType } from '@coralyn/contracts';
 import { PAY_LABEL, PAY_TONE } from '@/lib/statusMaps';
@@ -13,6 +14,8 @@ import { useSessionStore } from '@/stores/session';
 import { storeToRefs } from 'pinia';
 
 const { data: map, isLoading } = useDayMap();
+
+const router = useRouter();
 
 const session = useSessionStore();
 const { activeDate } = storeToRefs(session);
@@ -296,7 +299,7 @@ const freeSlotOptions = computed(() =>
         </div>
       </div>
 
-      <aside v-if="sel" class="flex w-[340px] flex-none flex-col rounded-[var(--radius-xl)] border border-[var(--color-border)] bg-[var(--color-surface)] p-5 [box-shadow:var(--shadow-drawer)]">
+      <aside v-if="sel" class="flex w-[380px] flex-none flex-col rounded-[var(--radius-xl)] border border-[var(--color-border)] bg-[var(--color-surface)] p-5 [box-shadow:var(--shadow-drawer)]">
         <div class="flex items-start justify-between">
           <div>
             <div class="mb-1 text-[11px] font-semibold uppercase tracking-[.06em] text-[var(--color-text-muted)]">Ombrellone</div>
@@ -326,12 +329,12 @@ const freeSlotOptions = computed(() =>
               <Badge :tone="PAY_TONE[currentBooking.paymentStatus]">{{ PAY_LABEL[currentBooking.paymentStatus] }}</Badge>
             </div>
           </div>
-          <div class="mt-2.5 flex items-center gap-3">
+          <div class="mt-2.5 flex items-center gap-2.5">
             <Button variant="ghost" size="sm" @click="settleOpen = true">Registra incasso</Button>
             <!-- L'abbonamento non si annulla col void crudo (perderebbe storico e rimborso): si disdice
                  dalla Scheda cliente (D-013, admin-only). Solo daily/periodic sono annullabili qui. -->
             <Button v-if="currentBooking.type !== 'subscription'" variant="danger" size="sm" :loading="cancelBooking.isPending.value" @click="onCancel">Annulla prenotazione</Button>
-            <RouterLink v-else :to="`/customers/${currentBooking.customerId}`" class="p-0.5 text-xs font-semibold text-[var(--color-accent)] focus-visible:outline-none focus-visible:[box-shadow:var(--ring-focus)]">Gestisci abbonamento</RouterLink>
+            <Button v-else variant="ghost" size="sm" @click="router.push(`/customers/${currentBooking.customerId}`)">Gestisci abbonamento</Button>
           </div>
         </template>
         <div v-else class="mt-3.5 rounded-xl border border-dashed border-[var(--color-warm-border-seg)] bg-[var(--color-warm-075)] p-4 text-[12.5px] leading-relaxed text-[var(--color-text-muted)]">
