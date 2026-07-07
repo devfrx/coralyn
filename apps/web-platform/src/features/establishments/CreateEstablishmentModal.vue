@@ -79,7 +79,7 @@ function done(): void {
     <template #footer>
       <div v-if="phase === 'form'" class="flex justify-end gap-2">
         <Button variant="secondary" type="button" @click="open = false">Annulla</Button>
-        <Button type="submit" form="form-create-establishment" data-testid="create-submit" :disabled="create.isPending.value">Crea lido</Button>
+        <Button type="submit" form="form-create-establishment" data-testid="create-submit" :loading="create.isPending.value">Crea lido</Button>
       </div>
       <div v-else class="flex justify-end">
         <Button data-testid="create-done" @click="done">Fatto</Button>

@@ -34,7 +34,7 @@ async function accedi(): Promise<void> {
     <form class="flex flex-col gap-4" @submit.prevent="accedi">
       <Field label="Email"><Input v-model="email" type="email" data-testid="login-email" placeholder="operatore@coralyn.dev" /></Field>
       <Field label="Password"><Input v-model="password" type="password" data-testid="login-password" placeholder="••••••••" /></Field>
-      <Button type="submit" class="w-full" :disabled="loading" data-testid="login-submit">{{ loading ? 'Accesso…' : 'Accedi' }}</Button>
+      <Button type="submit" class="w-full" :loading="loading" data-testid="login-submit">Accedi</Button>
     </form>
   </AuthLayout>
 </template>
