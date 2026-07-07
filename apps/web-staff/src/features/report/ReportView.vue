@@ -60,7 +60,7 @@ const mixSegments = computed(() =>
             <div class="text-[11.5px] tabular-nums text-[var(--color-text-muted)]">Ombrellone {{ r.umbrellaLabel }} · {{ r.seniority }} stagioni</div>
           </div>
           <span class="text-xs tabular-nums text-[var(--color-text-2nd)]">Scade {{ r.deadline }}</span>
-          <Button variant="secondary" @click="router.push(`/customers/${r.customerId}`)"><Icon name="renew" :size="14" />Rinnova</Button>
+          <Button variant="secondary" size="sm" @click="router.push(`/customers/${r.customerId}`)"><Icon name="renew" :size="14" />Rinnova</Button>
         </div>
       </div>
       <p v-else class="py-6 text-center text-[13px] text-[var(--color-text-muted)]">Nessun abbonamento in scadenza.</p>

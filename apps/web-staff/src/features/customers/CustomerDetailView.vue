@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue';
 import { useRouter } from 'vue-router';
-import { Card, Avatar, Button, Icon, SectionCard, ConfirmDialog, Callout } from '@coralyn/ui-kit';
+import { Card, Avatar, Button, ActionBar, Icon, SectionCard, ConfirmDialog, Callout } from '@coralyn/ui-kit';
 import { Role } from '@coralyn/contracts';
 import { useSessionStore } from '@/stores/session';
 import { pushToast } from '@/lib/toasts';
@@ -83,16 +83,17 @@ function onConfirmDelete() {
               <span class="inline-flex items-center gap-1.5"><Icon name="mail" :size="15" class="text-[var(--color-placeholder)]" />{{ customer.email ?? '—' }}</span>
             </div>
           </div>
-          <div v-if="!customer.anonymizedAt" class="flex items-center gap-2">
-            <Button variant="secondary" data-testid="edit-customer" @click="editOpen = true"><Icon name="edit" :size="15" />Modifica</Button>
+          <ActionBar v-if="!customer.anonymizedAt" gap="sm">
+            <Button variant="secondary" size="sm" data-testid="edit-customer" @click="editOpen = true"><Icon name="edit" :size="15" />Modifica</Button>
             <Button
               v-if="isAdmin"
               variant="danger"
+              size="sm"
               data-testid="delete-customer"
               :disabled="hasActiveOrFuture"
               @click="askDelete"
             ><Icon name="trash-2" :size="15" />{{ deleteLabel }}</Button>
-          </div>
+          </ActionBar>
         </div>
         <p v-if="!customer.anonymizedAt && isAdmin && hasActiveOrFuture" data-testid="delete-customer-hint" class="px-[22px] pb-4 text-xs text-[var(--color-text-muted)]">
           Non puoi eliminare o anonimizzare un cliente con prenotazioni attive o future: annullale o attendi la scadenza.

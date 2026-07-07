@@ -105,13 +105,13 @@ function stateBadge(s: RenewalWindowState): { tone: 'success' | 'warning' | 'neu
         <span class="text-[12.5px] font-semibold text-[var(--color-text-2nd)]">Scadenza prelazione</span>
         <input type="date" v-model="deadline" class="rounded-[11px] border-[1.5px] border-[var(--color-border-input)] bg-[var(--color-surface)] px-3.5 py-2.5 text-[13.5px] text-[var(--color-text)] focus:outline-none" />
       </label>
-      <Button :disabled="!deadline" @click="doOpenCampaign">Apri campagna di prelazione</Button>
+      <Button size="sm" :disabled="!deadline" @click="doOpenCampaign">Apri campagna di prelazione</Button>
       <span class="text-[12px] text-[var(--color-text-muted)]">Dopo la scadenza, i posti tornano liberi per tutti.</span>
     </div>
 
     <div v-if="campaign" class="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-[14px] border-[1.5px] border-[var(--color-border-input)] bg-[var(--color-surface)] p-4">
       <span class="text-[13.5px] text-[var(--color-text)]">Scadenza campagna: <strong>{{ campaign.deadline }}</strong></span>
-      <Button @click="askCloseCampaign">Chiudi campagna</Button>
+      <Button size="sm" @click="askCloseCampaign">Chiudi campagna</Button>
     </div>
 
     <div v-if="campaign" class="mb-2 flex flex-wrap gap-3 text-[11.5px] text-[var(--color-text-muted)]">
@@ -133,7 +133,7 @@ function stateBadge(s: RenewalWindowState): { tone: 'success' | 'warning' | 'neu
         <Badge :tone="stateBadge((row as unknown as RenewalWindowItemDTO).state).tone">{{ stateBadge((row as unknown as RenewalWindowItemDTO).state).label }}</Badge>
       </template>
       <template #cell-azione="{ row }">
-        <Button :disabled="(row as unknown as RenewalWindowItemDTO).state === 'exercised' || !destinationSeasonId" @click="doRenew((row as unknown as RenewalWindowItemDTO).sourceBookingId)">Rinnova</Button>
+        <Button size="sm" :disabled="(row as unknown as RenewalWindowItemDTO).state === 'exercised' || !destinationSeasonId" @click="doRenew((row as unknown as RenewalWindowItemDTO).sourceBookingId)">Rinnova</Button>
       </template>
     </DataTable>
     <EmptyState v-else-if="campaign" message="Nessuna finestra di prelazione per questa campagna." />
@@ -154,7 +154,7 @@ function stateBadge(s: RenewalWindowState): { tone: 'success' | 'warning' | 'neu
             <Badge :tone="(row as unknown as SubscriptionListItemDTO).renewed ? 'success' : 'neutral'">{{ (row as unknown as SubscriptionListItemDTO).renewed ? 'Rinnovato' : 'Da rinnovare' }}</Badge>
           </template>
           <template #cell-azione="{ row }">
-            <Button :disabled="(row as unknown as SubscriptionListItemDTO).renewed" @click="doRenew((row as unknown as SubscriptionListItemDTO).id)">Rinnova</Button>
+            <Button size="sm" :disabled="(row as unknown as SubscriptionListItemDTO).renewed" @click="doRenew((row as unknown as SubscriptionListItemDTO).id)">Rinnova</Button>
           </template>
         </DataTable>
         <EmptyState v-else message="Nessun abbonato nella stagione di origine." />
