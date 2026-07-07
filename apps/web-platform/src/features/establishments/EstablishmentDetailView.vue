@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
 import { useRoute } from 'vue-router';
-import { Badge, Button, ConfirmDialog, EmptyState, StatTile, formatEuro } from '@coralyn/ui-kit';
+import { ActionBar, Badge, Button, ConfirmDialog, EmptyState, StatTile, formatEuro } from '@coralyn/ui-kit';
 import { useEstablishmentDetail, useSuspendEstablishment, useReactivateEstablishment, useResetAdminPassword } from './usePlatformEstablishments';
 import { pushToast } from '@/lib/toasts';
 
@@ -73,18 +73,22 @@ async function onConfirmReset(): Promise<void> {
           <h2 data-testid="detail-name" class="text-[23px] font-bold tracking-[-.015em] text-[var(--color-text)]">{{ data.name }}</h2>
           <Badge data-testid="detail-status" :tone="data.suspendedAt ? 'neutral' : 'success'">{{ data.suspendedAt ? 'Sospeso' : 'Attivo' }}</Badge>
         </div>
-        <Button
-          data-testid="toggle-suspend"
-          variant="secondary"
-          :disabled="suspend.isPending.value || reactivate.isPending.value"
-          @click="askAction"
-        >{{ data.suspendedAt ? 'Riattiva' : 'Sospendi' }}</Button>
-        <Button
-          data-testid="reset-admin"
-          variant="secondary"
-          :disabled="resetPw.isPending.value"
-          @click="askReset"
-        >Reset password admin</Button>
+        <ActionBar gap="sm" align="end">
+          <Button
+            data-testid="toggle-suspend"
+            variant="secondary"
+            size="sm"
+            :disabled="suspend.isPending.value || reactivate.isPending.value"
+            @click="askAction"
+          >{{ data.suspendedAt ? 'Riattiva' : 'Sospendi' }}</Button>
+          <Button
+            data-testid="reset-admin"
+            variant="secondary"
+            size="sm"
+            :disabled="resetPw.isPending.value"
+            @click="askReset"
+          >Reset password admin</Button>
+        </ActionBar>
       </div>
 
       <div class="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">

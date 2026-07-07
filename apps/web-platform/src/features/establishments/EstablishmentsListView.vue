@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
-import { Button, Badge, ConfirmDialog, EmptyState, PageToolbar, Icon, formatEuro, TD, TD_FIRST, TD_RIGHT, TD_NUM } from '@coralyn/ui-kit';
+import { Button, ActionBar, Badge, ConfirmDialog, EmptyState, PageToolbar, Icon, formatEuro, TD, TD_FIRST, TD_RIGHT, TD_NUM } from '@coralyn/ui-kit';
 import type { PlatformEstablishmentDTO } from '@coralyn/contracts';
 import { useEstablishmentsList, useSuspendEstablishment, useReactivateEstablishment } from './usePlatformEstablishments';
 import CreateEstablishmentModal from './CreateEstablishmentModal.vue';
@@ -101,14 +101,15 @@ function isReactivating(id: string): boolean {
               <Badge :tone="e.suspendedAt ? 'neutral' : 'success'">{{ e.suspendedAt ? 'Sospeso' : 'Attivo' }}</Badge>
             </td>
             <td :class="TD_RIGHT">
-              <div class="flex items-center justify-end gap-2">
+              <ActionBar gap="sm" align="end">
                 <RouterLink :to="`/establishments/${e.id}`" data-testid="detail-link">
-                  <Button variant="secondary">Dettaglio</Button>
+                  <Button variant="secondary" size="sm">Dettaglio</Button>
                 </RouterLink>
                 <Button
                   v-if="!e.suspendedAt"
                   :data-testid="`suspend-${e.id}`"
                   variant="secondary"
+                  size="sm"
                   :disabled="isSuspending(e.id)"
                   @click="askSuspend(e)"
                 >Sospendi</Button>
@@ -116,10 +117,11 @@ function isReactivating(id: string): boolean {
                   v-else
                   :data-testid="`reactivate-${e.id}`"
                   variant="secondary"
+                  size="sm"
                   :disabled="isReactivating(e.id)"
                   @click="askReactivate(e)"
                 >Riattiva</Button>
-              </div>
+              </ActionBar>
             </td>
           </tr>
         </tbody>
