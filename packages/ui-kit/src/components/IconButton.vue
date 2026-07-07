@@ -10,7 +10,7 @@ const iconSize = { sm: 14, md: 16 } as const;
 const variants = {
   ghost:  'border-0 bg-transparent text-[var(--color-text-muted)] hover:bg-[var(--color-accent-tint)] hover:text-[var(--color-text)]',
   subtle: 'border border-[var(--color-border)] bg-[var(--color-raised)] text-[var(--color-text-muted)] hover:bg-[var(--color-warm-025)] hover:text-[var(--color-text)]',
-  danger: 'border-0 bg-transparent text-[var(--color-text-muted)] hover:bg-[var(--color-danger-tint,var(--color-accent-tint))] hover:text-[var(--color-danger)]',
+  danger: 'border-0 bg-transparent text-[var(--color-text-muted)] hover:bg-[var(--color-danger-bg)] hover:text-[var(--color-danger)]',
 } as const;
 </script>
 <template>

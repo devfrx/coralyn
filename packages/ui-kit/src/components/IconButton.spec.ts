@@ -31,6 +31,8 @@ describe('IconButton', () => {
   });
   it('applica la variante danger (hover su token --color-danger)', () => {
     const wrapper = mount(IconButton, { props: { icon: 'trash-2', label: 'Elimina', variant: 'danger' } });
-    expect(wrapper.get('button').classes().join(' ')).toContain('--color-danger');
+    const cls = wrapper.get('button').classes().join(' ');
+    expect(cls).toContain('hover:text-[var(--color-danger)]');
+    expect(cls).toContain('hover:bg-[var(--color-danger-bg)]');
   });
 });
