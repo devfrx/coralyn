@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
 import { useRouter } from 'vue-router';
-import { Card, Badge, Button, Icon, Modal, Field, Input, Select, ConfirmDialog } from '@coralyn/ui-kit';
+import { Card, Badge, Button, IconButton, ActionBar, Icon, Modal, Field, Input, Select, ConfirmDialog } from '@coralyn/ui-kit';
 import { Role } from '@coralyn/contracts';
 import type { StructureRowDTO, StructureSectorDTO, StructureUmbrellaDTO, UmbrellaTypeDTO, SectorKind } from '@coralyn/contracts';
 import { useSessionStore } from '@/stores/session';
@@ -216,7 +216,7 @@ function onConfirmDelete() {
           <div class="p-4">
             <div class="mb-3 flex items-center justify-between">
               <span class="text-sm font-bold text-[var(--color-text)]">Settori</span>
-              <Button v-if="isAdmin" data-testid="add-sector" variant="secondary" @click="openNewSector"><Icon name="plus" :size="13" />Nuovo</Button>
+              <Button v-if="isAdmin" data-testid="add-sector" variant="secondary" size="sm" @click="openNewSector"><Icon name="plus" :size="13" />Nuovo</Button>
             </div>
             <div class="flex flex-col gap-2">
               <div v-for="s in sectors" :key="s.id" data-testid="sector-row"
@@ -227,8 +227,10 @@ function onConfirmDelete() {
                   <Badge tone="neutral">{{ s.kind === 'special' ? 'Speciali' : 'Griglia' }}</Badge>
                 </button>
                 <template v-if="isAdmin">
-                  <Button data-testid="edit-sector" variant="secondary" @click="openEditSector(s)"><Icon name="edit" :size="12" /></Button>
-                  <Button data-testid="delete-sector" variant="danger" @click="askDeleteSector(s)"><Icon name="trash-2" :size="12" /></Button>
+                  <ActionBar gap="sm">
+                    <IconButton icon="edit" label="Modifica settore" variant="ghost" size="sm" data-testid="edit-sector" @click="openEditSector(s)" />
+                    <IconButton icon="trash-2" label="Elimina settore" variant="danger" size="sm" data-testid="delete-sector" @click="askDeleteSector(s)" />
+                  </ActionBar>
                 </template>
               </div>
               <p v-if="sectors.length === 0" class="py-2 text-sm text-[var(--color-text-muted)]">Nessun settore.</p>
@@ -240,7 +242,7 @@ function onConfirmDelete() {
           <div class="p-4">
             <div class="mb-1.5 flex items-center justify-between">
               <span class="text-sm font-bold text-[var(--color-text)]">Tipologie</span>
-              <Button v-if="isAdmin" data-testid="add-type" variant="secondary" @click="openNewType"><Icon name="plus" :size="13" />Nuova</Button>
+              <Button v-if="isAdmin" data-testid="add-type" variant="secondary" size="sm" @click="openNewType"><Icon name="plus" :size="13" />Nuova</Button>
             </div>
             <p class="mb-2 text-xs text-[var(--color-text-muted)]">Classificazione ortogonale alla posizione. Normale = predefinita.</p>
             <div class="flex flex-col">
@@ -248,8 +250,10 @@ function onConfirmDelete() {
                 <span class="grid size-8 place-items-center rounded-[9px] bg-[var(--color-raised)] text-[var(--color-text-2nd)]"><Icon :name="t.icon ?? 'umbrella'" :size="16" /></span>
                 <span class="flex-1 text-[13px] font-semibold text-[var(--color-text)]">{{ t.name }}</span>
                 <template v-if="isAdmin">
-                  <Button data-testid="edit-type" variant="secondary" @click="openEditType(t)"><Icon name="edit" :size="13" /></Button>
-                  <Button data-testid="delete-type" variant="danger" @click="askDeleteType(t)"><Icon name="trash-2" :size="13" /></Button>
+                  <ActionBar gap="sm">
+                    <IconButton icon="edit" label="Modifica tipologia" variant="ghost" size="sm" data-testid="edit-type" @click="openEditType(t)" />
+                    <IconButton icon="trash-2" label="Elimina tipologia" variant="danger" size="sm" data-testid="delete-type" @click="askDeleteType(t)" />
+                  </ActionBar>
                 </template>
               </div>
               <p v-if="types.length === 0" class="py-2 text-sm text-[var(--color-text-muted)]">Nessuna tipologia.</p>
@@ -263,7 +267,7 @@ function onConfirmDelete() {
           <div class="mb-3 flex items-center gap-2">
             <span class="text-sm font-bold text-[var(--color-text)]">Settore {{ selectedSector?.name ?? '—' }}</span>
             <Badge v-if="selectedSector" tone="neutral">{{ selectedSector.kind === 'special' ? 'Speciali' : 'Griglia' }}</Badge>
-            <Button v-if="isAdmin && selectedSector" data-testid="add-row" variant="secondary" class="ml-auto" @click="openNewRow"><Icon name="plus" :size="13" />Nuova fila</Button>
+            <Button v-if="isAdmin && selectedSector" data-testid="add-row" variant="secondary" size="sm" class="ml-auto" @click="openNewRow"><Icon name="plus" :size="13" />Nuova fila</Button>
           </div>
           <div v-if="selectedSector" class="flex flex-col gap-3">
             <div v-for="r in selectedSector.rows" :key="r.id" data-testid="row-block" class="rounded-[12px] border border-[var(--color-border)] p-3">
@@ -272,10 +276,12 @@ function onConfirmDelete() {
                 <div class="flex items-center gap-2">
                   <span class="text-xs text-[var(--color-text-muted)]">{{ r.umbrellas.length }} {{ r.umbrellas.length === 1 ? 'ombrellone' : 'ombrelloni' }}</span>
                   <template v-if="isAdmin">
-                    <Button data-testid="generate-umbrellas" variant="secondary" @click="openGenerate(r.id)">Genera</Button>
-                    <Button data-testid="add-umbrella" variant="secondary" @click="openNewUmbrella(r.id)"><Icon name="plus" :size="12" />Aggiungi</Button>
-                    <Button data-testid="edit-row" variant="secondary" @click="openEditRow(r)"><Icon name="edit" :size="12" /></Button>
-                    <Button data-testid="delete-row" variant="danger" @click="askDeleteRow(r)"><Icon name="trash-2" :size="12" /></Button>
+                    <ActionBar gap="sm">
+                      <Button data-testid="generate-umbrellas" variant="secondary" size="sm" @click="openGenerate(r.id)">Genera</Button>
+                      <Button data-testid="add-umbrella" variant="secondary" size="sm" @click="openNewUmbrella(r.id)"><Icon name="plus" :size="12" />Aggiungi</Button>
+                      <IconButton icon="edit" label="Modifica fila" variant="ghost" size="sm" data-testid="edit-row" @click="openEditRow(r)" />
+                      <IconButton icon="trash-2" label="Elimina fila" variant="danger" size="sm" data-testid="delete-row" @click="askDeleteRow(r)" />
+                    </ActionBar>
                   </template>
                 </div>
               </div>
