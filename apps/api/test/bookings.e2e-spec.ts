@@ -663,5 +663,79 @@ describe('Bookings (e2e)', () => {
       await request(app.getHttpServer()).post(`/api/bookings/${res.body.id}/suspend`).set(...bearer(token1))
         .send({ startDate: '2026-08-25', endDate: '2026-08-26' }).expect(422);
     });
+
+    it('aperta poi reactivate: buco [S, R-1], coda [R, end] ricoperta', async () => {
+      const { id, umbrellaId } = await makeSub();
+      // apertura: nessun endDate → coda da S libera a tempo indeterminato
+      await request(app.getHttpServer()).post(`/api/bookings/${id}/suspend`).set(...bearer(token1))
+        .send({ startDate: '2026-07-20', reason: 'Rientro incerto' }).expect(200);
+      // durante l'apertura una daily dopo S passa (posto libero)
+      await request(app.getHttpServer()).post('/api/bookings').set(...bearer(token1))
+        .send(body({ umbrellaId, timeSlotId: ids.slotMorning, type: 'daily', startDate: '2026-08-15' })).expect(201);
+
+      const res = await request(app.getHttpServer()).post(`/api/bookings/${id}/reactivate`).set(...bearer(token1))
+        .send({ returnDate: '2026-09-01', refundAmount: 0 }).expect(200);
+      expect(res.body.endDate).toBe('2026-09-30'); // span invariato
+
+      // dopo il rientro, coda [2026-09-01, …] riservata: una daily lì dà 409
+      await request(app.getHttpServer()).post('/api/bookings').set(...bearer(token1))
+        .send(body({ umbrellaId, timeSlotId: ids.slotMorning, type: 'daily', startDate: '2026-09-05' })).expect(409);
+      // il buco [2026-07-20, 2026-08-31] resta libero
+      await request(app.getHttpServer()).post('/api/bookings').set(...bearer(token1))
+        .send(body({ umbrellaId, timeSlotId: ids.slotAfternoon, type: 'daily', startDate: '2026-08-20' })).expect(201);
+    });
+
+    it('reactivate in conflitto con walk-in nella coda → 409', async () => {
+      const { id, umbrellaId } = await makeSub();
+      await request(app.getHttpServer()).post(`/api/bookings/${id}/suspend`).set(...bearer(token1))
+        .send({ startDate: '2026-07-20' }).expect(200);
+      // walk-in venduto nella futura coda di rientro
+      await request(app.getHttpServer()).post('/api/bookings').set(...bearer(token1))
+        .send(body({ umbrellaId, timeSlotId: ids.slotMorning, type: 'daily', startDate: '2026-09-05' })).expect(201);
+      // reactivate a R=2026-09-01 richiederebbe [2026-09-01, 2026-09-30], che contiene il walk-in → 409
+      await request(app.getHttpServer()).post(`/api/bookings/${id}/reactivate`).set(...bearer(token1))
+        .send({ returnDate: '2026-09-01', refundAmount: 0 }).expect(409);
+    });
+
+    it('una sola sospensione aperta: seconda apertura → 409', async () => {
+      const { id } = await makeSub();
+      await request(app.getHttpServer()).post(`/api/bookings/${id}/suspend`).set(...bearer(token1))
+        .send({ startDate: '2026-07-20' }).expect(200);
+      await request(app.getHttpServer()).post(`/api/bookings/${id}/suspend`).set(...bearer(token1))
+        .send({ startDate: '2026-08-10' }).expect(409);
+    });
+
+    it('reactivate senza sospensione aperta → 409', async () => {
+      const { id } = await makeSub();
+      await request(app.getHttpServer()).post(`/api/bookings/${id}/reactivate`).set(...bearer(token1))
+        .send({ returnDate: '2026-09-01', refundAmount: 0 }).expect(409);
+    });
+
+    it('reactivate con R fuori (≤ S o > endDate) → 422', async () => {
+      const { id } = await makeSub();
+      await request(app.getHttpServer()).post(`/api/bookings/${id}/suspend`).set(...bearer(token1))
+        .send({ startDate: '2026-07-20' }).expect(200);
+      await request(app.getHttpServer()).post(`/api/bookings/${id}/reactivate`).set(...bearer(token1))
+        .send({ returnDate: '2026-07-20', refundAmount: 0 }).expect(422); // R = S
+    });
+
+    it('reactivate: rimborso sui giorni reali aggregato su refundedAmount', async () => {
+      const { id } = await makeSub();
+      await request(app.getHttpServer()).patch(`/api/bookings/${id}/payment`).set(...bearer(token1))
+        .send({ amountCollected: 800, paymentMethod: 'cash' }).expect(200);
+      await request(app.getHttpServer()).post(`/api/bookings/${id}/suspend`).set(...bearer(token1))
+        .send({ startDate: '2026-07-20' }).expect(200);
+      const res = await request(app.getHttpServer()).post(`/api/bookings/${id}/reactivate`).set(...bearer(token1))
+        .send({ returnDate: '2026-08-01', refundAmount: 40 }).expect(200);
+      expect(res.body.refundedAmount).toBe(40);
+    });
+
+    it('reactivate: staff → 403', async () => {
+      const { id } = await makeSub();
+      await request(app.getHttpServer()).post(`/api/bookings/${id}/suspend`).set(...bearer(token1))
+        .send({ startDate: '2026-07-20' }).expect(200);
+      await request(app.getHttpServer()).post(`/api/bookings/${id}/reactivate`).set(...bearer(staffToken))
+        .send({ returnDate: '2026-08-01', refundAmount: 0 }).expect(403);
+    });
   });
 });

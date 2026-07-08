@@ -10,6 +10,7 @@ import { SubscriptionsQueryDto } from './dto/subscriptions-query.dto';
 import { RenewBookingDto } from './dto/renew-booking.dto';
 import { TerminateSubscriptionDto } from './dto/terminate-subscription.dto';
 import { SuspendSubscriptionDto } from './dto/suspend-subscription.dto';
+import { ReactivateSubscriptionDto } from './dto/reactivate-subscription.dto';
 import { Roles } from '../identity/roles.decorator';
 import { resolveDate } from '../common/dates';
 
@@ -59,6 +60,13 @@ export class BookingsController {
   @Roles(Role.Admin)
   suspend(@Param('id') id: string, @Body() body: SuspendSubscriptionDto): Promise<BookingDTO> {
     return this.bookings.suspend(id, body);
+  }
+
+  @Post(':id/reactivate')
+  @HttpCode(200)
+  @Roles(Role.Admin)
+  reactivate(@Param('id') id: string, @Body() body: ReactivateSubscriptionDto): Promise<BookingDTO> {
+    return this.bookings.reactivate(id, body);
   }
 
   @Patch(':id/payment')

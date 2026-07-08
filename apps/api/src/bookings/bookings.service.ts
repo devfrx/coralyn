@@ -626,4 +626,78 @@ export class BookingsService {
     }
     return toBookingDTO(outcome.row);
   }
+
+  /**
+   * Riattiva la sospensione APERTA di un abbonamento (D-013). Fissa R, chiude la sospensione a R-1,
+   * ricopre [R, endDate] e registra il rimborso sui giorni realmente sospesi. Se la coda contiene
+   * walk-in venduti durante l'apertura → 409 (anti-double-booking, mirror priceAndWrite). admin-only.
+   */
+  async reactivate(id: string, input: ReactivateSubscriptionInput): Promise<BookingDTO> {
+    const tenantId = this.tenant.require();
+    const day = 24 * 60 * 60 * 1000;
+    const outcome = await this.prisma.forTenant(tenantId, async (tx) => {
+      const existing = await tx.booking.findFirst({
+        where: { id },
+        include: { timeSlot: true, suspensions: true },
+      });
+      if (!existing) return { error: 'NOT_FOUND' as const };
+      if (existing.type !== 'subscription') return { error: 'NOT_SUBSCRIPTION' as const };
+      const open = existing.suspensions.find((s) => s.endDate === null);
+      if (!open) return { error: 'NO_OPEN' as const };
+
+      const R = toDbDate(input.returnDate);
+      if (!(R > open.startDate && R <= existing.endDate)) return { error: 'BAD_DATE' as const }; // S < R ≤ endDate
+
+      const residual = Number(existing.amountCollected) - Number(existing.refundedAmount);
+      if (!(input.refundAmount >= 0 && input.refundAmount <= residual)) return { error: 'BAD_REFUND' as const };
+
+      // Pre-check anti-overlap su [R, endDate] contro le coperture di ALTRE prenotazioni sullo stesso
+      // ombrellone+fascia (mirror priceAndWrite; esclude la PROPRIA via bookingId).
+      const others = await tx.bookingCoverage.findMany({
+        where: { umbrellaId: existing.umbrellaId, status: 'confirmed', bookingId: { not: id } },
+        include: { booking: { include: { timeSlot: true } } },
+      });
+      const conflict = others.some(
+        (c) => dateRangesOverlap(c.startDate, c.endDate, R, existing.endDate) && slotsOverlap(c.booking.timeSlot, existing.timeSlot),
+      );
+      if (conflict) return { error: 'CONFLICT' as const };
+
+      // Ricopre [R, endDate]. Il constraint coverage_no_overlap resta backstop di sola race.
+      try {
+        await tx.bookingCoverage.create({
+          data: { bookingId: id, establishmentId: tenantId, umbrellaId: existing.umbrellaId,
+            startDate: R, endDate: existing.endDate, status: 'confirmed' },
+        });
+      } catch (e) {
+        if (isBookingOverlapExclusion(e)) throw new ConflictException('Il posto è occupato nel periodo di ritorno');
+        throw e;
+      }
+
+      await tx.bookingSuspension.update({
+        where: { id: open.id },
+        data: {
+          endDate: new Date(R.getTime() - day), // R-1 = ultimo giorno sospeso
+          refundedAmount: input.refundAmount,
+          reactivatedAt: new Date(),
+          reason: input.reason ?? open.reason,
+        },
+      });
+
+      const row = input.refundAmount > 0
+        ? await tx.booking.update({ where: { id }, data: { refundedAmount: { increment: input.refundAmount } } })
+        : existing;
+      return { row };
+    });
+
+    if ('error' in outcome) {
+      const e = outcome.error;
+      if (e === 'NOT_FOUND') throw new NotFoundException('Prenotazione non trovata');
+      if (e === 'NOT_SUBSCRIPTION') throw new UnprocessableEntityException('Solo gli abbonamenti hanno sospensioni');
+      if (e === 'NO_OPEN') throw new ConflictException('Nessuna sospensione aperta da riattivare');
+      if (e === 'BAD_DATE') throw new UnprocessableEntityException('Data di ritorno non valida');
+      if (e === 'CONFLICT') throw new ConflictException('Il posto è occupato nel periodo di ritorno');
+      throw new UnprocessableEntityException('Rimborso non valido'); // BAD_REFUND
+    }
+    return toBookingDTO(outcome.row);
+  }
 }
