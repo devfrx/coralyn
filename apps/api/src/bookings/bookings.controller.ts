@@ -11,6 +11,7 @@ import { RenewBookingDto } from './dto/renew-booking.dto';
 import { TerminateSubscriptionDto } from './dto/terminate-subscription.dto';
 import { SuspendSubscriptionDto } from './dto/suspend-subscription.dto';
 import { ReactivateSubscriptionDto } from './dto/reactivate-subscription.dto';
+import { TransferSubscriptionDto } from './dto/transfer-subscription.dto';
 import { Roles } from '../identity/roles.decorator';
 import { resolveDate } from '../common/dates';
 
@@ -67,6 +68,13 @@ export class BookingsController {
   @Roles(Role.Admin)
   reactivate(@Param('id') id: string, @Body() body: ReactivateSubscriptionDto): Promise<BookingDTO> {
     return this.bookings.reactivate(id, body);
+  }
+
+  @Post(':id/transfer')
+  @HttpCode(200)
+  @Roles(Role.Admin)
+  transfer(@Param('id') id: string, @Body() body: TransferSubscriptionDto): Promise<BookingDTO> {
+    return this.bookings.transfer(id, body);
   }
 
   @Patch(':id/payment')

@@ -1,6 +1,6 @@
 import { Body, Controller, Delete, Get, Param, Patch, Post } from '@nestjs/common';
 import { CustomersService } from './customers.service';
-import { CustomerDTO, CustomerBookingDTO, DeleteCustomerResult, Role } from '@coralyn/contracts';
+import { CustomerDTO, CustomerBookingDTO, CededSubscriptionDTO, DeleteCustomerResult, Role } from '@coralyn/contracts';
 import { CreateCustomerDto } from './dto/create-customer.dto';
 import { UpdateCustomerDto } from './dto/update-customer.dto';
 import { BookingsService } from '../bookings/bookings.service';
@@ -23,6 +23,11 @@ export class CustomersController {
   @Get(':id/bookings')
   listBookings(@Param('id') id: string): Promise<CustomerBookingDTO[]> {
     return this.bookings.listByCustomer(id);
+  }
+
+  @Get(':id/ceded-subscriptions')
+  listCeded(@Param('id') id: string): Promise<CededSubscriptionDTO[]> {
+    return this.bookings.listCededByCustomer(id);
   }
 
   @Get(':id')
