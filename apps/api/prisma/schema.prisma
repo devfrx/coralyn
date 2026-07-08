@@ -195,14 +195,6 @@ model Booking {
   terminationReason String?
   refundedAmount    Decimal   @default(0) @db.Decimal(10, 2)
 
-  // Occupazione oraria denormalizzata da TimeSlot (minuti-dalla-mezzanotte), DB-autoritativa via
-  // trigger booking_fill_slot_minutes_trg (l'app NON le scrive). Alimenta l'EXCLUDE constraint
-  // booking_no_overlap (raw SQL, non modellato qui). Vedi ADR-0037.
-  // @default(0) è un segnaposto MAI osservato: il trigger BEFORE INSERT sovrascrive sempre il valore;
-  // serve solo a rendere il create-input Prisma opzionale (così l'app non è costretta a scriverle).
-  slotStartMin Int @default(0)
-  slotEndMin   Int @default(0)
-
   establishment   Establishment     @relation(fields: [establishmentId], references: [id])
   customer        Customer          @relation(fields: [customerId], references: [id])
   umbrella        Umbrella          @relation(fields: [umbrellaId], references: [id])
@@ -218,8 +210,9 @@ model Booking {
 }
 
 // Occupazione fisica a intervalli (D-013 sospensione spec 1/2, ADR-0046). 1..N righe per Booking
-// (in questo task EXPAND sempre 1 = span del contratto). Il vecchio booking_no_overlap resta
-// primario finché il task CONTRACT non rimuove Booking.slotStartMin/slotEndMin.
+// (in questo task EXPAND sempre 1 = span del contratto). Fase CONTRACT: coverage_no_overlap è ora
+// l'UNICO garante anti-overlap — il vecchio booking_no_overlap e Booking.slotStartMin/slotEndMin
+// sono stati rimossi.
 model BookingCoverage {
   id              String        @id @default(uuid()) @db.Uuid
   bookingId       String        @db.Uuid

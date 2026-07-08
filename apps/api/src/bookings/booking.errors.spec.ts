@@ -2,15 +2,15 @@ import { Prisma } from '@prisma/client';
 import { isBookingOverlapExclusion } from './booking.errors';
 
 describe('isBookingOverlapExclusion', () => {
-  it('riconosce una violazione del constraint booking_no_overlap (per nome constraint nel messaggio)', () => {
+  it('riconosce una violazione del constraint coverage_no_overlap (per nome constraint nel messaggio)', () => {
     const e = new Prisma.PrismaClientUnknownRequestError(
-      'raw query failed. code: `23P01`. message: `conflicting key value violates exclusion constraint "booking_no_overlap"`',
+      'raw query failed. code: `23P01`. message: `conflicting key value violates exclusion constraint "coverage_no_overlap"`',
       { clientVersion: '5.20.0' },
     );
     expect(isBookingOverlapExclusion(e)).toBe(true);
   });
 
-  it('NON scatta su un 23P01 di un altro exclusion constraint (nessun nome booking_no_overlap)', () => {
+  it('NON scatta su un 23P01 di un altro exclusion constraint (nessun nome coverage_no_overlap)', () => {
     const e = new Prisma.PrismaClientUnknownRequestError('… code: 23P01 …', { clientVersion: '5.20.0' });
     expect(isBookingOverlapExclusion(e)).toBe(false);
   });
