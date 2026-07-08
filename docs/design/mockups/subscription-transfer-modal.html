@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Coralyn — Cessione abbonamento (mockup)</title>
+<style>
+  /* Mockup self-contained (ADR-0009): nessun asset esterno, nessun build.
+     Palette "Mediterraneo Caldo" (ADR-0027), coerente con Coralyn.dc.html. */
+  :root{
+    --sand:#ECE3D5; --panel:#FBF6EE; --panel-2:#F4ECE0;
+    --teal-900:#0F3C49; --teal-700:#16505E; --teal-border:#23606E;
+    --ink:#2B2722; --muted:#8A8175; --muted-teal:#6E9197;
+    --coral:#E0795A; --coral-700:#C9613F;
+    --border:#E7DCCB; --border-2:#D8CBB6;
+    --ok:#2E7D6B; --warn:#B77A2B; --danger:#B4472E;
+    --radius:14px;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    font-family:'Inter',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+    background:var(--sand); color:var(--ink);
+    -webkit-font-smoothing:antialiased; padding:28px 20px 60px;
+  }
+  .doc{max-width:1120px;margin:0 auto;}
+  .doc-head{margin-bottom:22px;}
+  .doc-head h1{font-size:20px;font-weight:700;letter-spacing:-.01em;margin:0 0 6px;}
+  .doc-head p{margin:0;color:var(--muted);font-size:13px;line-height:1.5;max-width:78ch;}
+  .badge-design{display:inline-block;font-size:10px;font-weight:600;letter-spacing:.08em;
+    text-transform:uppercase;color:#8a5a2b;background:#F3E4CE;border:1px solid #E4C7A4;
+    padding:3px 9px;border-radius:99px;margin-bottom:10px;}
+  .gallery{display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:22px;align-items:start;}
+  .frame{background:var(--panel-2);border:1px solid var(--border);border-radius:18px;padding:16px;
+    box-shadow:0 1px 2px rgba(43,39,34,.04);}
+  .frame > .cap{font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;
+    color:var(--muted-teal);margin:2px 2px 12px;}
+
+  /* ---- Scheda card excerpt ---- */
+  .card{background:var(--panel);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;}
+  .card-h{display:flex;align-items:center;gap:10px;padding:13px 15px;border-bottom:1px solid var(--border);}
+  .card-h .t{font-size:13.5px;font-weight:600;}
+  .card-h .pill{margin-left:auto;font-size:10px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;
+    color:var(--muted-teal);background:#EBF0EF;border:1px solid #D6E2E0;padding:3px 8px;border-radius:99px;}
+  .sub-row{padding:13px 15px;}
+  .sub-top{display:flex;align-items:flex-start;gap:12px;}
+  .sub-ic{width:38px;height:38px;flex:none;border-radius:10px;background:linear-gradient(150deg,#85B4B2,#5E9AA6);
+    display:flex;align-items:center;justify-content:center;color:#0F3C49;}
+  .sub-ic svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;}
+  .sub-meta .name{font-size:14px;font-weight:600;}
+  .sub-meta .det{font-size:12px;color:var(--muted);margin-top:2px;}
+  .sub-actions{margin-left:auto;display:flex;gap:8px;}
+  .status-rows{margin-top:12px;display:flex;flex-direction:column;gap:8px;}
+  .st{display:flex;align-items:center;gap:9px;font-size:12.5px;padding:8px 11px;border-radius:10px;}
+  .st.open{background:#FBEFE7;border:1px solid #F0D6C4;color:#8a4a2b;}
+  .st.hist{background:#F1EEE7;border:1px solid var(--border);color:var(--muted);}
+  .st.ceded{background:#EAF1EF;border:1px solid #CFE1DC;color:var(--teal-700);}
+  .st .dot{width:7px;height:7px;border-radius:99px;flex:none;}
+  .st.open .dot{background:var(--coral);}
+  .st.hist .dot{background:var(--border-2);}
+  .st.ceded .dot{background:#5E9AA6;}
+  .st .grow{flex:1;}
+  .st .amt{font-weight:600;color:var(--ink);}
+
+  /* ---- Buttons ---- */
+  .btn{font:inherit;font-size:12.5px;font-weight:600;border-radius:9px;padding:8px 13px;cursor:pointer;
+    border:1px solid transparent;display:inline-flex;align-items:center;gap:6px;line-height:1;}
+  .btn-primary{background:var(--coral);color:#fff;}
+  .btn-primary:hover{background:var(--coral-700);}
+  .btn-ghost{background:transparent;border-color:var(--border-2);color:var(--ink);}
+  .btn-ghost:hover{background:#EFE8DC;}
+  .btn-quiet{background:#EEE7DB;color:var(--teal-900);border-color:var(--border-2);}
+  .btn-quiet:hover{background:#E5DCCC;}
+  .btn-sm{font-size:11.5px;padding:6px 10px;}
+  .admin-tag{font-size:9px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted-teal);
+    border:1px solid #D6E2E0;border-radius:99px;padding:2px 6px;}
+
+  /* ---- Modal ---- */
+  .modal-scrim{background:rgba(15,60,73,.14);border:1px dashed var(--border-2);border-radius:16px;
+    padding:22px;display:flex;justify-content:center;}
+  .modal{width:100%;max-width:400px;background:var(--panel);border:1px solid var(--border);border-radius:16px;
+    box-shadow:0 18px 44px -20px rgba(15,60,73,.4);overflow:hidden;}
+  .modal-h{padding:16px 18px 14px;border-bottom:1px solid var(--border);}
+  .modal-h .row{display:flex;align-items:center;gap:10px;}
+  .modal-h h3{margin:0;font-size:15px;font-weight:700;letter-spacing:-.01em;}
+  .modal-h .x{margin-left:auto;width:28px;height:28px;border:0;background:transparent;border-radius:8px;
+    color:var(--muted);cursor:pointer;display:flex;align-items:center;justify-content:center;}
+  .modal-h .x svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;}
+  .modal-h .sub{margin-top:6px;font-size:12px;color:var(--muted);}
+  .modal-b{padding:16px 18px;}
+  .modal-f{padding:13px 18px 16px;border-top:1px solid var(--border);display:flex;gap:9px;justify-content:flex-end;background:var(--panel-2);}
+
+  .field{margin-bottom:13px;}
+  .field > label{display:block;font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;
+    color:var(--muted);margin-bottom:5px;}
+  .control{width:100%;font:inherit;font-size:13px;color:var(--ink);background:#FFFDF8;border:1px solid var(--border-2);
+    border-radius:9px;padding:9px 11px;}
+  .control:focus{outline:2px solid rgba(224,121,90,.35);border-color:var(--coral);}
+  textarea.control{resize:vertical;min-height:56px;}
+  .euro{position:relative;}
+  .euro .control{padding-left:26px;}
+  .euro .sym{position:absolute;left:11px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:13px;}
+  .hint{font-size:11px;color:var(--muted-teal);margin-top:5px;line-height:1.4;}
+  .hint b{color:var(--teal-700);font-weight:600;}
+  .note{font-size:11.5px;color:var(--muted);background:#F1EEE7;border:1px solid var(--border);border-radius:9px;
+    padding:9px 11px;line-height:1.45;margin-top:2px;}
+  .foot-note{margin-top:26px;color:var(--muted);font-size:12px;line-height:1.55;max-width:86ch;}
+  .foot-note code{background:#F1EADC;padding:1px 5px;border-radius:5px;font-size:11.5px;}
+
+  /* combobox subentrante */
+  .combo{position:relative;}
+  .combo .control{padding-right:32px;}
+  .combo .ic{position:absolute;right:10px;top:50%;transform:translateY(-50%);color:var(--muted);pointer-events:none;}
+  .combo .ic svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;}
+  .picked{display:flex;align-items:center;gap:9px;background:#FFFDF8;border:1px solid var(--border-2);
+    border-radius:9px;padding:8px 10px;margin-top:2px;}
+  .picked .av{width:26px;height:26px;flex:none;border-radius:99px;background:linear-gradient(150deg,#85B4B2,#5E9AA6);
+    display:flex;align-items:center;justify-content:center;color:#F6EEE1;font-size:11px;font-weight:700;}
+  .picked .nm{font-size:12.5px;font-weight:600;flex:1;}
+  .picked .clear{border:0;background:transparent;color:var(--muted);cursor:pointer;padding:2px;
+    display:flex;align-items:center;}
+  .picked .clear svg{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;}
+
+  /* amount pair with quick actions */
+  .amt-pair{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:6px;}
+  .quick{display:flex;gap:6px;margin-top:7px;flex-wrap:wrap;}
+  .chip{font:inherit;font-size:10.5px;font-weight:600;border:1px solid var(--border-2);background:#EFE8DC;
+    color:var(--teal-900);border-radius:99px;padding:5px 10px;cursor:pointer;line-height:1;}
+  .chip:hover{background:#E5DCCC;}
+  .chip.on{background:var(--teal-900);color:#F6EEE1;border-color:var(--teal-900);}
+</style>
+</head>
+<body>
+<div class="doc">
+  <div class="doc-head">
+    <span class="badge-design">Design · non ancora implementata</span>
+    <h1>Cessione / Subentro abbonamento — Scheda cliente</h1>
+    <p>Mockup della sotto-slice finale di <b>D-013</b>. La cessione trasferisce la titolarità
+      dell'abbonamento a un altro cliente <b>preservando anzianità e prelazione</b>, senza toccare
+      l'occupazione (<code>BookingCoverage</code>). Riconciliazione incasso a <b>movimento netto</b> su
+      <code>amountCollected</code>; <code>refundedAmount</code> resta intatto (ADR-0047). Azione
+      <b>solo admin</b>, accanto a "Disdici"/"Sospendi".</p>
+  </div>
+
+  <div class="gallery">
+
+    <!-- ============ CARD ============ -->
+    <div class="frame">
+      <div class="cap">CustomerSubscriptionsCard — stato (Scheda del subentrante B)</div>
+      <div class="card">
+        <div class="card-h">
+          <span class="t">Abbonamenti</span>
+          <span class="pill">Stagione 2026</span>
+        </div>
+        <div class="sub-row">
+          <div class="sub-top">
+            <span class="sub-ic"><svg viewBox="0 0 24 24"><path d="M3.2 11.5a8.8 8.8 0 0 1 17.6 0Z"/><path d="M12 11.5v6.6a2 2 0 0 0 4 0"/></svg></span>
+            <div class="sub-meta">
+              <div class="name">Ombrellone 47 · Fila B</div>
+              <div class="det">Giornata intera · 01 giu – 15 set · €1.240 incassati</div>
+            </div>
+            <div class="sub-actions">
+              <button class="btn btn-ghost btn-sm">Disdici</button>
+              <button class="btn btn-quiet btn-sm">Sospendi</button>
+              <button class="btn btn-quiet btn-sm">Cedi / Subentro</button>
+            </div>
+          </div>
+
+          <div class="status-rows">
+            <div class="st ceded">
+              <span class="dot"></span>
+              <span class="grow">Ceduto a <b>Bianchi Laura</b> il 14 lug (da Rossi Marco)</span>
+              <span class="amt">rimborso €410,00 · incasso €410,00</span>
+            </div>
+            <div class="st hist">
+              <span class="dot"></span>
+              <span class="grow">Sospeso dal 03 giu al 10 giu · motivo: viaggio</span>
+              <span class="amt">rimborso €84,00</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="note" style="margin-top:12px;">
+        Bottone <b>Cedi / Subentro</b> visibile solo ad <span class="admin-tag">admin</span>
+        (pattern <code>isAdmin</code> già in card), attivo solo se confermato, non disdetto e senza
+        sospensione aperta. Le righe "Ceduto a…" derivano da <code>transfers[]</code> sul
+        <code>CustomerBookingDTO</code> (sempre visibili, anche a staff).
+      </div>
+    </div>
+
+    <!-- ============ TRANSFER MODAL ============ -->
+    <div class="frame">
+      <div class="cap">TransferSubscriptionModal</div>
+      <div class="modal-scrim">
+        <div class="modal">
+          <div class="modal-h">
+            <div class="row">
+              <h3>Cedi abbonamento</h3>
+              <button class="x" aria-label="Chiudi"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+            </div>
+            <div class="sub">Ombrellone 47 · Giornata intera · cedente: Rossi Marco</div>
+          </div>
+          <div class="modal-b">
+
+            <div class="field">
+              <label>Subentrante</label>
+              <div class="combo">
+                <input class="control" type="text" placeholder="Cerca cliente per nome…" value="Bianchi Laura">
+                <span class="ic"><svg viewBox="0 0 24 24"><path d="M11 19a8 8 0 1 1 0-16 8 8 0 0 1 0 16Zm9 2-4.35-4.35"/></svg></span>
+              </div>
+              <div class="picked">
+                <span class="av">BL</span>
+                <span class="nm">Bianchi Laura</span>
+                <button class="clear" aria-label="Rimuovi selezione"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+              </div>
+              <div class="hint">Cliente esistente del tenant, non anonimizzato, <b>diverso</b> dal titolare
+                attuale. La creazione inline non è prevista: si crea prima in anagrafica.</div>
+            </div>
+
+            <div class="field">
+              <label>Data effettiva</label>
+              <input class="control" type="date" value="2026-07-14" min="2026-06-01" max="2026-09-15">
+              <div class="hint">Da quando B è titolare · <b>min = inizio</b>, <b>max = fine</b> abbonamento.
+                Solo informativa/base del pro-rata: non splitta il contratto, nessun vincolo "da oggi".</div>
+            </div>
+
+            <div class="field">
+              <label>Regolamento cassa</label>
+              <div class="amt-pair">
+                <div>
+                  <div class="hint" style="margin:0 0 5px;">Rimborso al cedente</div>
+                  <div class="euro"><span class="sym">€</span><input class="control" type="number" step="0.01" value="410.00"></div>
+                </div>
+                <div>
+                  <div class="hint" style="margin:0 0 5px;">Incasso dal subentrante</div>
+                  <div class="euro"><span class="sym">€</span><input class="control" type="number" step="0.01" value="410.00"></div>
+                </div>
+              </div>
+              <div class="quick">
+                <button class="chip on" type="button">Usa suggerito</button>
+                <button class="chip" type="button">Regolamento privato (0 / 0)</button>
+              </div>
+              <div class="hint">Suggerito <b>€410,00</b> — pro-rata sul residuo <b>[14 lug, 15 set]</b>
+                (64 giorni / 107 pianificati), precompila entrambi i campi (handover pulito). Modificabili
+                liberamente: azzera per il regolamento privato A↔B, ritocca per un importo rinegoziato.</div>
+            </div>
+
+            <div class="field">
+              <label>Motivo (facoltativo)</label>
+              <textarea class="control" placeholder="es. trasferimento in altra città">Trasferimento familiare</textarea>
+            </div>
+          </div>
+          <div class="modal-f">
+            <button class="btn btn-ghost">Annulla</button>
+            <button class="btn btn-primary">Cedi abbonamento</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============ CEDED SECTION (donor's card) ============ -->
+    <div class="frame">
+      <div class="cap">Sezione "Cessioni effettuate" — Scheda del cedente A (read-only)</div>
+      <div class="card">
+        <div class="card-h">
+          <span class="t">Cessioni effettuate</span>
+        </div>
+        <div class="sub-row">
+          <div class="status-rows" style="margin-top:0;">
+            <div class="st ceded">
+              <span class="dot"></span>
+              <span class="grow">Ombrellone 47 ceduto a <b>Bianchi Laura</b> il 14 lug</span>
+              <span class="amt">rimborso ricevuto €410,00</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="note" style="margin-top:12px;">
+        Visibile a <b>tutti</b> (non admin-only, è sola lettura). Compare solo se la lista
+        <code>CededSubscriptionDTO[]</code> non è vuota — l'abbonamento ora vive sotto B, ma A conserva
+        traccia visibile di ciò che ha ceduto (<code>GET /customers/:id/ceded-subscriptions</code>).
+      </div>
+    </div>
+
+  </div>
+
+  <p class="foot-note">
+    <b>Note di design.</b> I due importi mostrano un <b>suggerimento pro-rata calcolato nel FE</b>
+    (<code>totalPrice × giorni&nbsp;residui / giorni&nbsp;pianificati</code>, clampato a
+    <code>[0, amountCollected]</code>) che precompila <b>entrambi</b> i campi per un handover pulito
+    (<code>amountCollected</code> invariato se l'operatore non li tocca); "Usa suggerito" li ripristina,
+    "Regolamento privato" li azzera entrambi. Il server valida <b>solo i bound</b> — nessun endpoint di
+    preview. Riconciliazione: <code>amountCollected</code> si muove del netto
+    (<code>− rimborso + incasso</code>, clamp <code>[0, totalPrice]</code>), <code>paymentStatus</code> è
+    ricalcolato, <code>refundedAmount</code> <b>non</b> è mai toccato (la cessione è un trasferimento, non
+    una perdita di ricavo — <a href="../../architecture/decisions/0047-cessione-subentro-titolarita-incasso.md">ADR-0047</a>).
+    Componenti riusati dal <code>ui-kit</code> (<code>Modal</code>/<code>Field</code>/<code>Input</code>/<code>Textarea</code>,
+    più il selettore cliente già usato in creazione prenotazione); nessun nuovo componente.
+  </p>
+</div>
+</body>
+</html>

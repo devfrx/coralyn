@@ -139,3 +139,57 @@ flowchart LR
 > "usa la disdetta" — invariante server, non nudge FE); il rimborso è discrezione dell'operatore
 > (suggerimento pro-rata **solo FE**, il server valida i bound), aggregato su `Booking.refundedAmount`.
 
+## 6. Cessione/subentro abbonamento (D-013, *in design*)
+
+Un abbonato cede il posto a un altro cliente, che eredita il contratto — stesso ombrellone, stessa stagione,
+**stessa anzianità e prelazione**. Agisce **solo sulla titolarità** (`Booking.customerId`), mai
+sull'occupazione (`BookingCoverage`) né sullo span di contratto: prezzo, rinnovo, prelazione e seniority
+seguono automaticamente il subentrante. Vedi la
+[spec](../superpowers/specs/2026-07-08-subscription-cession-design.md),
+[ADR-0047](../architecture/decisions/0047-cessione-subentro-titolarita-incasso.md) (trasferimento titolarità
++ riconciliazione incasso), [ADR-0011](../architecture/decisions/0011-incasso-base-nel-core.md) (incasso
+base), [ADR-0046](../architecture/decisions/0046-occupazione-a-intervalli-coverage.md) (coverage, non
+toccata).
+
+**Decisione operatore** (admin) sulla Scheda cliente, bottone adiacente a "Disdici"/"Sospendi":
+
+```mermaid
+flowchart TD
+    A[Abbonamento confermato, non disdetto,<br/>senza sospensione aperta] --> B[Cedi/Subentro]
+    B --> G{Guardie}
+    G -->|tipo≠subscription o stato≠confirmed| E1[422]
+    G -->|già disdetto| E2[422]
+    G -->|sospensione aperta| E3[409]
+    G -->|subentrante inesistente nel tenant| E4[404]
+    G -->|subentrante anonimizzato o = titolare attuale| E5[422 SAME_HOLDER]
+    G -->|effectiveDate fuori [start,end]| E6[422 BAD_DATE]
+    G -->|bound cassa violati| E7[422 BAD_REFUND / BAD_COLLECT / OVER_TOTAL]
+    G -->|tutte superate| W[Scrivi in transazione]
+    W --> W1[BookingTransfer.create<br/>previousCustomerId=A, newCustomerId=B, effectiveDate, movimenti lordi]
+    W --> W2["Booking.update<br/>customerId=B, amountCollected=netto, paymentStatus"]
+    W1 --> R[BookingDTO aggiornato]
+    W2 --> R
+    R --> N[Scheda di B: nuovo titolare + storico transfers<br/>Scheda di A: sezione 'Cessioni effettuate']
+```
+
+**Riconciliazione incasso** (dentro la transazione, tenant-scoped — vedi
+[ADR-0047](../architecture/decisions/0047-cessione-subentro-titolarita-incasso.md) per la motivazione):
+
+```mermaid
+flowchart LR
+    S0["amountCollected corrente"] --> M["netto = amountCollected<br/>− refundToPrevious + collectedFromNew<br/>clamp [0, totalPrice]"]
+    M --> P["paymentStatus derivato<br/>(unpaid/partial/paid)"]
+    M --> B["Booking.amountCollected = netto"]
+    S0 -.->|"refundedAmount"| X["INVARIATO<br/>(trasferimento, non perdita di ricavo)"]
+```
+
+> **Invarianti chiave** (§6 spec): tipo `subscription`, stato `confirmed`, non disdetto (422); **nessuna
+> sospensione aperta** (409 — si cede un contratto "pulito"); subentrante = `Customer` esistente nel tenant
+> (404), non anonimizzato ([ADR-0043](../architecture/decisions/0043-erasure-e-retention-cliente-gdpr.md)),
+> diverso dal titolare attuale (422 `SAME_HOLDER`); `effectiveDate ∈ [start, end]` (422 `BAD_DATE`, **nessun**
+> vincolo `≥ oggi` — si può registrare una cessione anche per una data passata); bound cassa
+> `0 ≤ refundToPrevious ≤ amountCollected` (422 `BAD_REFUND`), `collectedFromNew ≥ 0` (422 `BAD_COLLECT`),
+> netto `≤ totalPrice` (422 `OVER_TOTAL`). Il suggerimento pro-rata che pre-compila i due importi è **solo
+> FE**, nessun endpoint di preview; il server valida solo i bound. **Occupazione (`BookingCoverage`)
+> invariata**: la mappa mostra l'ombrellone occupato con continuità prima e dopo la cessione.
+

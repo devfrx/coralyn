@@ -46,12 +46,21 @@
 > `E-1`; nessun nuovo enum). La **fondazione della sospensione** ([ADR-0046](../architecture/decisions/0046-occupazione-a-intervalli-coverage.md),
 > mergiata) ha estratto l'occupazione fisica dalle colonne dirette su `Booking` a una child table
 > **`BookingCoverage`** (1..N intervalli per prenotazione): l'anti-overlap `coverage_no_overlap` (EXCLUDE su
-> `daterange`) vive **qui**, non più su `Booking` (il vecchio `booking_no_overlap` è stato rimosso). **In
-> design, non ancora implementata:** **`BookingSuspension`** — la sospensione temporanea vera e propria, che
-> **scava un buco** nella copertura (due modalità *chiusa* `[S,R-1]` / *aperta* con riattiva, unificate da
-> `endDate` nullable) **senza toccare lo span di contratto** su `Booking` (prezzo/rinnovo/prelazione/seniority
-> restano invariati: un sospeso conserva i diritti). Spec
+> `daterange`) vive **qui**, non più su `Booking` (il vecchio `booking_no_overlap` è stato rimosso). La
+> **sospensione** vera e propria — **`BookingSuspension`**, che **scava un buco** nella copertura (due
+> modalità *chiusa* `[S,R-1]` / *aperta* con riattiva, unificate da `endDate` nullable) **senza toccare lo
+> span di contratto** su `Booking` (prezzo/rinnovo/prelazione/seniority restano invariati: un sospeso
+> conserva i diritti) — è mergiata. Spec
 > [2026-07-08-subscription-suspension-design.md](../superpowers/specs/2026-07-08-subscription-suspension-design.md).
+> **In design, non ancora implementata:** la **cessione/subentro** — passaggio di titolarità di un
+> abbonamento da un cliente A (cedente) a un cliente B (subentrante) sulla **stessa** `Booking`
+> (`customerId` A→B; seniority e prelazione preservate, ereditate da B), con storico su una nuova child
+> table **`BookingTransfer`** (mirror `BookingSuspension`) e riconciliazione incasso a **movimento netto**
+> su `Booking.amountCollected` (`refundedAmount` **non** toccato — la cessione è un trasferimento, non una
+> perdita di ricavo). `BookingCoverage` **non è toccata** dalla cessione (tocca il titolare, non
+> l'occupazione). Vedi [ADR-0047](../architecture/decisions/0047-cessione-subentro-titolarita-incasso.md) e
+> la spec
+> [2026-07-08-subscription-cession-design.md](../superpowers/specs/2026-07-08-subscription-cession-design.md).
 
 Fonte di verità del modello dati del Core operativo. Decisioni:
 [mappa](../architecture/decisions/0005-modello-mappa.md),
@@ -85,9 +94,13 @@ erDiagram
     BOOKING ||--o| BOOKING : "rinnovata in"
     BOOKING ||--|{ BOOKING_COVERAGE : "occupa via (1..N)"
     BOOKING ||--o{ BOOKING_SUSPENSION : "sospesa da"
+    BOOKING ||--o{ BOOKING_TRANSFER : "ceduta via (0..N, in design)"
     UMBRELLA ||--o{ BOOKING_COVERAGE : "coperto da"
     ESTABLISHMENT ||--o{ BOOKING_COVERAGE : "possiede"
     ESTABLISHMENT ||--o{ BOOKING_SUSPENSION : "possiede"
+    ESTABLISHMENT ||--o{ BOOKING_TRANSFER : "possiede"
+    CUSTOMER ||--o{ BOOKING_TRANSFER : "cede via (previousCustomer, in design)"
+    CUSTOMER ||--o{ BOOKING_TRANSFER : "riceve via (newCustomer, in design)"
     CUSTOMER ||--o{ WAITLIST : "richiede"
     SEASON ||--o{ RENEWAL_CAMPAIGN : "origine di"
     SEASON ||--o{ RENEWAL_CAMPAIGN : "destinazione di"
@@ -178,7 +191,7 @@ erDiagram
     BOOKING {
         uuid id PK
         uuid establishmentId FK
-        uuid customerId FK
+        uuid customerId FK "mutabile via cessione (in design, ADR-0047): A->B, identita del contratto preservata"
         uuid umbrellaId FK
         uuid timeSlotId FK "slot prenotato"
         uuid packageId FK
@@ -217,6 +230,18 @@ erDiagram
         decimal refundedAmount "default 0; rimborso di QUESTA sospensione"
         string reason "nullable"
         timestamp reactivatedAt "nullable; valorizzato quando un'aperta viene chiusa via Riattiva"
+        timestamp createdAt
+    }
+    BOOKING_TRANSFER {
+        uuid id PK "in design, ADR-0047 — non ancora implementata"
+        uuid bookingId FK
+        uuid establishmentId FK "tenant (RLS FORCE)"
+        uuid previousCustomerId FK "cedente (A) al momento della cessione"
+        uuid newCustomerId FK "subentrante (B)"
+        date effectiveDate "informativa + base pro-rata; non splitta il contratto"
+        decimal refundToPrevious "default 0; movimento lordo, non aggregato su Booking.refundedAmount"
+        decimal collectedFromNew "default 0; movimento lordo"
+        string reason "nullable"
         timestamp createdAt
     }
     WAITLIST {
@@ -317,6 +342,17 @@ erDiagram
   disdetta + sospensioni, così il netto `amountCollected − refundedAmount` resta fonte unica per i report.
   `BookingSuspension` è tenant-scoped (RLS FORCE) e pura storia/accountability (l'anti-double-booking è
   garantito dalla copertura, non da qui).
+- **Cessione/subentro (D-013, *in design*, [ADR-0047](../architecture/decisions/0047-cessione-subentro-titolarita-incasso.md))**:
+  la cessione tocca **il titolare, non l'occupazione**. `Booking.customerId` è **mutabile** — passa da A
+  (cedente) a B (subentrante) sulla **stessa** riga; span di contratto, prezzo, `previousBookingId`
+  (seniority) e prelazione restano invariati e seguono B automaticamente. `BookingCoverage` non è toccata
+  (nessun carve, nessuna interazione con `coverage_no_overlap`). La riconciliazione incasso è un
+  **movimento netto** su `amountCollected` (`− refundToPrevious + collectedFromNew`, clampato
+  `[0, totalPrice]`, `paymentStatus` ricalcolato); **`refundedAmount` non viene toccato** dalla cessione (è
+  un trasferimento, non una perdita di ricavo — a differenza di disdetta/sospensione), così
+  `netto = amountCollected − refundedAmount` resta fonte unica. Lo storico vive sulla nuova child table
+  **`BookingTransfer`** (mirror `BookingSuspension`: RLS FORCE, pura storia, nessun `createdBy` → audit
+  attore deferito a D-047).
 - **Risoluzione prezzo** (slice A3.1, **implementato**): il pricing engine puro (`resolvePrice`)
   seleziona la `Rate` applicabile secondo la **precedenza esplicita lessicografica**
   periodo › fila › settore › pacchetto › fascia › tipo ([ADR-0032](../architecture/decisions/0032-pricing-engine-precedenza.md)).
