@@ -12,6 +12,9 @@ function makeTx() {
       count: jest.fn(),
       findMany: jest.fn(),
     },
+    bookingCoverage: {
+      findMany: jest.fn(),
+    },
   };
 }
 
@@ -35,7 +38,7 @@ describe('PlatformMetricsService', () => {
     tx.booking.count
       .mockResolvedValueOnce(7)   // bookingsThisSeason
       .mockResolvedValueOnce(4);  // activeSubscriptions
-    tx.booking.findMany.mockResolvedValue([{ umbrellaId: 'u1' }, { umbrellaId: 'u2' }]); // occupied distinct
+    tx.bookingCoverage.findMany.mockResolvedValue([{ umbrellaId: 'u1' }, { umbrellaId: 'u2' }]); // occupied distinct
     const { service } = makeService(tx);
 
     const dto = await service.metricsFor(EST);
@@ -56,7 +59,7 @@ describe('PlatformMetricsService', () => {
     tx.season.findFirst.mockResolvedValue(null);
     tx.booking.aggregate.mockResolvedValueOnce({ _max: { createdAt: null } }); // lastActivity solo (no revenue call)
     tx.booking.count.mockResolvedValueOnce(1); // activeSubscriptions
-    tx.booking.findMany.mockResolvedValue([]);
+    tx.bookingCoverage.findMany.mockResolvedValue([]);
     const { service } = makeService(tx);
 
     const dto = await service.metricsFor(EST);

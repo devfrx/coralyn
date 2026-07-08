@@ -45,7 +45,7 @@ export class BookingsService {
     const dayDate = toDbDate(date);
     const rows = await this.prisma.forTenant(tenantId, (tx) =>
       tx.booking.findMany({
-        where: { status: 'confirmed', startDate: { lte: dayDate }, endDate: { gte: dayDate } },
+        where: { coverages: { some: { status: 'confirmed', startDate: { lte: dayDate }, endDate: { gte: dayDate } } } },
         orderBy: { createdAt: 'asc' },
       }),
     );
@@ -198,20 +198,18 @@ export class BookingsService {
     const dbStart = toDbDate(p.startDate);
     const dbEnd = toDbDate(p.endDate);
 
-    // Anti-overlap su intervallo (ADR-0013): stesso ombrellone, date intersecanti, fascia sovrapposta.
-    // Un rinnovo non confligge mai con la propria sorgente (`previousBookingId`, ancora `confirmed`): la
-    // si esclude, così una stagione di destinazione adiacente a quella della sorgente non produce un 409
-    // spurio contro sé stessa. Per la create (`previousBookingId=null`) l'esclusione è un no-op.
-    const sameUmbrella = await tx.booking.findMany({
+    // Anti-overlap su intervallo (ADR-0013): confronta con le COPERTURE confermate dello stesso
+    // ombrellone (occupazione fisica, ADR-0046). Il rinnovo esclude le proprie coperture via bookingId.
+    const coverages = await tx.bookingCoverage.findMany({
       where: {
         umbrellaId: p.umbrellaId,
         status: 'confirmed',
-        ...(p.previousBookingId ? { id: { not: p.previousBookingId } } : {}),
+        ...(p.previousBookingId ? { bookingId: { not: p.previousBookingId } } : {}),
       },
-      include: { timeSlot: true },
+      include: { booking: { include: { timeSlot: true } } },
     });
-    const conflict = sameUmbrella.some(
-      (b) => dateRangesOverlap(b.startDate, b.endDate, dbStart, dbEnd) && slotsOverlap(b.timeSlot, p.slot),
+    const conflict = coverages.some(
+      (c) => dateRangesOverlap(c.startDate, c.endDate, dbStart, dbEnd) && slotsOverlap(c.booking.timeSlot, p.slot),
     );
     if (conflict) throw new ConflictException('Fascia non disponibile per questo ombrellone');
 

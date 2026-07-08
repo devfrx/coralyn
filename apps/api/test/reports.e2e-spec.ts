@@ -6,6 +6,7 @@ import { AppModule } from '../src/app.module';
 import { PrismaService } from '../src/prisma/prisma.service';
 import { createUser, login } from './helpers/seed-auth';
 import { seedMapTenant, cleanMapTenant, type MapSeedIds } from './helpers/seed-map';
+import { insertBookingWithCoverage } from './helpers/insert-booking-with-coverage';
 
 const bearer = (t: string): [string, string] => ['Authorization', `Bearer ${t}`];
 
@@ -94,48 +95,35 @@ describe('Reports (e2e)', () => {
       const todayDate = new Date(`${todayIso}T00:00:00Z`);
       const tenDaysAgo = new Date(`${isoPlusDays(todayIso, -10)}T00:00:00Z`);
 
-      await prisma.forTenant(s2, async (tx) => {
+      const custId = await prisma.forTenant(s2, async (tx) => {
         await tx.season.create({
           data: { establishmentId: s2, name: 'Stagione corrente', startDate: seasonStart, endDate: seasonEnd },
         });
         const cust = await tx.customer.create({
           data: { establishmentId: s2, firstName: 'Rev', lastName: 'Test' },
         });
-        // Prenotazione con incasso OGGI (rientra sia in week sia in season).
-        await tx.booking.create({
-          data: {
-            establishmentId: s2,
-            customerId: cust.id,
-            umbrellaId: map.u1,
-            timeSlotId: map.slotMorning,
-            startDate: todayDate,
-            endDate: todayDate,
-            type: 'daily',
-            status: 'confirmed',
-            totalPrice: 100,
-            paymentStatus: 'paid',
-            amountCollected: 100,
-            paymentMethod: 'cash',
-            collectionDate: todayDate,
-          },
+        return cust.id;
+      });
+      // Prenotazione con incasso OGGI (rientra sia in week sia in season). Insert diretto + coverage
+      // (helper Task 1): dopo la migrate le letture d'occupazione (mappa/report) leggono da BookingCoverage.
+      const b1 = await insertBookingWithCoverage(prisma, s2, {
+        establishmentId: s2, customerId: custId, umbrellaId: map.u1, timeSlotId: map.slotMorning,
+        startDate: todayDate, endDate: todayDate,
+      });
+      // Prenotazione con incasso 10 giorni fa (FUORI dalla week, DENTRO la season).
+      const b2 = await insertBookingWithCoverage(prisma, s2, {
+        establishmentId: s2, customerId: custId, umbrellaId: map.u2, timeSlotId: map.slotMorning,
+        startDate: tenDaysAgo, endDate: tenDaysAgo,
+      });
+      // Campi di incasso non coperti dall'helper (type/totalPrice fissi lì): completati con update diretto.
+      await prisma.forTenant(s2, async (tx) => {
+        await tx.booking.update({
+          where: { id: b1.id },
+          data: { totalPrice: 100, paymentStatus: 'paid', amountCollected: 100, paymentMethod: 'cash', collectionDate: todayDate },
         });
-        // Prenotazione con incasso 10 giorni fa (FUORI dalla week, DENTRO la season).
-        await tx.booking.create({
-          data: {
-            establishmentId: s2,
-            customerId: cust.id,
-            umbrellaId: map.u2,
-            timeSlotId: map.slotMorning,
-            startDate: tenDaysAgo,
-            endDate: tenDaysAgo,
-            type: 'daily',
-            status: 'confirmed',
-            totalPrice: 40,
-            paymentStatus: 'paid',
-            amountCollected: 40,
-            paymentMethod: 'cash',
-            collectionDate: tenDaysAgo,
-          },
+        await tx.booking.update({
+          where: { id: b2.id },
+          data: { totalPrice: 40, paymentStatus: 'paid', amountCollected: 40, paymentMethod: 'cash', collectionDate: tenDaysAgo },
         });
       });
     });
@@ -191,7 +179,7 @@ describe('Reports (e2e)', () => {
       const expiredDeadline = new Date(`${isoPlusDays(todayIso, -5)}T00:00:00Z`);
       const openDeadline = new Date(`${isoPlusDays(todayIso, 20)}T00:00:00Z`);
 
-      await prisma.forTenant(s3, async (tx) => {
+      const { originId, destAId, destBId, custId } = await prisma.forTenant(s3, async (tx) => {
         const origin = await tx.season.create({
           data: { establishmentId: s3, name: 'Origine', startDate: originStart, endDate: originEnd },
         });
@@ -204,28 +192,26 @@ describe('Reports (e2e)', () => {
         const cust = await tx.customer.create({
           data: { establishmentId: s3, firstName: 'Rinnovo', lastName: 'Cliente' },
         });
-        // Abbonato CONFERMATO nella stagione di origine → avente-diritto per entrambe le campagne.
-        await tx.booking.create({
-          data: {
-            establishmentId: s3,
-            customerId: cust.id,
-            umbrellaId: map.u1,
-            timeSlotId: map.slotMorning,
-            startDate: originStart,
-            endDate: originEnd,
-            type: 'subscription',
-            status: 'confirmed',
-            totalPrice: 800,
-            paymentStatus: 'paid',
-            amountCollected: 800,
-          },
+        return { originId: origin.id, destAId: destA.id, destBId: destB.id, custId: cust.id };
+      });
+      // Abbonato CONFERMATO nella stagione di origine → avente-diritto per entrambe le campagne.
+      // Insert diretto + coverage (helper Task 1): mantiene l'invariante 1:1 anche se questo booking
+      // è nel passato e non entra nelle letture d'occupazione "oggi" (map/report).
+      const sub = await insertBookingWithCoverage(prisma, s3, {
+        establishmentId: s3, customerId: custId, umbrellaId: map.u1, timeSlotId: map.slotMorning,
+        startDate: originStart, endDate: originEnd,
+      });
+      await prisma.forTenant(s3, async (tx) => {
+        await tx.booking.update({
+          where: { id: sub.id },
+          data: { type: 'subscription', totalPrice: 800, paymentStatus: 'paid', amountCollected: 800 },
         });
         // Campagna SCADUTA (deadline più vicina → verrebbe scelta senza il filtro di apertura).
         await tx.renewalCampaign.create({
           data: {
             establishmentId: s3,
-            originSeasonId: origin.id,
-            destinationSeasonId: destA.id,
+            originSeasonId: originId,
+            destinationSeasonId: destAId,
             deadline: expiredDeadline,
           },
         });
@@ -233,8 +219,8 @@ describe('Reports (e2e)', () => {
         await tx.renewalCampaign.create({
           data: {
             establishmentId: s3,
-            originSeasonId: origin.id,
-            destinationSeasonId: destB.id,
+            originSeasonId: originId,
+            destinationSeasonId: destBId,
             deadline: openDeadline,
           },
         });

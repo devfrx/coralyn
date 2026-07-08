@@ -54,10 +54,10 @@ export class PlatformMetricsService {
       const activeSubscriptions = await tx.booking.count({
         where: { type: 'subscription', status: 'confirmed', startDate: { lte: today }, endDate: { gte: today } },
       });
-      const occupied = await tx.booking.findMany({
+      const occupied = await tx.bookingCoverage.findMany({
         where: { status: 'confirmed', startDate: { lte: today }, endDate: { gte: today } },
-        select: { umbrellaId: true },
         distinct: ['umbrellaId'],
+        select: { umbrellaId: true },
       });
 
       return {

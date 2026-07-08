@@ -28,11 +28,16 @@ export class MapService {
         },
       });
       const dayDate = new Date(`${day}T00:00:00Z`);
-      const bookings = await tx.booking.findMany({
+      const coverages = await tx.bookingCoverage.findMany({
         where: { status: 'confirmed', startDate: { lte: dayDate }, endDate: { gte: dayDate } },
-        orderBy: { createdAt: 'asc' },
-        select: { umbrellaId: true, timeSlotId: true, type: true },
+        orderBy: { booking: { createdAt: 'asc' } },
+        select: { umbrellaId: true, booking: { select: { timeSlotId: true, type: true } } },
       });
+      const bookings = coverages.map((c) => ({
+        umbrellaId: c.umbrellaId,
+        timeSlotId: c.booking.timeSlotId,
+        type: c.booking.type,
+      }));
       return { umbrellaTypes, timeSlots, sectors, bookings };
     });
     return projectDayMap(day, source);
