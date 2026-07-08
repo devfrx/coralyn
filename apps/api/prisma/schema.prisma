@@ -29,20 +29,23 @@ model Establishment {
   packageEquipments  PackageEquipment[]
   bookingCoverages   BookingCoverage[]
   bookingSuspensions BookingSuspension[]
+  bookingTransfers   BookingTransfer[]
 }
 
 model Customer {
-  id              String        @id @default(uuid()) @db.Uuid
-  establishmentId String        @db.Uuid
+  id              String            @id @default(uuid()) @db.Uuid
+  establishmentId String            @db.Uuid
   firstName       String
   lastName        String
   phone           String?
   email           String?
   notes           String?
   anonymizedAt    DateTime?
-  anonymizedBy    String?       @db.Uuid
-  establishment   Establishment @relation(fields: [establishmentId], references: [id])
+  anonymizedBy    String?           @db.Uuid
+  establishment   Establishment     @relation(fields: [establishmentId], references: [id])
   bookings        Booking[]
+  transfersOut    BookingTransfer[] @relation("BookingTransferPrevious")
+  transfersIn     BookingTransfer[] @relation("BookingTransferNew")
 
   @@index([establishmentId])
 }
@@ -205,6 +208,7 @@ model Booking {
   package         Package?            @relation(fields: [packageId], references: [id])
   coverages       BookingCoverage[]
   suspensions     BookingSuspension[]
+  transfers       BookingTransfer[]
 
   @@index([establishmentId])
   @@index([umbrellaId])
@@ -256,6 +260,31 @@ model BookingSuspension {
 
   @@index([bookingId])
   @@index([establishmentId])
+}
+
+// Cessione/subentro di un abbonamento (D-013, ADR-0047). Pura storia/accountability: la cessione
+// cambia Booking.customerId (titolarità) e riconcilia l'incasso su Booking; questa tabella registra
+// chi->chi, quando, e i movimenti di cassa lordi. NON tocca l'occupazione (BookingCoverage). RLS FORCE.
+model BookingTransfer {
+  id                 String   @id @default(uuid()) @db.Uuid
+  bookingId          String   @db.Uuid
+  establishmentId    String   @db.Uuid // RLS FORCE tenant-scoped
+  previousCustomerId String   @db.Uuid // cedente (A) al momento della cessione
+  newCustomerId      String   @db.Uuid // subentrante (B)
+  effectiveDate      DateTime @db.Date // da quando B è (informativamente) il titolare
+  refundToPrevious   Decimal  @default(0) @db.Decimal(10, 2) // rimborso lordo ad A (movimento, non aggregato su Booking)
+  collectedFromNew   Decimal  @default(0) @db.Decimal(10, 2) // incasso lordo da B
+  reason             String?
+  createdAt          DateTime @default(now())
+
+  booking          Booking       @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  establishment    Establishment @relation(fields: [establishmentId], references: [id])
+  previousCustomer Customer      @relation("BookingTransferPrevious", fields: [previousCustomerId], references: [id])
+  newCustomer      Customer      @relation("BookingTransferNew", fields: [newCustomerId], references: [id])
+
+  @@index([bookingId])
+  @@index([establishmentId])
+  @@index([previousCustomerId])
 }
 
 model RenewalCampaign {
