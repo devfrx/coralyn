@@ -1,4 +1,4 @@
-import type { CustomerDTO, CreateCustomerInput, UpdateCustomerInput, CustomerBookingDTO, DeleteCustomerResult, BookingDTO, TerminateSubscriptionInput, SuspendSubscriptionInput, ReactivateSubscriptionInput } from '@coralyn/contracts';
+import type { CustomerDTO, CreateCustomerInput, UpdateCustomerInput, CustomerBookingDTO, DeleteCustomerResult, BookingDTO, TerminateSubscriptionInput, SuspendSubscriptionInput, ReactivateSubscriptionInput, CededSubscriptionDTO, TransferSubscriptionInput } from '@coralyn/contracts';
 import { apiFetch } from '@/lib/http';
 import { queryKeys } from '@/lib/queryKeys';
 import { useSessionStore } from '@/stores/session';
@@ -87,5 +87,28 @@ export function useReactivateSubscription(customerId: string) {
       apiFetch<BookingDTO>(`/bookings/${id}/reactivate`, { method: 'POST', body: JSON.stringify(input) }),
     invalidates: () => [queryKeys.customerBookings(session.establishmentId, customerId)],
     quiet: true,
+  });
+}
+
+/** Cessione/subentro (D-013, admin-only). Invalida la Scheda cliente (bookings + ceded). Errore inline nel modale. */
+export function useTransferSubscription(customerId: string) {
+  const session = useSessionStore();
+  return mutationResource({
+    mutationFn: ({ id, input }: { id: string; input: TransferSubscriptionInput }) =>
+      apiFetch<BookingDTO>(`/bookings/${id}/transfer`, { method: 'POST', body: JSON.stringify(input) }),
+    invalidates: () => [
+      queryKeys.customerBookings(session.establishmentId, customerId),
+      queryKeys.cededSubscriptions(session.establishmentId, customerId),
+    ],
+    quiet: true,
+  });
+}
+
+/** Cessioni EFFETTUATE da questo cliente (sezione read-only nella sua Scheda). */
+export function useCededSubscriptions(id: string) {
+  const session = useSessionStore();
+  return queryResource({
+    queryKey: () => queryKeys.cededSubscriptions(session.establishmentId, id),
+    queryFn: () => apiFetch<CededSubscriptionDTO[]>(`/customers/${id}/ceded-subscriptions`),
   });
 }
