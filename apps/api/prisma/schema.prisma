@@ -8,26 +8,27 @@ datasource db {
 }
 
 model Establishment {
-  id                String             @id @default(uuid()) @db.Uuid
-  name              String
-  createdAt         DateTime           @default(now())
-  suspendedAt       DateTime? // null = attivo; valorizzato = lido sospeso (il login lo respinge)
-  customers         Customer[]
-  users             User[]
-  sectors           Sector[]
-  rows              Row[]
-  umbrellas         Umbrella[]
-  types             UmbrellaType[]
-  timeSlots         TimeSlot[]
-  bookings          Booking[]
-  packages          Package[]
-  seasons           Season[]
-  pricings          Pricing[]
-  rates             Rate[]
-  renewalCampaigns  RenewalCampaign[]
-  equipmentTypes    EquipmentType[]
-  packageEquipments PackageEquipment[]
-  bookingCoverages  BookingCoverage[]
+  id                 String              @id @default(uuid()) @db.Uuid
+  name               String
+  createdAt          DateTime            @default(now())
+  suspendedAt        DateTime? // null = attivo; valorizzato = lido sospeso (il login lo respinge)
+  customers          Customer[]
+  users              User[]
+  sectors            Sector[]
+  rows               Row[]
+  umbrellas          Umbrella[]
+  types              UmbrellaType[]
+  timeSlots          TimeSlot[]
+  bookings           Booking[]
+  packages           Package[]
+  seasons            Season[]
+  pricings           Pricing[]
+  rates              Rate[]
+  renewalCampaigns   RenewalCampaign[]
+  equipmentTypes     EquipmentType[]
+  packageEquipments  PackageEquipment[]
+  bookingCoverages   BookingCoverage[]
+  bookingSuspensions BookingSuspension[]
 }
 
 model Customer {
@@ -195,14 +196,15 @@ model Booking {
   terminationReason String?
   refundedAmount    Decimal   @default(0) @db.Decimal(10, 2)
 
-  establishment   Establishment     @relation(fields: [establishmentId], references: [id])
-  customer        Customer          @relation(fields: [customerId], references: [id])
-  umbrella        Umbrella          @relation(fields: [umbrellaId], references: [id])
-  timeSlot        TimeSlot          @relation(fields: [timeSlotId], references: [id])
-  previousBooking Booking?          @relation("BookingRenewal", fields: [previousBookingId], references: [id])
-  renewals        Booking[]         @relation("BookingRenewal")
-  package         Package?          @relation(fields: [packageId], references: [id])
+  establishment   Establishment       @relation(fields: [establishmentId], references: [id])
+  customer        Customer            @relation(fields: [customerId], references: [id])
+  umbrella        Umbrella            @relation(fields: [umbrellaId], references: [id])
+  timeSlot        TimeSlot            @relation(fields: [timeSlotId], references: [id])
+  previousBooking Booking?            @relation("BookingRenewal", fields: [previousBookingId], references: [id])
+  renewals        Booking[]           @relation("BookingRenewal")
+  package         Package?            @relation(fields: [packageId], references: [id])
   coverages       BookingCoverage[]
+  suspensions     BookingSuspension[]
 
   @@index([establishmentId])
   @@index([umbrellaId])
@@ -233,6 +235,27 @@ model BookingCoverage {
   @@index([bookingId])
   @@index([establishmentId, startDate, endDate])
   @@index([umbrellaId])
+}
+
+// Sospensione temporanea di un abbonamento (D-013, sotto-slice 3/3). Pura storia/accountability:
+// l'anti-double-booking è garantito da BookingCoverage, non da qui. Due modalità unificate da endDate
+// nullable (NULL = aperta/da riattivare). Additiva su ADR-0046: NON tocca lo span di contratto su Booking.
+model BookingSuspension {
+  id              String    @id @default(uuid()) @db.Uuid
+  bookingId       String    @db.Uuid
+  establishmentId String    @db.Uuid // RLS FORCE tenant-scoped
+  startDate       DateTime  @db.Date // S — primo giorno sospeso
+  endDate         DateTime? @db.Date // R-1 — ultimo giorno sospeso; NULL = aperta (da riattivare)
+  refundedAmount  Decimal   @default(0) @db.Decimal(10, 2) // rimborso di QUESTA sospensione
+  reason          String?
+  reactivatedAt   DateTime? // valorizzato quando un'aperta viene chiusa via reactivate
+  createdAt       DateTime  @default(now())
+
+  booking       Booking       @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  establishment Establishment @relation(fields: [establishmentId], references: [id])
+
+  @@index([bookingId])
+  @@index([establishmentId])
 }
 
 model RenewalCampaign {
