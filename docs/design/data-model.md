@@ -39,6 +39,19 @@
 > + il legame fra stagione di origine e stagione di destinazione: lo stato per-abbonato della finestra
 > (`open`/`exercised`/`expired`) è **derivato lazy** (nessuna riga aggiuntiva, nessun job/scheduler).
 > Nessun nuovo `BookingStatus`, nessun campo su `Booking`.
+>
+> **Slice D-013 (disdetta + fondazione occupazione a intervalli):** la **disdetta anticipata** (sotto-slice
+> 1/3, [ADR-0011](../architecture/decisions/0011-incasso-base-nel-core.md)) ha aggiunto su `Booking` i campi
+> `terminatedAt`, `refundedAmount`, `terminationReason` (lo `status` resta `confirmed`, `endDate` troncata a
+> `E-1`; nessun nuovo enum). La **fondazione della sospensione** ([ADR-0046](../architecture/decisions/0046-occupazione-a-intervalli-coverage.md),
+> mergiata) ha estratto l'occupazione fisica dalle colonne dirette su `Booking` a una child table
+> **`BookingCoverage`** (1..N intervalli per prenotazione): l'anti-overlap `coverage_no_overlap` (EXCLUDE su
+> `daterange`) vive **qui**, non più su `Booking` (il vecchio `booking_no_overlap` è stato rimosso). **In
+> design, non ancora implementata:** **`BookingSuspension`** — la sospensione temporanea vera e propria, che
+> **scava un buco** nella copertura (due modalità *chiusa* `[S,R-1]` / *aperta* con riattiva, unificate da
+> `endDate` nullable) **senza toccare lo span di contratto** su `Booking` (prezzo/rinnovo/prelazione/seniority
+> restano invariati: un sospeso conserva i diritti). Spec
+> [2026-07-08-subscription-suspension-design.md](../superpowers/specs/2026-07-08-subscription-suspension-design.md).
 
 Fonte di verità del modello dati del Core operativo. Decisioni:
 [mappa](../architecture/decisions/0005-modello-mappa.md),
@@ -70,6 +83,11 @@ erDiagram
     CUSTOMER ||--o{ BOOKING : "effettua"
     UMBRELLA ||--o{ BOOKING : "oggetto di"
     BOOKING ||--o| BOOKING : "rinnovata in"
+    BOOKING ||--|{ BOOKING_COVERAGE : "occupa via (1..N)"
+    BOOKING ||--o{ BOOKING_SUSPENSION : "sospesa da"
+    UMBRELLA ||--o{ BOOKING_COVERAGE : "coperto da"
+    ESTABLISHMENT ||--o{ BOOKING_COVERAGE : "possiede"
+    ESTABLISHMENT ||--o{ BOOKING_SUSPENSION : "possiede"
     CUSTOMER ||--o{ WAITLIST : "richiede"
     SEASON ||--o{ RENEWAL_CAMPAIGN : "origine di"
     SEASON ||--o{ RENEWAL_CAMPAIGN : "destinazione di"
@@ -175,6 +193,31 @@ erDiagram
         decimal amountCollected
         string paymentMethod "cash|card|transfer|other"
         date collectionDate
+        timestamp terminatedAt "nullable; marca la disdetta anticipata (D-013 1/3)"
+        decimal refundedAmount "default 0; rimborsi aggregati (disdetta + sospensioni)"
+        string terminationReason "nullable; nota operatore della disdetta"
+    }
+    BOOKING_COVERAGE {
+        uuid id PK
+        uuid bookingId FK
+        uuid establishmentId FK "tenant (RLS)"
+        uuid umbrellaId FK
+        date startDate
+        date endDate
+        int slotStartMin "minuti occupati, DB-autoritativi via trigger coverage_fill_slot_minutes_trg"
+        int slotEndMin
+        string status "denormalizzato da Booking; il partial constraint coverage_no_overlap filtra 'confirmed'"
+    }
+    BOOKING_SUSPENSION {
+        uuid id PK
+        uuid bookingId FK
+        uuid establishmentId FK "tenant (RLS FORCE)"
+        date startDate "S — primo giorno sospeso"
+        date endDate "nullable; R-1 = ultimo giorno sospeso; NULL = aperta (da riattivare)"
+        decimal refundedAmount "default 0; rimborso di QUESTA sospensione"
+        string reason "nullable"
+        timestamp reactivatedAt "nullable; valorizzato quando un'aperta viene chiusa via Riattiva"
+        timestamp createdAt
     }
     WAITLIST {
         uuid id PK
@@ -254,7 +297,26 @@ erDiagram
   non si sovrappongono ([ADR-0013](../architecture/decisions/0013-granularita-disponibilita-a-slot.md)).
   **Dalla slice A4.1** il controllo è esercitato realmente su **intervalli** (`periodic`/`subscription`
   multi-giorno), non solo sul singolo giorno di una `daily`: `dateRangesOverlap` confronta gli estremi
-  delle due prenotazioni, in AND con `slotsOverlap` sulla fascia.
+  delle due prenotazioni, in AND con `slotsOverlap` sulla fascia. **Dalla fondazione sospensione
+  ([ADR-0046](../architecture/decisions/0046-occupazione-a-intervalli-coverage.md))** il vincolo DB vive su
+  `BookingCoverage` (`coverage_no_overlap`, EXCLUDE su `daterange` filtrato `status='confirmed'`); il vecchio
+  `booking_no_overlap` è stato rimosso.
+- **Occupazione a intervalli (`BookingCoverage`, [ADR-0046](../architecture/decisions/0046-occupazione-a-intervalli-coverage.md))**:
+  l'**occupazione fisica** di una prenotazione è una o più righe `BookingCoverage` (1..N intervalli sullo
+  stesso ombrellone), disgiunte per il constraint. Al `create`/`renew` è **1 intervallo = span nominale**;
+  le operazioni di dominio che liberano tempo (disdetta = troncamento, sospensione = carve) agiscono **qui**,
+  non sullo span di contratto. La lettura d'occupazione (mappa/liste/report) e l'anti-overlap interrogano la
+  copertura; i minuti `slotStartMin`/`slotEndMin` sono riempiti da un trigger DB (mai dal client).
+- **Disdetta e sospensione (D-013), contratto ↔ occupazione separati**: lo **span di contratto**
+  (`Booking.startDate/endDate`) guida prezzo, rinnovo, **prelazione**, seniority; la **copertura** guida
+  l'occupazione. La **disdetta** (1/3, implementata) tronca *entrambi* in modo permanente (`endDate=E-1`,
+  `terminatedAt`, rimborso in `refundedAmount`). La **sospensione** (`BookingSuspension`, *in design*) scava
+  un **buco** nella sola copertura `[S,R-1]` e **non tocca** lo span: un sospeso resta abbonato con tutti i
+  diritti; il buco è rivendibile (walk-in) e, in modalità chiusa, la coda `[R,end]` resta riservata. Due
+  modalità unificate da `endDate` nullable (aperta = `NULL`, chiusa via riattiva). `refundedAmount` **aggrega**
+  disdetta + sospensioni, così il netto `amountCollected − refundedAmount` resta fonte unica per i report.
+  `BookingSuspension` è tenant-scoped (RLS FORCE) e pura storia/accountability (l'anti-double-booking è
+  garantito dalla copertura, non da qui).
 - **Risoluzione prezzo** (slice A3.1, **implementato**): il pricing engine puro (`resolvePrice`)
   seleziona la `Rate` applicabile secondo la **precedenza esplicita lessicografica**
   periodo › fila › settore › pacchetto › fascia › tipo ([ADR-0032](../architecture/decisions/0032-pricing-engine-precedenza.md)).

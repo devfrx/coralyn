@@ -54,6 +54,13 @@ Due dimensioni ortogonali, già separate dalla Spec 1 e **invariate** qui:
    prenotazioni confermate (walk-in vendute durante la sospensione aperta), la Riattiva è **rifiutata** con
    messaggio guida. La chiusa non ha mai questo caso (`[R, end]` non è mai stato ceduto). Protegge
    l'invariante anti-double-booking ([ADR-0037]/[ADR-0046]).
+6. **Redirect-a-disdetta backend-only (niente nudge in modale)** — l'invariante "la chiusa richiede un ritorno
+   **entro** la stagione" (§6) è un **invariante server** (422 con hint "usa la disdetta"), non una nudge
+   nella UI. Il picker del ritorno ha semantica "primo giorno di rientro": cappato a `max = booking.endDate`
+   **non può** esprimere "mai" (`R = endDate+1`), quindi il 422 è raggiungibile solo da una chiamata API
+   grezza — resta come **difesa-in-profondità testata**, non morta. La scelta "nessun ritorno" vive già nel
+   bottone **Disdici** adiacente (§8): aggiungere logica FE per un percorso che il picker già impedisce
+   sarebbe **debito** (rubric §13.4). Coerente col mirror-`terminate` (server valida i bound, non fa redirect).
 
 ## 4. Modello dati (additivo)
 
@@ -85,13 +92,18 @@ model BookingSuspension {
 ### 4.1 Meccanica del carve su `BookingCoverage` (dentro la tx, tenant-scoped)
 - **Sospendi chiusa `[S, R-1]`:** trova l'**unico** intervallo di copertura `C` con `C.start ≤ S` e
   `R-1 ≤ C.end` (altrimenti 422: non si sospende a cavallo di un buco). Elimina `C`; reinserisci
-  `[C.start, S-1]` se `S > C.start` e `[R, C.end]` se `R ≤ C.end` (intervalli vuoti omessi). I minuti li
-  riempie il trigger; `status='confirmed'`.
+  `[C.start, S-1]` se `S > C.start` e `[R, C.end]` se `R ≤ C.end` (intervalli vuoti omessi). **Ogni frammento
+  reinserito eredita `umbrellaId`, `establishmentId` e `status='confirmed'` da `C`** (sono i campi occupazione
+  che identificano la riga); i minuti `slotStartMin`/`slotEndMin` li riempie il trigger
+  `coverage_fill_slot_minutes_trg`.
 - **Sospendi aperta `[S, …)`:** trova `C` con `C.start ≤ S ≤ C.end`; sostituiscilo con `[C.start, S-1]`
   (o eliminalo se `S = C.start`) ed elimina eventuali intervalli interamente `≥ S`.
 - **Riattiva `R`:** pre-check anti-overlap su `[R, booking.endDate]` (stesso pattern di `priceAndWrite`,
-  contro le coperture di **altre** prenotazioni sullo stesso ombrellone+fascia) → conflitto = **409**;
-  altrimenti inserisci copertura `[R, booking.endDate]`; il constraint DB resta backstop.
+  contro le coperture di **altre** prenotazioni sullo stesso ombrellone+fascia), **escludendo le coperture
+  della propria booking via `bookingId`** (in `priceAndWrite` l'esclusione analoga è su `previousBookingId`:
+  qui la chiave è `bookingId` perché è la stessa prenotazione a riprendersi il posto) → conflitto = **409**;
+  altrimenti inserisci copertura `[R, booking.endDate]` (con `umbrellaId`/`establishmentId`/`status='confirmed'`
+  come i frammenti del carve); il constraint DB resta backstop.
 
 ## 5. Rimborso: suggerimento pro-rata (FE)
 ```
@@ -149,8 +161,11 @@ lo stato mappa derivato dalla copertura:
 ## 8. UI — Scheda cliente `CustomerSubscriptionsCard` (accanto a "Disdici")
 - Abbonamento confermato/non-disdetto con copertura **futura** → **"Sospendi"** (solo admin, pattern
   `isAdmin` già in card) → `SuspendSubscriptionModal`: toggle **Chiusa** (data inizio + data ritorno +
-  rimborso suggerito editabile + motivo) / **Aperta** (solo data inizio + motivo). Bound date: `min = oggi`,
-  `max = booking.endDate`.
+  rimborso suggerito editabile + motivo) / **Aperta** (solo data inizio + motivo). Bound data **inizio**:
+  `min = oggi`, `max = booking.endDate`. Nel ramo **Chiusa** il campo **ritorno** è vincolato
+  `min = data-inizio-scelta + 1`, `max = booking.endDate` (reattivo a `S`, così `R > S` per costruzione e
+  `R ≤ endDate`). Il redirect-a-disdetta (§3.6/§6) resta un **invariante server**, non una nudge: la scelta
+  "nessun ritorno" è il bottone **Disdici** adiacente, non un ramo della modale di sospensione.
 - Sospensione **aperta in corso** (`endDate` assente) → riga "Sospeso dal {S} (in corso)" + **"Riattiva"**
   (admin) → `ReactivateSubscriptionModal`: data ritorno (`min = S+1`, `max = booking.endDate`) + rimborso
   suggerito sui giorni reali + motivo.
@@ -227,6 +242,11 @@ typecheck/e2e; `migrate deploy` a dev+test; e2e ts-jest **type-checka**; purge a
   (già deferito da D-048 §7); l'occupazione istantanea è comunque corretta via copertura.
 
 ## 15. Prossimi passi
+0. **Design docs aggiornati ([ADR-0009], fatto con questa spec):** `docs/design/data-model.md` — ER portato
+   allo stato corrente (`BookingCoverage`/[ADR-0046] e i campi disdetta erano mergiati ma non documentati) +
+   nuova `BookingSuspension`; `docs/design/flows.md` — macchina a stati + flusso del carve/riattiva;
+   `docs/design/mockups/subscription-suspension-modal.html` — le due modali. (La sospensione è marcata
+   *design, non ancora implementata*.)
 1. Ok utente su questa spec.
 2. `writing-plans` (TDD; ordine per layer: schema+migration+contracts → service `suspend` chiusa + carve +
    invarianti → service aperta + `reactivate` + conflitto → controller+e2e → FE card+modali+mock). **Nessun

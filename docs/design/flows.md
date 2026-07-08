@@ -70,3 +70,72 @@ flowchart TD
 > è rimandata ([D-011](../architecture/deferred.md)); nell'MVP la campagna rinnovi è
 > guidata ma manuale.
 
+## 5. Sospensione abbonamento (D-013, *in design*)
+
+Un abbonato libera un periodo del proprio abbonamento (rivendita abilitata nel buco) e poi riprende. Agisce
+**solo sull'occupazione** (`BookingCoverage`), mai sullo span di contratto: prezzo, rinnovo, prelazione e
+seniority restano invariati. Vedi la
+[spec](../superpowers/specs/2026-07-08-subscription-suspension-design.md),
+[ADR-0046](../architecture/decisions/0046-occupazione-a-intervalli-coverage.md) (occupazione a intervalli),
+[ADR-0011](../architecture/decisions/0011-incasso-base-nel-core.md) (rimborso).
+
+**Decisione operatore** (ammin.) sulla Scheda cliente, bottoni adiacenti:
+
+```mermaid
+flowchart TD
+    A[Abbonamento confermato, non disdetto,<br/>copertura futura] --> Q{Il cliente lascia<br/>o si assenta?}
+    Q -->|Lascia definitivamente| DIS[Disdici — tronca span+copertura, permanente]
+    Q -->|Assenza con ripresa,<br/>ritorno noto| CH[Sospendi CHIUSA S..R-1]
+    Q -->|Assenza con ripresa,<br/>ritorno ignoto| AP[Sospendi APERTA S..∞]
+    CH --> CHc[Buco S..R-1 rivendibile ·<br/>coda R..fine riservata all abbonato]
+    AP --> APc[Coda S..fine libera a tempo indeterminato]
+    APc --> RE[Riattiva R]
+    RE --> REc{Coda R..fine libera<br/>da walk-in?}
+    REc -->|Sì| OK[Ricopre R..fine · rimborso sui giorni reali]
+    REc -->|No| C409[409 — rientro in conflitto,<br/>scegli un R più avanti]
+```
+
+**Macchina a stati del record `BookingSuspension`** (discriminatore = `endDate IS NULL`):
+
+```mermaid
+stateDiagram-v2
+    [*] --> Chiusa: Sospendi chiusa S..R-1<br/>(endDate = R-1)
+    [*] --> Aperta: Sospendi aperta S..∞<br/>(endDate = NULL, max 1 per abbonamento)
+    Aperta --> Conclusa: Riattiva(R)<br/>fissa endDate=R-1, reactivatedAt, rimborso
+    Chiusa --> Conclusa: passato il ritorno R<br/>(nessuna azione, coda già riservata)
+    Conclusa --> [*]
+    note right of Aperta
+        coda S..fine libera,
+        walk-in vendibili nel buco
+    end note
+    note right of Chiusa
+        buco S..R-1 libero,
+        coda R..fine mai ceduta
+    end note
+```
+
+**Meccanica del carve sulla copertura** (dentro la transazione, tenant-scoped):
+
+```mermaid
+flowchart LR
+    subgraph Prima
+        P1["Coverage: [start .......... end]"]
+    end
+    subgraph "Chiusa [S, R-1]"
+        C1["[start, S-1]"] --- C2["buco [S, R-1] LIBERO"] --- C3["[R, end] riservato"]
+    end
+    subgraph "Aperta [S, …) poi Riattiva R"
+        A1["[start, S-1]"] --- A2["[S, …) TRONCATO"]
+        A1b["[start, S-1]"] --- A2b["buco [S, R-1]"] --- A3b["[R, end] ricoperto"]
+    end
+    P1 -->|carve chiusa| C1
+    P1 -->|carve aperta| A1
+    A2 -.->|Riattiva R:<br/>pre-check anti-overlap 409| A1b
+```
+
+> **Invarianti chiave** (§6 spec): `S ≥ oggi`; solo `type=subscription`, `status=confirmed`, non disdetto;
+> `[S,…]` dentro una copertura **futura** (non un buco già libero → 422); **una sola** sospensione aperta per
+> abbonamento (409); la **chiusa** richiede un ritorno **entro** la stagione (`R-1 < endDate`, altrimenti 422
+> "usa la disdetta" — invariante server, non nudge FE); il rimborso è discrezione dell'operatore
+> (suggerimento pro-rata **solo FE**, il server valida i bound), aggregato su `Booking.refundedAmount`.
+
