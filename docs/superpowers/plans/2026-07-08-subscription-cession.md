@@ -26,15 +26,17 @@
 - `apps/api/prisma/migrations/<ts>_booking_transfer/migration.sql` — tabella + RLS FORCE.
 - `apps/api/src/bookings/dto/transfer-subscription.dto.ts` — validazione input.
 - `apps/api/src/bookings/booking-transfer.projection.ts` — `toTransferDTO`, `toCededSubscriptionDTO`.
-- `apps/api/test/subscription-cession.e2e-spec.ts` — e2e.
+- `apps/api/src/bookings/cession.payment.ts` (+ `.spec.ts`) — `reconcileCessionPayment` puro (movimento netto + paymentStatus), unit-testato (mirror `booking.payment.ts`/`resolvePayment`).
+- `apps/api/test/subscription-cession.e2e-spec.ts` — e2e (comportamento del service: invarianti + scenari cassa).
 
 **API (modify):**
 - `apps/api/prisma/schema.prisma` — `model BookingTransfer` + relazioni inverse.
-- `apps/api/src/bookings/bookings.service.ts` — `transfer()`, `listCededByCustomer()`, `transfers[]` in `listByCustomer`.
+- `apps/api/src/bookings/bookings.service.ts` — `transfer()` (usa `reconcileCessionPayment`), `listCededByCustomer()`, `transfers[]` in `listByCustomer`.
 - `apps/api/src/bookings/bookings.controller.ts` — `@Post(':id/transfer')`.
 - `apps/api/src/customers/customers.controller.ts` — `@Get(':id/ceded-subscriptions')`.
 - `apps/api/src/bookings/customer-booking.projection.ts` — `transfers` nell'enrichment + DTO.
-- `apps/api/src/bookings/bookings.service.spec.ts` (o nuovo spec file) — unit `transfer`/`listCededByCustomer`.
+
+> **Strategia di test (coerente col codebase):** i metodi service con `tx` (`terminate`/`suspend`/`reactivate`) sono verificati **solo via e2e**; a livello **unit** si testano solo le funzioni **pure**. Quindi la matematica dei soldi vive in `reconcileCessionPayment` (puro, unit-testato deterministicamente) e `transfer()` è verificato dall'e2e (Task 8). Nessun unit-test con `tx` mockato.
 
 **Contracts (modify):**
 - `packages/contracts/src/index.ts` — `TransferDTO`, `CededSubscriptionDTO`, `TransferSubscriptionInput`, `CustomerBookingDTO.transfers`.
@@ -408,98 +410,121 @@ git commit -m "feat(api): toTransferDTO/toCededSubscriptionDTO projections (D-01
 
 ---
 
-## Task 5: Service `transfer()` — cuore di dominio (invarianti + movimento netto)
+## Task 5: Pure helper `reconcileCessionPayment` (TDD) + Service `transfer()`
 
 **Files:**
-- Modify: `apps/api/src/bookings/bookings.service.ts` (import ~18-21; nuovo metodo dopo `reactivate`, ~riga 702)
-- Test: `apps/api/src/bookings/bookings-transfer.service.spec.ts` (nuovo)
+- Create: `apps/api/src/bookings/cession.payment.ts`
+- Test: `apps/api/src/bookings/cession.payment.spec.ts`
+- Modify: `apps/api/src/bookings/bookings.service.ts` (import ~18-21, ~27; nuovo metodo dopo `reactivate`, ~riga 702)
 
 **Interfaces:**
-- Consumes: `TransferSubscriptionInput` (Task 2); `tx.bookingTransfer` (Task 1); `resolvePayment`/`cents` pattern da `booking.payment.ts`.
-- Produces: `BookingsService.transfer(id: string, input: TransferSubscriptionInput): Promise<BookingDTO>`.
+- Consumes: `TransferSubscriptionInput` (Task 2); `tx.bookingTransfer` (Task 1); `PaymentStatus` (contracts).
+- Produces: `reconcileCessionPayment(amountCollected, totalPrice, refundToPrevious, collectedFromNew): CessionPaymentResult`; `BookingsService.transfer(id, input): Promise<BookingDTO>`.
 
-> **Nota per l'implementer:** questo è il task a più alto rischio di dominio. Il modello soldi è "movimento netto": `newCollected = amountCollected − refundToPrevious + collectedFromNew`, con `paymentStatus` ricalcolato e **`refundedAmount` mai toccato**. Le unit test qui sotto sono la specifica esatta del comportamento.
+> **Nota strategia (coerente col codebase):** i metodi service con `tx` NON hanno unit-test con mock in questo repo (`terminate`/`suspend`/`reactivate` = solo e2e). Quindi la parte rischiosa — l'aritmetica del movimento netto + `paymentStatus` — vive in un **helper puro** `reconcileCessionPayment` (mirror di `resolvePayment` in `booking.payment.ts`), unit-testato deterministicamente qui. Il metodo `transfer()` (invarianti + orchestrazione tx) è **transcription** verificata dall'**e2e** (Task 8). `refundedAmount` non è mai toccato.
 
-- [ ] **Step 1: Scrivi lo unit test** `bookings-transfer.service.spec.ts`. Mirror lo scaffolding degli altri `*.service.spec.ts` del modulo (mock `PrismaService.forTenant` che esegue la callback con un `tx` finto, `TenantContext.require()` che ritorna un tenantId). Test da coprire:
+- [ ] **Step 1: Scrivi lo unit test del helper puro** `cession.payment.spec.ts`:
 
 ```ts
-// Pseudocodice degli assert — adatta lo scaffold del mock tx a quello già usato negli spec del modulo.
-// tx.booking.findFirst -> ritorna l'abbonamento; tx.customer.findFirst -> il subentrante;
-// tx.bookingTransfer.create / tx.booking.update -> spia gli argomenti.
+import { reconcileCessionPayment } from './cession.payment';
 
-describe('BookingsService.transfer', () => {
-  const sub = {
-    id: 'b-1', customerId: 'c-a', type: 'subscription', status: 'confirmed', terminatedAt: null,
-    startDate: new Date('2026-06-01T00:00:00.000Z'), endDate: new Date('2026-09-30T00:00:00.000Z'),
-    totalPrice: { toString: () => '1000' }, amountCollected: { toString: () => '1000' },
-    refundedAmount: { toString: () => '0' }, suspensions: [],
-  };
-  const newCustomer = { id: 'c-b', anonymizedAt: null };
-
-  it('lido processa (rimborso 500 ad A, incasso 500 da B): customerId->B, amountCollected invariato (1000), paid, refundedAmount 0', async () => {
-    // input { newCustomerId:'c-b', effectiveDate:'2026-07-15', refundToPrevious:500, collectedFromNew:500 }
-    // atteso booking.update.data = { customerId:'c-b', amountCollected:1000, paymentStatus:'paid' } — NIENTE refundedAmount
-    // atteso bookingTransfer.create.data = { bookingId:'b-1', previousCustomerId:'c-a', newCustomerId:'c-b',
-    //   effectiveDate: <2026-07-15>, refundToPrevious:500, collectedFromNew:500, reason:null }
+describe('reconcileCessionPayment (D-013 ADR-0047: movimento netto, refundedAmount intatto)', () => {
+  it('lido processa (collected 1000, total 1000, refund 500, collect 500) -> netto 1000, paid', () => {
+    expect(reconcileCessionPayment(1000, 1000, 500, 500)).toEqual({ ok: true, newCollected: 1000, paymentStatus: 'paid' });
   });
-
-  it('regolamento privato (0/0): amountCollected invariato (1000), paid', async () => {
-    // input refundToPrevious:0 collectedFromNew:0 -> update.data.amountCollected===1000, paymentStatus:'paid'
+  it('regolamento privato (0/0) -> netto 1000, paid', () => {
+    expect(reconcileCessionPayment(1000, 1000, 0, 0)).toEqual({ ok: true, newCollected: 1000, paymentStatus: 'paid' });
   });
-
-  it('rinegoziato (rimborso 500, incasso 400): amountCollected 900, partial', async () => {
-    // update.data.amountCollected===900, paymentStatus:'partial'
+  it('rinegoziato (refund 500, collect 400) -> netto 900, partial', () => {
+    expect(reconcileCessionPayment(1000, 1000, 500, 400)).toEqual({ ok: true, newCollected: 900, paymentStatus: 'partial' });
   });
-
-  it('subentrante che azzera l\'incasso (rimborso 1000, incasso 0): amountCollected 0, unpaid', async () => {
-    // update.data.amountCollected===0, paymentStatus:'unpaid'
+  it('azzera incasso (refund 1000, collect 0) -> netto 0, unpaid', () => {
+    expect(reconcileCessionPayment(1000, 1000, 1000, 0)).toEqual({ ok: true, newCollected: 0, paymentStatus: 'unpaid' });
   });
-
-  it('422 se non è un abbonamento', async () => { /* type:'daily' -> UnprocessableEntityException */ });
-  it('422 se non confermato', async () => { /* status:'cancelled' */ });
-  it('422 se disdetto', async () => { /* terminatedAt: new Date() */ });
-  it('409 se esiste una sospensione aperta', async () => { /* suspensions:[{endDate:null}] -> ConflictException */ });
-  it('422 se il subentrante coincide col titolare', async () => { /* newCustomerId:'c-a' */ });
-  it('422 se il subentrante non esiste nel tenant', async () => { /* customer.findFirst -> null */ });
-  it('422 se il subentrante è anonimizzato', async () => { /* newCustomer.anonymizedAt: new Date() */ });
-  it('422 se effectiveDate fuori da [start,end]', async () => { /* '2026-10-01' */ });
-  it('422 se refundToPrevious > amountCollected', async () => { /* refundToPrevious:1500 */ });
-  it('422 se il netto supera il totale (OVER_TOTAL)', async () => { /* refundToPrevious:0 collectedFromNew:1 su collected=1000,total=1000 */ });
-  it('404 se la prenotazione non esiste', async () => { /* booking.findFirst -> null -> NotFoundException */ });
+  it('refund > collected -> BAD_REFUND', () => {
+    expect(reconcileCessionPayment(1000, 1000, 1500, 0)).toEqual({ ok: false, reason: 'BAD_REFUND' });
+  });
+  it('collect negativo -> BAD_COLLECT', () => {
+    expect(reconcileCessionPayment(1000, 1000, 0, -1)).toEqual({ ok: false, reason: 'BAD_COLLECT' });
+  });
+  it('netto oltre il totale -> OVER_TOTAL', () => {
+    expect(reconcileCessionPayment(1000, 1000, 0, 1)).toEqual({ ok: false, reason: 'OVER_TOTAL' });
+  });
+  it('confronto in centesimi: decimali non falsano paid', () => {
+    expect(reconcileCessionPayment(999.99, 999.99, 0, 0)).toEqual({ ok: true, newCollected: 999.99, paymentStatus: 'paid' });
+  });
 });
 ```
 
 - [ ] **Step 2: Esegui — deve fallire**
 
-Run: `corepack pnpm --filter @coralyn/api exec jest bookings-transfer.service -- --runInBand`
-Expected: FAIL — `transfer` non è un metodo.
+Run: `corepack pnpm --filter @coralyn/api exec jest cession.payment -- --runInBand`
+Expected: FAIL — modulo `./cession.payment` non trovato.
 
-- [ ] **Step 3: Aggiungi l'import del tipo** in `bookings.service.ts` (blocco import da `@coralyn/contracts`, ~riga 18-21, aggiungi):
+- [ ] **Step 3: Implementa il helper puro** `cession.payment.ts`:
+
+```ts
+import type { PaymentStatus } from '@coralyn/contracts';
+
+export type CessionPaymentResult =
+  | { ok: true; newCollected: number; paymentStatus: PaymentStatus }
+  | { ok: false; reason: 'BAD_REFUND' | 'BAD_COLLECT' | 'OVER_TOTAL' };
+
+/** Confronto in centesimi interi: evita imprecisioni di virgola mobile (come booking.payment.ts). */
+const cents = (n: number): number => Math.round(n * 100);
+
+/**
+ * Riconciliazione incasso della cessione (D-013, ADR-0047). Movimento netto su amountCollected
+ * (− refundToPrevious + collectedFromNew), vincolato a [0, totalPrice]; paymentStatus derivato dal netto.
+ * refundedAmount NON è toccato (la cessione è un TRASFERIMENTO, non una perdita di ricavo). Puro: nessuna
+ * dipendenza Nest. Ritorna gli errori di bound come reason (il chiamante li mappa a 422).
+ */
+export function reconcileCessionPayment(
+  amountCollected: number,
+  totalPrice: number,
+  refundToPrevious: number,
+  collectedFromNew: number,
+): CessionPaymentResult {
+  if (!(refundToPrevious >= 0 && cents(refundToPrevious) <= cents(amountCollected))) return { ok: false, reason: 'BAD_REFUND' };
+  if (!(collectedFromNew >= 0)) return { ok: false, reason: 'BAD_COLLECT' };
+  const newCollected = amountCollected - refundToPrevious + collectedFromNew;
+  if (cents(newCollected) > cents(totalPrice)) return { ok: false, reason: 'OVER_TOTAL' };
+  const paymentStatus: PaymentStatus =
+    cents(newCollected) === 0 ? 'unpaid' : cents(newCollected) === cents(totalPrice) ? 'paid' : 'partial';
+  return { ok: true, newCollected, paymentStatus };
+}
+```
+
+- [ ] **Step 4: Esegui — deve passare**
+
+Run: `corepack pnpm --filter @coralyn/api exec jest cession.payment -- --runInBand`
+Expected: PASS (8 test).
+
+- [ ] **Step 5: Import in `bookings.service.ts`.** Nel blocco import da `@coralyn/contracts` (~riga 18-21) aggiungi:
 
 ```ts
   TransferSubscriptionInput,
   CededSubscriptionDTO,
 ```
-
-E aggiungi accanto agli altri import di projection (dopo riga 27):
+Accanto agli import di projection (dopo riga 27) aggiungi:
 
 ```ts
 import { toTransferDTO, toCededSubscriptionDTO } from './booking-transfer.projection';
+import { reconcileCessionPayment } from './cession.payment';
 ```
 
-- [ ] **Step 4: Implementa `transfer()`** (dopo `reactivate`, prima della `}` finale della classe, ~riga 702):
+- [ ] **Step 6: Implementa `transfer()`** (dopo `reactivate`, prima della `}` finale della classe, ~riga 702):
 
 ```ts
   /**
    * Cessione/subentro di un abbonamento (D-013, ADR-0047). Cambia il titolare (customerId) A->B
    * preservando span/seniority/prelazione (NON tocca BookingCoverage: l'occupazione è continua) e
    * riconcilia l'incasso come MOVIMENTO NETTO su amountCollected (refundToPrevious in uscita,
-   * collectedFromNew in entrata); refundedAmount resta INTATTO (la cessione è un trasferimento, non
-   * una perdita). Registra la storia su BookingTransfer. admin-only.
+   * collectedFromNew in entrata) via reconcileCessionPayment; refundedAmount resta INTATTO (la cessione
+   * è un trasferimento, non una perdita). Registra la storia su BookingTransfer. admin-only.
    */
   async transfer(id: string, input: TransferSubscriptionInput): Promise<BookingDTO> {
     const tenantId = this.tenant.require();
-    const cents = (n: number): number => Math.round(n * 100);
     const outcome = await this.prisma.forTenant(tenantId, async (tx) => {
       const existing = await tx.booking.findFirst({ where: { id }, include: { suspensions: true } });
       if (!existing) return { error: 'NOT_FOUND' as const };
@@ -516,17 +541,13 @@ import { toTransferDTO, toCededSubscriptionDTO } from './booking-transfer.projec
       const eff = toDbDate(input.effectiveDate);
       if (!(eff >= existing.startDate && eff <= existing.endDate)) return { error: 'BAD_DATE' as const };
 
-      const collected = Number(existing.amountCollected);
-      const total = Number(existing.totalPrice);
-      const refundOut = input.refundToPrevious;
-      const collectIn = input.collectedFromNew;
-      if (!(refundOut >= 0 && refundOut <= collected)) return { error: 'BAD_REFUND' as const };
-      if (!(collectIn >= 0)) return { error: 'BAD_COLLECT' as const };
-      const newCollected = collected - refundOut + collectIn;
-      if (cents(newCollected) > cents(total)) return { error: 'OVER_TOTAL' as const };
-
-      const paymentStatus =
-        cents(newCollected) === 0 ? 'unpaid' : cents(newCollected) === cents(total) ? 'paid' : 'partial';
+      const money = reconcileCessionPayment(
+        Number(existing.amountCollected),
+        Number(existing.totalPrice),
+        input.refundToPrevious,
+        input.collectedFromNew,
+      );
+      if (!money.ok) return { error: money.reason };
 
       await tx.bookingTransfer.create({
         data: {
@@ -535,14 +556,14 @@ import { toTransferDTO, toCededSubscriptionDTO } from './booking-transfer.projec
           previousCustomerId: existing.customerId,
           newCustomerId: input.newCustomerId,
           effectiveDate: eff,
-          refundToPrevious: refundOut,
-          collectedFromNew: collectIn,
+          refundToPrevious: input.refundToPrevious,
+          collectedFromNew: input.collectedFromNew,
           reason: input.reason ?? null,
         },
       });
       const row = await tx.booking.update({
         where: { id },
-        data: { customerId: input.newCustomerId, amountCollected: newCollected, paymentStatus },
+        data: { customerId: input.newCustomerId, amountCollected: money.newCollected, paymentStatus: money.paymentStatus },
       });
       return { row };
     });
@@ -565,16 +586,20 @@ import { toTransferDTO, toCededSubscriptionDTO } from './booking-transfer.projec
   }
 ```
 
-- [ ] **Step 5: Esegui — deve passare**
+- [ ] **Step 7: Full api unit suite (no regressioni) + typecheck**
 
-Run: `corepack pnpm --filter @coralyn/api exec jest bookings-transfer.service -- --runInBand`
-Expected: PASS (tutti i casi).
+Run:
+```bash
+corepack pnpm --filter @coralyn/api test -- --runInBand
+corepack pnpm --filter @coralyn/api exec tsc --noEmit
+```
+Expected: suite verde (215 + 8 nuovi = 223); tsc pulito. NB: `transfer()` non ha unit-test proprio (verificato dall'e2e Task 8) — questo è coerente con `terminate`/`suspend`/`reactivate`.
 
-- [ ] **Step 6: Commit**
+- [ ] **Step 8: Commit**
 
 ```bash
-git add apps/api/src/bookings/bookings.service.ts apps/api/src/bookings/bookings-transfer.service.spec.ts
-git commit -m "feat(api): BookingsService.transfer — titolarita + movimento netto incasso (D-013)"
+git add apps/api/src/bookings/cession.payment.ts apps/api/src/bookings/cession.payment.spec.ts apps/api/src/bookings/bookings.service.ts
+git commit -m "feat(api): reconcileCessionPayment (pure) + BookingsService.transfer (D-013)"
 ```
 
 ---
@@ -642,10 +667,10 @@ E nel `.map` finale, nell'oggetto enrichment (dopo `suspensions: b.suspensions.m
   }
 ```
 
-- [ ] **Step 4: Test** — aggiungi al projection spec o allo service spec un caso che verifica l'ordinamento e la mappa (mock `tx.bookingTransfer.findMany` → 2 righe con date diverse; assert ordine desc e campi). Poi esegui:
+- [ ] **Step 4: Verifica** — `listCededByCustomer` è un metodo service con `tx` → **niente unit-test con mock** (coerente col codebase: verificato dall'e2e Task 8, caso "ceded-subscriptions"). La projection `toCededSubscriptionDTO` è già unit-testata (Task 4). Qui basta la suite unit verde + typecheck:
 
-Run: `corepack pnpm --filter @coralyn/api exec jest -- --runInBand`
-Expected: PASS (unit del modulo bookings tutte verdi).
+Run: `corepack pnpm --filter @coralyn/api test -- --runInBand`
+Expected: PASS (unit del modulo bookings tutte verdi, nessuna regressione).
 
 - [ ] **Step 5: Typecheck** (l'include tipizza `transfers`/`newCustomer` — verifica):
 
