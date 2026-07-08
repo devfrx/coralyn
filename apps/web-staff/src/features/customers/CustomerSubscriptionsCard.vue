@@ -14,7 +14,6 @@ const subs = computed(() => props.bookings.filter((b) => b.type === 'subscriptio
 
 const canTerminate = (b: CustomerBookingDTO): boolean =>
   b.status === 'confirmed' && !b.terminatedAt && b.endDate >= todayIso();
-const terminatedDay = (iso: string): string => iso.slice(0, 10);
 const openSuspension = (b: CustomerBookingDTO): SuspensionDTO | undefined =>
   (b.suspensions ?? []).find((s) => !s.endDate);
 const pastSuspensions = (b: CustomerBookingDTO): SuspensionDTO[] =>
@@ -52,7 +51,7 @@ const dayOf = (iso: string): string => iso.slice(0, 10);
           Prelazione aperta per {{ b.prelazione.destinationSeasonName }} · scade {{ b.prelazione.deadline }}
         </Callout>
         <div v-if="b.terminatedAt" class="mt-3 rounded-[var(--radius-sm)] bg-[var(--color-raised)] px-2.5 py-2 text-[12px] text-[var(--color-text-2nd)]">
-          Disdetto il {{ terminatedDay(b.terminatedAt) }} · rimborso {{ formatEuro(b.refundedAmount ?? 0) }}<span v-if="b.terminationReason"> · {{ b.terminationReason }}</span>
+          Disdetto il {{ dayOf(b.terminatedAt) }} · rimborso {{ formatEuro(b.refundedAmount ?? 0) }}<span v-if="b.terminationReason"> · {{ b.terminationReason }}</span>
         </div>
         <div v-if="openSuspension(b)" class="mt-3 flex items-center gap-2 rounded-[var(--radius-sm)] bg-[var(--color-warm-100,#FBEFE7)] px-2.5 py-2 text-[12px] text-[var(--color-text-2nd)]">
           <span class="flex-1">Sospeso dal {{ dayOf(openSuspension(b)!.startDate) }} (in corso)</span>
