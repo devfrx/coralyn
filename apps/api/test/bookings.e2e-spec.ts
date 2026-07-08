@@ -576,4 +576,92 @@ describe('Bookings (e2e)', () => {
         .send({ effectiveDate: '2026-08-20', refundAmount: 0 }).expect(422);
     });
   });
+
+  describe('sospensione abbonamento (D-013)', () => {
+    let sSeq = 0;
+
+    // Abbonamento full-season 2026-05-01 → 2026-09-30 su ombrellone dedicato (label unica).
+    const makeSub = async (): Promise<{ id: string; umbrellaId: string }> => {
+      const label = `S${(sSeq += 1)}`;
+      const u = await prisma.forTenant(s1, (tx) =>
+        tx.umbrella.create({ data: { establishmentId: s1, rowId: ids.rowId, umbrellaTypeId: null, label, logicalOrder: 60 } }),
+      );
+      const res = await request(app.getHttpServer()).post('/api/bookings').set(...bearer(token1))
+        .send(body({ umbrellaId: u.id, type: 'subscription', startDate: '2026-07-01' })).expect(201);
+      return { id: res.body.id as string, umbrellaId: u.id };
+    };
+
+    it('chiusa: 200, span di contratto invariato, buco liberato, coda riservata', async () => {
+      const { id, umbrellaId } = await makeSub();
+      await request(app.getHttpServer()).patch(`/api/bookings/${id}/payment`).set(...bearer(token1))
+        .send({ amountCollected: 800, paymentMethod: 'cash' }).expect(200);
+
+      const res = await request(app.getHttpServer()).post(`/api/bookings/${id}/suspend`).set(...bearer(token1))
+        .send({ startDate: '2026-07-20', endDate: '2026-07-26', refundAmount: 50, reason: 'Viaggio' }).expect(200);
+      // lo span di contratto NON cambia (prelazione/rinnovo intatti)
+      expect(res.body.startDate).toBe('2026-05-01');
+      expect(res.body.endDate).toBe('2026-09-30');
+      expect(res.body.refundedAmount).toBe(50);
+
+      // buco [2026-07-20, 2026-07-26] libero: una daily nel buco passa (prima darebbe 409)
+      await request(app.getHttpServer()).post('/api/bookings').set(...bearer(token1))
+        .send(body({ umbrellaId, timeSlotId: ids.slotMorning, type: 'daily', startDate: '2026-07-22' })).expect(201);
+      // coda [2026-07-27, …] ancora riservata all'abbonato: una daily lì dà 409
+      await request(app.getHttpServer()).post('/api/bookings').set(...bearer(token1))
+        .send(body({ umbrellaId, timeSlotId: ids.slotMorning, type: 'daily', startDate: '2026-07-28' })).expect(409);
+      // testa [.., 2026-07-19] ancora riservata: 409
+      await request(app.getHttpServer()).post('/api/bookings').set(...bearer(token1))
+        .send(body({ umbrellaId, timeSlotId: ids.slotMorning, type: 'daily', startDate: '2026-07-15' })).expect(409);
+    });
+
+    it('rimborso aggregato su refundedAmount (disdetta-style netto)', async () => {
+      const { id } = await makeSub();
+      await request(app.getHttpServer()).patch(`/api/bookings/${id}/payment`).set(...bearer(token1))
+        .send({ amountCollected: 800, paymentMethod: 'cash' }).expect(200);
+      await request(app.getHttpServer()).post(`/api/bookings/${id}/suspend`).set(...bearer(token1))
+        .send({ startDate: '2026-07-20', endDate: '2026-07-26', refundAmount: 30 }).expect(200);
+      const res = await request(app.getHttpServer()).post(`/api/bookings/${id}/suspend`).set(...bearer(token1))
+        .send({ startDate: '2026-08-01', endDate: '2026-08-05', refundAmount: 20 }).expect(200);
+      expect(res.body.refundedAmount).toBe(50); // 30 + 20 aggregati
+    });
+
+    it('staff → 403 (admin-only)', async () => {
+      const { id } = await makeSub();
+      await request(app.getHttpServer()).post(`/api/bookings/${id}/suspend`).set(...bearer(staffToken))
+        .send({ startDate: '2026-07-20', endDate: '2026-07-26' }).expect(403);
+    });
+
+    it('tenant altrui → 404', async () => {
+      const { id } = await makeSub();
+      await request(app.getHttpServer()).post(`/api/bookings/${id}/suspend`).set(...bearer(token2))
+        .send({ startDate: '2026-07-20', endDate: '2026-07-26' }).expect(404);
+    });
+
+    it('inizio nel passato (< oggi) → 422', async () => {
+      const { id } = await makeSub();
+      await request(app.getHttpServer()).post(`/api/bookings/${id}/suspend`).set(...bearer(token1))
+        .send({ startDate: '2026-05-10', endDate: '2026-05-20' }).expect(422);
+    });
+
+    it('ritorno a fine stagione (R-1 = endDate) → 422 (usa la disdetta)', async () => {
+      const { id } = await makeSub();
+      await request(app.getHttpServer()).post(`/api/bookings/${id}/suspend`).set(...bearer(token1))
+        .send({ startDate: '2026-08-01', endDate: '2026-09-30' }).expect(422);
+    });
+
+    it('rimborso > residuo incassato → 422', async () => {
+      const { id } = await makeSub(); // non pagato: amountCollected = 0
+      await request(app.getHttpServer()).post(`/api/bookings/${id}/suspend`).set(...bearer(token1))
+        .send({ startDate: '2026-07-20', endDate: '2026-07-26', refundAmount: 10 }).expect(422);
+    });
+
+    it('non-abbonamento (daily) → 422', async () => {
+      // Coordinate distinte da quelle della disdetta (u1/slotAfternoon/2026-08-20) per evitare
+      // la collisione di occupazione quando le due suite girano nello stesso run.
+      const res = await request(app.getHttpServer()).post('/api/bookings').set(...bearer(token1))
+        .send(body({ umbrellaId: ids.u1, timeSlotId: ids.slotAfternoon, type: 'daily', startDate: '2026-08-25' })).expect(201);
+      await request(app.getHttpServer()).post(`/api/bookings/${res.body.id}/suspend`).set(...bearer(token1))
+        .send({ startDate: '2026-08-25', endDate: '2026-08-26' }).expect(422);
+    });
+  });
 });

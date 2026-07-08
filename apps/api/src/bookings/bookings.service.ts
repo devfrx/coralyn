@@ -16,6 +16,8 @@ import type {
   SettlePaymentInput,
   SubscriptionListItemDTO,
   TerminateSubscriptionInput,
+  SuspendSubscriptionInput,
+  ReactivateSubscriptionInput,
 } from '@coralyn/contracts';
 import { PrismaService } from '../prisma/prisma.service';
 import { TenantContext } from '../tenant/tenant-context';
@@ -528,6 +530,98 @@ export class BookingsService {
       if (e === 'NOT_CONFIRMED') throw new UnprocessableEntityException('Abbonamento non attivo');
       if (e === 'ALREADY_TERMINATED') throw new ConflictException('Abbonamento già disdetto');
       if (e === 'BAD_DATE') throw new UnprocessableEntityException('Data di disdetta non valida');
+      throw new UnprocessableEntityException('Rimborso non valido'); // BAD_REFUND
+    }
+    return toBookingDTO(outcome.row);
+  }
+
+  /**
+   * Sospensione temporanea di un abbonamento (D-013). Scava un buco nell'occupazione (BookingCoverage)
+   * SENZA toccare lo span di contratto (Booking.startDate/endDate): un sospeso conserva prezzo, rinnovo,
+   * prelazione e seniority. Chiusa [S, R-1] (ritorno noto) o aperta [S, …) (poi reactivate). admin-only.
+   */
+  async suspend(id: string, input: SuspendSubscriptionInput): Promise<BookingDTO> {
+    const tenantId = this.tenant.require();
+    const day = 24 * 60 * 60 * 1000;
+    const outcome = await this.prisma.forTenant(tenantId, async (tx) => {
+      const existing = await tx.booking.findFirst({ where: { id }, include: { suspensions: true } });
+      if (!existing) return { error: 'NOT_FOUND' as const };
+      if (existing.type !== 'subscription') return { error: 'NOT_SUBSCRIPTION' as const };
+      if (existing.status !== 'confirmed') return { error: 'NOT_CONFIRMED' as const };
+      if (existing.terminatedAt) return { error: 'TERMINATED' as const };
+      // Una sola sospensione aperta per abbonamento: non si impila una nuova mentre una è in corso.
+      if (existing.suspensions.some((s) => s.endDate === null)) return { error: 'OPEN_EXISTS' as const };
+
+      const today = toDbDate(todayInRome());
+      const S = toDbDate(input.startDate);
+      if (S < today || S > existing.endDate) return { error: 'BAD_START' as const }; // S ≥ oggi e dentro lo span
+
+      const closed = input.endDate != null;
+      const collected = Number(existing.amountCollected);
+      const residual = collected - Number(existing.refundedAmount);
+      const refund = closed ? (input.refundAmount ?? 0) : 0; // l'aperta rimborsa alla reactivate
+      if (!(refund >= 0 && refund <= residual)) return { error: 'BAD_REFUND' as const };
+
+      const coverages = await tx.bookingCoverage.findMany({ where: { bookingId: id, status: 'confirmed' } });
+
+      if (closed) {
+        const Rminus1 = toDbDate(input.endDate!);
+        if (Rminus1 < S) return { error: 'BAD_RANGE' as const }; // S ≤ R-1
+        if (!(Rminus1 < existing.endDate)) return { error: 'RETURN_OUT' as const }; // ritorno ENTRO la stagione
+        const C = coverages.find((c) => c.startDate <= S && Rminus1 <= c.endDate);
+        if (!C) return { error: 'NO_COVERAGE' as const }; // buco a cavallo o già libero
+        await tx.bookingCoverage.delete({ where: { id: C.id } });
+        if (S > C.startDate) {
+          await tx.bookingCoverage.create({
+            data: { bookingId: id, establishmentId: tenantId, umbrellaId: C.umbrellaId,
+              startDate: C.startDate, endDate: new Date(S.getTime() - day), status: 'confirmed' },
+          });
+        }
+        // coda [R, C.end] sempre non vuota (Rminus1 < endDate = C.end ⇒ R ≤ C.end)
+        await tx.bookingCoverage.create({
+          data: { bookingId: id, establishmentId: tenantId, umbrellaId: C.umbrellaId,
+            startDate: new Date(Rminus1.getTime() + day), endDate: C.endDate, status: 'confirmed' },
+        });
+        await tx.bookingSuspension.create({
+          data: { bookingId: id, establishmentId: tenantId, startDate: S, endDate: Rminus1,
+            refundedAmount: refund, reason: input.reason ?? null },
+        });
+      } else {
+        const C = coverages.find((c) => c.startDate <= S && S <= c.endDate);
+        if (!C) return { error: 'NO_COVERAGE' as const };
+        // Tronca da S in poi: elimina i frammenti interamente ≥ S (inclusa C se S = C.start)…
+        await tx.bookingCoverage.deleteMany({ where: { bookingId: id, startDate: { gte: S } } });
+        // …e, se C inizia prima di S (non colpita sopra), sostituiscila con la sola testa [C.start, S-1].
+        if (S > C.startDate) {
+          await tx.bookingCoverage.delete({ where: { id: C.id } });
+          await tx.bookingCoverage.create({
+            data: { bookingId: id, establishmentId: tenantId, umbrellaId: C.umbrellaId,
+              startDate: C.startDate, endDate: new Date(S.getTime() - day), status: 'confirmed' },
+          });
+        }
+        await tx.bookingSuspension.create({
+          data: { bookingId: id, establishmentId: tenantId, startDate: S, endDate: null,
+            refundedAmount: 0, reason: input.reason ?? null },
+        });
+      }
+
+      const row = refund > 0
+        ? await tx.booking.update({ where: { id }, data: { refundedAmount: { increment: refund } } })
+        : existing;
+      return { row };
+    });
+
+    if ('error' in outcome) {
+      const e = outcome.error;
+      if (e === 'NOT_FOUND') throw new NotFoundException('Prenotazione non trovata');
+      if (e === 'NOT_SUBSCRIPTION') throw new UnprocessableEntityException('Solo gli abbonamenti possono essere sospesi');
+      if (e === 'NOT_CONFIRMED') throw new UnprocessableEntityException('Abbonamento non attivo');
+      if (e === 'TERMINATED') throw new UnprocessableEntityException('Abbonamento disdetto: non sospendibile');
+      if (e === 'OPEN_EXISTS') throw new ConflictException('Esiste già una sospensione aperta');
+      if (e === 'BAD_START') throw new UnprocessableEntityException('Data di inizio sospensione non valida');
+      if (e === 'BAD_RANGE') throw new UnprocessableEntityException('Intervallo di sospensione non valido');
+      if (e === 'RETURN_OUT') throw new UnprocessableEntityException('Il ritorno cade a fine stagione: usa la disdetta');
+      if (e === 'NO_COVERAGE') throw new UnprocessableEntityException('Periodo non coperto (o già libero)');
       throw new UnprocessableEntityException('Rimborso non valido'); // BAD_REFUND
     }
     return toBookingDTO(outcome.row);
