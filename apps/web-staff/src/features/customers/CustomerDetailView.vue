@@ -6,7 +6,7 @@ import { Role } from '@coralyn/contracts';
 import { useSessionStore } from '@/stores/session';
 import { pushToast } from '@/lib/toasts';
 import { todayIso } from '@/lib/dates';
-import { useCustomer, useCustomerBookings, useDeleteCustomer } from './useCustomers';
+import { useCustomer, useCustomerBookings, useDeleteCustomer, useCededSubscriptions } from './useCustomers';
 import CustomerHistoryCard from './CustomerHistoryCard.vue';
 import CustomerSubscriptionsCard from './CustomerSubscriptionsCard.vue';
 import CustomerPaymentsCard from './CustomerPaymentsCard.vue';
@@ -14,6 +14,7 @@ import EditCustomerModal from './EditCustomerModal.vue';
 import TerminateSubscriptionModal from './TerminateSubscriptionModal.vue';
 import SuspendSubscriptionModal from './SuspendSubscriptionModal.vue';
 import ReactivateSubscriptionModal from './ReactivateSubscriptionModal.vue';
+import TransferSubscriptionModal from './TransferSubscriptionModal.vue';
 import type { CustomerBookingDTO, SuspensionDTO } from '@coralyn/contracts';
 
 const props = defineProps<{ id: string }>();
@@ -21,6 +22,7 @@ const router = useRouter();
 const session = useSessionStore();
 const { data: customer, isLoading, isError } = useCustomer(props.id);
 const { data: bookings } = useCustomerBookings(props.id);
+const { data: ceded } = useCededSubscriptions(props.id);
 const deleteCustomer = useDeleteCustomer(props.id);
 
 const editOpen = ref(false);
@@ -43,6 +45,12 @@ function onReactivate(p: { booking: CustomerBookingDTO; suspension: SuspensionDT
   reactivateBooking.value = p.booking;
   reactivateSuspension.value = p.suspension;
   reactivateOpen.value = true;
+}
+const transferOpen = ref(false);
+const transferTarget = ref<CustomerBookingDTO | null>(null);
+function onTransfer(b: CustomerBookingDTO) {
+  transferTarget.value = b;
+  transferOpen.value = true;
 }
 
 const ini = computed(() => (customer.value ? ((customer.value.firstName[0] ?? '') + (customer.value.lastName[0] ?? '')).toUpperCase() : ''));
@@ -127,7 +135,7 @@ function onConfirmDelete() {
       </SectionCard>
 
       <div class="flex flex-col gap-3.5">
-        <CustomerSubscriptionsCard :bookings="bookings ?? []" :is-admin="isAdmin" @terminate="onTerminate" @suspend="onSuspend" @reactivate="onReactivate" />
+        <CustomerSubscriptionsCard :bookings="bookings ?? []" :ceded="ceded ?? []" :is-admin="isAdmin" @terminate="onTerminate" @suspend="onSuspend" @reactivate="onReactivate" @transfer="onTransfer" />
         <CustomerHistoryCard :bookings="bookings ?? []" />
         <CustomerPaymentsCard :bookings="bookings ?? []" />
       </div>
@@ -144,6 +152,7 @@ function onConfirmDelete() {
       <TerminateSubscriptionModal :booking="terminateTarget" :customer-id="id" v-model:open="terminateOpen" />
       <SuspendSubscriptionModal :booking="suspendTarget" :customer-id="id" v-model:open="suspendOpen" />
       <ReactivateSubscriptionModal :booking="reactivateBooking" :suspension="reactivateSuspension" :customer-id="id" v-model:open="reactivateOpen" />
+      <TransferSubscriptionModal :booking="transferTarget" :customer-id="id" v-model:open="transferOpen" />
     </template>
   </section>
 </template>

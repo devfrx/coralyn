@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { mountApp } from '@/test/utils';
-import type { CustomerBookingDTO } from '@coralyn/contracts';
+import type { CustomerBookingDTO, CededSubscriptionDTO } from '@coralyn/contracts';
 import CustomerSubscriptionsCard from './CustomerSubscriptionsCard.vue';
 
 const activeSub: CustomerBookingDTO = {
@@ -77,5 +77,51 @@ describe('CustomerSubscriptionsCard — disdetta (D-013)', () => {
     const w = mountApp(CustomerSubscriptionsCard, { props: { bookings: [openSuspendedSub], isAdmin: true } });
     await w.find('[data-testid="reactivate-sub-3"]').trigger('click');
     expect(w.emitted('reactivate')?.[0]?.[0]).toMatchObject({ booking: { id: 'sub-3' }, suspension: { id: 'sus-1' } });
+  });
+});
+
+describe('CustomerSubscriptionsCard — cessione (D-013)', () => {
+  it('admin + abbonamento cedibile → mostra «Cedi»', () => {
+    const w = mountApp(CustomerSubscriptionsCard, { props: { bookings: [activeSub], isAdmin: true } });
+    expect(w.text()).toContain('Cedi');
+  });
+
+  it('non-admin → nessun «Cedi»', () => {
+    const w = mountApp(CustomerSubscriptionsCard, { props: { bookings: [activeSub], isAdmin: false } });
+    expect(w.find('[data-testid="transfer-sub-1"]').exists()).toBe(false);
+  });
+
+  it('abbonamento con sospensione aperta → nessun «Cedi»', () => {
+    const w = mountApp(CustomerSubscriptionsCard, { props: { bookings: [openSuspendedSub], isAdmin: true } });
+    expect(w.find('[data-testid="transfer-sub-3"]').exists()).toBe(false);
+  });
+
+  it('abbonamento disdetto → nessun «Cedi»', () => {
+    const w = mountApp(CustomerSubscriptionsCard, { props: { bookings: [terminatedSub], isAdmin: true } });
+    expect(w.find('[data-testid="transfer-sub-2"]').exists()).toBe(false);
+  });
+
+  it('emette «transfer» col booking al click', async () => {
+    const w = mountApp(CustomerSubscriptionsCard, { props: { bookings: [activeSub], isAdmin: true } });
+    await w.find('[data-testid="transfer-sub-1"]').trigger('click');
+    expect(w.emitted('transfer')?.[0]?.[0]).toMatchObject({ id: 'sub-1' });
+  });
+
+  it('sezione «Cessioni effettuate» renderizza le righe da ceded', () => {
+    const ceded: CededSubscriptionDTO[] = [
+      { transferId: 'tr-1', bookingId: 'sub-9', effectiveDate: '2026-06-15T08:00:00.000Z', newCustomerName: 'Luca Bianchi', umbrellaLabel: 'A12', refundToPrevious: 120, reason: 'Trasferimento', createdAt: '2026-06-15T08:00:00.000Z' },
+    ];
+    const w = mountApp(CustomerSubscriptionsCard, { props: { bookings: [activeSub], ceded, isAdmin: true } });
+    expect(w.text()).toContain('Cessioni effettuate');
+    expect(w.text()).toContain('A12');
+    expect(w.text()).toContain('Luca Bianchi');
+    expect(w.text()).toContain('2026-06-15');
+    expect(w.text()).toContain('120');
+    expect(w.text()).toContain('Trasferimento');
+  });
+
+  it('nessuna cessione → sezione assente', () => {
+    const w = mountApp(CustomerSubscriptionsCard, { props: { bookings: [activeSub], isAdmin: true } });
+    expect(w.text()).not.toContain('Cessioni effettuate');
   });
 });

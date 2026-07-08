@@ -74,6 +74,7 @@ const INITIAL_CUSTOMER_BOOKINGS: Record<string, CustomerBookingDTO[]> = {
 };
 let customerBookings: Record<string, CustomerBookingDTO[]> = structuredClone(INITIAL_CUSTOMER_BOOKINGS);
 export function resetCustomerBookingsSeed() { customerBookings = structuredClone(INITIAL_CUSTOMER_BOOKINGS); }
+const cededByCustomer: Record<string, unknown[]> = {};
 
 // Auth mockata SOLO per i test (in dev il login colpisce il backend reale).
 export const MOCK_TOKEN = 'valid-token';
@@ -137,6 +138,7 @@ export const server = setupServer(
   }),
   http.get('/api/customers/:id/bookings', ({ params }) =>
     HttpResponse.json(customerBookings[params.id as string] ?? [])),
+  http.get('/api/customers/:id/ceded-subscriptions', ({ params }) => HttpResponse.json(cededByCustomer[params.id as string] ?? [])),
   http.delete('*/api/customers/:id', () => HttpResponse.json({ outcome: 'deleted' })),
   // Seasons
   http.get('/api/seasons', () => HttpResponse.json(seasons)),

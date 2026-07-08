@@ -1,14 +1,15 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import { SectionCard, Callout, Badge, Button, Icon, formatEuro } from '@coralyn/ui-kit';
-import type { CustomerBookingDTO, SuspensionDTO } from '@coralyn/contracts';
+import type { CustomerBookingDTO, SuspensionDTO, CededSubscriptionDTO } from '@coralyn/contracts';
 import { todayIso } from '@/lib/dates';
 
-const props = defineProps<{ bookings: CustomerBookingDTO[]; isAdmin: boolean }>();
+const props = defineProps<{ bookings: CustomerBookingDTO[]; ceded?: CededSubscriptionDTO[]; isAdmin: boolean }>();
 const emit = defineEmits<{
   terminate: [CustomerBookingDTO];
   suspend: [CustomerBookingDTO];
   reactivate: [{ booking: CustomerBookingDTO; suspension: SuspensionDTO }];
+  transfer: [CustomerBookingDTO];
 }>();
 const subs = computed(() => props.bookings.filter((b) => b.type === 'subscription'));
 
@@ -44,6 +45,7 @@ const dayOf = (iso: string): string => iso.slice(0, 10);
             </div>
             <Button v-if="isAdmin && canTerminate(b)" variant="danger" :data-testid="`terminate-${b.id}`" @click="emit('terminate', b)"><Icon name="trash-2" :size="15" />Disdici</Button>
             <Button v-if="isAdmin && canSuspend(b)" variant="secondary" :data-testid="`suspend-${b.id}`" @click="emit('suspend', b)"><Icon name="clock" :size="15" />Sospendi</Button>
+            <Button v-if="isAdmin && canSuspend(b)" variant="secondary" :data-testid="`transfer-${b.id}`" @click="emit('transfer', b)"><Icon name="renew" :size="15" />Cedi</Button>
           </div>
         </div>
         <Callout v-if="b.prelazione" tone="warm" class="mt-3">
@@ -62,5 +64,11 @@ const dayOf = (iso: string): string => iso.slice(0, 10);
         </div>
       </li>
     </ul>
+    <div v-if="(ceded ?? []).length" class="mt-4 border-t border-[var(--color-border)] pt-3">
+      <div class="mb-2 text-[11px] font-semibold uppercase tracking-[.05em] text-[var(--color-text-muted)]">Cessioni effettuate</div>
+      <div v-for="c in ceded" :key="c.transferId" class="mb-2 rounded-[var(--radius-sm)] bg-[var(--color-raised)] px-2.5 py-2 text-[12px] text-[var(--color-text-2nd)]">
+        Ombrellone {{ c.umbrellaLabel }} ceduto a {{ c.newCustomerName }} il {{ c.effectiveDate.slice(0, 10) }}<span v-if="c.refundToPrevious"> · rimborso {{ formatEuro(c.refundToPrevious) }}</span><span v-if="c.reason"> · {{ c.reason }}</span>
+      </div>
+    </div>
   </SectionCard>
 </template>
