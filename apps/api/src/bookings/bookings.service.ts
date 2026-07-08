@@ -277,7 +277,7 @@ export class BookingsService {
     // può essere aggirato; l'EXCLUDE constraint booking_no_overlap scatta (SQLSTATE 23P01) e lo
     // traduciamo nello stesso 409 gentile, così client e test non distinguono chi ha bloccato.
     try {
-      return await tx.booking.create({
+      const booking = await tx.booking.create({
         data: {
           establishmentId: p.tenantId,
           customerId: p.customerId,
@@ -292,6 +292,20 @@ export class BookingsService {
           previousBookingId: p.previousBookingId,
         },
       });
+      // Copertura effettiva (occupazione fisica): 1 intervallo = span nominale (ADR-0046). I minuti
+      // li riempie il trigger coverage_fill_slot_minutes_trg. Il coverage_no_overlap scatta qui sotto
+      // race, con lo stesso 23P01 → 409 gentile.
+      await tx.bookingCoverage.create({
+        data: {
+          bookingId: booking.id,
+          establishmentId: p.tenantId,
+          umbrellaId: p.umbrellaId,
+          startDate: dbStart,
+          endDate: dbEnd,
+          status: 'confirmed',
+        },
+      });
+      return booking;
     } catch (e) {
       if (isBookingOverlapExclusion(e))
         throw new ConflictException('Fascia non disponibile per questo ombrellone');
@@ -496,6 +510,11 @@ export class BookingsService {
           terminationReason: input.reason ?? null,
           refundedAmount: input.refundAmount,
         },
+      });
+      // L'abbonamento ha 1 coverage (ADR-0046): tronca lo span fisico in sincrono con quello contrattuale.
+      await tx.bookingCoverage.updateMany({
+        where: { bookingId: id },
+        data: { endDate: lastValid },
       });
       return { row };
     });

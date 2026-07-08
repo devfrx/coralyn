@@ -27,6 +27,7 @@ model Establishment {
   renewalCampaigns  RenewalCampaign[]
   equipmentTypes    EquipmentType[]
   packageEquipments PackageEquipment[]
+  bookingCoverages  BookingCoverage[]
 }
 
 model Customer {
@@ -52,7 +53,7 @@ enum Role {
 }
 
 enum SectorKind {
-  grid    // file regolari, impilate verso il mare
+  grid // file regolari, impilate verso il mare
   special // ombrelloni fuori griglia (es. palme)
 }
 
@@ -81,13 +82,13 @@ enum PaymentMethod {
 }
 
 model User {
-  id              String         @id @default(uuid()) @db.Uuid
-  establishmentId String?        @db.Uuid // null = platform superuser (cross-tenant)
-  email           String         @unique // globally unique: identifies the user at login
+  id              String                 @id @default(uuid()) @db.Uuid
+  establishmentId String?                @db.Uuid // null = platform superuser (cross-tenant)
+  email           String                 @unique // globally unique: identifies the user at login
   passwordHash    String // argon2id; never exposed in DTOs
   role            Role
   disabledAt      DateTime? // null = attivo; valorizzato = disabilitato (soft), il login lo respinge (D-025)
-  establishment   Establishment? @relation(fields: [establishmentId], references: [id])
+  establishment   Establishment?         @relation(fields: [establishmentId], references: [id])
   setupTokens     CredentialSetupToken[]
 
   @@index([establishmentId])
@@ -130,8 +131,8 @@ model Sector {
   rows            Row[]
   rates           Rate[]
 
-  @@index([establishmentId])
   @@unique([establishmentId, name])
+  @@index([establishmentId])
 }
 
 model Row {
@@ -192,27 +193,53 @@ model Booking {
   // libera per le date successive senza toccare la projection. refundedAmount = rimborso reso.
   terminatedAt      DateTime?
   terminationReason String?
-  refundedAmount    Decimal        @default(0) @db.Decimal(10, 2)
+  refundedAmount    Decimal   @default(0) @db.Decimal(10, 2)
 
   // Occupazione oraria denormalizzata da TimeSlot (minuti-dalla-mezzanotte), DB-autoritativa via
   // trigger booking_fill_slot_minutes_trg (l'app NON le scrive). Alimenta l'EXCLUDE constraint
   // booking_no_overlap (raw SQL, non modellato qui). Vedi ADR-0037.
   // @default(0) è un segnaposto MAI osservato: il trigger BEFORE INSERT sovrascrive sempre il valore;
   // serve solo a rendere il create-input Prisma opzionale (così l'app non è costretta a scriverle).
-  slotStartMin      Int   @default(0)
-  slotEndMin        Int   @default(0)
+  slotStartMin Int @default(0)
+  slotEndMin   Int @default(0)
 
-  establishment   Establishment @relation(fields: [establishmentId], references: [id])
-  customer        Customer      @relation(fields: [customerId], references: [id])
-  umbrella        Umbrella      @relation(fields: [umbrellaId], references: [id])
-  timeSlot        TimeSlot      @relation(fields: [timeSlotId], references: [id])
-  previousBooking Booking?      @relation("BookingRenewal", fields: [previousBookingId], references: [id])
-  renewals        Booking[]     @relation("BookingRenewal")
-  package         Package?      @relation(fields: [packageId], references: [id])
+  establishment   Establishment     @relation(fields: [establishmentId], references: [id])
+  customer        Customer          @relation(fields: [customerId], references: [id])
+  umbrella        Umbrella          @relation(fields: [umbrellaId], references: [id])
+  timeSlot        TimeSlot          @relation(fields: [timeSlotId], references: [id])
+  previousBooking Booking?          @relation("BookingRenewal", fields: [previousBookingId], references: [id])
+  renewals        Booking[]         @relation("BookingRenewal")
+  package         Package?          @relation(fields: [packageId], references: [id])
+  coverages       BookingCoverage[]
 
   @@index([establishmentId])
   @@index([umbrellaId])
   @@index([establishmentId, startDate, endDate])
+}
+
+// Occupazione fisica a intervalli (D-013 sospensione spec 1/2, ADR-0046). 1..N righe per Booking
+// (in questo task EXPAND sempre 1 = span del contratto). Il vecchio booking_no_overlap resta
+// primario finché il task CONTRACT non rimuove Booking.slotStartMin/slotEndMin.
+model BookingCoverage {
+  id              String        @id @default(uuid()) @db.Uuid
+  bookingId       String        @db.Uuid
+  establishmentId String        @db.Uuid
+  umbrellaId      String        @db.Uuid
+  startDate       DateTime      @db.Date
+  endDate         DateTime      @db.Date
+  // Occupazione oraria denormalizzata (minuti), DB-autoritativa via trigger coverage_fill_slot_minutes_trg.
+  // @default(0) segnaposto mai osservato (il trigger sovrascrive sempre) — vedi ADR-0046/ADR-0037.
+  slotStartMin    Int           @default(0)
+  slotEndMin      Int           @default(0)
+  // Stato denormalizzato da Booking: il partial WHERE del constraint ('confirmed') vive per-riga qui.
+  status          BookingStatus
+
+  booking       Booking       @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  establishment Establishment @relation(fields: [establishmentId], references: [id])
+
+  @@index([bookingId])
+  @@index([establishmentId, startDate, endDate])
+  @@index([umbrellaId])
 }
 
 model RenewalCampaign {
@@ -349,7 +376,7 @@ model PlatformAuditLog {
 
 enum CredentialTokenPurpose {
   invite // imposta password per un account appena creato (admin ora, staff in futuro)
-  reset  // reset password avviato dal console superuser
+  reset // reset password avviato dal console superuser
 }
 
 // Token di impostazione password (invito/reset). Volutamente FUORI RLS (dato di identità
