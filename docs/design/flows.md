@@ -139,7 +139,7 @@ flowchart LR
 > "usa la disdetta" — invariante server, non nudge FE); il rimborso è discrezione dell'operatore
 > (suggerimento pro-rata **solo FE**, il server valida i bound), aggregato su `Booking.refundedAmount`.
 
-## 6. Cessione/subentro abbonamento (D-013, *in design*)
+## 6. Cessione/subentro abbonamento (D-013, implementata e MERGIATA)
 
 Un abbonato cede il posto a un altro cliente, che eredita il contratto — stesso ombrellone, stessa stagione,
 **stessa anzianità e prelazione**. Agisce **solo sulla titolarità** (`Booking.customerId`), mai

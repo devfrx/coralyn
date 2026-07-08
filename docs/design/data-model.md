@@ -52,13 +52,13 @@
 > span di contratto** su `Booking` (prezzo/rinnovo/prelazione/seniority restano invariati: un sospeso
 > conserva i diritti) — è mergiata. Spec
 > [2026-07-08-subscription-suspension-design.md](../superpowers/specs/2026-07-08-subscription-suspension-design.md).
-> **In design, non ancora implementata:** la **cessione/subentro** — passaggio di titolarità di un
+> La **cessione/subentro** — passaggio di titolarità di un
 > abbonamento da un cliente A (cedente) a un cliente B (subentrante) sulla **stessa** `Booking`
 > (`customerId` A→B; seniority e prelazione preservate, ereditate da B), con storico su una nuova child
 > table **`BookingTransfer`** (mirror `BookingSuspension`) e riconciliazione incasso a **movimento netto**
 > su `Booking.amountCollected` (`refundedAmount` **non** toccato — la cessione è un trasferimento, non una
 > perdita di ricavo). `BookingCoverage` **non è toccata** dalla cessione (tocca il titolare, non
-> l'occupazione). Vedi [ADR-0047](../architecture/decisions/0047-cessione-subentro-titolarita-incasso.md) e
+> l'occupazione) — **è mergiata**. Vedi [ADR-0047](../architecture/decisions/0047-cessione-subentro-titolarita-incasso.md) e
 > la spec
 > [2026-07-08-subscription-cession-design.md](../superpowers/specs/2026-07-08-subscription-cession-design.md).
 
@@ -94,13 +94,13 @@ erDiagram
     BOOKING ||--o| BOOKING : "rinnovata in"
     BOOKING ||--|{ BOOKING_COVERAGE : "occupa via (1..N)"
     BOOKING ||--o{ BOOKING_SUSPENSION : "sospesa da"
-    BOOKING ||--o{ BOOKING_TRANSFER : "ceduta via (0..N, in design)"
+    BOOKING ||--o{ BOOKING_TRANSFER : "ceduta via (0..N)"
     UMBRELLA ||--o{ BOOKING_COVERAGE : "coperto da"
     ESTABLISHMENT ||--o{ BOOKING_COVERAGE : "possiede"
     ESTABLISHMENT ||--o{ BOOKING_SUSPENSION : "possiede"
     ESTABLISHMENT ||--o{ BOOKING_TRANSFER : "possiede"
-    CUSTOMER ||--o{ BOOKING_TRANSFER : "cede via (previousCustomer, in design)"
-    CUSTOMER ||--o{ BOOKING_TRANSFER : "riceve via (newCustomer, in design)"
+    CUSTOMER ||--o{ BOOKING_TRANSFER : "cede via (previousCustomer)"
+    CUSTOMER ||--o{ BOOKING_TRANSFER : "riceve via (newCustomer)"
     CUSTOMER ||--o{ WAITLIST : "richiede"
     SEASON ||--o{ RENEWAL_CAMPAIGN : "origine di"
     SEASON ||--o{ RENEWAL_CAMPAIGN : "destinazione di"
@@ -191,7 +191,7 @@ erDiagram
     BOOKING {
         uuid id PK
         uuid establishmentId FK
-        uuid customerId FK "mutabile via cessione (in design, ADR-0047): A->B, identita del contratto preservata"
+        uuid customerId FK "mutabile via cessione (ADR-0047): A->B, identita del contratto preservata"
         uuid umbrellaId FK
         uuid timeSlotId FK "slot prenotato"
         uuid packageId FK
@@ -233,7 +233,7 @@ erDiagram
         timestamp createdAt
     }
     BOOKING_TRANSFER {
-        uuid id PK "in design, ADR-0047 — non ancora implementata"
+        uuid id PK
         uuid bookingId FK
         uuid establishmentId FK "tenant (RLS FORCE)"
         uuid previousCustomerId FK "cedente (A) al momento della cessione"
@@ -342,7 +342,7 @@ erDiagram
   disdetta + sospensioni, così il netto `amountCollected − refundedAmount` resta fonte unica per i report.
   `BookingSuspension` è tenant-scoped (RLS FORCE) e pura storia/accountability (l'anti-double-booking è
   garantito dalla copertura, non da qui).
-- **Cessione/subentro (D-013, *in design*, [ADR-0047](../architecture/decisions/0047-cessione-subentro-titolarita-incasso.md))**:
+- **Cessione/subentro (D-013, implementata e MERGIATA, [ADR-0047](../architecture/decisions/0047-cessione-subentro-titolarita-incasso.md))**:
   la cessione tocca **il titolare, non l'occupazione**. `Booking.customerId` è **mutabile** — passa da A
   (cedente) a B (subentrante) sulla **stessa** riga; span di contratto, prezzo, `previousBookingId`
   (seniority) e prelazione restano invariati e seguono B automaticamente. `BookingCoverage` non è toccata
