@@ -22,7 +22,7 @@ import { TenantContext } from '../tenant/tenant-context';
 import { CatalogService, type QuoteOutcome } from '../catalog/catalog.service';
 import { toBookingDTO } from './booking.projection';
 import { toSubscriptionListItemDTO } from './subscription.projection';
-import { toCustomerBookingDTO, resolveSeasonName } from './customer-booking.projection';
+import { toCustomerBookingDTO, resolveSeasonName, toSuspensionDTO } from './customer-booking.projection';
 import { computeRenewalWindowState } from './renewal-window.projection';
 import { slotsOverlap, dateRangesOverlap } from './booking.availability';
 import { resolvePayment } from './booking.payment';
@@ -68,6 +68,7 @@ export class BookingsService {
           umbrella: { include: { row: { include: { sector: true } } } },
           package: true,
           renewals: true,
+          suspensions: { orderBy: { startDate: 'asc' } },
         },
         orderBy: [{ startDate: 'desc' }, { createdAt: 'desc' }],
       });
@@ -113,6 +114,7 @@ export class BookingsService {
           seniority: isSub ? (seniorityById.get(b.id) ?? 1) : undefined,
           renewed: isSub ? b.renewals.some((r) => r.status === 'confirmed') : undefined,
           prelazione: prelazioneFor(b),
+          suspensions: b.suspensions.map(toSuspensionDTO),
         });
       });
     });

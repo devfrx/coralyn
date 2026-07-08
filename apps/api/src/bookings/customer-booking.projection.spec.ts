@@ -1,5 +1,5 @@
-import { toCustomerBookingDTO, resolveSeasonName } from './customer-booking.projection';
-import type { Booking } from '@prisma/client';
+import { toCustomerBookingDTO, resolveSeasonName, toSuspensionDTO } from './customer-booking.projection';
+import type { Booking, BookingSuspension } from '@prisma/client';
 
 function bookingRow(over: Partial<Booking> = {}): Booking {
   return {
@@ -97,6 +97,20 @@ describe('toCustomerBookingDTO', () => {
     expect(dto.terminationReason).toBeUndefined();
     expect(dto.refundedAmount).toBe(0);
   });
+
+  it('mappa suspensions[] passate via enrichment (default [])', () => {
+    expect(toCustomerBookingDTO(bookingRow(), { umbrellaLabel: 'A12' }).suspensions).toEqual([]);
+    const dto = toCustomerBookingDTO(bookingRow(), {
+      umbrellaLabel: 'A12',
+      suspensions: [
+        { id: 's1', startDate: '2026-07-20', endDate: '2026-07-26', refundedAmount: 50, reason: 'Viaggio' },
+        { id: 's2', startDate: '2026-08-01', refundedAmount: 0 },
+      ],
+    });
+    expect(dto.suspensions).toHaveLength(2);
+    expect(dto.suspensions?.[1]).toMatchObject({ id: 's2', startDate: '2026-08-01' });
+    expect(dto.suspensions?.[1].endDate).toBeUndefined();
+  });
 });
 
 describe('resolveSeasonName', () => {
@@ -116,5 +130,43 @@ describe('resolveSeasonName', () => {
       { name: 'Nuova', startDate: new Date('2026-07-01'), endDate: new Date('2026-08-31') },
     ];
     expect(resolveSeasonName(overlap, new Date('2026-07-15'))).toBe('Nuova');
+  });
+});
+
+describe('toSuspensionDTO', () => {
+  const row = (over: Partial<BookingSuspension> = {}): BookingSuspension =>
+    ({
+      id: 's1',
+      bookingId: 'b1',
+      establishmentId: 'e1',
+      startDate: new Date('2026-07-20T00:00:00Z'),
+      endDate: new Date('2026-07-26T00:00:00Z'),
+      refundedAmount: { toString: () => '50' } as unknown as BookingSuspension['refundedAmount'],
+      reason: 'Viaggio',
+      reactivatedAt: null,
+      createdAt: new Date('2026-07-10T09:00:00Z'),
+      ...over,
+    }) as BookingSuspension;
+
+  it('chiusa: startDate/endDate ISO date, refund number, reason', () => {
+    expect(toSuspensionDTO(row())).toEqual({
+      id: 's1',
+      startDate: '2026-07-20',
+      endDate: '2026-07-26',
+      refundedAmount: 50,
+      reason: 'Viaggio',
+      reactivatedAt: undefined,
+    });
+  });
+
+  it('aperta: endDate assente, reason assente se null', () => {
+    const dto = toSuspensionDTO(row({ endDate: null, reason: null }));
+    expect(dto.endDate).toBeUndefined();
+    expect(dto.reason).toBeUndefined();
+  });
+
+  it('riattivata: reactivatedAt ISO datetime', () => {
+    const dto = toSuspensionDTO(row({ reactivatedAt: new Date('2026-07-26T08:30:00Z') }));
+    expect(dto.reactivatedAt).toBe('2026-07-26T08:30:00.000Z');
   });
 });

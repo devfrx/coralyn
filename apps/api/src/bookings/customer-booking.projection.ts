@@ -1,5 +1,5 @@
-import type { Booking } from '@prisma/client';
-import type { CustomerBookingDTO } from '@coralyn/contracts';
+import type { Booking, BookingSuspension } from '@prisma/client';
+import type { CustomerBookingDTO, SuspensionDTO } from '@coralyn/contracts';
 import { formatDbDate } from '../common/dates';
 
 export interface CustomerBookingEnrichment {
@@ -10,6 +10,7 @@ export interface CustomerBookingEnrichment {
   seniority?: number;
   renewed?: boolean;
   prelazione?: { destinationSeasonName: string; deadline: string };
+  suspensions?: SuspensionDTO[];
 }
 
 /** Proietta una riga Booking nel DTO arricchito della Scheda Cliente (customerId omesso: implicito nella route). */
@@ -32,6 +33,7 @@ export function toCustomerBookingDTO(b: Booking, e: CustomerBookingEnrichment): 
     refundedAmount: Number(b.refundedAmount),
     terminatedAt: b.terminatedAt ? b.terminatedAt.toISOString() : undefined,
     terminationReason: b.terminationReason ?? undefined,
+    suspensions: e.suspensions ?? [],
     umbrellaLabel: e.umbrellaLabel,
     packageName: e.packageName,
     sectorName: e.sectorName,
@@ -53,4 +55,16 @@ export function resolveSeasonName(
   const containing = seasons.filter((s) => s.startDate <= bookingStart && bookingStart <= s.endDate);
   if (containing.length === 0) return undefined;
   return containing.reduce((a, b) => (b.startDate > a.startDate ? b : a)).name;
+}
+
+/** Proietta una riga BookingSuspension nel DTO della Scheda. endDate NULL = aperta (in corso). */
+export function toSuspensionDTO(s: BookingSuspension): SuspensionDTO {
+  return {
+    id: s.id,
+    startDate: formatDbDate(s.startDate),
+    endDate: s.endDate ? formatDbDate(s.endDate) : undefined,
+    refundedAmount: Number(s.refundedAmount),
+    reason: s.reason ?? undefined,
+    reactivatedAt: s.reactivatedAt ? s.reactivatedAt.toISOString() : undefined,
+  };
 }
