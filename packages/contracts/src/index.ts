@@ -225,6 +225,31 @@ export interface TerminateSubscriptionInput {
   reason?: string;
 }
 
+/** Una sospensione registrata su un abbonamento (D-013). endDate assente = aperta (in corso). */
+export interface SuspensionDTO {
+  id: string;
+  startDate: string;            // ISO yyyy-mm-dd — S (primo giorno sospeso)
+  endDate?: string;             // ISO yyyy-mm-dd — R-1 (ultimo giorno sospeso); assente = aperta
+  refundedAmount: number;       // rimborso di QUESTA sospensione
+  reason?: string;
+  reactivatedAt?: string;       // ISO datetime; presente = aperta poi riattivata
+}
+
+/** Sospendi un abbonamento. endDate presente = chiusa [S, R-1]; assente = aperta [S, …). */
+export interface SuspendSubscriptionInput {
+  startDate: string;            // S (≥ oggi)
+  endDate?: string;             // R-1 per la chiusa; assente = aperta
+  refundAmount?: number;        // per la chiusa; assente/0 per l'aperta
+  reason?: string;
+}
+
+/** Riattiva la sospensione aperta di un abbonamento. */
+export interface ReactivateSubscriptionInput {
+  returnDate: string;           // R (primo giorno di rientro)
+  refundAmount: number;         // ≥ 0, ≤ amountCollected − refundedAmount
+  reason?: string;
+}
+
 /**
  * DTO arricchito di una prenotazione, per la Scheda Cliente 360°. Deriva da BookingDTO
  * (senza `customerId`, implicito nella route) + arricchimenti di sola presentazione.
@@ -248,6 +273,7 @@ export interface CustomerBookingDTO {
   refundedAmount?: number;       // D-013 (additivo)
   terminatedAt?: string;         // D-013
   terminationReason?: string;    // D-013
+  suspensions?: SuspensionDTO[];  // D-013 (additivo): sempre valorizzato dal server ([] se nessuna)
   // — arricchimenti server-side —
   umbrellaLabel: string;          // join Umbrella.label (il FE non carica la mappa)
   packageName?: string;           // nome del Package (se packageId presente); il FE non carica il catalogo
