@@ -1,8 +1,10 @@
 import { describe, it, expect } from 'vitest';
 import { defineComponent, h } from 'vue';
+import { http, HttpResponse } from 'msw';
 import { flushPromises } from '@vue/test-utils';
 import { mountApp } from '@/test/utils';
-import { useCustomer, useUpdateCustomer } from './useCustomers';
+import { server } from '@/mocks/server';
+import { useCustomer, useUpdateCustomer, useSuspendSubscription, useReactivateSubscription } from './useCustomers';
 
 const Probe = defineComponent({
   setup() {
@@ -19,6 +21,24 @@ const EditProbe = defineComponent({
       h('span', q.data.value?.phone ?? '-'),
       h('button', { onClick: () => m.mutate({ phone: '+39 000' }) }, 'save'),
     ]);
+  },
+});
+
+const SuspendProbe = defineComponent({
+  setup() {
+    const m = useSuspendSubscription('c-1');
+    return () => h('button', {
+      onClick: () => m.mutate({ id: 'b1', input: { startDate: '2026-07-20', endDate: '2026-07-26', refundAmount: 5 } }),
+    }, 'suspend');
+  },
+});
+
+const ReactivateProbe = defineComponent({
+  setup() {
+    const m = useReactivateSubscription('c-1');
+    return () => h('button', {
+      onClick: () => m.mutate({ id: 'b1', input: { returnDate: '2026-08-01', refundAmount: 0 } }),
+    }, 'reactivate');
   },
 });
 
@@ -39,5 +59,39 @@ describe('useCustomer', () => {
     await new Promise((r) => setTimeout(r, 0));
     await flushPromises();
     expect(w.text()).toContain('+39 000');
+  });
+});
+
+describe('useSuspendSubscription', () => {
+  it('POSTa /bookings/:id/suspend e invalida la Scheda', async () => {
+    let captured: unknown = null;
+    server.use(
+      http.post('/api/bookings/:id/suspend', async ({ request }) => {
+        captured = await request.json();
+        return HttpResponse.json({ id: 'b1' });
+      }),
+    );
+    const w = mountApp(SuspendProbe);
+    await w.find('button').trigger('click');
+    await flushPromises();
+    await new Promise((r) => setTimeout(r, 0));
+    expect(captured).toMatchObject({ startDate: '2026-07-20', endDate: '2026-07-26', refundAmount: 5 });
+  });
+});
+
+describe('useReactivateSubscription', () => {
+  it('POSTa /bookings/:id/reactivate', async () => {
+    let captured: unknown = null;
+    server.use(
+      http.post('/api/bookings/:id/reactivate', async ({ request }) => {
+        captured = await request.json();
+        return HttpResponse.json({ id: 'b1' });
+      }),
+    );
+    const w = mountApp(ReactivateProbe);
+    await w.find('button').trigger('click');
+    await flushPromises();
+    await new Promise((r) => setTimeout(r, 0));
+    expect(captured).toMatchObject({ returnDate: '2026-08-01', refundAmount: 0 });
   });
 });

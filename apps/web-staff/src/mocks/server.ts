@@ -50,7 +50,7 @@ const INITIAL_CUSTOMER_BOOKINGS: Record<string, CustomerBookingDTO[]> = {
       type: 'subscription', status: 'confirmed', totalPrice: 320, paymentStatus: 'paid', amountCollected: 320,
       paymentMethod: 'card',
       umbrellaLabel: 'A12', sectorName: 'Centro', packageName: 'Comfort', seasonName: 'Estate 2027', seniority: 2, renewed: false,
-      prelazione: { destinationSeasonName: 'Estate 2028', deadline: '2028-04-30' } },
+      prelazione: { destinationSeasonName: 'Estate 2028', deadline: '2028-04-30' }, suspensions: [] },
     { id: 'cb-2', umbrellaId: 'u-1', timeSlotId: 'ts-1', startDate: '2026-06-15', endDate: '2026-09-15',
       type: 'subscription', status: 'confirmed', totalPrice: 300, paymentStatus: 'paid', amountCollected: 300,
       umbrellaLabel: 'A12', sectorName: 'Centro', packageName: 'Comfort', seasonName: 'Estate 2026', seniority: 1, renewed: true },
@@ -451,5 +451,34 @@ export const server = setupServer(
       },
       { status: 200 },
     );
+  }),
+  // Sospensione/riattivazione abbonamento (D-013): mutano customerBookings in-memory così le
+  // integrazioni FE (Scheda cliente) rifletteranno lo stato dopo invalidateQueries.
+  http.post('/api/bookings/:id/suspend', async ({ params, request }) => {
+    const input = (await request.json()) as { startDate: string; endDate?: string; refundAmount?: number; reason?: string };
+    for (const list of Object.values(customerBookings)) {
+      const b = list.find((x) => x.id === params.id);
+      if (b) {
+        b.suspensions = [...(b.suspensions ?? []), { id: `sus-${(b.suspensions?.length ?? 0) + 1}`, startDate: input.startDate, endDate: input.endDate, refundedAmount: input.refundAmount ?? 0, reason: input.reason }];
+        if (input.refundAmount) b.refundedAmount = (b.refundedAmount ?? 0) + input.refundAmount;
+        return HttpResponse.json({ ...b });
+      }
+    }
+    return new HttpResponse(null, { status: 404 });
+  }),
+  http.post('/api/bookings/:id/reactivate', async ({ params, request }) => {
+    const input = (await request.json()) as { returnDate: string; refundAmount: number; reason?: string };
+    for (const list of Object.values(customerBookings)) {
+      const b = list.find((x) => x.id === params.id);
+      const open = b?.suspensions?.find((s) => !s.endDate);
+      if (b && open) {
+        open.endDate = input.returnDate; // mock: mostra concluso (semplificazione R-1 non necessaria in UI)
+        open.reactivatedAt = `${input.returnDate}T08:00:00.000Z`;
+        open.refundedAmount = input.refundAmount;
+        b.refundedAmount = (b.refundedAmount ?? 0) + input.refundAmount;
+        return HttpResponse.json({ ...b });
+      }
+    }
+    return new HttpResponse(null, { status: 409 });
   }),
 );
