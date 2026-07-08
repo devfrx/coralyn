@@ -274,6 +274,7 @@ export interface CustomerBookingDTO {
   terminatedAt?: string;         // D-013
   terminationReason?: string;    // D-013
   suspensions?: SuspensionDTO[];  // D-013 (additivo): sempre valorizzato dal server ([] se nessuna)
+  transfers?: TransferDTO[];      // D-013 cessione (additivo): sempre valorizzato dal server ([] se nessuna)
   // — arricchimenti server-side —
   umbrellaLabel: string;          // join Umbrella.label (il FE non carica la mappa)
   packageName?: string;           // nome del Package (se packageId presente); il FE non carica il catalogo
@@ -285,6 +286,43 @@ export interface CustomerBookingDTO {
     destinationSeasonName: string;
     deadline: string;             // ISO yyyy-mm-dd
   };
+}
+
+/** Una cessione registrata su un abbonamento (D-013, ADR-0047). Storia del passaggio di titolarità. */
+export interface TransferDTO {
+  id: string;
+  effectiveDate: string;          // ISO yyyy-mm-dd
+  previousCustomerId: string;
+  previousCustomerName: string;   // "Nome Cognome" al momento della proiezione
+  newCustomerId: string;
+  newCustomerName: string;
+  refundToPrevious: number;       // rimborso lordo reso al cedente
+  collectedFromNew: number;       // incasso lordo dal subentrante
+  reason?: string;
+  createdAt: string;              // ISO datetime
+}
+
+/** Riga "cessioni effettuate" nella Scheda del CEDENTE: abbonamenti che questo cliente ha ceduto ad altri. */
+export interface CededSubscriptionDTO {
+  transferId: string;
+  bookingId: string;
+  effectiveDate: string;          // ISO yyyy-mm-dd
+  newCustomerName: string;        // subentrante B
+  umbrellaLabel: string;
+  seasonName?: string;
+  refundToPrevious: number;       // quanto ha riavuto A
+  reason?: string;
+  createdAt: string;              // ISO datetime
+}
+
+/** Input cessione/subentro (D-013, admin-only). Cambia il titolare A->B e riconcilia l'incasso.
+ *  refundToPrevious/collectedFromNew = movimento netto su amountCollected (refundedAmount intatto). */
+export interface TransferSubscriptionInput {
+  newCustomerId: string;
+  effectiveDate: string;          // ISO yyyy-mm-dd, ∈ [start, end]
+  refundToPrevious: number;       // ≥ 0, ≤ amountCollected
+  collectedFromNew: number;       // ≥ 0; con vincolo netto ≤ totalPrice
+  reason?: string;
 }
 
 export type ReportPeriod = 'today' | 'week' | 'season';
