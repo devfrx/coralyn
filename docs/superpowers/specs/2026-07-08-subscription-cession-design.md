@@ -74,6 +74,10 @@ Le due dimensioni ortogonali già stabilite (span di contratto su `Booking` vs o
    stato "pulito". Una sospensione **aperta** (ritorno ignoto, `endDate IS NULL`) è un movimento di cassa
    pendente del cedente; prima si riattiva/chiude, poi si cede. Le sospensioni **concluse** restano nella storia
    e passano con il contratto (appartengono alla `Booking`, non al cliente).
+8. **Storico "cessioni effettuate" nella Scheda del cedente (v1)**: dopo la cessione l'abbonamento vive sotto B,
+   ma la Scheda di **A** mostra una sezione read-only "Cessioni effettuate" (le `BookingTransfer` con
+   `previousCustomerId = A`). Read dedicato, tenant-scoped, che **non** altera il contratto della lista
+   prenotazioni (§7). Così A conserva traccia visibile di ciò che ha ceduto (completo/professionale).
 
 ## 4. Modello dati (additivo)
 
@@ -183,10 +187,31 @@ export interface TransferSubscriptionInput {
   collectedFromNew: number;       // ≥ 0; con vincolo netto ≤ totalPrice
   reason?: string;
 }
+
+// Storico "cessioni effettuate" nella Scheda del CEDENTE (§3.8): le BookingTransfer con previousCustomerId = A.
+export interface CededSubscriptionDTO {
+  transferId: string;
+  bookingId: string;
+  effectiveDate: string;          // ISO yyyy-mm-dd
+  newCustomerName: string;        // subentrante B
+  umbrellaLabel: string;
+  seasonName?: string;
+  refundToPrevious: number;       // quanto ha riavuto A
+  reason?: string;
+  createdAt: string;              // ISO datetime
+}
 ```
-Endpoint (admin-only, `@Roles(Role.Admin)`), su `Booking`, ritorna `BookingDTO` aggiornato (mirror
+Endpoint principale (admin-only, `@Roles(Role.Admin)`), su `Booking`, ritorna `BookingDTO` aggiornato (mirror
 `terminate`/`suspend`); il FE invalida la query Scheda → `CustomerBookingDTO` rifetchato mostra il nuovo
-titolare + `transfers[]`. `BookingDTO` **non** cambia. `@coralyn/contracts` va ricompilato (`dist/`).
+titolare + `transfers[]`:
+- **`POST /bookings/:id/transfer`** — `TransferSubscriptionInput`.
+
+Read dedicato del lato-cedente (§3.8), **non** admin-gated (lettura tenant-scoped come le altre letture Scheda),
+contratto della lista prenotazioni invariato:
+- **`GET /customers/:id/ceded-subscriptions`** → `CededSubscriptionDTO[]` (le `BookingTransfer` con
+  `previousCustomerId = :id`, tenant-scoped, ordinate per `effectiveDate desc`).
+
+`BookingDTO` **non** cambia. `@coralyn/contracts` va ricompilato (`dist/`).
 
 ## 8. UI — Scheda cliente `CustomerSubscriptionsCard` (accanto a "Disdici"/"Sospendi")
 - Abbonamento confermato/non-disdetto/senza-sospensione-aperta → **"Cedi / Subentro"** (solo admin, pattern
@@ -199,6 +224,10 @@ titolare + `transfers[]`. `BookingDTO` **non** cambia. `@coralyn/contracts` va r
   - **motivo** (opzionale).
 - Storico cessioni → righe "Ceduto a {newCustomerName} il {effectiveDate}" (+ importi + motivo) sotto
   l'abbonamento, mirror delle righe sospensione conclusa.
+- **Sezione "Cessioni effettuate" nella Scheda del cedente (§3.8):** una sezione read-only che elenca i
+  `CededSubscriptionDTO` (abbonamenti che **questo** cliente ha ceduto ad altri) — "Ombrellone {umbrellaLabel}
+  ceduto a {newCustomerName} il {effectiveDate}" (+ eventuale rimborso ricevuto + motivo). Visibile a tutti
+  (non admin-only, è sola lettura). Compare solo se la lista è non vuota.
 - Riusa `Modal`/`Field`/`Input`/`Textarea`/`ConfirmDialog` esistenti; **nessun nuovo componente ui-kit**.
 
 ## 9. Impatto per file (indicativo — dettaglio nel piano)
@@ -207,24 +236,28 @@ titolare + `transfers[]`. `BookingDTO` **non** cambia. `@coralyn/contracts` va r
 - **`packages/contracts/src/index.ts`**: `TransferDTO`, `CustomerBookingDTO.transfers`,
   `TransferSubscriptionInput`. Rebuild `dist/`.
 - **`apps/api/src/bookings/bookings.controller.ts`**: `@Post(':id/transfer')` `@Roles(Role.Admin)`.
+- **Read lato-cedente** `GET /customers/:id/ceded-subscriptions` (nel controller cliente o bookings — dettaglio
+  nel piano): non admin-gated, tenant-scoped → `CededSubscriptionDTO[]`.
 - **`apps/api/src/bookings/dto/transfer-subscription.dto.ts`** (nuovo): `class-validator`
   (`@IsUUID` newCustomerId, `@IsCalendarDate` effectiveDate, due `@IsNumber({maxDecimalPlaces:2}) @Min(0) @Max`,
   `@IsOptional @IsString @MaxLength(500)` reason).
 - **`apps/api/src/bookings/bookings.service.ts`**: `transfer(id, input)` — invarianti §6, movimento netto §5,
   `Booking.update({customerId, amountCollected, paymentStatus})`, `BookingTransfer.create`, ritorna
-  `toBookingDTO`.
+  `toBookingDTO`; + `listCededByCustomer(customerId)` → `CededSubscriptionDTO[]` (query `BookingTransfer` per
+  `previousCustomerId`, join `newCustomer`/`umbrella`/`season` per le label).
 - **`apps/api/src/bookings/customer-booking.projection.ts`** + query `listByCustomer`: carica
   `transfers` (con `previousCustomer`/`newCustomer` per i nomi) e mappa `transfers[]` sul DTO
-  (`toTransferDTO`).
+  (`toTransferDTO`); + `toCededSubscriptionDTO`.
 - **spec api**: unit `transfer` (invarianti 422/409/404; happy dei tre scenari cassa; math del movimento netto
   + clamp + paymentStatus; `refundedAmount` invariato; seniority/prelazione invariati dopo il cambio titolare)
-  + e2e (admin happy: la booking passa nella Scheda di B e sparisce da quella di A; 403 staff; 404 tenant
-  altrui; `newCustomer` anonimizzato → 422; sospensione aperta → 409; netto e paymentStatus coerenti).
+  + e2e (admin happy: la booking passa nella Scheda di B e sparisce dagli attivi di A ma compare tra le
+  "cessioni effettuate" di A; 403 staff sul transfer; 404 tenant altrui; `newCustomer` anonimizzato → 422;
+  sospensione aperta → 409; netto e paymentStatus coerenti; `ceded-subscriptions` tenant-scoped).
 - **`apps/web-staff/src/features/customers/CustomerSubscriptionsCard.vue`**: bottone "Cedi/Subentro" (admin) +
-  righe storico cessioni.
+  righe storico cessioni + sezione "Cessioni effettuate" (read-only, `CededSubscriptionDTO`).
 - **`apps/web-staff/src/features/customers/TransferSubscriptionModal.vue`** (nuovo).
 - **`apps/web-staff/src/features/customers/useCustomers.ts`**: `useTransferSubscription` (invalida la query
-  Scheda).
+  Scheda) + `useCededSubscriptions(customerId)` (read lato-cedente).
 - **FE helper** `cessionRefund.ts` (o estensione dell'esistente): pro-rata del residuo `[effectiveDate, end]`.
 - **spec FE**: card (bottone admin-only, righe storico), modale (selettore cliente, suggerimento calcolato,
   bound date, payload, azzeramento importi), invalidazione. **`apps/web-staff/src/mocks/server.ts`** + seed:
@@ -242,7 +275,8 @@ titolare + `transfers[]`. `BookingDTO` **non** cambia. `@coralyn/contracts` va r
 
 ## 11. Verifiche pre/post
 - **Titolarità spostata**: dopo `transfer`, l'abbonamento compare nella Scheda di **B** (nuovo `customerId`) e
-  non più tra gli attivi di A; `transfers[]` mostra la riga "Ceduto a B". Coperto da e2e.
+  non più tra gli attivi di A; `transfers[]` mostra la riga "Ceduto a B"; la Scheda di **A** mostra la sezione
+  "Cessioni effettuate" con quella cessione (§3.8). Coperto da e2e.
 - **Diritti ereditati**: seniority e prelazione dell'abbonamento **invariati** dopo il cambio titolare
   (regressione verde su prelazione/rinnovo).
 - **Incasso coerente**: i tre scenari (lido processa / privato / rinegoziato) producono `amountCollected` e
@@ -271,10 +305,6 @@ con RLS FORCE + policy (nessun backfill: tabella nuova vuota).
    sospensione-aperta è gestito esplicitamente (409), non lasciato affiorare; fuori scope tracciato (§14).
 
 ## 14. Fuori scope / deferito
-- **Vista "abbonamenti ceduti" nella Scheda del cedente A**: dopo la cessione l'abbonamento vive sotto B; una
-  riga storica "ceduto a B il {data}" **nella Scheda di A** (query su `transfers` con `previousCustomerId = A`)
-  è un nice-to-have. La storia non è persa (`BookingTransfer` la porta); mostrarla lato-A è additivo. **Da
-  decidere con l'utente se dentro v1 o deferito** (vedi §16).
 - **Annullo/rettifica di una cessione già registrata** (correzione = supporto dati). Fuori scope v1.
 - **Metodo di pagamento / nota di credito** per i movimenti di cassa della cessione: come per disdetta, fuori
   scope (i movimenti sono numeri sul record).
@@ -297,9 +327,10 @@ toccata).
    `Booking.customerId` mutabile via cessione); `docs/design/flows.md` — flusso cessione + guardie +
    riconciliazione incasso; `docs/design/mockups/subscription-transfer-modal.html` — la modale. (Cessione
    marcata *design, non ancora implementata*.)
-1. **Ok utente su questa spec** (+ decidere §14 punto 1: "ceduti" lato-A dentro v1 o deferito).
+1. **Ok utente su questa spec.**
 2. `writing-plans` (TDD; ordine per layer: schema+migration+contracts → service `transfer` + invarianti +
-   movimento netto → controller+e2e → FE card+modale+mock → ADR-0047 + design docs).
+   movimento netto + `listCededByCustomer` → controller (`transfer` + `ceded-subscriptions`) + e2e → FE card
+   (bottone + storico + sezione "cessioni effettuate") + modale + mock → ADR-0047 + design docs).
 3. `subagent-driven-development` + review a due stadi + whole-branch (opus) → verifica LIVE su Docker →
    presentare e attendere conferma per il merge FF (push su `main` **solo** con ok esplicito).
 4. Al merge: aggiornare [`deferred.md`] — **D-013 CHIUSA** (cessione + disdetta + sospensione + fondazione
