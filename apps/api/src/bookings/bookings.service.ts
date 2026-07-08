@@ -75,6 +75,10 @@ export class BookingsService {
           package: true,
           renewals: true,
           suspensions: { orderBy: { startDate: 'asc' } },
+          transfers: {
+            include: { previousCustomer: true, newCustomer: true },
+            orderBy: { effectiveDate: 'desc' },
+          },
         },
         orderBy: [{ startDate: 'desc' }, { createdAt: 'desc' }],
       });
@@ -121,8 +125,31 @@ export class BookingsService {
           renewed: isSub ? b.renewals.some((r) => r.status === 'confirmed') : undefined,
           prelazione: prelazioneFor(b),
           suspensions: b.suspensions.map(toSuspensionDTO),
+          transfers: b.transfers.map(toTransferDTO),
         });
       });
+    });
+  }
+
+  /** Cessioni EFFETTUATE da un cliente (previousCustomerId = customerId): per la sezione "cessioni
+   *  effettuate" della sua Scheda. Read-only, tenant-scoped. Ordine effectiveDate desc. */
+  async listCededByCustomer(customerId: string): Promise<CededSubscriptionDTO[]> {
+    const tenantId = this.tenant.require();
+    if (!UUID_SHAPE.test(customerId)) return [];
+    return this.prisma.forTenant(tenantId, async (tx) => {
+      const rows = await tx.bookingTransfer.findMany({
+        where: { previousCustomerId: customerId },
+        include: { newCustomer: true, booking: { include: { umbrella: true } } },
+        orderBy: { effectiveDate: 'desc' },
+      });
+      if (rows.length === 0) return [];
+      const seasons = await tx.season.findMany({});
+      return rows.map((t) =>
+        toCededSubscriptionDTO(t, {
+          umbrellaLabel: t.booking.umbrella.label,
+          seasonName: resolveSeasonName(seasons, t.booking.startDate),
+        }),
+      );
     });
   }
 
