@@ -481,4 +481,20 @@ export const server = setupServer(
     }
     return new HttpResponse(null, { status: 409 });
   }),
+  http.post('/api/bookings/:id/transfer', async ({ params, request }) => {
+    const input = (await request.json()) as { newCustomerId: string; effectiveDate: string; refundToPrevious: number; collectedFromNew: number; reason?: string };
+    for (const [cid, list] of Object.entries(customerBookings)) {
+      const idx = list.findIndex((x) => x.id === params.id);
+      if (idx >= 0) {
+        const b = list[idx];
+        const newCollected = b.amountCollected - input.refundToPrevious + input.collectedFromNew;
+        // mock: sposta l'abbonamento sotto il subentrante e registra la cessione nella Scheda del cedente
+        list.splice(idx, 1);
+        (customerBookings[input.newCustomerId] ??= []).push({ ...b, amountCollected: newCollected });
+        return HttpResponse.json({ ...b, customerId: input.newCustomerId, amountCollected: newCollected });
+      }
+      void cid;
+    }
+    return new HttpResponse(null, { status: 404 });
+  }),
 );
