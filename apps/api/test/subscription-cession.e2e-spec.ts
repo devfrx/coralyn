@@ -89,6 +89,10 @@ describe('Subscription cession (e2e)', () => {
 
   it('admin happy: cede l’abbonamento a B — money netto, paymentStatus, refundedAmount invariato', async () => {
     const { id, umbrellaId } = await makeSub();
+    // Baseline refundedAmount NON-ZERO (75): un default a 0 non distinguerebbe "la cessione lo lascia
+    // intatto" da "la cessione lo azzera per errore". reconcileCessionPayment vincola refundToPrevious
+    // ≤ amountCollected (non ≤ residuo) e non legge mai refundedAmount, quindi la transfer resta valida.
+    await prisma.forTenant(s1, (tx) => tx.booking.update({ where: { id }, data: { refundedAmount: 75 } }));
     const res = await request(app.getHttpServer())
       .post(`/api/bookings/${id}/transfer`)
       .set(...bearer(adminToken))
@@ -98,7 +102,8 @@ describe('Subscription cession (e2e)', () => {
     expect(res.body.customerId).toBe(customerBId);
     expect(res.body.amountCollected).toBe(1000);
     expect(res.body.paymentStatus).toBe('paid');
-    expect(res.body.refundedAmount).toBe(0);
+    // Invariante chiave ADR-0047: la cessione non deve MAI toccare refundedAmount.
+    expect(res.body.refundedAmount).toBe(75);
 
     // GET /customers/B/bookings → l'abbonamento c'è, con transfers[] { newCustomerId, refundToPrevious }
     const bRes = await request(app.getHttpServer())
@@ -173,29 +178,32 @@ describe('Subscription cession (e2e)', () => {
 
   it('422: effectiveDate fuori dallo span dell’abbonamento', async () => {
     const { id } = await makeSub();
-    await request(app.getHttpServer())
+    const res = await request(app.getHttpServer())
       .post(`/api/bookings/${id}/transfer`)
       .set(...bearer(adminToken))
       .send({ newCustomerId: customerBId, effectiveDate: '2026-10-15', refundToPrevious: 0, collectedFromNew: 0 })
       .expect(422);
+    expect(res.body.message).toBe('Data di cessione non valida');
   });
 
   it('422: newCustomerId coincide col titolare attuale', async () => {
     const { id } = await makeSub();
-    await request(app.getHttpServer())
+    const res = await request(app.getHttpServer())
       .post(`/api/bookings/${id}/transfer`)
       .set(...bearer(adminToken))
       .send({ newCustomerId: customerAId, effectiveDate: '2026-07-15', refundToPrevious: 0, collectedFromNew: 0 })
       .expect(422);
+    expect(res.body.message).toBe('Il subentrante coincide col titolare attuale');
   });
 
   it('422: OVER_TOTAL (netto incassato supera il totale)', async () => {
     const { id } = await makeSub();
-    await request(app.getHttpServer())
+    const res = await request(app.getHttpServer())
       .post(`/api/bookings/${id}/transfer`)
       .set(...bearer(adminToken))
       .send({ newCustomerId: customerBId, effectiveDate: '2026-07-15', refundToPrevious: 0, collectedFromNew: 1 })
       .expect(422);
+    expect(res.body.message).toBe('Il netto incassato supera il totale');
   });
 
   it('409: sospensione aperta sull’abbonamento → transfer rifiutato', async () => {
@@ -205,11 +213,12 @@ describe('Subscription cession (e2e)', () => {
       .set(...bearer(adminToken))
       .send({ startDate: '2026-07-20', reason: 'Rientro incerto' })
       .expect(200);
-    await request(app.getHttpServer())
+    const res = await request(app.getHttpServer())
       .post(`/api/bookings/${id}/transfer`)
       .set(...bearer(adminToken))
       .send({ newCustomerId: customerBId, effectiveDate: '2026-07-15', refundToPrevious: 0, collectedFromNew: 0 })
       .expect(409);
+    expect(res.body.message).toBe('Sospensione aperta: riattiva prima di cedere');
   });
 
   it('RLS: admin di un altro tenant che fa transfer sull’id → 404 (invisibile)', async () => {
