@@ -10,9 +10,10 @@ import { seedPricingTenant, cleanPricingTenant } from './helpers/seed-pricing';
 import { insertBookingWithCoverage } from './helpers/insert-booking-with-coverage';
 
 /**
- * Test della BookingCoverage (D-013 sospensione spec 1/2, ADR-0046) — fase EXPAND. Verifica:
- * - che l'app scriva effettivamente la coverage a ogni prenotazione (backfill 1:1 sul percorso di scrittura);
- * - che il constraint coverage_no_overlap abbia semantica IDENTICA a booking_no_overlap (ADR-0037);
+ * Test della BookingCoverage (D-013 sospensione spec 1/2, ADR-0046). Verifica:
+ * - che l'app scriva effettivamente la coverage a ogni prenotazione (1:1 sul percorso di scrittura);
+ * - che il constraint coverage_no_overlap (l'UNICO garante anti-overlap, ADR-0037/ADR-0046) abbia
+ *   semantica identica al vecchio booking_no_overlap ormai dismesso;
  * - che il trigger di propagazione status Booking → BookingCoverage funzioni.
  */
 describe('BookingCoverage (e2e)', () => {

@@ -8,7 +8,7 @@ const terminatedBase = {
   type: 'subscription' as const, status: 'confirmed' as const,
   totalPrice: new Prisma.Decimal('800'), extras: null, paymentStatus: 'paid' as const,
   amountCollected: new Prisma.Decimal('800'), paymentMethod: null, collectionDate: null,
-  createdAt: new Date('2026-05-01T10:00:00Z'), slotStartMin: 0, slotEndMin: 0,
+  createdAt: new Date('2026-05-01T10:00:00Z'),
   terminatedAt: new Date('2026-06-20T09:30:00Z'), terminationReason: 'Trasloco',
   refundedAmount: new Prisma.Decimal('250'),
 };
@@ -32,8 +32,6 @@ const row = {
   paymentMethod: null,
   collectionDate: null,
   createdAt: new Date(),
-  slotStartMin: 480,
-  slotEndMin: 780,
   terminatedAt: null,
   terminationReason: null,
   refundedAmount: new Prisma.Decimal('0'),

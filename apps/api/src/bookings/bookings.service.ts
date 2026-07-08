@@ -271,9 +271,10 @@ export class BookingsService {
     if (!outcome.ok) this.throwPriceError(outcome, p.type);
     const totalPrice = outcome.totalPrice;
 
-    // Scrittura. Rete di sicurezza DB (ADR-0037): sotto race concorrente il check applicativo sopra
-    // può essere aggirato; l'EXCLUDE constraint booking_no_overlap scatta (SQLSTATE 23P01) e lo
-    // traduciamo nello stesso 409 gentile, così client e test non distinguono chi ha bloccato.
+    // Scrittura. Rete di sicurezza DB (ADR-0037/ADR-0046): sotto race concorrente il check applicativo
+    // sopra può essere aggirato; l'EXCLUDE constraint coverage_no_overlap (su BookingCoverage) scatta
+    // (SQLSTATE 23P01) e lo traduciamo nello stesso 409 gentile, così client e test non distinguono chi
+    // ha bloccato.
     try {
       const booking = await tx.booking.create({
         data: {
@@ -378,7 +379,7 @@ export class BookingsService {
       // dell'abbonamento di origine. Se si sovrappone, le due prenotazioni (stesso ombrellone+fascia)
       // collidono in date e il constraint DB scatterebbe con un 409 generico; qui diamo un 422 chiaro,
       // coerente con la stessa invariante delle campagne rinnovo (renewal-campaigns.open). Così il
-      // constraint booking_no_overlap resta backstop di SOLA race (ADR-0037).
+      // constraint coverage_no_overlap resta backstop di SOLA race (ADR-0037/ADR-0046).
       if (season.startDate <= formatDbDate(source.endDate))
         throw new UnprocessableEntityException(
           'La stagione di rinnovo deve iniziare dopo la fine dell’abbonamento di origine',

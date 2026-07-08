@@ -21,8 +21,6 @@ function bookingRow(over: Partial<Booking> = {}): Booking {
     paymentMethod: null,
     collectionDate: null,
     createdAt: new Date('2026-07-01'),
-    slotStartMin: 0,
-    slotEndMin: 0,
     terminatedAt: null,
     terminationReason: null,
     refundedAmount: { toString: () => '0' } as unknown as Booking['refundedAmount'],

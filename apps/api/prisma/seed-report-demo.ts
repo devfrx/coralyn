@@ -1,4 +1,4 @@
-import { PrismaClient, BookingType, BookingStatus, PaymentStatus, PaymentMethod } from '@prisma/client';
+import { PrismaClient, Prisma, BookingType, BookingStatus, PaymentStatus, PaymentMethod } from '@prisma/client';
 
 // Script DEV-ONLY (demo del "Report cruscotto"): popola dati ricchi nel tenant di
 // sviluppo già creato da seed.ts. Idempotente (upsert + id fissi). NON per produzione.
@@ -22,6 +22,47 @@ const c = (n: number): string => `c0000000-0000-0000-0000-${String(n).padStart(1
 // u(prefix:number,n) di seed.ts funziona solo con prefissi a 1 cifra, qui servono più serie
 // distinte quindi uso gruppi a 2 char che non collidono con gli id numerici di seed.ts).
 const b = (group: string, n: number): string => `${group}000000-0000-0000-0000-${String(n).padStart(12, '0')}`;
+
+// Id fisso della BookingCoverage 1:1 di ogni booking seedato: stesso `group` del booking (a1/a2/a3),
+// prefisso 'c' per restare nel primo gruppo UUID a 8 hex char (come `b`, non collide con esso perché
+// il 2° carattere è sempre una lettera del `group`, mai '0'). BookingCoverage non ha un unique su
+// bookingId, quindi l'idempotenza dello script passa dall'upsert su questo id.
+const cov = (group: string, n: number): string => `c${group}00000-0000-0000-0000-${String(n).padStart(12, '0')}`;
+
+// Scrive/aggiorna la BookingCoverage 1:1 di un booking appena creato/aggiornato da questo script,
+// mirando il percorso di scrittura dell'app (bookings.service.ts: 1 coverage = span nominale del
+// booking, stesso status). I minuti li riempie comunque il trigger coverage_fill_slot_minutes_trg.
+async function upsertCoverage(
+  tx: Prisma.TransactionClient,
+  args: {
+    id: string;
+    bookingId: string;
+    umbrellaId: string;
+    startDate: Date;
+    endDate: Date;
+    status: BookingStatus;
+  },
+): Promise<void> {
+  await tx.bookingCoverage.upsert({
+    where: { id: args.id },
+    update: {
+      bookingId: args.bookingId,
+      umbrellaId: args.umbrellaId,
+      startDate: args.startDate,
+      endDate: args.endDate,
+      status: args.status,
+    },
+    create: {
+      id: args.id,
+      bookingId: args.bookingId,
+      establishmentId: EID,
+      umbrellaId: args.umbrellaId,
+      startDate: args.startDate,
+      endDate: args.endDate,
+      status: args.status,
+    },
+  });
+}
 
 const SLOT_MATTINA = u(2, 1);
 const SLOT_POMERIGGIO = u(2, 2);
@@ -92,6 +133,7 @@ async function main(): Promise<void> {
         const customer = customers[i % customers.length];
         const paid = n <= 4; // primi 4 pagati, ultimi 2 non pagati
         return {
+          n,
           id: b('a1', n),
           umbrellaId: u(5, n),
           customerId: customer.id,
@@ -133,6 +175,14 @@ async function main(): Promise<void> {
             paymentMethod: sub.paid ? PaymentMethod.card : null,
             collectionDate: sub.collectionDate,
           },
+        });
+        await upsertCoverage(tx, {
+          id: cov('a1', sub.n),
+          bookingId: sub.id,
+          umbrellaId: sub.umbrellaId,
+          startDate: dateOnly(seasonStart),
+          endDate: dateOnly(seasonEnd),
+          status: BookingStatus.confirmed,
         });
       }
 
@@ -187,6 +237,14 @@ async function main(): Promise<void> {
               collectionDate: dayDate,
             },
           });
+          await upsertCoverage(tx, {
+            id: cov('a2', dailySeq),
+            bookingId: b('a2', dailySeq),
+            umbrellaId: dailyUmbrellas[slotIdx],
+            startDate: dayDate,
+            endDate: dayDate,
+            status: BookingStatus.confirmed,
+          });
         }
       }
 
@@ -204,7 +262,7 @@ async function main(): Promise<void> {
         const totalPrice = isAfternoon ? 40 : 28;
         const paid = n <= 4;
         const customer = customers[i % customers.length];
-        return { id: b('a3', n), umbrellaId, timeSlotId, totalPrice, paid, customerId: customer.id };
+        return { n, id: b('a3', n), umbrellaId, timeSlotId, totalPrice, paid, customerId: customer.id };
       });
 
       for (const bk of todayBookings) {
@@ -240,6 +298,14 @@ async function main(): Promise<void> {
             paymentMethod: bk.paid ? PaymentMethod.card : null,
             collectionDate: bk.paid ? todayDate : null,
           },
+        });
+        await upsertCoverage(tx, {
+          id: cov('a3', bk.n),
+          bookingId: bk.id,
+          umbrellaId: bk.umbrellaId,
+          startDate: todayDate,
+          endDate: todayDate,
+          status: BookingStatus.confirmed,
         });
       }
 

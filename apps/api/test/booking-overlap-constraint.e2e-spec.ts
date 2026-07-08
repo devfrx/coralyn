@@ -163,11 +163,8 @@ describe('BookingCoverage overlap EXCLUDE constraint (e2e, DB-level)', () => {
     // Il mapping è ormai backstop di sola race (create e renew pre-validano), quindi non è più
     // raggiungibile via API in modo deterministico: pinniamo il rilevatore DIRETTAMENTE contro
     // l'errore Prisma reale prodotto dal constraint, così un cambio di forma dell'errore lo rompe subito.
-    // NB fase di transizione: finché il vecchio booking_no_overlap (su Booking) coesiste col nuovo
-    // coverage_no_overlap, è booking_no_overlap a scattare per primo (l'INSERT su Booking precede quello
-    // sulla coverage nella stessa transazione in insertBookingWithCoverage) — questo test pinna quindi
-    // l'errore REALE POST-DROP e torna verde solo dopo la migration di Step 4 (matcher già puntato a
-    // coverage_no_overlap da Step 1).
+    // Post-CONTRACT: il vecchio booking_no_overlap (su Booking) è stato rimosso; l'unico garante è
+    // coverage_no_overlap (su BookingCoverage) e questo test pinna direttamente quell'errore reale.
     await insert({ umbrellaId: ids.u1, timeSlotId: ids.slotMorning, startDate: D, endDate: D });
     let caught: unknown;
     try {

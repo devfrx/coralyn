@@ -390,8 +390,8 @@ describe('Bookings (e2e)', () => {
 
     it('rinnovo verso una stagione che si SOVRAPPONE alla sorgente → 422 (pre-flight; il constraint DB resta solo backstop di race)', async () => {
       // La stagione di destinazione [09-01, 12-31] si sovrappone a Estate 2026 [05-01, 09-30] della sorgente.
-      // renew() lo intercetta con un 422 chiaro PRIMA di scrivere: il constraint booking_no_overlap non
-      // deve mai essere il percorso primario per un errore di logica prevedibile (ADR-0037).
+      // renew() lo intercetta con un 422 chiaro PRIMA di scrivere: il constraint coverage_no_overlap non
+      // deve mai essere il percorso primario per un errore di logica prevedibile (ADR-0037/ADR-0046).
       const u = (await mkUmbrella('96', 96)).id;
       const overlapId = (
         await prisma.forTenant(s1, (tx) =>
