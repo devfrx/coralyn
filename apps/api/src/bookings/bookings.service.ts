@@ -18,6 +18,8 @@ import type {
   TerminateSubscriptionInput,
   SuspendSubscriptionInput,
   ReactivateSubscriptionInput,
+  TransferSubscriptionInput,
+  CededSubscriptionDTO,
 } from '@coralyn/contracts';
 import { PrismaService } from '../prisma/prisma.service';
 import { TenantContext } from '../tenant/tenant-context';
@@ -32,6 +34,8 @@ import { toDbDate, formatDbDate, todayInRome } from '../common/dates';
 import { computeSeniority } from './seniority';
 import { isBookingOverlapExclusion } from './booking.errors';
 import { UUID_SHAPE } from '../common/uuid';
+import { toTransferDTO, toCededSubscriptionDTO } from './booking-transfer.projection';
+import { reconcileCessionPayment } from './cession.payment';
 
 @Injectable()
 export class BookingsService {
@@ -697,6 +701,75 @@ export class BookingsService {
       if (e === 'BAD_DATE') throw new UnprocessableEntityException('Data di ritorno non valida');
       if (e === 'CONFLICT') throw new ConflictException('Il posto è occupato nel periodo di ritorno');
       throw new UnprocessableEntityException('Rimborso non valido'); // BAD_REFUND
+    }
+    return toBookingDTO(outcome.row);
+  }
+
+  /**
+   * Cessione/subentro di un abbonamento (D-013, ADR-0047). Cambia il titolare (customerId) A->B
+   * preservando span/seniority/prelazione (NON tocca BookingCoverage: l'occupazione è continua) e
+   * riconcilia l'incasso come MOVIMENTO NETTO su amountCollected (refundToPrevious in uscita,
+   * collectedFromNew in entrata) via reconcileCessionPayment; refundedAmount resta INTATTO (la cessione
+   * è un trasferimento, non una perdita). Registra la storia su BookingTransfer. admin-only.
+   */
+  async transfer(id: string, input: TransferSubscriptionInput): Promise<BookingDTO> {
+    const tenantId = this.tenant.require();
+    const outcome = await this.prisma.forTenant(tenantId, async (tx) => {
+      const existing = await tx.booking.findFirst({ where: { id }, include: { suspensions: true } });
+      if (!existing) return { error: 'NOT_FOUND' as const };
+      if (existing.type !== 'subscription') return { error: 'NOT_SUBSCRIPTION' as const };
+      if (existing.status !== 'confirmed') return { error: 'NOT_CONFIRMED' as const };
+      if (existing.terminatedAt) return { error: 'TERMINATED' as const };
+      if (existing.suspensions.some((s) => s.endDate === null)) return { error: 'OPEN_SUSPENSION' as const };
+
+      if (input.newCustomerId === existing.customerId) return { error: 'SAME_HOLDER' as const };
+      const newCustomer = await tx.customer.findFirst({ where: { id: input.newCustomerId } });
+      if (!newCustomer) return { error: 'NEW_CUSTOMER_INVALID' as const };
+      if (newCustomer.anonymizedAt) return { error: 'NEW_CUSTOMER_ANON' as const };
+
+      const eff = toDbDate(input.effectiveDate);
+      if (!(eff >= existing.startDate && eff <= existing.endDate)) return { error: 'BAD_DATE' as const };
+
+      const money = reconcileCessionPayment(
+        Number(existing.amountCollected),
+        Number(existing.totalPrice),
+        input.refundToPrevious,
+        input.collectedFromNew,
+      );
+      if (!money.ok) return { error: money.reason };
+
+      await tx.bookingTransfer.create({
+        data: {
+          bookingId: id,
+          establishmentId: tenantId,
+          previousCustomerId: existing.customerId,
+          newCustomerId: input.newCustomerId,
+          effectiveDate: eff,
+          refundToPrevious: input.refundToPrevious,
+          collectedFromNew: input.collectedFromNew,
+          reason: input.reason ?? null,
+        },
+      });
+      const row = await tx.booking.update({
+        where: { id },
+        data: { customerId: input.newCustomerId, amountCollected: money.newCollected, paymentStatus: money.paymentStatus },
+      });
+      return { row };
+    });
+
+    if ('error' in outcome) {
+      const e = outcome.error;
+      if (e === 'NOT_FOUND') throw new NotFoundException('Prenotazione non trovata');
+      if (e === 'NOT_SUBSCRIPTION') throw new UnprocessableEntityException('Solo gli abbonamenti possono essere ceduti');
+      if (e === 'NOT_CONFIRMED') throw new UnprocessableEntityException('Abbonamento non attivo');
+      if (e === 'TERMINATED') throw new UnprocessableEntityException('Abbonamento disdetto: non cedibile');
+      if (e === 'OPEN_SUSPENSION') throw new ConflictException('Sospensione aperta: riattiva prima di cedere');
+      if (e === 'SAME_HOLDER') throw new UnprocessableEntityException('Il subentrante coincide col titolare attuale');
+      if (e === 'NEW_CUSTOMER_INVALID') throw new UnprocessableEntityException('Cliente subentrante non valido');
+      if (e === 'NEW_CUSTOMER_ANON') throw new UnprocessableEntityException('Cliente subentrante anonimizzato');
+      if (e === 'BAD_DATE') throw new UnprocessableEntityException('Data di cessione non valida');
+      if (e === 'OVER_TOTAL') throw new UnprocessableEntityException('Il netto incassato supera il totale');
+      throw new UnprocessableEntityException('Importi di cessione non validi'); // BAD_REFUND / BAD_COLLECT
     }
     return toBookingDTO(outcome.row);
   }
