@@ -12,7 +12,9 @@ import CustomerSubscriptionsCard from './CustomerSubscriptionsCard.vue';
 import CustomerPaymentsCard from './CustomerPaymentsCard.vue';
 import EditCustomerModal from './EditCustomerModal.vue';
 import TerminateSubscriptionModal from './TerminateSubscriptionModal.vue';
-import type { CustomerBookingDTO } from '@coralyn/contracts';
+import SuspendSubscriptionModal from './SuspendSubscriptionModal.vue';
+import ReactivateSubscriptionModal from './ReactivateSubscriptionModal.vue';
+import type { CustomerBookingDTO, SuspensionDTO } from '@coralyn/contracts';
 
 const props = defineProps<{ id: string }>();
 const router = useRouter();
@@ -27,6 +29,20 @@ const terminateTarget = ref<CustomerBookingDTO | null>(null);
 function onTerminate(b: CustomerBookingDTO) {
   terminateTarget.value = b;
   terminateOpen.value = true;
+}
+const suspendOpen = ref(false);
+const suspendTarget = ref<CustomerBookingDTO | null>(null);
+function onSuspend(b: CustomerBookingDTO) {
+  suspendTarget.value = b;
+  suspendOpen.value = true;
+}
+const reactivateOpen = ref(false);
+const reactivateBooking = ref<CustomerBookingDTO | null>(null);
+const reactivateSuspension = ref<SuspensionDTO | null>(null);
+function onReactivate(p: { booking: CustomerBookingDTO; suspension: SuspensionDTO }) {
+  reactivateBooking.value = p.booking;
+  reactivateSuspension.value = p.suspension;
+  reactivateOpen.value = true;
 }
 
 const ini = computed(() => (customer.value ? ((customer.value.firstName[0] ?? '') + (customer.value.lastName[0] ?? '')).toUpperCase() : ''));
@@ -111,7 +127,7 @@ function onConfirmDelete() {
       </SectionCard>
 
       <div class="flex flex-col gap-3.5">
-        <CustomerSubscriptionsCard :bookings="bookings ?? []" :is-admin="isAdmin" @terminate="onTerminate" />
+        <CustomerSubscriptionsCard :bookings="bookings ?? []" :is-admin="isAdmin" @terminate="onTerminate" @suspend="onSuspend" @reactivate="onReactivate" />
         <CustomerHistoryCard :bookings="bookings ?? []" />
         <CustomerPaymentsCard :bookings="bookings ?? []" />
       </div>
@@ -126,6 +142,8 @@ function onConfirmDelete() {
       />
       <EditCustomerModal :customer="customer" v-model:open="editOpen" />
       <TerminateSubscriptionModal :booking="terminateTarget" :customer-id="id" v-model:open="terminateOpen" />
+      <SuspendSubscriptionModal :booking="suspendTarget" :customer-id="id" v-model:open="suspendOpen" />
+      <ReactivateSubscriptionModal :booking="reactivateBooking" :suspension="reactivateSuspension" :customer-id="id" v-model:open="reactivateOpen" />
     </template>
   </section>
 </template>

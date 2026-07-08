@@ -1,16 +1,27 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import { SectionCard, Callout, Badge, Button, Icon, formatEuro } from '@coralyn/ui-kit';
-import type { CustomerBookingDTO } from '@coralyn/contracts';
+import type { CustomerBookingDTO, SuspensionDTO } from '@coralyn/contracts';
 import { todayIso } from '@/lib/dates';
 
 const props = defineProps<{ bookings: CustomerBookingDTO[]; isAdmin: boolean }>();
-const emit = defineEmits<{ terminate: [CustomerBookingDTO] }>();
+const emit = defineEmits<{
+  terminate: [CustomerBookingDTO];
+  suspend: [CustomerBookingDTO];
+  reactivate: [{ booking: CustomerBookingDTO; suspension: SuspensionDTO }];
+}>();
 const subs = computed(() => props.bookings.filter((b) => b.type === 'subscription'));
 
 const canTerminate = (b: CustomerBookingDTO): boolean =>
   b.status === 'confirmed' && !b.terminatedAt && b.endDate >= todayIso();
 const terminatedDay = (iso: string): string => iso.slice(0, 10);
+const openSuspension = (b: CustomerBookingDTO): SuspensionDTO | undefined =>
+  (b.suspensions ?? []).find((s) => !s.endDate);
+const pastSuspensions = (b: CustomerBookingDTO): SuspensionDTO[] =>
+  (b.suspensions ?? []).filter((s) => s.endDate);
+const canSuspend = (b: CustomerBookingDTO): boolean =>
+  b.status === 'confirmed' && !b.terminatedAt && b.endDate >= todayIso() && !openSuspension(b);
+const dayOf = (iso: string): string => iso.slice(0, 10);
 </script>
 <template>
   <SectionCard title="Abbonamento e anzianità" icon="star">
@@ -33,6 +44,7 @@ const terminatedDay = (iso: string): string => iso.slice(0, 10);
               <div class="mt-1 text-[10px] font-semibold uppercase tracking-[.06em] text-[var(--color-text-muted)]">{{ (b.seniority ?? 1) === 1 ? 'STAGIONE' : 'STAGIONI' }}</div>
             </div>
             <Button v-if="isAdmin && canTerminate(b)" variant="danger" :data-testid="`terminate-${b.id}`" @click="emit('terminate', b)"><Icon name="trash-2" :size="15" />Disdici</Button>
+            <Button v-if="isAdmin && canSuspend(b)" variant="secondary" :data-testid="`suspend-${b.id}`" @click="emit('suspend', b)"><Icon name="clock" :size="15" />Sospendi</Button>
           </div>
         </div>
         <Callout v-if="b.prelazione" tone="warm" class="mt-3">
@@ -41,6 +53,13 @@ const terminatedDay = (iso: string): string => iso.slice(0, 10);
         </Callout>
         <div v-if="b.terminatedAt" class="mt-3 rounded-[var(--radius-sm)] bg-[var(--color-raised)] px-2.5 py-2 text-[12px] text-[var(--color-text-2nd)]">
           Disdetto il {{ terminatedDay(b.terminatedAt) }} · rimborso {{ formatEuro(b.refundedAmount ?? 0) }}<span v-if="b.terminationReason"> · {{ b.terminationReason }}</span>
+        </div>
+        <div v-if="openSuspension(b)" class="mt-3 flex items-center gap-2 rounded-[var(--radius-sm)] bg-[var(--color-warm-100,#FBEFE7)] px-2.5 py-2 text-[12px] text-[var(--color-text-2nd)]">
+          <span class="flex-1">Sospeso dal {{ dayOf(openSuspension(b)!.startDate) }} (in corso)</span>
+          <Button v-if="isAdmin" variant="primary" :data-testid="`reactivate-${b.id}`" @click="emit('reactivate', { booking: b, suspension: openSuspension(b)! })">Riattiva</Button>
+        </div>
+        <div v-for="s in pastSuspensions(b)" :key="s.id" class="mt-2 rounded-[var(--radius-sm)] bg-[var(--color-raised)] px-2.5 py-2 text-[12px] text-[var(--color-text-2nd)]">
+          Sospeso dal {{ dayOf(s.startDate) }} al {{ dayOf(s.endDate!) }} · rimborso {{ formatEuro(s.refundedAmount) }}<span v-if="s.reason"> · {{ s.reason }}</span>
         </div>
       </li>
     </ul>
