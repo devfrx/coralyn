@@ -891,4 +891,51 @@ export class BookingsService {
     }
     return toBookingDTO(outcome.row);
   }
+
+  /**
+   * Annulla un'assenza comunicata non ancora rivenduta (D-035 S2): ricopre il giorno [date,date] e marca
+   * canceledAt. Se il buco è già occupato da un'altra prenotazione (rivendita) → 409 (vincolante). admin-only.
+   */
+  async cancelAbsenceRelease(id: string, releaseId: string): Promise<BookingDTO> {
+    const tenantId = this.tenant.require();
+    const outcome = await this.prisma.forTenant(tenantId, async (tx) => {
+      const booking = await tx.booking.findFirst({ where: { id }, include: { timeSlot: true } });
+      if (!booking) return { error: 'NOT_FOUND' as const };
+      const release = await tx.absenceRelease.findFirst({ where: { id: releaseId, bookingId: id } });
+      if (!release) return { error: 'RELEASE_NOT_FOUND' as const };
+      if (release.canceledAt !== null) return { error: 'ALREADY_CANCELED' as const };
+
+      // rivenduto? coverage confirmed di ALTRA booking su stesso ombrellone+fascia, con la data dentro l'intervallo.
+      const others = await tx.bookingCoverage.findMany({
+        where: { umbrellaId: booking.umbrellaId, status: 'confirmed', bookingId: { not: id } },
+        include: { booking: { include: { timeSlot: true } } },
+      });
+      const resold = others.some(
+        (c) => dateRangesOverlap(c.startDate, c.endDate, release.date, release.date) && slotsOverlap(c.booking.timeSlot, booking.timeSlot),
+      );
+      if (resold) return { error: 'RESOLD' as const };
+
+      // Ricopre [date, date]. Il constraint coverage_no_overlap resta backstop di sola race.
+      try {
+        await tx.bookingCoverage.create({
+          data: { bookingId: id, establishmentId: tenantId, umbrellaId: booking.umbrellaId,
+            startDate: release.date, endDate: release.date, status: 'confirmed' },
+        });
+      } catch (e) {
+        if (isBookingOverlapExclusion(e)) throw new ConflictException('Il giorno è stato rivenduto');
+        throw e;
+      }
+      await tx.absenceRelease.update({ where: { id: releaseId }, data: { canceledAt: new Date() } });
+      return { row: booking };
+    });
+
+    if ('error' in outcome) {
+      const e = outcome.error;
+      if (e === 'NOT_FOUND') throw new NotFoundException('Prenotazione non trovata');
+      if (e === 'RELEASE_NOT_FOUND') throw new NotFoundException('Assenza non trovata');
+      if (e === 'ALREADY_CANCELED') throw new ConflictException('Assenza già annullata');
+      throw new ConflictException('Il giorno è stato rivenduto: annullo non consentito'); // RESOLD
+    }
+    return toBookingDTO(outcome.row);
+  }
 }

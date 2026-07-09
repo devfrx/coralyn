@@ -869,4 +869,87 @@ describe('Bookings (e2e)', () => {
         .send({ date: '2026-07-23' }).expect(403);
     });
   });
+
+  describe('POST /bookings/:id/absence-releases/:rid/cancel (D-035 S2)', () => {
+    let cxSeq = 0;
+
+    const makeSub = async (): Promise<{ id: string; umbrellaId: string }> => {
+      const label = `CX${(cxSeq += 1)}`;
+      const u = await prisma.forTenant(s1, (tx) =>
+        tx.umbrella.create({ data: { establishmentId: s1, rowId: ids.rowId, umbrellaTypeId: null, label, logicalOrder: 90 } }),
+      );
+      const res = await request(app.getHttpServer()).post('/api/bookings').set(...bearer(token1))
+        .send(body({ umbrellaId: u.id, type: 'subscription', startDate: '2026-07-01' })).expect(201);
+      return { id: res.body.id as string, umbrellaId: u.id };
+    };
+
+    const grantConsent = (id: string) =>
+      request(app.getHttpServer()).patch(`/api/bookings/${id}/absence-consent`).set(...bearer(token1))
+        .send({ consent: true }).expect(200);
+
+    const releaseDay = (id: string, day: string) =>
+      request(app.getHttpServer()).post(`/api/bookings/${id}/absence-releases`).set(...bearer(token1))
+        .send({ date: day }).expect(200);
+
+    // Task 5 (proiezione absenceReleases[] sulla Scheda) non ancora fatto: rilettura diretta da DB.
+    const rawRelease = (id: string) =>
+      prisma.forTenant(s1, (tx) => tx.absenceRelease.findFirst({ where: { bookingId: id }, orderBy: { createdAt: 'desc' } }));
+
+    it('annullo non rivenduto → 200, ricopre il giorno (rivendita ora conflitta), canceledAt valorizzato', async () => {
+      const { id, umbrellaId } = await makeSub();
+      await grantConsent(id);
+      const day = '2026-07-24';
+      await releaseDay(id, day);
+      const rel = await rawRelease(id);
+
+      await request(app.getHttpServer()).post(`/api/bookings/${id}/absence-releases/${rel!.id}/cancel`).set(...bearer(token1))
+        .expect(200);
+
+      // il giorno è di nuovo coperto: una giornaliera nello stesso buco ora conflitta (era 201 prima dell'annullo)
+      await request(app.getHttpServer()).post('/api/bookings').set(...bearer(token1))
+        .send(body({ umbrellaId, timeSlotId: ids.slotMorning, type: 'daily', startDate: day })).expect(409);
+
+      const after = await rawRelease(id);
+      expect(after?.canceledAt).not.toBeNull();
+    });
+
+    it('già rivenduto → 409 (RESOLD)', async () => {
+      const { id, umbrellaId } = await makeSub();
+      await grantConsent(id);
+      const day = '2026-07-25';
+      await releaseDay(id, day);
+      const rel = await rawRelease(id);
+
+      // rivendita: una giornaliera occupa il buco lasciato dalla release
+      await request(app.getHttpServer()).post('/api/bookings').set(...bearer(token1))
+        .send(body({ umbrellaId, timeSlotId: ids.slotMorning, type: 'daily', startDate: day })).expect(201);
+
+      await request(app.getHttpServer()).post(`/api/bookings/${id}/absence-releases/${rel!.id}/cancel`).set(...bearer(token1))
+        .expect(409);
+    });
+
+    it('già annullata → 409 (ALREADY_CANCELED)', async () => {
+      const { id } = await makeSub();
+      await grantConsent(id);
+      const day = '2026-07-26';
+      await releaseDay(id, day);
+      const rel = await rawRelease(id);
+
+      await request(app.getHttpServer()).post(`/api/bookings/${id}/absence-releases/${rel!.id}/cancel`).set(...bearer(token1))
+        .expect(200);
+      await request(app.getHttpServer()).post(`/api/bookings/${id}/absence-releases/${rel!.id}/cancel`).set(...bearer(token1))
+        .expect(409);
+    });
+
+    it('staff → 403 (admin-only)', async () => {
+      const { id } = await makeSub();
+      await grantConsent(id);
+      const day = '2026-07-27';
+      await releaseDay(id, day);
+      const rel = await rawRelease(id);
+
+      await request(app.getHttpServer()).post(`/api/bookings/${id}/absence-releases/${rel!.id}/cancel`).set(...bearer(staffToken))
+        .expect(403);
+    });
+  });
 });

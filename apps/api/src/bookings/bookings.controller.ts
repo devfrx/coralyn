@@ -96,4 +96,11 @@ export class BookingsController {
   releaseAbsence(@Param('id') id: string, @Body() body: ReleaseAbsenceDto): Promise<BookingDTO> {
     return this.bookings.releaseAbsence(id, body);
   }
+
+  @Post(':id/absence-releases/:rid/cancel')
+  @HttpCode(200)
+  @Roles(Role.Admin)
+  cancelAbsenceRelease(@Param('id') id: string, @Param('rid') rid: string): Promise<BookingDTO> {
+    return this.bookings.cancelAbsenceRelease(id, rid);
+  }
 }
