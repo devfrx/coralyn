@@ -11,6 +11,7 @@ const terminatedBase = {
   createdAt: new Date('2026-05-01T10:00:00Z'),
   terminatedAt: new Date('2026-06-20T09:30:00Z'), terminationReason: 'Trasloco',
   refundedAmount: new Prisma.Decimal('250'),
+  absenceConsentAt: null,
 };
 
 const row = {
@@ -35,6 +36,7 @@ const row = {
   terminatedAt: null,
   terminationReason: null,
   refundedAmount: new Prisma.Decimal('0'),
+  absenceConsentAt: null,
 };
 
 describe('toBookingDTO', () => {

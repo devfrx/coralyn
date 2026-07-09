@@ -275,6 +275,8 @@ export interface CustomerBookingDTO {
   terminationReason?: string;    // D-013
   suspensions?: SuspensionDTO[];  // D-013 (additivo): sempre valorizzato dal server ([] se nessuna)
   transfers?: TransferDTO[];      // D-013 cessione (additivo): sempre valorizzato dal server ([] se nessuna)
+  absenceConsentAt?: string | null; // D-035 (additivo): stato consenso; null/assente = non attivo
+  absenceReleases?: AbsenceReleaseDTO[]; // D-035 (additivo): sempre valorizzato dal server ([] se nessuna)
   // — arricchimenti server-side —
   umbrellaLabel: string;          // join Umbrella.label (il FE non carica la mappa)
   packageName?: string;           // nome del Package (se packageId presente); il FE non carica il catalogo
@@ -313,6 +315,30 @@ export interface CededSubscriptionDTO {
   refundToPrevious: number;       // quanto ha riavuto A
   reason?: string;
   createdAt: string;              // ISO datetime
+}
+
+export type AbsenceReleaseSource = 'operator' | 'customer';
+
+/** Un'assenza comunicata registrata su un abbonamento (D-035 S1/S2, ADR-0048). */
+export interface AbsenceReleaseDTO {
+  id: string;
+  date: string;                 // ISO yyyy-mm-dd (giorno liberato)
+  source: AbsenceReleaseSource; // operator (S1/S2) | customer (S4)
+  canceledAt: string | null;    // ISO datetime | null (attiva)
+  resold: boolean;              // il giorno è occupato da altra booking → annullo vietato
+  reason?: string;
+  createdAt: string;            // ISO datetime
+}
+
+/** Grant/revoke del consenso "assenze comunicate" (admin-only). */
+export interface SetAbsenceConsentInput {
+  consent: boolean;
+}
+
+/** Registrazione di un'assenza comunicata per un giorno (admin-only). */
+export interface ReleaseAbsenceInput {
+  date: string;                 // ISO yyyy-mm-dd, ∈ [start, end], ≥ oggi
+  reason?: string;
 }
 
 /** Input cessione/subentro (D-013, admin-only). Cambia il titolare A->B e riconcilia l'incasso.
