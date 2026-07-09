@@ -78,9 +78,42 @@ pianificare. Prossimo ADR libero **0048**, prossimo D libero **D-049**.
    **canale-cliente** della segnalazione (consenso su abbonamento, release per-fascia+giorno, PWA/QR). Riusa la
    fondazione `BookingCoverage` (carve-out per-giorno) e i pattern D-013. Le voci **security-gated**
    (D-026/027/028/029/037/041) diventano **prerequisiti DENTRO** D-035 (esposizione client-facing).
-2. **Backlog** (valutare con l'utente): **D-036** report avanzato (lega occupancy% D-048 §7) · **D-012** cabine
-   (⚠️ utente lo ritiene poco utile — NON partire senza suo ok) · **D-015** orari arbitrari · refactor
-   **D-040/038** · audit **D-047**.
+2. **Backlog** (valutare con l'utente prima di partire). Mappa curata dei D-0xx **ancora aperti** — dettaglio e
+   trigger in [`deferred.md`](../architecture/deferred.md) (autoritativo). Fatti/risolti e quindi **fuori
+   elenco**: D-001, D-011, D-013, D-017, D-022, D-030, D-032, D-039, D-045, D-048 (+ core di D-024/D-025).
+
+   **Feature di dominio (prodotto):**
+   - **D-035** — canale cliente "assenze comunicate" (**MODULO**, priorità #1 — vedi sopra).
+   - **D-036** — report cruscotto avanzato (heatmap occupazione, bucket incassi, export CSV/PDF, rinnovo inline;
+     lega a occupancy% D-048 §7).
+   - **D-006** — liste d'attesa avanzate: hold temporanei con scadenza + notifiche (lega a D-035).
+   - **D-012** — cabine/servizi accessori come risorse prenotabili (⚠️ **utente lo ritiene poco utile — NON
+     partire senza suo ok esplicito**).
+   - **D-015** — disponibilità a orari arbitrari (fasce libere). **D-018** prezzo per tipologia ombrellone.
+     **D-019** ombrellone standalone senza fila. **D-033** pricing periodica multi-stagione. **D-034** forfait
+     periodica. **D-014** gestione personale/turni bagnini.
+
+   **Security / hardening** (non innescati finché l'MVP è interno; diventano **prerequisiti DENTRO D-035** perché
+   apre un canale client-facing): **D-026** refresh/revoca token · **D-027** rate-limit login · **D-028** RLS su
+   `User` · **D-029** login a tempo costante · **D-037** gestione globale `401` nel data-layer FE · **D-041**
+   filtro Prisma `P2002→409` · **D-047** audit azioni admin-in-tenant (lega a `BookingTransfer`/`BookingSuspension`
+   che oggi non tracciano l'attore).
+
+   **GDPR / compliance:** **D-024** (resto) consenso/informativa alla creazione cliente · **D-042**
+   impersonation/accesso PII per supporto dalla Platform Console.
+
+   **Refactor / DX:** **D-040** estrarre `EstablishmentStructureView.vue` in composabili · **D-038** drag-reorder +
+   re-parent struttura · **D-025** (resto) cambio-ruolo utente · **D-021** validazione runtime payload FE (zod) ·
+   **D-023** least-privilege ruolo DB (`CREATEDB`).
+
+   **Platform / scala (bassa priorità):** **D-043** vista materializzata `establishment_metrics` · **D-044**
+   `User.lastLoginAt` · **D-046** deliverability invito in console · **D-010** isolamento fisico tenant grandi ·
+   **D-002** infra multi-tenancy completa (signup self-service, billing).
+
+   **Delivery / infra (futuro lontano):** **D-003** i18n · **D-004** pagamenti online/POS/fiscale · **D-005**
+   editor planimetria pixel · **D-007** wrapper desktop Electron · **D-008** offline-sync PWA completo · **D-009**
+   entità `Pagamento` completa · **D-016** streaming log raw superuser · **D-020** pattern colorblind-safe mappa ·
+   **D-031** fuso orario per-tenant.
 
 ## 5. Metodo (replicare)
 Gate review spec con l'utente → (**brainstorming** se modulo, D-035 lo richiede) → **writing-plans** (TDD) →
