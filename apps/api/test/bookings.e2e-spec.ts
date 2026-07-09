@@ -791,4 +791,82 @@ describe('Bookings (e2e)', () => {
         .send({ consent: true }).expect(403);
     });
   });
+
+  describe('POST /bookings/:id/absence-releases (D-035 S2)', () => {
+    let arSeq = 0;
+
+    // Abbonamento full-season 2026-05-01 → 2026-09-30 su ombrellone dedicato (label unica).
+    const makeSub = async (): Promise<{ id: string; umbrellaId: string }> => {
+      const label = `AR${(arSeq += 1)}`;
+      const u = await prisma.forTenant(s1, (tx) =>
+        tx.umbrella.create({ data: { establishmentId: s1, rowId: ids.rowId, umbrellaTypeId: null, label, logicalOrder: 80 } }),
+      );
+      const res = await request(app.getHttpServer()).post('/api/bookings').set(...bearer(token1))
+        .send(body({ umbrellaId: u.id, type: 'subscription', startDate: '2026-07-01' })).expect(201);
+      return { id: res.body.id as string, umbrellaId: u.id };
+    };
+
+    const grantConsent = (id: string) =>
+      request(app.getHttpServer()).patch(`/api/bookings/${id}/absence-consent`).set(...bearer(token1))
+        .send({ consent: true }).expect(200);
+
+    const rawBooking = (id: string) => prisma.forTenant(s1, (tx) => tx.booking.findFirst({ where: { id } }));
+
+    it('release apre la disponibilità del giorno per la rivendita; cassa/span invariati', async () => {
+      const { id, umbrellaId } = await makeSub();
+      await grantConsent(id);
+      const before = await rawBooking(id);
+
+      const day = '2026-07-20';
+      await request(app.getHttpServer()).post(`/api/bookings/${id}/absence-releases`).set(...bearer(token1))
+        .send({ date: day }).expect(200);
+
+      // rivendita: una giornaliera sullo stesso ombrellone+fascia in `day` ora passa (era 409 prima della release)
+      await request(app.getHttpServer()).post('/api/bookings').set(...bearer(token1))
+        .send(body({ umbrellaId, timeSlotId: ids.slotMorning, type: 'daily', startDate: day })).expect(201);
+
+      // cassa/span dell'abbonamento NON toccati dalla release (ADR-0048)
+      const after = await rawBooking(id);
+      expect(after?.amountCollected).toStrictEqual(before?.amountCollected);
+      expect(after?.refundedAmount).toStrictEqual(before?.refundedAmount);
+      expect(after?.startDate).toStrictEqual(before?.startDate);
+      expect(after?.endDate).toStrictEqual(before?.endDate);
+    });
+
+    it('senza consenso attivo → 422 (NO_CONSENT)', async () => {
+      const { id } = await makeSub();
+      await request(app.getHttpServer()).post(`/api/bookings/${id}/absence-releases`).set(...bearer(token1))
+        .send({ date: '2026-07-21' }).expect(422);
+    });
+
+    it('data passata (< oggi, dentro lo span) → 422 (PAST_DATE)', async () => {
+      const { id } = await makeSub();
+      await grantConsent(id);
+      await request(app.getHttpServer()).post(`/api/bookings/${id}/absence-releases`).set(...bearer(token1))
+        .send({ date: '2026-06-01' }).expect(422);
+    });
+
+    it('data fuori dallo span → 422 (BAD_DATE)', async () => {
+      const { id } = await makeSub();
+      await grantConsent(id);
+      await request(app.getHttpServer()).post(`/api/bookings/${id}/absence-releases`).set(...bearer(token1))
+        .send({ date: '2027-01-01' }).expect(422);
+    });
+
+    it('stesso giorno rilasciato due volte → 409 (ALREADY_RELEASED)', async () => {
+      const { id } = await makeSub();
+      await grantConsent(id);
+      const day = '2026-07-22';
+      await request(app.getHttpServer()).post(`/api/bookings/${id}/absence-releases`).set(...bearer(token1))
+        .send({ date: day }).expect(200);
+      await request(app.getHttpServer()).post(`/api/bookings/${id}/absence-releases`).set(...bearer(token1))
+        .send({ date: day }).expect(409);
+    });
+
+    it('staff → 403 (admin-only)', async () => {
+      const { id } = await makeSub();
+      await request(app.getHttpServer()).post(`/api/bookings/${id}/absence-releases`).set(...bearer(staffToken))
+        .send({ date: '2026-07-23' }).expect(403);
+    });
+  });
 });

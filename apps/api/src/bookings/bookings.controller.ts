@@ -13,6 +13,7 @@ import { SuspendSubscriptionDto } from './dto/suspend-subscription.dto';
 import { ReactivateSubscriptionDto } from './dto/reactivate-subscription.dto';
 import { TransferSubscriptionDto } from './dto/transfer-subscription.dto';
 import { SetAbsenceConsentDto } from './dto/set-absence-consent.dto';
+import { ReleaseAbsenceDto } from './dto/release-absence.dto';
 import { Roles } from '../identity/roles.decorator';
 import { resolveDate } from '../common/dates';
 
@@ -87,5 +88,12 @@ export class BookingsController {
   @Roles(Role.Admin)
   setAbsenceConsent(@Param('id') id: string, @Body() body: SetAbsenceConsentDto): Promise<BookingDTO> {
     return this.bookings.setAbsenceConsent(id, body);
+  }
+
+  @Post(':id/absence-releases')
+  @HttpCode(200)
+  @Roles(Role.Admin)
+  releaseAbsence(@Param('id') id: string, @Body() body: ReleaseAbsenceDto): Promise<BookingDTO> {
+    return this.bookings.releaseAbsence(id, body);
   }
 }

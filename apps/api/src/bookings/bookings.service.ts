@@ -21,6 +21,7 @@ import type {
   TransferSubscriptionInput,
   CededSubscriptionDTO,
   SetAbsenceConsentInput,
+  ReleaseAbsenceInput,
 } from '@coralyn/contracts';
 import { PrismaService } from '../prisma/prisma.service';
 import { TenantContext } from '../tenant/tenant-context';
@@ -827,6 +828,66 @@ export class BookingsService {
       if (e === 'NOT_SUBSCRIPTION') throw new UnprocessableEntityException('Solo gli abbonamenti hanno il consenso assenze');
       if (e === 'TERMINATED') throw new UnprocessableEntityException('Abbonamento disdetto');
       throw new UnprocessableEntityException('Abbonamento non attivo'); // NOT_CONFIRMED
+    }
+    return toBookingDTO(outcome.row);
+  }
+
+  /**
+   * Registra un'assenza comunicata per un giorno (D-035 S2). Scava un buco a GIORNO SINGOLO in
+   * BookingCoverage (versione a giorno singolo del carve sospensione), gated dal consenso. NON tocca
+   * cassa/span dell'abbonamento (ADR-0048). admin-only. La rivendita usa il flusso giornaliero.
+   */
+  async releaseAbsence(id: string, input: ReleaseAbsenceInput): Promise<BookingDTO> {
+    const tenantId = this.tenant.require();
+    const day = 24 * 60 * 60 * 1000;
+    const outcome = await this.prisma.forTenant(tenantId, async (tx) => {
+      const existing = await tx.booking.findFirst({ where: { id }, include: { absenceReleases: true } });
+      if (!existing) return { error: 'NOT_FOUND' as const };
+      if (existing.type !== 'subscription') return { error: 'NOT_SUBSCRIPTION' as const };
+      if (existing.status !== 'confirmed') return { error: 'NOT_CONFIRMED' as const };
+      if (existing.terminatedAt) return { error: 'TERMINATED' as const };
+      if (existing.absenceConsentAt === null) return { error: 'NO_CONSENT' as const };
+
+      const today = toDbDate(todayInRome());
+      const D = toDbDate(input.date);
+      if (D < existing.startDate || D > existing.endDate) return { error: 'BAD_DATE' as const };
+      if (D < today) return { error: 'PAST_DATE' as const };
+      if (existing.absenceReleases.some((r) => r.canceledAt === null && +r.date === +D)) return { error: 'ALREADY_RELEASED' as const };
+
+      const coverages = await tx.bookingCoverage.findMany({ where: { bookingId: id, status: 'confirmed' } });
+      const C = coverages.find((c) => c.startDate <= D && D <= c.endDate);
+      if (!C) return { error: 'NO_COVERAGE' as const };
+
+      await tx.bookingCoverage.delete({ where: { id: C.id } });
+      if (D > C.startDate) {
+        await tx.bookingCoverage.create({
+          data: { bookingId: id, establishmentId: tenantId, umbrellaId: C.umbrellaId,
+            startDate: C.startDate, endDate: new Date(D.getTime() - day), status: 'confirmed' },
+        });
+      }
+      if (D < C.endDate) {
+        await tx.bookingCoverage.create({
+          data: { bookingId: id, establishmentId: tenantId, umbrellaId: C.umbrellaId,
+            startDate: new Date(D.getTime() + day), endDate: C.endDate, status: 'confirmed' },
+        });
+      }
+      await tx.absenceRelease.create({
+        data: { bookingId: id, establishmentId: tenantId, date: D, source: 'operator', reason: input.reason ?? null },
+      });
+      return { row: existing };
+    });
+
+    if ('error' in outcome) {
+      const e = outcome.error;
+      if (e === 'NOT_FOUND') throw new NotFoundException('Prenotazione non trovata');
+      if (e === 'NOT_SUBSCRIPTION') throw new UnprocessableEntityException('Solo gli abbonamenti hanno assenze comunicate');
+      if (e === 'NOT_CONFIRMED') throw new UnprocessableEntityException('Abbonamento non attivo');
+      if (e === 'TERMINATED') throw new UnprocessableEntityException('Abbonamento disdetto');
+      if (e === 'NO_CONSENT') throw new UnprocessableEntityException('Consenso assenze comunicate non attivo');
+      if (e === 'BAD_DATE') throw new UnprocessableEntityException('Data fuori dallo span dell’abbonamento');
+      if (e === 'PAST_DATE') throw new UnprocessableEntityException('Non si può segnalare un’assenza nel passato');
+      if (e === 'ALREADY_RELEASED') throw new ConflictException('Assenza già registrata per quel giorno');
+      throw new UnprocessableEntityException('Giorno già libero (non coperto)'); // NO_COVERAGE
     }
     return toBookingDTO(outcome.row);
   }
