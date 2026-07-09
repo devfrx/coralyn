@@ -164,7 +164,7 @@ Guardie (mirror della sospensione, `bookings.service.ts::suspend`):
 - 422 `BAD_DATE` se `date ∉ [startDate, endDate]`;
 - 422 `PAST_DATE` se `date < oggi` (futuro e stesso-giorno ammessi — *"anche con anticipo"*; passato no);
 - 409 `ALREADY_RELEASED` se esiste già una release **attiva** (`canceledAt === null`) per quel `date`;
-- 409 `NO_COVERAGE` se quel giorno **non** è attualmente coperto da questo Booking (già buco per sospensione/altra
+- 422 `NO_COVERAGE` se quel giorno **non** è attualmente coperto da questo Booking (già buco per sospensione/altra
   release, o fuori dei frammenti coverage) → non si libera ciò che è già libero.
 
 Carve (= carve-chiuso sospensione a giorno singolo, `day = 24*60*60*1000`):

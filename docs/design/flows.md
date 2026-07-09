@@ -221,7 +221,7 @@ flowchart TD
     G -->|date fuori start,end| E4[422 BAD_DATE]
     G -->|date nel passato| E5[422 PAST_DATE]
     G -->|release attiva già presente per quel giorno| E6[409 ALREADY_RELEASED]
-    G -->|giorno non coperto da questo Booking| E7[409 NO_COVERAGE]
+    G -->|giorno non coperto da questo Booking| E7[422 NO_COVERAGE]
     G -->|tutte superate| W["Carve giorno-singolo su BookingCoverage<br/>+ AbsenceRelease.create source=operator"]
     W --> H["Buco rivendibile — mappa mostra<br/>l'ombrellone disponibile quel giorno"]
     H --> RV["Rivendita = prenotazione giornaliera<br/>indipendente, flusso esistente"]
@@ -251,7 +251,7 @@ flowchart LR
 > attivo** (`absenceConsentAt !== null`, altrimenti 422 `NO_CONSENT` — è il gate dell'invariante "nessuna
 > presunzione d'assenza"); `date ∈ [startDate, endDate]` (422 `BAD_DATE`); `date ≥ oggi` (422 `PAST_DATE`,
 > futuro e stesso-giorno ammessi, passato no); nessuna release attiva già presente per quel giorno (409
-> `ALREADY_RELEASED`); il giorno deve essere attualmente coperto da questo Booking (409 `NO_COVERAGE` — non
+> `ALREADY_RELEASED`); il giorno deve essere attualmente coperto da questo Booking (422 `NO_COVERAGE`, mirror sospensione — non
 > si libera ciò che è già libero). Annullo: release esistente per quel booking (404), non già annullata (409
 > `ALREADY_CANCELED`), **giorno non ancora rivenduto** (409 `RESOLD` — stesso predicato
 > `dateRangesOverlap`+`slotsOverlap` di rivendita/`reactivate`; se rivenduto l'annullo è vietato, la release è
