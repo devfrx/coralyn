@@ -104,14 +104,15 @@ export function useTransferSubscription(customerId: string) {
   });
 }
 
-/** Grant/revoke consenso "assenze comunicate" (D-035, admin-only). Invalida la Scheda cliente. */
+/** Grant/revoke consenso "assenze comunicate" (D-035, admin-only). Invalida la Scheda cliente.
+ *  Azione diretta (no modale): NON quiet, così un errore server (es. abbonamento non più valido)
+ *  affiora nel toast globale invece di fallire in silenzio. */
 export function useSetAbsenceConsent(customerId: string) {
   const session = useSessionStore();
   return mutationResource({
     mutationFn: ({ id, input }: { id: string; input: SetAbsenceConsentInput }) =>
       apiFetch<BookingDTO>(`/bookings/${id}/absence-consent`, { method: 'PATCH', body: JSON.stringify(input) }),
     invalidates: () => [queryKeys.customerBookings(session.establishmentId, customerId)],
-    quiet: true,
   });
 }
 
@@ -126,14 +127,15 @@ export function useReleaseAbsence(customerId: string) {
   });
 }
 
-/** Annulla un'assenza comunicata non rivenduta (D-035, admin-only). Invalida la Scheda cliente. */
+/** Annulla un'assenza comunicata non rivenduta (D-035, admin-only). Invalida la Scheda cliente.
+ *  Azione diretta (no modale): NON quiet, così il 409 RESOLD (giorno già rivenduto tra render e click)
+ *  affiora nel toast globale invece di fallire in silenzio. */
 export function useCancelAbsenceRelease(customerId: string) {
   const session = useSessionStore();
   return mutationResource({
     mutationFn: ({ id, releaseId }: { id: string; releaseId: string }) =>
       apiFetch<BookingDTO>(`/bookings/${id}/absence-releases/${releaseId}/cancel`, { method: 'POST' }),
     invalidates: () => [queryKeys.customerBookings(session.establishmentId, customerId)],
-    quiet: true,
   });
 }
 

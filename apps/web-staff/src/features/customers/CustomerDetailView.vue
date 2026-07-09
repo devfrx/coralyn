@@ -58,14 +58,14 @@ const absenceBooking = ref<CustomerBookingDTO | null>(null);
 const setConsent = useSetAbsenceConsent(props.id);
 const cancelAbsence = useCancelAbsenceRelease(props.id);
 function onConsent(b: CustomerBookingDTO) {
-  setConsent.mutateAsync({ id: b.id, input: { consent: !b.absenceConsentAt } });
+  setConsent.mutate({ id: b.id, input: { consent: !b.absenceConsentAt } });
 }
 function onAbsence(b: CustomerBookingDTO) {
   absenceBooking.value = b;
   absenceOpen.value = true;
 }
 function onCancelAbsence(p: { booking: CustomerBookingDTO; releaseId: string }) {
-  cancelAbsence.mutateAsync({ id: p.booking.id, releaseId: p.releaseId });
+  cancelAbsence.mutate({ id: p.booking.id, releaseId: p.releaseId });
 }
 
 const ini = computed(() => (customer.value ? ((customer.value.firstName[0] ?? '') + (customer.value.lastName[0] ?? '')).toUpperCase() : ''));
