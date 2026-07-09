@@ -16,14 +16,16 @@ const emit = defineEmits<{
 }>();
 const subs = computed(() => props.bookings.filter((b) => b.type === 'subscription'));
 
-const canTerminate = (b: CustomerBookingDTO): boolean =>
-  b.status === 'confirmed' && !b.terminatedAt && b.endDate >= todayIso();
 const openSuspension = (b: CustomerBookingDTO): SuspensionDTO | undefined =>
   (b.suspensions ?? []).find((s) => !s.endDate);
+const canTerminate = (b: CustomerBookingDTO): boolean =>
+  b.status === 'confirmed' && !b.terminatedAt && b.endDate >= todayIso() && !openSuspension(b);
 const pastSuspensions = (b: CustomerBookingDTO): SuspensionDTO[] =>
   (b.suspensions ?? []).filter((s) => s.endDate);
 const canSuspend = (b: CustomerBookingDTO): boolean =>
   b.status === 'confirmed' && !b.terminatedAt && b.endDate >= todayIso() && !openSuspension(b);
+const canToggleConsent = (b: CustomerBookingDTO): boolean =>
+  b.status === 'confirmed' && !b.terminatedAt;
 const dayOf = (iso: string): string => iso.slice(0, 10);
 const consentActive = (b: CustomerBookingDTO): boolean => !!b.absenceConsentAt;
 </script>
@@ -50,7 +52,7 @@ const consentActive = (b: CustomerBookingDTO): boolean => !!b.absenceConsentAt;
             <Button v-if="isAdmin && canTerminate(b)" variant="danger" :data-testid="`terminate-${b.id}`" @click="emit('terminate', b)"><Icon name="trash-2" :size="15" />Disdici</Button>
             <Button v-if="isAdmin && canSuspend(b)" variant="secondary" :data-testid="`suspend-${b.id}`" @click="emit('suspend', b)"><Icon name="clock" :size="15" />Sospendi</Button>
             <Button v-if="isAdmin && canSuspend(b)" variant="secondary" :data-testid="`transfer-${b.id}`" @click="emit('transfer', b)"><Icon name="renew" :size="15" />Cedi</Button>
-            <Button v-if="isAdmin && canSuspend(b)" variant="secondary" :data-testid="`absence-consent-${b.id}`" @click="emit('consent', b)"><Icon name="check" :size="15" />{{ consentActive(b) ? 'Revoca assenze' : 'Attiva assenze' }}</Button>
+            <Button v-if="isAdmin && canToggleConsent(b)" variant="secondary" :data-testid="`absence-consent-${b.id}`" @click="emit('consent', b)"><Icon name="check" :size="15" />{{ consentActive(b) ? 'Revoca assenze' : 'Attiva assenze' }}</Button>
             <Button v-if="isAdmin && canSuspend(b) && consentActive(b)" variant="secondary" :data-testid="`absence-${b.id}`" @click="emit('absence', b)"><Icon name="calendar" :size="15" />Segnala assenza</Button>
           </div>
         </div>
@@ -63,14 +65,14 @@ const consentActive = (b: CustomerBookingDTO): boolean => !!b.absenceConsentAt;
         </div>
         <div v-if="openSuspension(b)" class="mt-3 flex items-center gap-2 rounded-[var(--radius-sm)] bg-[var(--color-warm-100,#FBEFE7)] px-2.5 py-2 text-[12px] text-[var(--color-text-2nd)]">
           <span class="flex-1">Sospeso dal {{ dayOf(openSuspension(b)!.startDate) }} (in corso)</span>
-          <Button v-if="isAdmin" variant="primary" :data-testid="`reactivate-${b.id}`" @click="emit('reactivate', { booking: b, suspension: openSuspension(b)! })">Riattiva</Button>
+          <Button v-if="isAdmin && b.status === 'confirmed' && !b.terminatedAt" variant="primary" :data-testid="`reactivate-${b.id}`" @click="emit('reactivate', { booking: b, suspension: openSuspension(b)! })">Riattiva</Button>
         </div>
         <div v-for="s in pastSuspensions(b)" :key="s.id" class="mt-2 rounded-[var(--radius-sm)] bg-[var(--color-raised)] px-2.5 py-2 text-[12px] text-[var(--color-text-2nd)]">
           Sospeso dal {{ dayOf(s.startDate) }} al {{ dayOf(s.endDate!) }} · rimborso {{ formatEuro(s.refundedAmount) }}<span v-if="s.reason"> · {{ s.reason }}</span>
         </div>
         <div v-for="r in (b.absenceReleases ?? [])" :key="r.id" class="mt-2 rounded-[var(--radius-sm)] bg-[var(--color-raised)] px-2.5 py-2 text-[12px] text-[var(--color-text-2nd)] flex items-center justify-between">
           <span>Assente il {{ r.date }}<template v-if="r.canceledAt"> · annullata</template><template v-else-if="r.resold"> · rivenduta</template></span>
-          <Button v-if="isAdmin && !r.canceledAt && !r.resold" variant="ghost" :data-testid="`absence-cancel-${r.id}`" @click="emit('cancelAbsence', { booking: b, releaseId: r.id })">Annulla</Button>
+          <Button v-if="isAdmin && !r.canceledAt && !r.resold && b.status === 'confirmed' && !b.terminatedAt && !openSuspension(b)" variant="ghost" :data-testid="`absence-cancel-${r.id}`" @click="emit('cancelAbsence', { booking: b, releaseId: r.id })">Annulla</Button>
         </div>
       </li>
     </ul>

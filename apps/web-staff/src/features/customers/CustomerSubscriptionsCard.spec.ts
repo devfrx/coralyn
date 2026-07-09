@@ -207,3 +207,52 @@ describe('CustomerSubscriptionsCard — assenze comunicate (D-035)', () => {
     expect(w.find('[data-testid="absence-cancel-rel-1"]').exists()).toBe(false);
   });
 });
+
+const openSuspendedSubWithConsent: CustomerBookingDTO = {
+  ...openSuspendedSub, id: 'sub-10', absenceConsentAt: '2026-06-01T09:00:00.000Z',
+};
+const cancelledOpenSuspendedSub: CustomerBookingDTO = {
+  ...openSuspendedSub, id: 'sub-11', status: 'cancelled',
+};
+const openSuspendedSubWithRelease: CustomerBookingDTO = {
+  ...openSuspendedSub, id: 'sub-12', absenceConsentAt: '2026-06-01T09:00:00.000Z',
+  absenceReleases: [{ id: 'rel-9', date: '2026-07-10', source: 'operator', canceledAt: null, resold: false, createdAt: '2026-07-01T09:00:00.000Z' }],
+};
+const terminatedSubWithRelease: CustomerBookingDTO = {
+  ...terminatedSub, id: 'sub-13',
+  absenceReleases: [{ id: 'rel-10', date: '2026-06-10', source: 'operator', canceledAt: null, resold: false, createdAt: '2026-06-01T09:00:00.000Z' }],
+};
+
+describe('CustomerSubscriptionsCard — hardening macchina a stati', () => {
+  it('D1: sospensione aperta → niente «Disdici»', () => {
+    const w = mountApp(CustomerSubscriptionsCard, { props: { bookings: [openSuspendedSub], isAdmin: true } });
+    expect(w.find('[data-testid="terminate-sub-3"]').exists()).toBe(false);
+  });
+
+  it('D2: annullato con sospensione aperta → niente «Riattiva»', () => {
+    const w = mountApp(CustomerSubscriptionsCard, { props: { bookings: [cancelledOpenSuspendedSub], isAdmin: true } });
+    expect(w.find('[data-testid="reactivate-sub-11"]').exists()).toBe(false);
+  });
+
+  it('C2/D5: sospensione aperta con release attiva → niente «Annulla»', () => {
+    const w = mountApp(CustomerSubscriptionsCard, { props: { bookings: [openSuspendedSubWithRelease], isAdmin: true } });
+    expect(w.find('[data-testid="absence-cancel-rel-9"]').exists()).toBe(false);
+  });
+
+  it('D5: disdetto con release attiva → niente «Annulla»', () => {
+    const w = mountApp(CustomerSubscriptionsCard, { props: { bookings: [terminatedSubWithRelease], isAdmin: true } });
+    expect(w.find('[data-testid="absence-cancel-rel-10"]').exists()).toBe(false);
+  });
+
+  it('C1: sospensione aperta con consenso → «Revoca assenze» resta disponibile, ma niente «Segnala assenza»', () => {
+    const w = mountApp(CustomerSubscriptionsCard, { props: { bookings: [openSuspendedSubWithConsent], isAdmin: true } });
+    expect(w.find('[data-testid="absence-consent-sub-10"]').exists()).toBe(true);
+    expect(w.text()).toContain('Revoca assenze');
+    expect(w.find('[data-testid="absence-sub-10"]').exists()).toBe(false);
+  });
+
+  it('C1: disdetto → niente toggle consenso', () => {
+    const w = mountApp(CustomerSubscriptionsCard, { props: { bookings: [terminatedSub], isAdmin: true } });
+    expect(w.find('[data-testid="absence-consent-sub-2"]').exists()).toBe(false);
+  });
+});
