@@ -573,11 +573,16 @@ export class BookingsService {
           refundedAmount: input.refundAmount,
         },
       });
-      // L'abbonamento ha 1 coverage (ADR-0046): tronca lo span fisico in sincrono con quello contrattuale.
-      await tx.bookingCoverage.updateMany({
-        where: { bookingId: id },
-        data: { endDate: lastValid },
-      });
+      // Post-carve (sospensione chiusa / release) l'abbonamento può avere PIÙ frammenti coverage: tronca
+      // per-frammento in sincrono con lo span contrattuale, senza mai creare range invertiti.
+      const covs = await tx.bookingCoverage.findMany({ where: { bookingId: id } });
+      for (const c of covs) {
+        if (c.startDate > lastValid) {
+          await tx.bookingCoverage.delete({ where: { id: c.id } }); // frammento interamente oltre lo span troncato
+        } else if (c.endDate > lastValid) {
+          await tx.bookingCoverage.update({ where: { id: c.id }, data: { endDate: lastValid } }); // clamp del frammento a cavallo
+        }
+      }
       return { row };
     });
 

@@ -969,6 +969,9 @@ describe('Bookings (e2e)', () => {
         .send({ consent: true }).expect(200);
     const rawRelease = (id: string) =>
       prisma.forTenant(s1, (tx) => tx.absenceRelease.findFirst({ where: { bookingId: id }, orderBy: { createdAt: 'desc' } }));
+    const coverageOf = (id: string) =>
+      prisma.forTenant(s1, (tx) => tx.bookingCoverage.findMany({ where: { bookingId: id }, orderBy: { startDate: 'asc' } }));
+    const iso = (d: Date): string => d.toISOString().slice(0, 10);
 
     it('D1: suspend-open → terminate → 409 (riattiva prima di disdire)', async () => {
       const { id } = await makeSub();
@@ -1017,6 +1020,48 @@ describe('Bookings (e2e)', () => {
       await request(app.getHttpServer()).delete(`/api/bookings/${id}`).set(...bearer(token1)).expect(200);
       await request(app.getHttpServer()).post(`/api/bookings/${id}/absence-releases/${rel!.id}/cancel`).set(...bearer(token1))
         .expect(422);
+    });
+
+    it('D5: release → terminate → cancel-release → 422 (disdetto)', async () => {
+      const { id } = await makeSub();
+      await grantConsent(id);
+      await request(app.getHttpServer()).post(`/api/bookings/${id}/absence-releases`).set(...bearer(token1))
+        .send({ date: '2026-07-10' }).expect(200);
+      const rel = await rawRelease(id);
+      await request(app.getHttpServer()).post(`/api/bookings/${id}/terminate`).set(...bearer(token1))
+        .send({ effectiveDate: '2026-09-01', refundAmount: 0 }).expect(200);
+      await request(app.getHttpServer()).post(`/api/bookings/${id}/absence-releases/${rel!.id}/cancel`).set(...bearer(token1))
+        .expect(422);
+    });
+
+    it('D3: terminate dopo sospensione chiusa non lascia range invertiti (coda oltre lastValid eliminata)', async () => {
+      const { id } = await makeSub();
+      // sospensione chiusa [07-20, 07-26] → head [.., 07-19] + coda [07-27, 09-30]
+      await request(app.getHttpServer()).post(`/api/bookings/${id}/suspend`).set(...bearer(token1))
+        .send({ startDate: '2026-07-20', endDate: '2026-07-26' }).expect(200);
+      // disdici con lastValid = 07-09 (< inizio coda): la coda va ELIMINATA, non invertita
+      await request(app.getHttpServer()).post(`/api/bookings/${id}/terminate`).set(...bearer(token1))
+        .send({ effectiveDate: '2026-07-10', refundAmount: 0 }).expect(200);
+      const cov = await coverageOf(id);
+      for (const c of cov) expect(c.startDate.getTime()).toBeLessThanOrEqual(c.endDate.getTime()); // nessun range invertito
+      for (const c of cov) expect(iso(c.endDate) <= '2026-07-09').toBe(true); // niente oltre lastValid
+      expect(cov).toHaveLength(1); // resta solo la testa troncata [05-01, 07-09]
+    });
+
+    it('D3/C3: terminate con release attiva tronca i frammenti e preserva la storia della release', async () => {
+      const { id } = await makeSub();
+      await grantConsent(id);
+      // release del 08-15 → frammenti [.., 08-14] + [08-16, 09-30]
+      await request(app.getHttpServer()).post(`/api/bookings/${id}/absence-releases`).set(...bearer(token1))
+        .send({ date: '2026-08-15' }).expect(200);
+      // disdici con lastValid = 08-31: il frammento di coda [08-16, 09-30] va troncato a 08-31
+      await request(app.getHttpServer()).post(`/api/bookings/${id}/terminate`).set(...bearer(token1))
+        .send({ effectiveDate: '2026-09-01', refundAmount: 0 }).expect(200);
+      const cov = await coverageOf(id);
+      for (const c of cov) expect(c.startDate.getTime()).toBeLessThanOrEqual(c.endDate.getTime());
+      for (const c of cov) expect(iso(c.endDate) <= '2026-08-31').toBe(true);
+      const rel = await rawRelease(id);
+      expect(rel).not.toBeNull(); // la release resta come fatto storico
     });
   });
 });
