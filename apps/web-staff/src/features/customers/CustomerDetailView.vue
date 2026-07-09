@@ -6,7 +6,7 @@ import { Role } from '@coralyn/contracts';
 import { useSessionStore } from '@/stores/session';
 import { pushToast } from '@/lib/toasts';
 import { todayIso } from '@/lib/dates';
-import { useCustomer, useCustomerBookings, useDeleteCustomer, useCededSubscriptions } from './useCustomers';
+import { useCustomer, useCustomerBookings, useDeleteCustomer, useCededSubscriptions, useSetAbsenceConsent, useCancelAbsenceRelease } from './useCustomers';
 import CustomerHistoryCard from './CustomerHistoryCard.vue';
 import CustomerSubscriptionsCard from './CustomerSubscriptionsCard.vue';
 import CustomerPaymentsCard from './CustomerPaymentsCard.vue';
@@ -15,6 +15,7 @@ import TerminateSubscriptionModal from './TerminateSubscriptionModal.vue';
 import SuspendSubscriptionModal from './SuspendSubscriptionModal.vue';
 import ReactivateSubscriptionModal from './ReactivateSubscriptionModal.vue';
 import TransferSubscriptionModal from './TransferSubscriptionModal.vue';
+import AbsenceReleaseModal from './AbsenceReleaseModal.vue';
 import type { CustomerBookingDTO, SuspensionDTO } from '@coralyn/contracts';
 
 const props = defineProps<{ id: string }>();
@@ -51,6 +52,20 @@ const transferTarget = ref<CustomerBookingDTO | null>(null);
 function onTransfer(b: CustomerBookingDTO) {
   transferTarget.value = b;
   transferOpen.value = true;
+}
+const absenceOpen = ref(false);
+const absenceBooking = ref<CustomerBookingDTO | null>(null);
+const setConsent = useSetAbsenceConsent(props.id);
+const cancelAbsence = useCancelAbsenceRelease(props.id);
+function onConsent(b: CustomerBookingDTO) {
+  setConsent.mutateAsync({ id: b.id, input: { consent: !b.absenceConsentAt } });
+}
+function onAbsence(b: CustomerBookingDTO) {
+  absenceBooking.value = b;
+  absenceOpen.value = true;
+}
+function onCancelAbsence(p: { booking: CustomerBookingDTO; releaseId: string }) {
+  cancelAbsence.mutateAsync({ id: p.booking.id, releaseId: p.releaseId });
 }
 
 const ini = computed(() => (customer.value ? ((customer.value.firstName[0] ?? '') + (customer.value.lastName[0] ?? '')).toUpperCase() : ''));
@@ -135,7 +150,7 @@ function onConfirmDelete() {
       </SectionCard>
 
       <div class="flex flex-col gap-3.5">
-        <CustomerSubscriptionsCard :bookings="bookings ?? []" :ceded="ceded ?? []" :is-admin="isAdmin" @terminate="onTerminate" @suspend="onSuspend" @reactivate="onReactivate" @transfer="onTransfer" />
+        <CustomerSubscriptionsCard :bookings="bookings ?? []" :ceded="ceded ?? []" :is-admin="isAdmin" @terminate="onTerminate" @suspend="onSuspend" @reactivate="onReactivate" @transfer="onTransfer" @consent="onConsent" @absence="onAbsence" @cancelAbsence="onCancelAbsence" />
         <CustomerHistoryCard :bookings="bookings ?? []" />
         <CustomerPaymentsCard :bookings="bookings ?? []" />
       </div>
@@ -153,6 +168,7 @@ function onConfirmDelete() {
       <SuspendSubscriptionModal :booking="suspendTarget" :customer-id="id" v-model:open="suspendOpen" />
       <ReactivateSubscriptionModal :booking="reactivateBooking" :suspension="reactivateSuspension" :customer-id="id" v-model:open="reactivateOpen" />
       <TransferSubscriptionModal :booking="transferTarget" :customer-id="id" v-model:open="transferOpen" />
+      <AbsenceReleaseModal :booking="absenceBooking" :customer-id="id" v-model:open="absenceOpen" />
     </template>
   </section>
 </template>

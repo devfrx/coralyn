@@ -19,6 +19,24 @@ const historySub: CustomerBookingDTO = {
   ...activeSub, id: 'sub-4',
   suspensions: [{ id: 'sus-2', startDate: '2026-06-03', endDate: '2026-06-10', refundedAmount: 84, reason: 'Viaggio' }],
 };
+const subWithoutConsent: CustomerBookingDTO = {
+  ...activeSub, id: 'sub-5',
+};
+const subWithConsent: CustomerBookingDTO = {
+  ...activeSub, id: 'sub-6', absenceConsentAt: '2026-06-01T09:00:00.000Z',
+};
+const subWithActiveRelease: CustomerBookingDTO = {
+  ...activeSub, id: 'sub-7', absenceConsentAt: '2026-06-01T09:00:00.000Z',
+  absenceReleases: [{ id: 'rel-1', date: '2026-07-10', source: 'operator', canceledAt: null, resold: false, createdAt: '2026-07-01T09:00:00.000Z' }],
+};
+const subWithResoldRelease: CustomerBookingDTO = {
+  ...activeSub, id: 'sub-8', absenceConsentAt: '2026-06-01T09:00:00.000Z',
+  absenceReleases: [{ id: 'rel-2', date: '2026-07-11', source: 'operator', canceledAt: null, resold: true, createdAt: '2026-07-01T09:00:00.000Z' }],
+};
+const subWithCanceledRelease: CustomerBookingDTO = {
+  ...activeSub, id: 'sub-9', absenceConsentAt: '2026-06-01T09:00:00.000Z',
+  absenceReleases: [{ id: 'rel-3', date: '2026-07-12', source: 'operator', canceledAt: '2026-07-05T09:00:00.000Z', resold: false, createdAt: '2026-07-01T09:00:00.000Z' }],
+};
 
 describe('CustomerSubscriptionsCard — disdetta (D-013)', () => {
   it('admin + abbonamento attivo → mostra «Disdici»', () => {
@@ -123,5 +141,69 @@ describe('CustomerSubscriptionsCard — cessione (D-013)', () => {
   it('nessuna cessione → sezione assente', () => {
     const w = mountApp(CustomerSubscriptionsCard, { props: { bookings: [activeSub], isAdmin: true } });
     expect(w.text()).not.toContain('Cessioni effettuate');
+  });
+});
+
+describe('CustomerSubscriptionsCard — assenze comunicate (D-035)', () => {
+  it('mostra "Attiva assenze" per admin su abbonamento senza consenso', () => {
+    const w = mountApp(CustomerSubscriptionsCard, { props: { bookings: [subWithoutConsent], isAdmin: true } });
+    expect(w.find(`[data-testid="absence-consent-${subWithoutConsent.id}"]`).exists()).toBe(true);
+    expect(w.text()).toContain('Attiva assenze');
+  });
+
+  it('non-admin → nessun bottone consenso', () => {
+    const w = mountApp(CustomerSubscriptionsCard, { props: { bookings: [subWithoutConsent], isAdmin: false } });
+    expect(w.find(`[data-testid="absence-consent-${subWithoutConsent.id}"]`).exists()).toBe(false);
+  });
+
+  it('mostra "Revoca assenze" quando il consenso è già attivo', () => {
+    const w = mountApp(CustomerSubscriptionsCard, { props: { bookings: [subWithConsent], isAdmin: true } });
+    expect(w.text()).toContain('Revoca assenze');
+  });
+
+  it('"Segnala assenza" solo con consenso attivo', () => {
+    const withConsent = mountApp(CustomerSubscriptionsCard, { props: { bookings: [subWithConsent], isAdmin: true } });
+    expect(withConsent.find(`[data-testid="absence-${subWithConsent.id}"]`).exists()).toBe(true);
+
+    const withoutConsent = mountApp(CustomerSubscriptionsCard, { props: { bookings: [subWithoutConsent], isAdmin: true } });
+    expect(withoutConsent.find(`[data-testid="absence-${subWithoutConsent.id}"]`).exists()).toBe(false);
+  });
+
+  it('emette «consent» col booking al click', async () => {
+    const w = mountApp(CustomerSubscriptionsCard, { props: { bookings: [subWithoutConsent], isAdmin: true } });
+    await w.find(`[data-testid="absence-consent-${subWithoutConsent.id}"]`).trigger('click');
+    expect(w.emitted('consent')?.[0]?.[0]).toMatchObject({ id: subWithoutConsent.id });
+  });
+
+  it('emette «absence» col booking al click', async () => {
+    const w = mountApp(CustomerSubscriptionsCard, { props: { bookings: [subWithConsent], isAdmin: true } });
+    await w.find(`[data-testid="absence-${subWithConsent.id}"]`).trigger('click');
+    expect(w.emitted('absence')?.[0]?.[0]).toMatchObject({ id: subWithConsent.id });
+  });
+
+  it('elenca le release con stato e l\'azione annulla se non rivenduta', async () => {
+    const w = mountApp(CustomerSubscriptionsCard, { props: { bookings: [subWithActiveRelease], isAdmin: true } });
+    expect(w.text()).toContain('Assente il');
+    const cancelBtn = w.find('[data-testid="absence-cancel-rel-1"]');
+    expect(cancelBtn.exists()).toBe(true);
+    await cancelBtn.trigger('click');
+    expect(w.emitted('cancelAbsence')?.[0]?.[0]).toMatchObject({ booking: { id: subWithActiveRelease.id }, releaseId: 'rel-1' });
+  });
+
+  it('release rivenduta → niente «Annulla», riga con nota "rivenduta"', () => {
+    const w = mountApp(CustomerSubscriptionsCard, { props: { bookings: [subWithResoldRelease], isAdmin: true } });
+    expect(w.text()).toContain('rivenduta');
+    expect(w.find('[data-testid="absence-cancel-rel-2"]').exists()).toBe(false);
+  });
+
+  it('release annullata → niente «Annulla», riga con nota "annullata"', () => {
+    const w = mountApp(CustomerSubscriptionsCard, { props: { bookings: [subWithCanceledRelease], isAdmin: true } });
+    expect(w.text()).toContain('annullata');
+    expect(w.find('[data-testid="absence-cancel-rel-3"]').exists()).toBe(false);
+  });
+
+  it('non-admin → nessun bottone «Annulla» sulle release', () => {
+    const w = mountApp(CustomerSubscriptionsCard, { props: { bookings: [subWithActiveRelease], isAdmin: false } });
+    expect(w.find('[data-testid="absence-cancel-rel-1"]').exists()).toBe(false);
   });
 });
