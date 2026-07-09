@@ -1,4 +1,4 @@
-import type { CustomerDTO, CreateCustomerInput, UpdateCustomerInput, CustomerBookingDTO, DeleteCustomerResult, BookingDTO, TerminateSubscriptionInput, SuspendSubscriptionInput, ReactivateSubscriptionInput, CededSubscriptionDTO, TransferSubscriptionInput } from '@coralyn/contracts';
+import type { CustomerDTO, CreateCustomerInput, UpdateCustomerInput, CustomerBookingDTO, DeleteCustomerResult, BookingDTO, TerminateSubscriptionInput, SuspendSubscriptionInput, ReactivateSubscriptionInput, CededSubscriptionDTO, TransferSubscriptionInput, SetAbsenceConsentInput, ReleaseAbsenceInput } from '@coralyn/contracts';
 import { apiFetch } from '@/lib/http';
 import { queryKeys } from '@/lib/queryKeys';
 import { useSessionStore } from '@/stores/session';
@@ -100,6 +100,39 @@ export function useTransferSubscription(customerId: string) {
       queryKeys.customerBookings(session.establishmentId, customerId),
       queryKeys.cededSubscriptions(session.establishmentId, customerId),
     ],
+    quiet: true,
+  });
+}
+
+/** Grant/revoke consenso "assenze comunicate" (D-035, admin-only). Invalida la Scheda cliente. */
+export function useSetAbsenceConsent(customerId: string) {
+  const session = useSessionStore();
+  return mutationResource({
+    mutationFn: ({ id, input }: { id: string; input: SetAbsenceConsentInput }) =>
+      apiFetch<BookingDTO>(`/bookings/${id}/absence-consent`, { method: 'PATCH', body: JSON.stringify(input) }),
+    invalidates: () => [queryKeys.customerBookings(session.establishmentId, customerId)],
+    quiet: true,
+  });
+}
+
+/** Registra un'assenza comunicata (D-035, admin-only). Invalida la Scheda cliente. */
+export function useReleaseAbsence(customerId: string) {
+  const session = useSessionStore();
+  return mutationResource({
+    mutationFn: ({ id, input }: { id: string; input: ReleaseAbsenceInput }) =>
+      apiFetch<BookingDTO>(`/bookings/${id}/absence-releases`, { method: 'POST', body: JSON.stringify(input) }),
+    invalidates: () => [queryKeys.customerBookings(session.establishmentId, customerId)],
+    quiet: true,
+  });
+}
+
+/** Annulla un'assenza comunicata non rivenduta (D-035, admin-only). Invalida la Scheda cliente. */
+export function useCancelAbsenceRelease(customerId: string) {
+  const session = useSessionStore();
+  return mutationResource({
+    mutationFn: ({ id, releaseId }: { id: string; releaseId: string }) =>
+      apiFetch<BookingDTO>(`/bookings/${id}/absence-releases/${releaseId}/cancel`, { method: 'POST' }),
+    invalidates: () => [queryKeys.customerBookings(session.establishmentId, customerId)],
     quiet: true,
   });
 }

@@ -4,7 +4,7 @@ import { http, HttpResponse } from 'msw';
 import { flushPromises } from '@vue/test-utils';
 import { mountApp } from '@/test/utils';
 import { server } from '@/mocks/server';
-import { useCustomer, useUpdateCustomer, useSuspendSubscription, useReactivateSubscription } from './useCustomers';
+import { useCustomer, useUpdateCustomer, useSuspendSubscription, useReactivateSubscription, useSetAbsenceConsent, useReleaseAbsence, useCancelAbsenceRelease } from './useCustomers';
 
 const Probe = defineComponent({
   setup() {
@@ -39,6 +39,33 @@ const ReactivateProbe = defineComponent({
     return () => h('button', {
       onClick: () => m.mutate({ id: 'b1', input: { returnDate: '2026-08-01', refundAmount: 0 } }),
     }, 'reactivate');
+  },
+});
+
+const SetAbsenceConsentProbe = defineComponent({
+  setup() {
+    const m = useSetAbsenceConsent('c-1');
+    return () => h('button', {
+      onClick: () => m.mutate({ id: 'b1', input: { consent: true } }),
+    }, 'set-consent');
+  },
+});
+
+const ReleaseAbsenceProbe = defineComponent({
+  setup() {
+    const m = useReleaseAbsence('c-1');
+    return () => h('button', {
+      onClick: () => m.mutate({ id: 'b1', input: { date: '2026-07-20' } }),
+    }, 'release-absence');
+  },
+});
+
+const CancelAbsenceReleaseProbe = defineComponent({
+  setup() {
+    const m = useCancelAbsenceRelease('c-1');
+    return () => h('button', {
+      onClick: () => m.mutate({ id: 'b1', releaseId: 'r1' }),
+    }, 'cancel-release');
   },
 });
 
@@ -93,5 +120,58 @@ describe('useReactivateSubscription', () => {
     await flushPromises();
     await new Promise((r) => setTimeout(r, 0));
     expect(captured).toMatchObject({ returnDate: '2026-08-01', refundAmount: 0 });
+  });
+});
+
+describe('useSetAbsenceConsent', () => {
+  it('PATCHa /bookings/:id/absence-consent e invalida la Scheda', async () => {
+    let captured: unknown = null;
+    server.use(
+      http.patch('/api/bookings/:id/absence-consent', async ({ request }) => {
+        captured = await request.json();
+        return HttpResponse.json({ id: 'b1' });
+      }),
+    );
+    const w = mountApp(SetAbsenceConsentProbe);
+    await w.find('button').trigger('click');
+    await flushPromises();
+    await new Promise((r) => setTimeout(r, 0));
+    expect(captured).toMatchObject({ consent: true });
+  });
+});
+
+describe('useReleaseAbsence', () => {
+  it('POSTa la release e invalida la Scheda', async () => {
+    let captured: unknown = null;
+    server.use(
+      http.post('/api/bookings/:id/absence-releases', async ({ request }) => {
+        captured = await request.json();
+        return HttpResponse.json({ id: 'b1' });
+      }),
+    );
+    const w = mountApp(ReleaseAbsenceProbe);
+    await w.find('button').trigger('click');
+    await flushPromises();
+    await new Promise((r) => setTimeout(r, 0));
+    expect(captured).toMatchObject({ date: '2026-07-20' });
+  });
+});
+
+describe('useCancelAbsenceRelease', () => {
+  it('POSTa /bookings/:id/absence-releases/:releaseId/cancel', async () => {
+    let called = false;
+    server.use(
+      http.post('/api/bookings/:id/absence-releases/:releaseId/cancel', ({ params }) => {
+        called = true;
+        expect(params.id).toBe('b1');
+        expect(params.releaseId).toBe('r1');
+        return HttpResponse.json({ id: 'b1' });
+      }),
+    );
+    const w = mountApp(CancelAbsenceReleaseProbe);
+    await w.find('button').trigger('click');
+    await flushPromises();
+    await new Promise((r) => setTimeout(r, 0));
+    expect(called).toBe(true);
   });
 });
