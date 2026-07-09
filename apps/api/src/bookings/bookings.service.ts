@@ -20,6 +20,7 @@ import type {
   ReactivateSubscriptionInput,
   TransferSubscriptionInput,
   CededSubscriptionDTO,
+  SetAbsenceConsentInput,
 } from '@coralyn/contracts';
 import { PrismaService } from '../prisma/prisma.service';
 import { TenantContext } from '../tenant/tenant-context';
@@ -797,6 +798,35 @@ export class BookingsService {
       if (e === 'BAD_DATE') throw new UnprocessableEntityException('Data di cessione non valida');
       if (e === 'OVER_TOTAL') throw new UnprocessableEntityException('Il netto incassato supera il totale');
       throw new UnprocessableEntityException('Importi di cessione non validi'); // BAD_REFUND / BAD_COLLECT
+    }
+    return toBookingDTO(outcome.row);
+  }
+
+  /**
+   * Grant/revoke del consenso "assenze comunicate" (D-035 S1). Setta/annulla Booking.absenceConsentAt.
+   * Idempotente. admin-only. Non tocca cassa/span. La revoca NON annulla le release già registrate.
+   */
+  async setAbsenceConsent(id: string, input: SetAbsenceConsentInput): Promise<BookingDTO> {
+    const tenantId = this.tenant.require();
+    const outcome = await this.prisma.forTenant(tenantId, async (tx) => {
+      const existing = await tx.booking.findFirst({ where: { id } });
+      if (!existing) return { error: 'NOT_FOUND' as const };
+      if (existing.type !== 'subscription') return { error: 'NOT_SUBSCRIPTION' as const };
+      if (existing.status !== 'confirmed') return { error: 'NOT_CONFIRMED' as const };
+      if (existing.terminatedAt) return { error: 'TERMINATED' as const };
+      const row = await tx.booking.update({
+        where: { id },
+        data: { absenceConsentAt: input.consent ? new Date() : null },
+      });
+      return { row };
+    });
+
+    if ('error' in outcome) {
+      const e = outcome.error;
+      if (e === 'NOT_FOUND') throw new NotFoundException('Prenotazione non trovata');
+      if (e === 'NOT_SUBSCRIPTION') throw new UnprocessableEntityException('Solo gli abbonamenti hanno il consenso assenze');
+      if (e === 'TERMINATED') throw new UnprocessableEntityException('Abbonamento disdetto');
+      throw new UnprocessableEntityException('Abbonamento non attivo'); // NOT_CONFIRMED
     }
     return toBookingDTO(outcome.row);
   }

@@ -738,4 +738,57 @@ describe('Bookings (e2e)', () => {
         .send({ returnDate: '2026-08-01', refundAmount: 0 }).expect(403);
     });
   });
+
+  describe('PATCH /bookings/:id/absence-consent (D-035 S1)', () => {
+    let acSeq = 0;
+
+    const makeSub = async (): Promise<{ id: string }> => {
+      const label = `AC${(acSeq += 1)}`;
+      const u = await prisma.forTenant(s1, (tx) =>
+        tx.umbrella.create({ data: { establishmentId: s1, rowId: ids.rowId, umbrellaTypeId: null, label, logicalOrder: 70 } }),
+      );
+      const res = await request(app.getHttpServer()).post('/api/bookings').set(...bearer(token1))
+        .send(body({ umbrellaId: u.id, type: 'subscription', startDate: '2026-07-01' })).expect(201);
+      return { id: res.body.id as string };
+    };
+
+    it('admin attiva il consenso → 200, Booking.absenceConsentAt valorizzato', async () => {
+      const { id } = await makeSub();
+      await request(app.getHttpServer()).patch(`/api/bookings/${id}/absence-consent`).set(...bearer(token1))
+        .send({ consent: true }).expect(200);
+      const row = await prisma.forTenant(s1, (tx) => tx.booking.findFirst({ where: { id } }));
+      expect(row?.absenceConsentAt).not.toBeNull();
+    });
+
+    it('admin revoca il consenso (consent:false) → 200, absenceConsentAt torna null', async () => {
+      const { id } = await makeSub();
+      await request(app.getHttpServer()).patch(`/api/bookings/${id}/absence-consent`).set(...bearer(token1))
+        .send({ consent: true }).expect(200);
+      await request(app.getHttpServer()).patch(`/api/bookings/${id}/absence-consent`).set(...bearer(token1))
+        .send({ consent: false }).expect(200);
+      const row = await prisma.forTenant(s1, (tx) => tx.booking.findFirst({ where: { id } }));
+      expect(row?.absenceConsentAt).toBeNull();
+    });
+
+    it('non-abbonamento (daily) → 422', async () => {
+      const u = await prisma.forTenant(s1, (tx) =>
+        tx.umbrella.create({ data: { establishmentId: s1, rowId: ids.rowId, umbrellaTypeId: null, label: 'ACDaily', logicalOrder: 71 } }),
+      );
+      const res = await request(app.getHttpServer()).post('/api/bookings').set(...bearer(token1))
+        .send(body({ umbrellaId: u.id, type: 'daily', startDate: '2026-07-15' })).expect(201);
+      await request(app.getHttpServer()).patch(`/api/bookings/${res.body.id}/absence-consent`).set(...bearer(token1))
+        .send({ consent: true }).expect(422);
+    });
+
+    it('id inesistente → 404', async () => {
+      await request(app.getHttpServer()).patch('/api/bookings/00000000-0000-0000-0000-0000000000fa/absence-consent')
+        .set(...bearer(token1)).send({ consent: true }).expect(404);
+    });
+
+    it('staff → 403 (admin-only)', async () => {
+      const { id } = await makeSub();
+      await request(app.getHttpServer()).patch(`/api/bookings/${id}/absence-consent`).set(...bearer(staffToken))
+        .send({ consent: true }).expect(403);
+    });
+  });
 });

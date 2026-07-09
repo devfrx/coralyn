@@ -12,6 +12,7 @@ import { TerminateSubscriptionDto } from './dto/terminate-subscription.dto';
 import { SuspendSubscriptionDto } from './dto/suspend-subscription.dto';
 import { ReactivateSubscriptionDto } from './dto/reactivate-subscription.dto';
 import { TransferSubscriptionDto } from './dto/transfer-subscription.dto';
+import { SetAbsenceConsentDto } from './dto/set-absence-consent.dto';
 import { Roles } from '../identity/roles.decorator';
 import { resolveDate } from '../common/dates';
 
@@ -80,5 +81,11 @@ export class BookingsController {
   @Patch(':id/payment')
   settle(@Param('id') id: string, @Body() body: SettlePaymentDto): Promise<BookingDTO> {
     return this.bookings.settlePayment(id, body);
+  }
+
+  @Patch(':id/absence-consent')
+  @Roles(Role.Admin)
+  setAbsenceConsent(@Param('id') id: string, @Body() body: SetAbsenceConsentDto): Promise<BookingDTO> {
+    return this.bookings.setAbsenceConsent(id, body);
   }
 }
