@@ -544,11 +544,13 @@ export class BookingsService {
   async terminate(id: string, input: TerminateSubscriptionInput): Promise<BookingDTO> {
     const tenantId = this.tenant.require();
     const outcome = await this.prisma.forTenant(tenantId, async (tx) => {
-      const existing = await tx.booking.findFirst({ where: { id } });
+      const existing = await tx.booking.findFirst({ where: { id }, include: { suspensions: true } });
       if (!existing) return { error: 'NOT_FOUND' as const };
       if (existing.type !== 'subscription') return { error: 'NOT_SUBSCRIPTION' as const };
       if (existing.status !== 'confirmed') return { error: 'NOT_CONFIRMED' as const };
       if (existing.terminatedAt) return { error: 'ALREADY_TERMINATED' as const };
+      // Coerenza con transfer: non si disdice con una sospensione aperta in corso (riattiva prima).
+      if (existing.suspensions.some((s) => s.endDate === null)) return { error: 'OPEN_SUSPENSION' as const };
 
       const effective = toDbDate(input.effectiveDate);
       // E ∈ (startDate, endDate]: prima = "mai usato" (è un void → cancel); dopo = fuori stagione.
@@ -586,6 +588,7 @@ export class BookingsService {
         throw new UnprocessableEntityException('Solo gli abbonamenti possono essere disdetti');
       if (e === 'NOT_CONFIRMED') throw new UnprocessableEntityException('Abbonamento non attivo');
       if (e === 'ALREADY_TERMINATED') throw new ConflictException('Abbonamento già disdetto');
+      if (e === 'OPEN_SUSPENSION') throw new ConflictException('Sospensione aperta: riattiva prima di disdire');
       if (e === 'BAD_DATE') throw new UnprocessableEntityException('Data di disdetta non valida');
       throw new UnprocessableEntityException('Rimborso non valido'); // BAD_REFUND
     }

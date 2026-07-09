@@ -952,4 +952,25 @@ describe('Bookings (e2e)', () => {
         .expect(403);
     });
   });
+
+  describe('macchina a stati CTA (hardening)', () => {
+    let xSeq = 0;
+    const makeSub = async (): Promise<{ id: string; umbrellaId: string }> => {
+      const label = `X${(xSeq += 1)}`;
+      const u = await prisma.forTenant(s1, (tx) =>
+        tx.umbrella.create({ data: { establishmentId: s1, rowId: ids.rowId, umbrellaTypeId: null, label, logicalOrder: 90 } }),
+      );
+      const res = await request(app.getHttpServer()).post('/api/bookings').set(...bearer(token1))
+        .send(body({ umbrellaId: u.id, type: 'subscription', startDate: '2026-07-01' })).expect(201);
+      return { id: res.body.id as string, umbrellaId: u.id };
+    };
+
+    it('D1: suspend-open → terminate → 409 (riattiva prima di disdire)', async () => {
+      const { id } = await makeSub();
+      await request(app.getHttpServer()).post(`/api/bookings/${id}/suspend`).set(...bearer(token1))
+        .send({ startDate: '2026-07-20' }).expect(200);
+      await request(app.getHttpServer()).post(`/api/bookings/${id}/terminate`).set(...bearer(token1))
+        .send({ effectiveDate: '2026-08-01', refundAmount: 0 }).expect(409);
+    });
+  });
 });
