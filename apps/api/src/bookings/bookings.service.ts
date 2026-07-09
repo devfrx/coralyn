@@ -37,6 +37,7 @@ import { computeSeniority } from './seniority';
 import { isBookingOverlapExclusion } from './booking.errors';
 import { UUID_SHAPE } from '../common/uuid';
 import { toTransferDTO, toCededSubscriptionDTO } from './booking-transfer.projection';
+import { toAbsenceReleaseDTO } from './absence-release.projection';
 import { reconcileCessionPayment } from './cession.payment';
 
 @Injectable()
@@ -81,6 +82,8 @@ export class BookingsService {
             include: { previousCustomer: true, newCustomer: true },
             orderBy: { effectiveDate: 'desc' },
           },
+          timeSlot: true,
+          absenceReleases: { orderBy: { date: 'asc' } },
         },
         orderBy: [{ startDate: 'desc' }, { createdAt: 'desc' }],
       });
@@ -116,6 +119,25 @@ export class BookingsService {
         return { destinationSeasonName: soonest.destinationSeason.name, deadline: formatDbDate(soonest.deadline) };
       };
 
+      const releaseUmbrellaIds = [
+        ...new Set(bookings.filter((b) => b.absenceReleases.some((r) => r.canceledAt === null)).map((b) => b.umbrellaId)),
+      ];
+      const otherCoverages = releaseUmbrellaIds.length
+        ? await tx.bookingCoverage.findMany({
+            where: { umbrellaId: { in: releaseUmbrellaIds }, status: 'confirmed' },
+            include: { booking: { include: { timeSlot: true } } },
+          })
+        : [];
+      const isResold = (b: (typeof bookings)[number], r: (typeof b.absenceReleases)[number]): boolean =>
+        r.canceledAt === null &&
+        otherCoverages.some(
+          (c) =>
+            c.bookingId !== b.id &&
+            c.umbrellaId === b.umbrellaId &&
+            c.startDate <= r.date && r.date <= c.endDate &&
+            slotsOverlap(c.booking.timeSlot, b.timeSlot),
+        );
+
       return bookings.map((b) => {
         const isSub = b.type === 'subscription';
         return toCustomerBookingDTO(b, {
@@ -128,6 +150,8 @@ export class BookingsService {
           prelazione: prelazioneFor(b),
           suspensions: b.suspensions.map(toSuspensionDTO),
           transfers: b.transfers.map(toTransferDTO),
+          absenceConsentAt: b.absenceConsentAt ? b.absenceConsentAt.toISOString() : null,
+          absenceReleases: b.absenceReleases.map((r) => toAbsenceReleaseDTO(r, isResold(b, r))),
         });
       });
     });

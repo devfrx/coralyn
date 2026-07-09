@@ -1,5 +1,5 @@
 import type { Booking, BookingSuspension } from '@prisma/client';
-import type { CustomerBookingDTO, SuspensionDTO, TransferDTO } from '@coralyn/contracts';
+import type { AbsenceReleaseDTO, CustomerBookingDTO, SuspensionDTO, TransferDTO } from '@coralyn/contracts';
 import { formatDbDate } from '../common/dates';
 
 export interface CustomerBookingEnrichment {
@@ -12,6 +12,8 @@ export interface CustomerBookingEnrichment {
   prelazione?: { destinationSeasonName: string; deadline: string };
   suspensions?: SuspensionDTO[];
   transfers?: TransferDTO[];
+  absenceConsentAt?: string | null;
+  absenceReleases?: AbsenceReleaseDTO[];
 }
 
 /** Proietta una riga Booking nel DTO arricchito della Scheda Cliente (customerId omesso: implicito nella route). */
@@ -36,6 +38,8 @@ export function toCustomerBookingDTO(b: Booking, e: CustomerBookingEnrichment): 
     terminationReason: b.terminationReason ?? undefined,
     suspensions: e.suspensions ?? [],
     transfers: e.transfers ?? [],
+    absenceConsentAt: e.absenceConsentAt ?? null,
+    absenceReleases: e.absenceReleases ?? [],
     umbrellaLabel: e.umbrellaLabel,
     packageName: e.packageName,
     sectorName: e.sectorName,

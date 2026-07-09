@@ -184,4 +184,45 @@ describe('Customer bookings (e2e)', () => {
     origin = res.body.find((b: { id: string }) => b.id === subId);
     expect(origin.prelazione).toBeUndefined();
   });
+
+  it('espone absenceConsentAt e absenceReleases[] con resold (D-035 Task 5)', async () => {
+    const c = await prisma.forTenant(s1, (tx) =>
+      tx.customer.create({ data: { establishmentId: s1, firstName: 'Assenza', lastName: 'Test' } }),
+    );
+    const arCustomerId = c.id;
+    const u = await prisma.forTenant(s1, (tx) =>
+      tx.umbrella.create({ data: { establishmentId: s1, rowId: ids.rowId, umbrellaTypeId: null, label: 'AR-CB', logicalOrder: 98 } }),
+    );
+
+    const sub = await request(app.getHttpServer()).post('/api/bookings').set(...bearer(t1))
+      .send({ customerId: arCustomerId, umbrellaId: u.id, timeSlotId: ids.slotMorning, type: 'subscription', startDate: '2026-07-01' })
+      .expect(201);
+    const subId = sub.body.id as string;
+
+    await request(app.getHttpServer()).patch(`/api/bookings/${subId}/absence-consent`).set(...bearer(t1))
+      .send({ consent: true }).expect(200);
+
+    const day = '2026-07-20'; // mid-season
+    await request(app.getHttpServer()).post(`/api/bookings/${subId}/absence-releases`).set(...bearer(t1))
+      .send({ date: day }).expect(200);
+
+    let res = await request(app.getHttpServer())
+      .get(`/api/customers/${arCustomerId}/bookings`).set(...bearer(t1)).expect(200);
+    let dto = res.body.find((b: { id: string }) => b.id === subId);
+    expect(dto.absenceConsentAt).not.toBeNull();
+    expect(dto.absenceReleases).toHaveLength(1);
+    expect(dto.absenceReleases[0].date).toBe(day);
+    expect(dto.absenceReleases[0].resold).toBe(false);
+
+    // rivendita: una giornaliera occupa il buco lasciato dalla release → resold diventa true
+    await request(app.getHttpServer()).post('/api/bookings').set(...bearer(t1))
+      .send({ customerId: arCustomerId, umbrellaId: u.id, timeSlotId: ids.slotMorning, type: 'daily', startDate: day })
+      .expect(201);
+
+    res = await request(app.getHttpServer())
+      .get(`/api/customers/${arCustomerId}/bookings`).set(...bearer(t1)).expect(200);
+    dto = res.body.find((b: { id: string }) => b.id === subId);
+    expect(dto.absenceReleases).toHaveLength(1);
+    expect(dto.absenceReleases[0].resold).toBe(true);
+  });
 });
