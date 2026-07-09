@@ -350,4 +350,12 @@ hardening, copiata da spec §5):
 > refundedAmount`, come già `suspend`/`reactivate`, mai un SET assoluto). Il consenso (`absenceConsentAt`) è
 > **indipendente dall'occupazione** (C1: gate solo `confirmed` + `!terminatedAt`, mai dalla sospensione — risolve
 > il "incastrato su ON" del toggle FE).
+>
+> **Aggregati di cassa derivati (§4.3).** «Da incassare» — KPI `outstanding` del report e «Saldo aperto» della
+> Scheda cliente — è il credito ancora **esigibile**: `Σ (totalPrice − amountCollected)` sulle prenotazioni
+> **né annullate né disdette** (`status ≠ 'cancelled'` **e** `terminatedAt = null`). Un disdetto resta
+> `confirmed` ma il contratto è sciolto → il suo residuo **non** è più esigibile (esclusione simmetrica agli
+> annullati). Gli **scaduti** (`endDate < oggi`) non incassati **restano inclusi**: sono crediti reali, non
+> debito estinto. «Incassato» (Scheda cliente) è **netto dei rimborsi**: `Σ (amountCollected − refundedAmount)`,
+> coerente col ledger cumulativo `refundedAmount` (disdetta + sospensione).
 

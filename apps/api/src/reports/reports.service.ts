@@ -40,8 +40,11 @@ export class ReportsService {
         where: { collectionDate: { gte: revenueFrom, lte: today } },
         select: { collectionDate: true, amountCollected: true },
       });
+      // «Da incassare» = credito ancora esigibile. Esclude gli annullati (status='cancelled', già fuori dal
+      // filtro 'confirmed') e i DISDETTI (terminatedAt≠null): un disdetto resta 'confirmed' ma il contratto è
+      // sciolto → il suo residuo non è più esigibile (§4.3, def. "crediti reali": gli scaduti restano inclusi).
       const unpaid = await tx.booking.findMany({
-        where: { status: 'confirmed', paymentStatus: { not: 'paid' } },
+        where: { status: 'confirmed', paymentStatus: { not: 'paid' }, terminatedAt: null },
         select: { totalPrice: true, amountCollected: true },
       });
       const activeSubscriptions = await tx.booking.count({

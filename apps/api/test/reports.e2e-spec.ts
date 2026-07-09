@@ -247,4 +247,65 @@ describe('Reports (e2e)', () => {
       expect(res.body.expiringRenewals[0].deadline).toBe(isoPlusDays(todayIso, 20));
     });
   });
+
+  // --- «Da incassare» (outstanding): un abbonamento DISDETTO (terminatedAt) resta status='confirmed'
+  //     ma il suo residuo NON è più esigibile → non deve contribuire all'outstanding (§4.3). ---
+  describe('KPI da incassare (outstanding): esclude i disdetti (dati seminati)', () => {
+    let s4: string;
+    let t4: string;
+    let map: MapSeedIds;
+    let todayIso: string;
+
+    beforeAll(async () => {
+      s4 = (await prisma.establishment.create({ data: { name: 'RPT D' } })).id;
+      await createUser(prisma, { email: 'rpt.s4@e2e.test', password: 'pw4', role: Role.admin, establishmentId: s4 });
+      t4 = await login(app, 'rpt.s4@e2e.test', 'pw4');
+      map = await seedMapTenant(prisma, s4);
+      todayIso = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Rome' }).format(new Date());
+
+      const spanStart = new Date(`${isoPlusDays(todayIso, -30)}T00:00:00Z`);
+      const spanEnd = new Date(`${isoPlusDays(todayIso, 30)}T00:00:00Z`);
+
+      const custId = await prisma.forTenant(s4, async (tx) => {
+        const cust = await tx.customer.create({ data: { establishmentId: s4, firstName: 'Out', lastName: 'Standing' } });
+        return cust.id;
+      });
+      // Abbonamento ATTIVO, pagato a metà: residuo esigibile = 500 - 200 = 300.
+      const bActive = await insertBookingWithCoverage(prisma, s4, {
+        establishmentId: s4, customerId: custId, umbrellaId: map.u1, timeSlotId: map.slotMorning,
+        startDate: spanStart, endDate: spanEnd,
+      });
+      // Abbonamento DISDETTO, pagato a metà: stesso residuo 300, ma terminatedAt ≠ null → NON esigibile.
+      const bTerm = await insertBookingWithCoverage(prisma, s4, {
+        establishmentId: s4, customerId: custId, umbrellaId: map.u2, timeSlotId: map.slotMorning,
+        startDate: spanStart, endDate: spanEnd,
+      });
+      await prisma.forTenant(s4, async (tx) => {
+        await tx.booking.update({
+          where: { id: bActive.id },
+          data: { type: 'subscription', totalPrice: 500, paymentStatus: 'partial', amountCollected: 200 },
+        });
+        await tx.booking.update({
+          where: { id: bTerm.id },
+          data: { type: 'subscription', totalPrice: 500, paymentStatus: 'partial', amountCollected: 200, terminatedAt: new Date() },
+        });
+      });
+    });
+
+    afterAll(async () => {
+      await prisma.forTenant(s4, (tx) => tx.booking.deleteMany({}));
+      await prisma.forTenant(s4, (tx) => tx.customer.deleteMany({}));
+      await cleanMapTenant(prisma, s4);
+      await prisma.user.deleteMany({ where: { email: 'rpt.s4@e2e.test' } });
+      await prisma.establishment.deleteMany({ where: { id: s4 } });
+    });
+
+    it('outstanding conta solo il residuo dell\'abbonamento attivo, non del disdetto', async () => {
+      const res = await request(app.getHttpServer())
+        .get('/api/reports/summary')
+        .set(...bearer(t4))
+        .expect(200);
+      expect(res.body.kpis.outstanding).toBe(300);
+    });
+  });
 });
