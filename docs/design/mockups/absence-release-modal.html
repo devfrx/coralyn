@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Coralyn — Assenze comunicate (mockup)</title>
+<style>
+  /* Mockup self-contained (ADR-0009): nessun asset esterno, nessun build.
+     Palette "Mediterraneo Caldo" (ADR-0027), coerente con Coralyn.dc.html. */
+  :root{
+    --sand:#ECE3D5; --panel:#FBF6EE; --panel-2:#F4ECE0;
+    --teal-900:#0F3C49; --teal-700:#16505E; --teal-border:#23606E;
+    --ink:#2B2722; --muted:#8A8175; --muted-teal:#6E9197;
+    --coral:#E0795A; --coral-700:#C9613F;
+    --border:#E7DCCB; --border-2:#D8CBB6;
+    --ok:#2E7D6B; --warn:#B77A2B; --danger:#B4472E;
+    --radius:14px;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    font-family:'Inter',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+    background:var(--sand); color:var(--ink);
+    -webkit-font-smoothing:antialiased; padding:28px 20px 60px;
+  }
+  .doc{max-width:1120px;margin:0 auto;}
+  .doc-head{margin-bottom:22px;}
+  .doc-head h1{font-size:20px;font-weight:700;letter-spacing:-.01em;margin:0 0 6px;}
+  .doc-head p{margin:0;color:var(--muted);font-size:13px;line-height:1.5;max-width:78ch;}
+  .badge-design{display:inline-block;font-size:10px;font-weight:600;letter-spacing:.08em;
+    text-transform:uppercase;color:#1f5a3f;background:#DEEDE2;border:1px solid #BEDBC6;
+    padding:3px 9px;border-radius:99px;margin-bottom:10px;}
+  .gallery{display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:22px;align-items:start;}
+  .frame{background:var(--panel-2);border:1px solid var(--border);border-radius:18px;padding:16px;
+    box-shadow:0 1px 2px rgba(43,39,34,.04);}
+  .frame > .cap{font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;
+    color:var(--muted-teal);margin:2px 2px 12px;}
+
+  /* ---- Scheda card excerpt ---- */
+  .card{background:var(--panel);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;}
+  .card-h{display:flex;align-items:center;gap:10px;padding:13px 15px;border-bottom:1px solid var(--border);}
+  .card-h .t{font-size:13.5px;font-weight:600;}
+  .card-h .pill{margin-left:auto;font-size:10px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;
+    color:var(--muted-teal);background:#EBF0EF;border:1px solid #D6E2E0;padding:3px 8px;border-radius:99px;}
+  .sub-row{padding:13px 15px;}
+  .sub-top{display:flex;align-items:flex-start;gap:12px;}
+  .sub-ic{width:38px;height:38px;flex:none;border-radius:10px;background:linear-gradient(150deg,#85B4B2,#5E9AA6);
+    display:flex;align-items:center;justify-content:center;color:#0F3C49;}
+  .sub-ic svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;}
+  .sub-meta .name{font-size:14px;font-weight:600;}
+  .sub-meta .det{font-size:12px;color:var(--muted);margin-top:2px;}
+  .sub-actions{margin-left:auto;display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;max-width:220px;}
+  .status-rows{margin-top:12px;display:flex;flex-direction:column;gap:8px;}
+  .st{display:flex;align-items:center;gap:9px;font-size:12.5px;padding:8px 11px;border-radius:10px;}
+  .st.open{background:#FBEFE7;border:1px solid #F0D6C4;color:#8a4a2b;}
+  .st.hist{background:#F1EEE7;border:1px solid var(--border);color:var(--muted);}
+  .st.ceded{background:#EAF1EF;border:1px solid #CFE1DC;color:var(--teal-700);}
+  .st.resold{background:#DEEDE2;border:1px solid #BEDBC6;color:#1f5a3f;}
+  .st .dot{width:7px;height:7px;border-radius:99px;flex:none;}
+  .st.open .dot{background:var(--coral);}
+  .st.hist .dot{background:var(--border-2);}
+  .st.ceded .dot{background:#5E9AA6;}
+  .st.resold .dot{background:#3f9e64;}
+  .st .grow{flex:1;}
+  .st .amt{font-weight:600;color:var(--ink);}
+  .st .cancel{border:0;background:transparent;color:var(--teal-700);font-size:11.5px;font-weight:600;
+    cursor:pointer;padding:2px 4px;}
+
+  /* ---- Buttons ---- */
+  .btn{font:inherit;font-size:12.5px;font-weight:600;border-radius:9px;padding:8px 13px;cursor:pointer;
+    border:1px solid transparent;display:inline-flex;align-items:center;gap:6px;line-height:1;}
+  .btn-primary{background:var(--coral);color:#fff;}
+  .btn-primary:hover{background:var(--coral-700);}
+  .btn-ghost{background:transparent;border-color:var(--border-2);color:var(--ink);}
+  .btn-ghost:hover{background:#EFE8DC;}
+  .btn-quiet{background:#EEE7DB;color:var(--teal-900);border-color:var(--border-2);}
+  .btn-quiet:hover{background:#E5DCCC;}
+  .btn-sm{font-size:11.5px;padding:6px 10px;}
+  .btn:disabled{opacity:.45;cursor:not-allowed;}
+  .admin-tag{font-size:9px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted-teal);
+    border:1px solid #D6E2E0;border-radius:99px;padding:2px 6px;}
+
+  /* ---- Modal ---- */
+  .modal-scrim{background:rgba(15,60,73,.14);border:1px dashed var(--border-2);border-radius:16px;
+    padding:22px;display:flex;justify-content:center;}
+  .modal{width:100%;max-width:400px;background:var(--panel);border:1px solid var(--border);border-radius:16px;
+    box-shadow:0 18px 44px -20px rgba(15,60,73,.4);overflow:hidden;}
+  .modal-h{padding:16px 18px 14px;border-bottom:1px solid var(--border);}
+  .modal-h .row{display:flex;align-items:center;gap:10px;}
+  .modal-h .eyebrow{font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;
+    color:var(--muted-teal);margin:0 0 4px;}
+  .modal-h h3{margin:0;font-size:15px;font-weight:700;letter-spacing:-.01em;}
+  .modal-h .x{margin-left:auto;width:28px;height:28px;border:0;background:transparent;border-radius:8px;
+    color:var(--muted);cursor:pointer;display:flex;align-items:center;justify-content:center;}
+  .modal-h .x svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;}
+  .modal-b{padding:16px 18px;}
+  .modal-f{padding:13px 18px 16px;border-top:1px solid var(--border);display:flex;gap:9px;justify-content:flex-end;background:var(--panel-2);}
+
+  .field{margin-bottom:13px;}
+  .field > label{display:block;font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;
+    color:var(--muted);margin-bottom:5px;}
+  .control{width:100%;font:inherit;font-size:13px;color:var(--ink);background:#FFFDF8;border:1px solid var(--border-2);
+    border-radius:9px;padding:9px 11px;}
+  .control:focus{outline:2px solid rgba(224,121,90,.35);border-color:var(--coral);}
+  textarea.control{resize:vertical;min-height:56px;}
+  .hint{font-size:11px;color:var(--muted-teal);margin-top:5px;line-height:1.4;}
+  .hint b{color:var(--teal-700);font-weight:600;}
+  .note{font-size:11.5px;color:var(--muted);background:#F1EEE7;border:1px solid var(--border);border-radius:9px;
+    padding:9px 11px;line-height:1.45;margin-top:2px;}
+  .error{font-size:12px;color:var(--danger);margin-top:2px;}
+  .foot-note{margin-top:26px;color:var(--muted);font-size:12px;line-height:1.55;max-width:86ch;}
+  .foot-note code{background:#F1EADC;padding:1px 5px;border-radius:5px;font-size:11.5px;}
+</style>
+</head>
+<body>
+<div class="doc">
+  <div class="doc-head">
+    <span class="badge-design">Mockup · implementata (D-035 S1+S2)</span>
+    <h1>Assenze comunicate — consenso, release, rivendita — Scheda cliente</h1>
+    <p>Mockup della prima sotto-slice di <b>D-035</b> (S1 consenso + S2 release operatore, implementata su
+      <code>feat/absence-communicated-releases</code>). L'abbonato comunica (per ora all'operatore) di essere
+      <b>sicuro di non essere presente</b> in un giorno del proprio abbonamento; <b>solo</b> dietro consenso
+      attivo l'operatore registra la release, che apre la rivendita di quel giorno. Agisce <b>solo
+      sull'occupazione di un giorno singolo</b> (<code>BookingCoverage</code>): span di contratto e cassa
+      dell'abbonato (<code>amountCollected</code>/<code>refundedAmount</code>) restano intatti
+      (<a href="../../architecture/decisions/0048-assenze-comunicate-release-occupazione.md">ADR-0048</a>).
+      Azioni <b>solo admin</b>, accanto a "Disdici"/"Sospendi"/"Cedi".</p>
+  </div>
+
+  <div class="gallery">
+
+    <!-- ============ CARD ============ -->
+    <div class="frame">
+      <div class="cap">CustomerSubscriptionsCard — consenso attivo + release registrate</div>
+      <div class="card">
+        <div class="card-h">
+          <span class="t">Abbonamenti</span>
+          <span class="pill">Stagione 2026</span>
+        </div>
+        <div class="sub-row">
+          <div class="sub-top">
+            <span class="sub-ic"><svg viewBox="0 0 24 24"><path d="M3.2 11.5a8.8 8.8 0 0 1 17.6 0Z"/><path d="M12 11.5v6.6a2 2 0 0 0 4 0"/></svg></span>
+            <div class="sub-meta">
+              <div class="name">Ombrellone 12 · Fila A</div>
+              <div class="det">Giornata intera · 01 giu – 15 set · €1.180 incassati</div>
+            </div>
+            <div class="sub-actions">
+              <button class="btn btn-ghost btn-sm">Disdici</button>
+              <button class="btn btn-quiet btn-sm">Sospendi</button>
+              <button class="btn btn-quiet btn-sm">Cedi / Subentro</button>
+              <button class="btn btn-quiet btn-sm">Revoca assenze</button>
+              <button class="btn btn-primary btn-sm">Segnala assenza</button>
+            </div>
+          </div>
+
+          <div class="status-rows">
+            <div class="st open">
+              <span class="dot"></span>
+              <span class="grow">Assente il <b>22 lug</b> · motivo: impegno di lavoro</span>
+              <button class="cancel">Annulla</button>
+            </div>
+            <div class="st resold">
+              <span class="dot"></span>
+              <span class="grow">Assente il <b>15 lug</b> · <b>rivenduta</b> a prenotazione giornaliera</span>
+            </div>
+            <div class="st hist">
+              <span class="dot"></span>
+              <span class="grow">Assente il 03 lug · annullata il 04 lug</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="note" style="margin-top:12px;">
+        <b>Revoca assenze</b>/<b>Attiva assenze</b> e <b>Segnala assenza</b> visibili solo ad
+        <span class="admin-tag">admin</span> (pattern <code>isAdmin</code> già in card); "Segnala assenza"
+        è mostrata **solo** se il consenso è attivo (<code>absenceConsentAt !== null</code>). Le righe
+        derivano da <code>booking.absenceReleases[]</code> sul <code>CustomerBookingDTO</code>: <b>Annulla</b>
+        è offerta solo dove lecito (<code>canceledAt === null &amp;&amp; !resold</code>) — una release già
+        rivenduta è <b>vincolante</b>, l'azione sparisce.
+      </div>
+    </div>
+
+    <!-- ============ ABSENCE RELEASE MODAL ============ -->
+    <div class="frame">
+      <div class="cap">AbsenceReleaseModal — Segnala assenza</div>
+      <div class="modal-scrim">
+        <div class="modal">
+          <div class="modal-h">
+            <div class="row">
+              <div>
+                <p class="eyebrow">Assenze comunicate</p>
+                <h3>Segnala assenza</h3>
+              </div>
+              <button class="x" aria-label="Chiudi" style="margin-left:auto;"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+            </div>
+          </div>
+          <div class="modal-b">
+
+            <div class="field">
+              <label>Giorno di assenza</label>
+              <input class="control" type="date" value="2026-07-22" min="2026-07-09" max="2026-09-15">
+              <div class="hint"><b>min = max(oggi, inizio abbonamento)</b>, <b>max = fine abbonamento</b>.
+                Ammesso lo stesso giorno o con anticipo; il passato è escluso lato client e riverificato
+                dal server (<code>422 PAST_DATE</code>).</div>
+            </div>
+
+            <div class="field">
+              <label>Motivo (facoltativo)</label>
+              <textarea class="control" placeholder="es. impegno di lavoro">Impegno di lavoro</textarea>
+            </div>
+
+            <p class="error">Assenza già registrata per quel giorno.</p>
+          </div>
+          <div class="modal-f">
+            <button class="btn btn-ghost">Annulla</button>
+            <button class="btn btn-primary">Segnala assenza</button>
+          </div>
+        </div>
+      </div>
+      <div class="note" style="margin-top:12px;">
+        Azione disponibile <b>solo</b> se il consenso è attivo (il bottone "Segnala assenza" non compare
+        altrimenti in card — nessun hint di errore lato client: il gate è già a monte). Al submit il client
+        rifiuta un giorno già in <code>absenceReleases</code> attive con lo stesso messaggio del <code>409
+        ALREADY_RELEASED</code> del server; un <code>422</code> (consenso non attivo / data fuori periodo)
+        mostra un messaggio generico — il server resta l'autorità sulle guardie.
+      </div>
+    </div>
+
+  </div>
+
+  <p class="foot-note">
+    <b>Note di design.</b> Il carve dell'occupazione è <b>a giorno singolo</b>: la fascia liberata coincide
+    con quella dell'abbonamento (implicita, nessun sub-slot più fine — deferito, spec §14). La release <b>non
+    tocca</b> lo span di contratto né <code>amountCollected</code>/<code>refundedAmount</code>
+    (<a href="../../architecture/decisions/0048-assenze-comunicate-release-occupazione.md">ADR-0048</a>: la
+    compensazione segue la rinuncia al diritto, non il mancato utilizzo — a differenza di
+    disdetta/sospensione che rimborsano). La rivendita non ha un endpoint dedicato: è una prenotazione
+    giornaliera indipendente sul flusso mappa esistente, col suo incasso a sé. Una volta rivenduto il giorno,
+    l'annullo della release è <b>vietato</b> (<code>409 RESOLD</code>) — la release è vincolante.
+    <code>AbsenceRelease.source</code> (<code>operator</code> qui, <code>customer</code> in S4) predispone il
+    canale cliente self-service senza retrofit. Componenti riusati dal <code>ui-kit</code>
+    (<code>Modal</code>/<code>Field</code>/<code>Button</code>); nessun nuovo componente.
+  </p>
+</div>
+</body>
+</html>

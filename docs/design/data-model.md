@@ -61,6 +61,22 @@
 > l'occupazione) — **è mergiata**. Vedi [ADR-0047](../architecture/decisions/0047-cessione-subentro-titolarita-incasso.md) e
 > la spec
 > [2026-07-08-subscription-cession-design.md](../superpowers/specs/2026-07-08-subscription-cession-design.md).
+>
+> **Slice D-035 (assenze comunicate, sotto-slice S1+S2, implementata):** l'abbonato comunica (per ora
+> all'operatore, in attesa del canale self-service S3+S4) di essere sicuro di non essere presente in uno
+> specifico giorno del proprio abbonamento; **solo** dietro consenso esplicito e attivo l'operatore può
+> registrare una **release** che apre la rivendita di quel giorno. `Booking.absenceConsentAt` è lo **stato
+> corrente** del consenso (`null` = nessun consenso; valorizzato = consenso attivo), grant/revoke via
+> `PATCH` admin-only, idempotente. La release vera e propria — nuova child table **`AbsenceRelease`**
+> (mirror `BookingSuspension`/`BookingTransfer`, pura storia RLS FORCE) — scava un **carve a giorno-singolo**
+> in `BookingCoverage` (la versione a un solo giorno del carve sospensione): span di contratto e cassa
+> dell'abbonato (`amountCollected`/`refundedAmount`) restano **invariati** — nessun rimborso, nessun credito
+> ([ADR-0048](../architecture/decisions/0048-assenze-comunicate-release-occupazione.md): la compensazione
+> segue la rinuncia al diritto, non il mancato utilizzo). La rivendita è una `Booking` `type=daily`
+> indipendente, sul flusso giornaliero esistente. `AbsenceRelease.source` (`operator|customer`) predispone il
+> canale cliente (S4). Vedi [ADR-0048](../architecture/decisions/0048-assenze-comunicate-release-occupazione.md)
+> e la spec
+> [2026-07-09-assenze-comunicate-release-operatore-design.md](../superpowers/specs/2026-07-09-assenze-comunicate-release-operatore-design.md).
 
 Fonte di verità del modello dati del Core operativo. Decisioni:
 [mappa](../architecture/decisions/0005-modello-mappa.md),
@@ -95,10 +111,12 @@ erDiagram
     BOOKING ||--|{ BOOKING_COVERAGE : "occupa via (1..N)"
     BOOKING ||--o{ BOOKING_SUSPENSION : "sospesa da"
     BOOKING ||--o{ BOOKING_TRANSFER : "ceduta via (0..N)"
+    BOOKING ||--o{ ABSENCE_RELEASE : "assenza liberata via (0..N)"
     UMBRELLA ||--o{ BOOKING_COVERAGE : "coperto da"
     ESTABLISHMENT ||--o{ BOOKING_COVERAGE : "possiede"
     ESTABLISHMENT ||--o{ BOOKING_SUSPENSION : "possiede"
     ESTABLISHMENT ||--o{ BOOKING_TRANSFER : "possiede"
+    ESTABLISHMENT ||--o{ ABSENCE_RELEASE : "possiede"
     CUSTOMER ||--o{ BOOKING_TRANSFER : "cede via (previousCustomer)"
     CUSTOMER ||--o{ BOOKING_TRANSFER : "riceve via (newCustomer)"
     CUSTOMER ||--o{ WAITLIST : "richiede"
@@ -209,6 +227,7 @@ erDiagram
         timestamp terminatedAt "nullable; marca la disdetta anticipata (D-013 1/3)"
         decimal refundedAmount "default 0; rimborsi aggregati (disdetta + sospensioni)"
         string terminationReason "nullable; nota operatore della disdetta"
+        timestamp absenceConsentAt "nullable; stato consenso 'assenze comunicate' (D-035 S1)"
     }
     BOOKING_COVERAGE {
         uuid id PK
@@ -241,6 +260,16 @@ erDiagram
         date effectiveDate "informativa + base pro-rata; non splitta il contratto"
         decimal refundToPrevious "default 0; movimento lordo, non aggregato su Booking.refundedAmount"
         decimal collectedFromNew "default 0; movimento lordo"
+        string reason "nullable"
+        timestamp createdAt
+    }
+    ABSENCE_RELEASE {
+        uuid id PK
+        uuid bookingId FK "CASCADE"
+        uuid establishmentId FK "RESTRICT; tenant (RLS FORCE)"
+        date date "giorno liberato; fascia = quella del Booking, implicita"
+        string source "operator|customer (default operator); S4 additivo"
+        timestamp canceledAt "nullable; annullo soft prima della rivendita; null = attiva"
         string reason "nullable"
         timestamp createdAt
     }
@@ -353,6 +382,20 @@ erDiagram
   `netto = amountCollected − refundedAmount` resta fonte unica. Lo storico vive sulla nuova child table
   **`BookingTransfer`** (mirror `BookingSuspension`: RLS FORCE, pura storia, nessun `createdBy` → audit
   attore deferito a D-047).
+- **Assenze comunicate (D-035 S1+S2, implementata, [ADR-0048](../architecture/decisions/0048-assenze-comunicate-release-occupazione.md))**:
+  una release tocca **solo l'occupazione di un giorno**, mai lo span di contratto né la cassa dell'abbonato.
+  `Booking.absenceConsentAt` è lo **stato corrente** del consenso "assenze comunicate" (`null`/valorizzato,
+  grant/revoke idempotente via `PATCH` admin-only); **nessuna release è possibile senza consenso attivo**
+  (`422 NO_CONSENT`) — nessuna presunzione d'assenza. La release scava un **carve a giorno-singolo** in
+  `BookingCoverage` (testa/coda del frammento coperto, mirror del carve-chiuso sospensione), lasciando lo
+  span e `amountCollected`/`refundedAmount` **invariati** (ADR-0048: la compensazione segue la rinuncia al
+  diritto, non il mancato utilizzo — a differenza di disdetta/sospensione che rimborsano). La storia vive
+  sulla nuova child table **`AbsenceRelease`** (mirror `BookingSuspension`/`BookingTransfer`: RLS FORCE, pura
+  storia, nessun `createdBy` → audit attore deferito a D-047); `source` (`operator|customer`) predispone il
+  canale cliente self-service (S4, deferito insieme a S3 auth-cliente). L'annullo di una release è ammesso
+  solo se il giorno non è già stato rivenduto (altrimenti `409`, mirror `reactivate` sospensione). La
+  rivendita non introduce un endpoint nuovo: è una `Booking type=daily` indipendente sul flusso di
+  prenotazione giornaliera esistente.
 - **Risoluzione prezzo** (slice A3.1, **implementato**): il pricing engine puro (`resolvePrice`)
   seleziona la `Rate` applicabile secondo la **precedenza esplicita lessicografica**
   periodo › fila › settore › pacchetto › fascia › tipo ([ADR-0032](../architecture/decisions/0032-pricing-engine-precedenza.md)).

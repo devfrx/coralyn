@@ -193,3 +193,68 @@ flowchart LR
 > FE**, nessun endpoint di preview; il server valida solo i bound. **Occupazione (`BookingCoverage`)
 > invariata**: la mappa mostra l'ombrellone occupato con continuità prima e dopo la cessione.
 
+## 7. Assenze comunicate: consenso → release → carve giorno-singolo → rivendita (D-035 S1+S2, implementata)
+
+Un abbonato comunica (per ora **all'operatore**, che lo registra; il canale self-service è S3+S4, deferito)
+di essere **sicuro di non essere presente** in uno specifico giorno del proprio abbonamento; **solo** dietro
+consenso esplicito e attivo l'operatore registra una **release** che apre la rivendita di quel giorno. Agisce
+**solo sull'occupazione di un giorno singolo** (`BookingCoverage`), mai sullo span di contratto né sulla
+cassa dell'abbonato: nessun rimborso, nessun credito. Vedi la
+[spec](../superpowers/specs/2026-07-09-assenze-comunicate-release-operatore-design.md),
+[ADR-0048](../architecture/decisions/0048-assenze-comunicate-release-occupazione.md) (compensazione = rinuncia
+al diritto, non mancato utilizzo), [ADR-0046](../architecture/decisions/0046-occupazione-a-intervalli-coverage.md)
+(coverage, riusata), [ADR-0011](../architecture/decisions/0011-incasso-base-nel-core.md) (incasso, non
+toccato).
+
+**Decisione operatore** (admin) sulla Scheda cliente, azioni adiacenti a "Disdici"/"Sospendi"/"Cedi":
+
+```mermaid
+flowchart TD
+    A0[Abbonamento confermato, non disdetto] --> AC{Consenso<br/>'assenze comunicate' attivo?}
+    AC -->|No| GA["Attiva assenze<br/>PATCH absence-consent consent=true"]
+    GA --> AC
+    AC -->|Sì| SA["Segnala assenza<br/>POST absence-releases date, reason?"]
+    SA --> G{Guardie}
+    G -->|non subscription o non confirmed| E1[422]
+    G -->|disdetto| E2[422]
+    G -->|consenso non attivo| E3[422 NO_CONSENT]
+    G -->|date fuori start,end| E4[422 BAD_DATE]
+    G -->|date nel passato| E5[422 PAST_DATE]
+    G -->|release attiva già presente per quel giorno| E6[409 ALREADY_RELEASED]
+    G -->|giorno non coperto da questo Booking| E7[409 NO_COVERAGE]
+    G -->|tutte superate| W["Carve giorno-singolo su BookingCoverage<br/>+ AbsenceRelease.create source=operator"]
+    W --> H["Buco rivendibile — mappa mostra<br/>l'ombrellone disponibile quel giorno"]
+    H --> RV["Rivendita = prenotazione giornaliera<br/>indipendente, flusso esistente"]
+    H --> AN["Annulla release<br/>POST absence-releases/:rid/cancel"]
+    AN --> GC{Guardie}
+    GC -->|già annullata| E8[409 ALREADY_CANCELED]
+    GC -->|giorno già rivenduto| E9[409 RESOLD — vincolante]
+    GC -->|non rivenduto| RC["Ricopre date,date +<br/>canceledAt = now"]
+    RC --> H2[Mappa torna occupata dall'abbonato]
+```
+
+**Meccanica del carve giorno-singolo** (dentro la transazione, tenant-scoped — mirror del carve-chiuso
+sospensione, a un solo giorno `D`):
+
+```mermaid
+flowchart LR
+    subgraph Prima
+        P1["Coverage: [start .......... end]"]
+    end
+    subgraph "Release del giorno D"
+        C1["[start, D-1] testa<br/>(solo se D > start)"] --- C2["buco [D, D] LIBERO<br/>rivendibile"] --- C3["[D+1, end] coda<br/>(solo se D < end)"]
+    end
+    P1 -->|"delete coverage C che copre D,<br/>create testa+coda"| C1
+```
+
+> **Invarianti chiave** (§6 spec): tipo `subscription`, stato `confirmed`, non disdetto (422); **consenso
+> attivo** (`absenceConsentAt !== null`, altrimenti 422 `NO_CONSENT` — è il gate dell'invariante "nessuna
+> presunzione d'assenza"); `date ∈ [startDate, endDate]` (422 `BAD_DATE`); `date ≥ oggi` (422 `PAST_DATE`,
+> futuro e stesso-giorno ammessi, passato no); nessuna release attiva già presente per quel giorno (409
+> `ALREADY_RELEASED`); il giorno deve essere attualmente coperto da questo Booking (409 `NO_COVERAGE` — non
+> si libera ciò che è già libero). Annullo: release esistente per quel booking (404), non già annullata (409
+> `ALREADY_CANCELED`), **giorno non ancora rivenduto** (409 `RESOLD` — stesso predicato
+> `dateRangesOverlap`+`slotsOverlap` di rivendita/`reactivate`; se rivenduto l'annullo è vietato, la release è
+> **vincolante**). `Booking.amountCollected`/`refundedAmount` **invariati** dopo la release (ADR-0048); la
+> rivendita è una `Booking type=daily` indipendente col suo incasso a sé, nessun endpoint dedicato.
+
