@@ -872,11 +872,12 @@ export class BookingsService {
     const tenantId = this.tenant.require();
     const day = 24 * 60 * 60 * 1000;
     const outcome = await this.prisma.forTenant(tenantId, async (tx) => {
-      const existing = await tx.booking.findFirst({ where: { id }, include: { absenceReleases: true } });
+      const existing = await tx.booking.findFirst({ where: { id }, include: { absenceReleases: true, suspensions: true } });
       if (!existing) return { error: 'NOT_FOUND' as const };
       if (existing.type !== 'subscription') return { error: 'NOT_SUBSCRIPTION' as const };
       if (existing.status !== 'confirmed') return { error: 'NOT_CONFIRMED' as const };
       if (existing.terminatedAt) return { error: 'TERMINATED' as const };
+      if (existing.suspensions.some((s) => s.endDate === null)) return { error: 'OPEN_SUSPENSION' as const };
       if (existing.absenceConsentAt === null) return { error: 'NO_CONSENT' as const };
 
       const today = toDbDate(todayInRome());
@@ -914,6 +915,7 @@ export class BookingsService {
       if (e === 'NOT_SUBSCRIPTION') throw new UnprocessableEntityException('Solo gli abbonamenti hanno assenze comunicate');
       if (e === 'NOT_CONFIRMED') throw new UnprocessableEntityException('Abbonamento non attivo');
       if (e === 'TERMINATED') throw new UnprocessableEntityException('Abbonamento disdetto');
+      if (e === 'OPEN_SUSPENSION') throw new UnprocessableEntityException('Sospensione aperta: riattiva prima di segnalare un’assenza');
       if (e === 'NO_CONSENT') throw new UnprocessableEntityException('Consenso assenze comunicate non attivo');
       if (e === 'BAD_DATE') throw new UnprocessableEntityException('Data fuori dallo span dell’abbonamento');
       if (e === 'PAST_DATE') throw new UnprocessableEntityException('Non si può segnalare un’assenza nel passato');
@@ -930,11 +932,15 @@ export class BookingsService {
   async cancelAbsenceRelease(id: string, releaseId: string): Promise<BookingDTO> {
     const tenantId = this.tenant.require();
     const outcome = await this.prisma.forTenant(tenantId, async (tx) => {
-      const booking = await tx.booking.findFirst({ where: { id }, include: { timeSlot: true } });
+      const booking = await tx.booking.findFirst({ where: { id }, include: { timeSlot: true, suspensions: true } });
       if (!booking) return { error: 'NOT_FOUND' as const };
       const release = await tx.absenceRelease.findFirst({ where: { id: releaseId, bookingId: id } });
       if (!release) return { error: 'RELEASE_NOT_FOUND' as const };
       if (release.canceledAt !== null) return { error: 'ALREADY_CANCELED' as const };
+      // Ri-coprire un giorno su un abbonamento morto o dentro un buco di sospensione è incoerente.
+      if (booking.status !== 'confirmed') return { error: 'NOT_CONFIRMED' as const };
+      if (booking.terminatedAt) return { error: 'TERMINATED' as const };
+      if (booking.suspensions.some((s) => s.endDate === null)) return { error: 'OPEN_SUSPENSION' as const };
 
       // rivenduto? coverage confirmed di ALTRA booking su stesso ombrellone+fascia, con la data dentro l'intervallo.
       const others = await tx.bookingCoverage.findMany({
@@ -965,6 +971,9 @@ export class BookingsService {
       if (e === 'NOT_FOUND') throw new NotFoundException('Prenotazione non trovata');
       if (e === 'RELEASE_NOT_FOUND') throw new NotFoundException('Assenza non trovata');
       if (e === 'ALREADY_CANCELED') throw new ConflictException('Assenza già annullata');
+      if (e === 'NOT_CONFIRMED') throw new UnprocessableEntityException('Abbonamento non attivo');
+      if (e === 'TERMINATED') throw new UnprocessableEntityException('Abbonamento disdetto');
+      if (e === 'OPEN_SUSPENSION') throw new UnprocessableEntityException('Sospensione aperta: riattiva prima di gestire le assenze');
       throw new ConflictException('Il giorno è stato rivenduto: annullo non consentito'); // RESOLD
     }
     return toBookingDTO(outcome.row);

@@ -964,6 +964,11 @@ describe('Bookings (e2e)', () => {
         .send(body({ umbrellaId: u.id, type: 'subscription', startDate: '2026-07-01' })).expect(201);
       return { id: res.body.id as string, umbrellaId: u.id };
     };
+    const grantConsent = (id: string) =>
+      request(app.getHttpServer()).patch(`/api/bookings/${id}/absence-consent`).set(...bearer(token1))
+        .send({ consent: true }).expect(200);
+    const rawRelease = (id: string) =>
+      prisma.forTenant(s1, (tx) => tx.absenceRelease.findFirst({ where: { bookingId: id }, orderBy: { createdAt: 'desc' } }));
 
     it('D1: suspend-open → terminate → 409 (riattiva prima di disdire)', async () => {
       const { id } = await makeSub();
@@ -980,6 +985,38 @@ describe('Bookings (e2e)', () => {
       await request(app.getHttpServer()).delete(`/api/bookings/${id}`).set(...bearer(token1)).expect(200);
       await request(app.getHttpServer()).post(`/api/bookings/${id}/reactivate`).set(...bearer(token1))
         .send({ returnDate: '2026-08-01', refundAmount: 0 }).expect(422);
+    });
+
+    it('C2: suspend-open → release → 422 (sospensione aperta)', async () => {
+      const { id } = await makeSub();
+      await grantConsent(id);
+      await request(app.getHttpServer()).post(`/api/bookings/${id}/suspend`).set(...bearer(token1))
+        .send({ startDate: '2026-07-20' }).expect(200);
+      await request(app.getHttpServer()).post(`/api/bookings/${id}/absence-releases`).set(...bearer(token1))
+        .send({ date: '2026-07-10' }).expect(422);
+    });
+
+    it('C2: release → suspend-open → cancel-release → 422 (sospensione aperta)', async () => {
+      const { id } = await makeSub();
+      await grantConsent(id);
+      await request(app.getHttpServer()).post(`/api/bookings/${id}/absence-releases`).set(...bearer(token1))
+        .send({ date: '2026-07-10' }).expect(200);
+      await request(app.getHttpServer()).post(`/api/bookings/${id}/suspend`).set(...bearer(token1))
+        .send({ startDate: '2026-07-20' }).expect(200);
+      const rel = await rawRelease(id);
+      await request(app.getHttpServer()).post(`/api/bookings/${id}/absence-releases/${rel!.id}/cancel`).set(...bearer(token1))
+        .expect(422);
+    });
+
+    it('D5: release → cancel → cancel-release → 422 (non attivo)', async () => {
+      const { id } = await makeSub();
+      await grantConsent(id);
+      await request(app.getHttpServer()).post(`/api/bookings/${id}/absence-releases`).set(...bearer(token1))
+        .send({ date: '2026-07-10' }).expect(200);
+      const rel = await rawRelease(id);
+      await request(app.getHttpServer()).delete(`/api/bookings/${id}`).set(...bearer(token1)).expect(200);
+      await request(app.getHttpServer()).post(`/api/bookings/${id}/absence-releases/${rel!.id}/cancel`).set(...bearer(token1))
+        .expect(422);
     });
   });
 });
