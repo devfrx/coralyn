@@ -972,5 +972,14 @@ describe('Bookings (e2e)', () => {
       await request(app.getHttpServer()).post(`/api/bookings/${id}/terminate`).set(...bearer(token1))
         .send({ effectiveDate: '2026-08-01', refundAmount: 0 }).expect(409);
     });
+
+    it('D2: suspend-open → cancel → reactivate → 422 (non attivo)', async () => {
+      const { id } = await makeSub();
+      await request(app.getHttpServer()).post(`/api/bookings/${id}/suspend`).set(...bearer(token1))
+        .send({ startDate: '2026-07-20' }).expect(200);
+      await request(app.getHttpServer()).delete(`/api/bookings/${id}`).set(...bearer(token1)).expect(200);
+      await request(app.getHttpServer()).post(`/api/bookings/${id}/reactivate`).set(...bearer(token1))
+        .send({ returnDate: '2026-08-01', refundAmount: 0 }).expect(422);
+    });
   });
 });

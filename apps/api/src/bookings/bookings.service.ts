@@ -702,6 +702,8 @@ export class BookingsService {
       });
       if (!existing) return { error: 'NOT_FOUND' as const };
       if (existing.type !== 'subscription') return { error: 'NOT_SUBSCRIPTION' as const };
+      if (existing.status !== 'confirmed') return { error: 'NOT_CONFIRMED' as const };
+      if (existing.terminatedAt) return { error: 'TERMINATED' as const };
       const open = existing.suspensions.find((s) => s.endDate === null);
       if (!open) return { error: 'NO_OPEN' as const };
 
@@ -753,6 +755,8 @@ export class BookingsService {
       const e = outcome.error;
       if (e === 'NOT_FOUND') throw new NotFoundException('Prenotazione non trovata');
       if (e === 'NOT_SUBSCRIPTION') throw new UnprocessableEntityException('Solo gli abbonamenti hanno sospensioni');
+      if (e === 'NOT_CONFIRMED') throw new UnprocessableEntityException('Abbonamento non attivo');
+      if (e === 'TERMINATED') throw new UnprocessableEntityException('Abbonamento disdetto');
       if (e === 'NO_OPEN') throw new ConflictException('Nessuna sospensione aperta da riattivare');
       if (e === 'BAD_DATE') throw new UnprocessableEntityException('Data di ritorno non valida');
       if (e === 'CONFLICT') throw new ConflictException('Il posto è occupato nel periodo di ritorno');
