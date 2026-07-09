@@ -4,8 +4,11 @@
 > **TL;DR:** la prima sotto-slice del **modulo D-035** — **consenso "assenze comunicate" + release registrata
 > dall'operatore + rivendita** — è **implementata, revisionata (whole-branch opus Ready-to-merge), LIVE-verificata
 > su Docker, mergiata FF e PUSHATA su `origin/main`** (`e4dc9e1`). D-035 **NON è chiusa**: restano **S3** (auth
-> cliente) e **S4** (PWA/QR). Registro autoritativo: [`deferred.md`](../architecture/deferred.md). Metodo:
-> **[ADR-0009]** + [ADR-0002].
+> cliente) e **S4** (PWA/QR) — vedi §5. **⚠️ L'utente ha inoltre segnalato difetti/edge-case aperti** (bug pagina
+> «Configura», overlap non gestiti tra i CTA del ciclo abbonamento, «da incassare» che conta abbonamenti
+> annullati/mai incassati, tipo/durata prenotazione non mostrati, + richiesta di reset totale del DB dev e di un
+> **audit sistematico dei casi-limite**) — **vedi §4, probabilmente da prioritizzare PRIMA di S3/S4**. Registro
+> autoritativo: [`deferred.md`](../architecture/deferred.md). Metodo: **[ADR-0009]** + [ADR-0002].
 
 ---
 
@@ -85,7 +88,51 @@ azioni admin + sezioni — territorio refactor **D-040**).
   nuove tabelle tenant = RLS ENABLE+FORCE+policy `tenant_isolation`; rotte sotto `/api`; occupazione su
   `BookingCoverage`, span/diritti/titolarità su `Booking`; il gate FE reale è `vue-tsc -b`, non `--noEmit`.
 
-## 4. Priorità di dominio — cosa fare dopo (D-035 S3 → S4)
+## 4. Difetti aperti & audit casi-limite (segnalati dall'utente 2026-07-09) — DA PRIORITIZZARE CON L'UTENTE, probabilmente PRIMA di S3/S4
+
+Segnalazioni dell'utente da **riprodurre, fare triage e fixare** (NON ancora indagate in questa sessione — non
+overclaimo: vanno prima riprodotte). Sono per lo più correttezza/edge-case, **non** feature nuove → probabile
+priorità alta. Metodo per ciascuno: **`systematic-debugging`** (riprodurre prima di fixare) + DoD **[ADR-0009]**
+(se tocca modello/flusso/UI aggiorna i design docs nello stesso task) + rubric **[ADR-0002]**.
+
+1. **Pagina «Configura» struttura stabilimento: molti errori/bug**, probabilmente da **dati creati in
+   precedenza** (stato legacy nel DB dev). Indagare `EstablishmentStructureView.vue` (~406 righe → lega a **D-040**)
+   + gli endpoint struttura (settori/file/ombrelloni/tipologie). Riprodurre con i dati demo attuali.
+2. **State-machine dei CTA del ciclo abbonamento — overlap NON gestiti (casi-limite).** Le operazioni D-013
+   (disdetta · sospensione **chiusa** / **aperta indeterminata** · riattivazione · cessione) + i nuovi CTA D-035
+   (consenso · segnala assenza · annulla) hanno **combinazioni non coperte**. Esempio dell'utente: sospendere in
+   modo **indeterminato** → **disdire** → **riattivare** (e simili). Serve un **audit sistematico della macchina a
+   stati** delle prenotazioni: quali CTA sono leciti in quale stato, e cosa succede agli intervalli
+   `BookingCoverage` **e** alla cassa in ogni transizione combinata → guardie mancanti + e2e per ogni
+   combinazione. Include le conseguenze dei **4 CTA** e i casi speciali della **cessione**.
+3. **«Pagamenti e saldo» (Scheda cliente) — bug + gap di visualizzazione:**
+   - **«Da incassare» conteggia abbonamenti vecchi mai incassati e/o annullati/disdetti.** Il calcolo
+     dell'outstanding **non esclude** `status=cancelled` / `terminatedAt != null` / prenotazioni non più attive →
+     bug reale del saldo. Indagare la projection pagamenti della Scheda (`CustomerPaymentsCard` + relativo
+     endpoint/derivazione) e l'eventuale `GET /reports/summary` (`outstanding`).
+   - **Non si vede il tipo di prenotazione** (giornaliera/periodica/abbonamento) nella lista pagamenti.
+   - **Per le prenotazioni a tempo (periodiche) non si vede la durata/periodo.**
+4. **Audit generale casi-limite cross-feature.** L'utente chiede di **cercare sistematicamente** (audit) i casi
+   edge non coperti di questo genere anche nelle **altre funzionalità**, e fixarli. Candidato a un
+   `writing-plans` dedicato "hardening / edge-case audit" (per-feature: enumerare stati/transizioni, trovare le
+   guardie mancanti, coprire con e2e).
+
+**Nota priorità:** l'utente non ha fissato l'ordine tra questi difetti e S3/S4 — **da decidere con lui a inizio
+sessione**. Il mio consiglio: §4.2 (state-machine CTA) e §4.3 (da-incassare) sono correttezza di dominio già in
+produzione → probabilmente prima di aprire il canale cliente (S3/S4).
+
+## 4.b Reset TOTALE del DB dev (richiesto dall'utente 2026-07-09)
+
+L'utente vuole poter **azzerare `coralyn_dev` di TUTTI i dati di business** — clienti, abbonamenti, prenotazioni,
+storici (`BookingSuspension`/`BookingTransfer`/`AbsenceRelease`/`BookingCoverage`), e (da confermare) la struttura
+stabilimento — **lasciando solo il minimo per loggarsi**: gli `User` (admin `admin@coralyn.dev` + superuser
+`super@coralyn.dev`) e il loro `Establishment`. Oggi `SEED_ON_START` popola dati demo; serve un **comando di reset
+mirato** (es. `pnpm --filter @coralyn/api run db:reset-business`, o un truncate ordinato per FK che preservi
+`User`/`Establishment`/`CredentialSetupToken`), progettato con cura per **RLS + ordine delle FK**. **NON ancora
+fatto.** (In questa sessione ho solo ripulito gli artefatti della mia verifica LIVE — release/consensi/rivendite —
+il resto dei dati demo è ancora lì.)
+
+## 5. Priorità di dominio — cosa fare dopo (D-035 S3 → S4)
 
 Con S1+S2 chiuse, il **canale cliente self-service** resta da costruire. Decomposizione **già concordata** con
 l'utente (2026-07-09); prossimo ADR libero **0049**, prossimo D libero **D-049**.
@@ -114,13 +161,13 @@ strategia auth cliente (è la decisione strutturale più pesante del modulo). Ba
 l'utente): D-036 report avanzato · D-012 cabine (**⚠️ utente lo ritiene poco utile — NON partire senza ok**) ·
 refactor D-040/038 · audit D-047. Dettaglio in [`deferred.md`](../architecture/deferred.md).
 
-## 5. Metodo (replicare)
+## 6. Metodo (replicare)
 Gate review spec con l'utente → (**brainstorming** se modulo/decisione strutturale) → **writing-plans** (TDD) →
 **subagent-driven** (implementer per task, modello per costo/rischio; review a **due stadi** per task + whole-branch
 **opus**; fix solo Crit/Imp, Minor tracciati nel ledger `.superpowers/sdd/progress.md`) → **verifica LIVE su Docker**
 → **presentare e attendere OK esplicito** per il merge FF **e per il push** (entrambi fatti stavolta con ok utente).
 
-## 6. Riferimenti
+## 7. Riferimenti
 - Registro [`deferred.md`](../architecture/deferred.md) · Rubric [ADR-0002] · Design docs [ADR-0009] ·
   **Assenze comunicate [ADR-0048]** · Coverage [ADR-0046] · Incasso [ADR-0011] · Auth [ADR-0024] ·
   Isolamento multi-tenant [ADR-0010] · App platform dedicata [ADR-0041].
