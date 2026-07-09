@@ -258,3 +258,96 @@ flowchart LR
 > **vincolante**). `Booking.amountCollected`/`refundedAmount` **invariati** dopo la release (ADR-0048); la
 > rivendita è una `Booking type=daily` indipendente col suo incasso a sé, nessun endpoint dedicato.
 
+## 8. Macchina a stati dei CTA abbonamento — matrice guardie (D-013 + D-035, hardening implementato)
+
+I sette CTA del ciclo abbonamento — i quattro di D-013 (`terminate`/disdici, `suspend`/sospendi, `reactivate`
+/riattiva, `transfer`/cedi) e i tre di D-035 (`setAbsenceConsent`/consenso, `releaseAbsence`/segnala assenza,
+`cancelAbsenceRelease`/annulla release) — erano stati costruiti e testati **in isolamento** su un abbonamento
+pulito. Solo due archi cross-famiglia avevano una guardia (`suspend-open → transfer` 409; il ciclo interno
+`suspend → reactivate`); tutte le altre combinazioni erano non guardate. Questo hardening chiude la macchina a
+stati: ogni CTA è lecito **solo** negli stati in cui i suoi effetti su span/occupazione/cassa sono corretti. Vedi
+la [spec](../superpowers/specs/2026-07-09-audit-macchina-stati-cta-abbonamento-design.md),
+[ADR-0011](../architecture/decisions/0011-incasso-base-nel-core.md),
+[ADR-0046](../architecture/decisions/0046-occupazione-a-intervalli-coverage.md),
+[ADR-0047](../architecture/decisions/0047-cessione-subentro-titolarita-incasso.md),
+[ADR-0048](../architecture/decisions/0048-assenze-comunicate-release-occupazione.md) (nessun nuovo ADR:
+correttezza additiva sui quattro sopra).
+
+**Stati distinguibili di un `Booking` abbonamento** (le stesse dimensioni delle sezioni 5-7, viste come macchina
+a stati unica): **active** (`confirmed`, `!terminatedAt`, `endDate ≥ oggi`, nessuna sospensione aperta),
+**suspended-open** (esiste una `BookingSuspension` con `endDate = null`), **suspended-closed** (solo sospensioni
+chiuse nello storico), **terminated** (`terminatedAt` valorizzato), **cancelled** (`status = 'cancelled'`).
+**expired** (`confirmed`, `endDate < oggi`) si comporta come **active** per le guardie di stato — sono i
+controlli di data pre-esistenti di ogni CTA (`effectiveDate`/`returnDate`/`date` dentro lo span) a rifiutare da
+sé le operazioni prive di senso, nessuna guardia dedicata. Ortogonali (non stati a sé): **consenso attivo**
+(`absenceConsentAt`) e **release attiva** (`AbsenceRelease` non annullata/non rivenduta) — cfr. §3 della spec.
+
+```mermaid
+stateDiagram-v2
+    [*] --> active
+    active --> suspended_open: suspend (aperta)
+    active --> suspended_closed: suspend (chiusa)
+    active --> terminated: terminate
+    active --> cancelled: cancel
+    suspended_open --> suspended_closed: reactivate
+    suspended_open --> cancelled: cancel
+    suspended_closed --> suspended_open: suspend (aperta)
+    suspended_closed --> suspended_closed: suspend (chiusa)
+    suspended_closed --> terminated: terminate
+    terminated --> [*]
+    cancelled --> [*]
+
+    note right of active
+        expired si comporta come active
+        (guardie di data pre-esistenti, non di stato)
+    end note
+
+    note right of suspended_open
+        terminate/transfer → 409 OPEN_SUSPENSION (D1)
+        release/annulla-release → 422 OPEN_SUSPENSION (C2)
+        consenso grant/revoke → 200 (C1, indipendente dall'occupazione)
+        reactivate → 200, unico arco lecito verso l'occupazione
+        cancel → cancelled senza guardia (path pericoloso chiuso da D2 lato reactivate)
+    end note
+
+    note right of suspended_closed
+        reactivate → 409 NO_OPEN (nessuna sospensione aperta da riattivare)
+        terminate → 200, carve per-frammento head+coda (D3)
+        transfer/consenso/release/annulla-release → 200
+    end note
+
+    note right of terminated
+        reactivate → 422 TERMINATED (D2)
+        annulla-release → 422 TERMINATED (D5)
+        terminate/suspend/transfer/consenso/release → 409/422, stato terminale
+    end note
+
+    note right of cancelled
+        reactivate → 422 NOT_CONFIRMED (D2)
+        annulla-release → 422 NOT_CONFIRMED (D5)
+        terminate/suspend/transfer/consenso/release → 409/422, stato terminale
+    end note
+```
+
+**Matrice guardie stato × CTA** (✓ lecito · ✗ rifiutato con codice; **grassetto** = guardia chiusa in questo
+hardening, copiata da spec §5):
+
+| Stato | terminate | suspend | reactivate | transfer | consenso grant/revoke | release | annulla release |
+|---|---|---|---|---|---|---|---|
+| **active** | ✓ | ✓ | ✗ NO_OPEN 409 | ✓ | ✓ | ✓ (se consenso) | ✓ (se release) |
+| **suspended-open** | ✗ **OPEN_SUSPENSION 409 (D1)** | ✗ OPEN_EXISTS 409 | ✓ | ✗ OPEN_SUSPENSION 409 | **✓ (C1)** | ✗ **OPEN_SUSPENSION 422 (C2)** | ✗ **OPEN_SUSPENSION 422 (C2)** |
+| **suspended-closed** | ✓ *(D3 multi-frammento)* | ✓ | ✗ NO_OPEN 409 | ✓ | ✓ | ✓ | ✓ |
+| **terminated** | ✗ ALREADY_TERMINATED 409 | ✗ TERMINATED 422 | ✗ **TERMINATED 422 (D2)** | ✗ TERMINATED 422 | ✗ TERMINATED 422 | ✗ TERMINATED 422 | ✗ **TERMINATED 422 (D5)** |
+| **cancelled** | ✗ NOT_CONFIRMED 422 | ✗ NOT_CONFIRMED 422 | ✗ **NOT_CONFIRMED 422 (D2)** | ✗ NOT_CONFIRMED 422 | ✗ NOT_CONFIRMED 422 | ✗ NOT_CONFIRMED 422 | ✗ **NOT_CONFIRMED 422 (D5)** |
+
+> **Invarianti chiave** (§8 spec): `BookingCoverage` di un abbonamento non contiene mai range invertiti
+> (`startDate > endDate`) né frammenti che eccedono `endDate` del `Booking` (stati non-disdetti) o `lastValid`
+> (disdetti) — `terminate` tronca **per frammento** (D3: `startDate > lastValid` → delete, `endDate > lastValid`
+> → clamp a `lastValid`, altrimenti invariato), corretto anche dopo una sospensione chiusa (head+coda) o una
+> release attiva (C3: nessuna guardia di blocco, i frammenti `≤ lastValid` restano rivendibili, quelli oltre
+> perdono effetto ma la riga `AbsenceRelease` resta storia). `refundedAmount` è un **ledger cumulativo** non
+> decrescente lungo tutto il ciclo (D4: `terminate` usa `increment` sul residuo `amountCollected −
+> refundedAmount`, come già `suspend`/`reactivate`, mai un SET assoluto). Il consenso (`absenceConsentAt`) è
+> **indipendente dall'occupazione** (C1: gate solo `confirmed` + `!terminatedAt`, mai dalla sospensione — risolve
+> il "incastrato su ON" del toggle FE).
+

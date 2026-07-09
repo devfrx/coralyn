@@ -540,6 +540,8 @@ export class BookingsService {
    * Disdetta anticipata di un abbonamento (D-013). Tronca endDate al giorno prima della data
    * effettiva (E = primo giorno di posto libero), marca terminatedAt e registra il rimborso.
    * status resta 'confirmed'. Il posto si libera per date ≥ E (occupazione date-ranged).
+   * Rifiuta la sospensione aperta (409 OPEN_SUSPENSION, D1); il carve è per-frammento, mai a
+   * tappeto (D3); refundedAmount è un ledger cumulativo — increment sul residuo, non SET (D4).
    */
   async terminate(id: string, input: TerminateSubscriptionInput): Promise<BookingDTO> {
     const tenantId = this.tenant.require();
@@ -696,6 +698,7 @@ export class BookingsService {
    * Riattiva la sospensione APERTA di un abbonamento (D-013). Fissa R, chiude la sospensione a R-1,
    * ricopre [R, endDate] e registra il rimborso sui giorni realmente sospesi. Se la coda contiene
    * walk-in venduti durante l'apertura → 409 (anti-double-booking, mirror priceAndWrite). admin-only.
+   * Rifiuta anzitutto un abbonamento non confermato o già disdetto (422 NOT_CONFIRMED/TERMINATED, D2).
    */
   async reactivate(id: string, input: ReactivateSubscriptionInput): Promise<BookingDTO> {
     const tenantId = this.tenant.require();
@@ -872,6 +875,7 @@ export class BookingsService {
    * Registra un'assenza comunicata per un giorno (D-035 S2). Scava un buco a GIORNO SINGOLO in
    * BookingCoverage (versione a giorno singolo del carve sospensione), gated dal consenso. NON tocca
    * cassa/span dell'abbonamento (ADR-0048). admin-only. La rivendita usa il flusso giornaliero.
+   * Rifiuta la sospensione aperta (422 OPEN_SUSPENSION, C2): il posto è già liberato/a-hold.
    */
   async releaseAbsence(id: string, input: ReleaseAbsenceInput): Promise<BookingDTO> {
     const tenantId = this.tenant.require();
@@ -933,6 +937,8 @@ export class BookingsService {
   /**
    * Annulla un'assenza comunicata non ancora rivenduta (D-035 S2): ricopre il giorno [date,date] e marca
    * canceledAt. Se il buco è già occupato da un'altra prenotazione (rivendita) → 409 (vincolante). admin-only.
+   * Rifiuta abbonamento non confermato/disdetto (422 NOT_CONFIRMED/TERMINATED, D5) e la sospensione
+   * aperta (422 OPEN_SUSPENSION, C2).
    */
   async cancelAbsenceRelease(id: string, releaseId: string): Promise<BookingDTO> {
     const tenantId = this.tenant.require();
