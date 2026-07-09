@@ -11,7 +11,7 @@ const clamp = (n: number, lo: number, hi: number): number => Math.min(Math.max(n
  * di posto libero. suggested = clamp(amountCollected − totalPrice × giorniGoduti/giorniPianificati).
  */
 export function suggestedRefund(
-  b: Pick<CustomerBookingDTO, 'startDate' | 'endDate' | 'totalPrice' | 'amountCollected'>,
+  b: Pick<CustomerBookingDTO, 'startDate' | 'endDate' | 'totalPrice' | 'amountCollected' | 'refundedAmount'>,
   effectiveDate: string,
 ): number {
   const plannedDays = dayDiff(b.startDate, b.endDate) + 1;
@@ -19,5 +19,6 @@ export function suggestedRefund(
   const servedDays = dayDiff(b.startDate, effectiveDate);
   const frac = clamp(servedDays / plannedDays, 0, 1);
   const earned = round2(b.totalPrice * frac);
-  return clamp(round2(b.amountCollected - earned), 0, b.amountCollected);
+  const residual = round2(b.amountCollected - (b.refundedAmount ?? 0));
+  return clamp(round2(b.amountCollected - earned), 0, residual); // non superare il residuo (rimborsi già erogati)
 }

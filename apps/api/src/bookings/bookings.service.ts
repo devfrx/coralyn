@@ -557,8 +557,8 @@ export class BookingsService {
       if (!(effective > existing.startDate && effective <= existing.endDate)) {
         return { error: 'BAD_DATE' as const };
       }
-      const collected = Number(existing.amountCollected);
-      if (!(input.refundAmount >= 0 && input.refundAmount <= collected)) {
+      const residual = Number(existing.amountCollected) - Number(existing.refundedAmount);
+      if (!(input.refundAmount >= 0 && input.refundAmount <= residual)) {
         return { error: 'BAD_REFUND' as const };
       }
 
@@ -570,7 +570,7 @@ export class BookingsService {
           endDate: lastValid,
           terminatedAt: new Date(),
           terminationReason: input.reason ?? null,
-          refundedAmount: input.refundAmount,
+          refundedAmount: { increment: input.refundAmount }, // ledger cumulativo (coerente con suspend/reactivate)
         },
       });
       // Post-carve (sospensione chiusa / release) l'abbonamento può avere PIÙ frammenti coverage: tronca

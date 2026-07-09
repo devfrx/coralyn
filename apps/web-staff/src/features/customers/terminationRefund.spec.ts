@@ -23,4 +23,14 @@ describe('suggestedRefund', () => {
   it('non pagato: nessun rimborso (clamp a 0)', () => {
     expect(suggestedRefund({ ...paid, amountCollected: 0 }, '2026-07-01')).toBe(0);
   });
+
+  it('clampa al residuo quando ci sono già rimborsi (es. sospensione)', () => {
+    // pianificati 153 giorni (05-01→09-30), serviti pochi → suggerimento grezzo alto,
+    // ma residuo = 800 − 700 = 100 → il suggerimento non supera 100
+    const out = suggestedRefund(
+      { startDate: '2026-05-01', endDate: '2026-09-30', totalPrice: 800, amountCollected: 800, refundedAmount: 700 },
+      '2026-05-10',
+    );
+    expect(out).toBeLessThanOrEqual(100);
+  });
 });

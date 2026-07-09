@@ -1063,5 +1063,27 @@ describe('Bookings (e2e)', () => {
       const rel = await rawRelease(id);
       expect(rel).not.toBeNull(); // la release resta come fatto storico
     });
+
+    it('D4: suspend-closed(rimborso 100) → terminate(rimborso 50) → refundedAmount cumulativo = 150', async () => {
+      const { id } = await makeSub();
+      await request(app.getHttpServer()).patch(`/api/bookings/${id}/payment`).set(...bearer(token1))
+        .send({ amountCollected: 800, paymentMethod: 'cash' }).expect(200);
+      await request(app.getHttpServer()).post(`/api/bookings/${id}/suspend`).set(...bearer(token1))
+        .send({ startDate: '2026-07-20', endDate: '2026-07-26', refundAmount: 100 }).expect(200);
+      const res = await request(app.getHttpServer()).post(`/api/bookings/${id}/terminate`).set(...bearer(token1))
+        .send({ effectiveDate: '2026-08-01', refundAmount: 50 }).expect(200);
+      expect(res.body.refundedAmount).toBe(150); // 100 (sospensione) + 50 (disdetta), non 50
+    });
+
+    it('D4: bound sul residuo — rimborso disdetta > residuo → 422', async () => {
+      const { id } = await makeSub();
+      await request(app.getHttpServer()).patch(`/api/bookings/${id}/payment`).set(...bearer(token1))
+        .send({ amountCollected: 800, paymentMethod: 'cash' }).expect(200);
+      await request(app.getHttpServer()).post(`/api/bookings/${id}/suspend`).set(...bearer(token1))
+        .send({ startDate: '2026-07-20', endDate: '2026-07-26', refundAmount: 100 }).expect(200);
+      // residuo = 800 − 100 = 700; chiedere 750 deve essere rifiutato
+      await request(app.getHttpServer()).post(`/api/bookings/${id}/terminate`).set(...bearer(token1))
+        .send({ effectiveDate: '2026-08-01', refundAmount: 750 }).expect(422);
+    });
   });
 });
