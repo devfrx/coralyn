@@ -45,6 +45,10 @@ describe('BookingCoverage overlap EXCLUDE constraint (e2e, DB-level)', () => {
 
   beforeAll(async () => {
     const moduleRef = await Test.createTestingModule({ imports: [AppModule] }).compile();
+    // bootstrap senza ValidationPipe: suite DB-level, inserisce via insertBookingWithCoverage
+    // direttamente su Prisma (nessuna request HTTP/supertest) — non c'è nemmeno il prefix 'api',
+    // quindi non è lo stesso pattern "prefix+pipe senza pipe" degli altri due bootstrap manuali;
+    // createTestApp() aggiungerebbe prefix+pipe inutilizzati senza alcun beneficio.
     app = moduleRef.createNestApplication();
     await app.init();
     prisma = app.get(PrismaService);

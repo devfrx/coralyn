@@ -1,5 +1,5 @@
 import { Test } from '@nestjs/testing';
-import { INestApplication, ValidationPipe } from '@nestjs/common';
+import { INestApplication } from '@nestjs/common';
 import { Role } from '@prisma/client';
 import request from 'supertest';
 import { AppModule } from '../src/app.module';
@@ -7,6 +7,7 @@ import { PrismaService } from '../src/prisma/prisma.service';
 import { createUser, login } from './helpers/seed-auth';
 import { cleanMapTenant, seedMapTenant, type MapSeedIds } from './helpers/seed-map';
 import { seedPricingTenant, cleanPricingTenant } from './helpers/seed-pricing';
+import { createTestApp } from './helpers/create-test-app';
 
 describe('Bookings (e2e)', () => {
   let app: INestApplication;
@@ -28,10 +29,7 @@ describe('Bookings (e2e)', () => {
 
   beforeAll(async () => {
     const moduleRef = await Test.createTestingModule({ imports: [AppModule] }).compile();
-    app = moduleRef.createNestApplication();
-    app.setGlobalPrefix('api', { exclude: ['health'] });
-    app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
-    await app.init();
+    app = await createTestApp(moduleRef);
     prisma = app.get(PrismaService);
     s1 = (await prisma.establishment.create({ data: { name: 'Book A' } })).id;
     s2 = (await prisma.establishment.create({ data: { name: 'Book B' } })).id;

@@ -1,5 +1,5 @@
 import { Test } from '@nestjs/testing';
-import { INestApplication, ValidationPipe } from '@nestjs/common';
+import { INestApplication } from '@nestjs/common';
 import { Role } from '@prisma/client';
 import request from 'supertest';
 import { AppModule } from '../src/app.module';
@@ -8,6 +8,7 @@ import { MailerService } from '../src/mail/mailer.service';
 import { FakeMailerService } from './helpers/fake-mailer';
 import { CredentialSetupService } from '../src/credential/credential-setup.service';
 import { createUser } from './helpers/seed-auth';
+import { createTestApp } from './helpers/create-test-app';
 
 const EMAIL = 'redeem.admin@platform.test';
 
@@ -23,10 +24,7 @@ describe('Credential setup (e2e)', () => {
     const mod = await Test.createTestingModule({ imports: [AppModule] })
       .overrideProvider(MailerService).useValue(new FakeMailerService())
       .compile();
-    app = mod.createNestApplication();
-    app.setGlobalPrefix('api', { exclude: ['health'] });
-    app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
-    await app.init();
+    app = await createTestApp(mod);
     prisma = app.get(PrismaService);
     mailer = app.get(MailerService);
     credentials = app.get(CredentialSetupService);

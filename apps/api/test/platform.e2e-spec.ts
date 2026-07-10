@@ -1,5 +1,5 @@
 import { Test } from '@nestjs/testing';
-import { INestApplication, ValidationPipe } from '@nestjs/common';
+import { INestApplication } from '@nestjs/common';
 import { Role } from '@prisma/client';
 import request from 'supertest';
 import { AppModule } from '../src/app.module';
@@ -7,6 +7,7 @@ import { PrismaService } from '../src/prisma/prisma.service';
 import { createUser, login } from './helpers/seed-auth';
 import { MailerService } from '../src/mail/mailer.service';
 import { FakeMailerService } from './helpers/fake-mailer';
+import { createTestApp } from './helpers/create-test-app';
 
 const bearer = (t: string): [string, string] => ['Authorization', `Bearer ${t}`];
 const SUPER_EMAIL = 'su@platform.test';
@@ -26,10 +27,7 @@ describe('Platform Console (e2e)', () => {
     const moduleRef = await Test.createTestingModule({ imports: [AppModule] })
       .overrideProvider(MailerService).useValue(new FakeMailerService())
       .compile();
-    app = moduleRef.createNestApplication();
-    app.setGlobalPrefix('api', { exclude: ['health'] });
-    app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
-    await app.init();
+    app = await createTestApp(moduleRef);
     prisma = app.get(PrismaService);
     mailer = app.get(MailerService);
 

@@ -1,5 +1,5 @@
 import { Test } from '@nestjs/testing';
-import { INestApplication, ValidationPipe } from '@nestjs/common';
+import { INestApplication } from '@nestjs/common';
 import { Role } from '@prisma/client';
 import request from 'supertest';
 import { AppModule } from '../src/app.module';
@@ -8,6 +8,7 @@ import { createUser, login } from './helpers/seed-auth';
 import { seedMapTenant, cleanMapTenant, type MapSeedIds } from './helpers/seed-map';
 import { seedPricingTenant, cleanPricingTenant } from './helpers/seed-pricing';
 import { insertBookingWithCoverage } from './helpers/insert-booking-with-coverage';
+import { createTestApp } from './helpers/create-test-app';
 
 /**
  * Test della BookingCoverage (D-013 sospensione spec 1/2, ADR-0046). Verifica:
@@ -32,10 +33,7 @@ describe('BookingCoverage (e2e)', () => {
 
   beforeAll(async () => {
     const moduleRef = await Test.createTestingModule({ imports: [AppModule] }).compile();
-    app = moduleRef.createNestApplication();
-    app.setGlobalPrefix('api', { exclude: ['health'] });
-    app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
-    await app.init();
+    app = await createTestApp(moduleRef);
     prisma = app.get(PrismaService);
     s1 = (await prisma.establishment.create({ data: { name: 'Coverage E2E' } })).id;
     await createUser(prisma, { email: 'admin.cov@e2e.test', password: 'pw1', role: Role.admin, establishmentId: s1 });
