@@ -341,6 +341,47 @@ export interface ReleaseAbsenceInput {
   reason?: string;
 }
 
+// --- Canale cliente self-service (D-035 S3) ---
+
+/** Attivazione: enrollment token (dal link) + PIN operatore. */
+export interface CustomerActivateInput {
+  enrollmentToken: string;
+  pin: string;
+}
+
+/** Rotazione della sessione: refresh token corrente (dal device). */
+export interface CustomerRefreshInput {
+  refreshToken: string;
+}
+
+/** Risposta auth cliente. I raw NON vanno mai loggati/persistiti lato server. */
+export interface CustomerAuthResponse {
+  accessToken: string;  // JWT cliente, breve (kind:'customer')
+  refreshToken: string; // opaco, device-bound, rotante
+}
+
+/** Session-check del cliente autenticato (mirror di /auth/me). */
+export interface CustomerMeDTO {
+  customerId: string;
+  firstName: string;
+  lastName: string;
+  establishmentName: string;
+}
+
+/** Ritorno del provisioning operatore. Il PIN e l'URL sono mostrati UNA volta. */
+export interface CustomerProvisionResponse {
+  activationUrl: string; // CUSTOMER_APP_URL + token opaco
+  pin: string;
+  expiresAt: string;     // ISO datetime
+}
+
+/** Stato dell'accesso cliente per la Scheda cliente (nessun segreto). */
+export type CustomerAccessState = 'none' | 'issued' | 'active' | 'revoked';
+export interface CustomerAccessStatusDTO {
+  state: CustomerAccessState;
+  lastActivatedAt: string | null; // ISO datetime | null
+}
+
 /** Input cessione/subentro (D-013, admin-only). Cambia il titolare A->B e riconcilia l'incasso.
  *  refundToPrevious/collectedFromNew = movimento netto su amountCollected (refundedAmount intatto). */
 export interface TransferSubscriptionInput {
