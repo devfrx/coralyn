@@ -96,7 +96,9 @@ azzera eventuali sequenze; `CASCADE` rende l'ordine FK irrilevante (tutte le ref
 3. **Coherence check** (§4.1) → abort su divergenza `F`/`E`.
 4. **Keep-list assertion** (§4.1) → abort se il set toccasse una tabella da preservare.
 5. **Conferma esplicita `--yes`.** Senza il flag il comando è un **dry-run**: stampa la lista esatta delle
-   tabelle e il **conteggio righe per tabella** che verrebbero perse, senza toccare nulla.
+   tabelle e la **stima righe per tabella** (`pg_stat_user_tables.n_live_tup`) che verrebbero perse, senza
+   toccare nulla. *Stima* e non COUNT esatto: l'RLS FORCE filtrerebbe un `SELECT count(*)` a 0 senza GUC, mentre
+   `pg_stat` non è RLS-filtrato → riflette tutti i tenant (= ciò che il TRUNCATE azzererà).
 
 ## 6. Delivery / interfaccia
 
@@ -105,7 +107,7 @@ azzera eventuali sequenze; `CASCADE` rende l'ordine FK irrilevante (tutte le ref
   riusabile dal test in transazione.
 - Script `package.json` (`apps/api`): `"db:reset": "ts-node prisma/reset-dev.ts"` → esecuzione
   `corepack pnpm --filter @coralyn/api run db:reset -- --yes`.
-- Output: intestazione con DB target, tabella (nome → righe azzerate), e riga finale di conferma
+- Output: intestazione con DB target, tabella (nome → stima righe), e riga finale di conferma
   (`User: N preservati · Establishment: M preservati`) + hint *"rilancia il seed per la demo, o configura da UI"*.
 
 ## 7. Testing
