@@ -7,7 +7,8 @@
     "start:dev": "nest start --watch",
     "test": "jest",
     "test:e2e": "jest --config ./test/jest-e2e.json",
-    "seed:demo": "ts-node prisma/seed-report-demo.ts"
+    "seed:demo": "ts-node prisma/seed-report-demo.ts",
+    "db:reset": "ts-node prisma/reset-dev.ts"
   },
   "prisma": {
     "seed": "ts-node prisma/seed.ts"
