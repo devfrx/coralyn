@@ -65,8 +65,14 @@ export class SectorsService {
         tx.row.count({ where: { sectorId: id } }),
         tx.rate.count({ where: { sectorId: id } }),
       ]);
-      if (rowCount > 0 || rateCount > 0) {
-        throw new ConflictException('Settore non vuoto o in uso da tariffe: svuotalo o rimuovi le tariffe prima.');
+      if (rowCount > 0 && rateCount > 0) {
+        throw new ConflictException('Il settore contiene file ed è usato da tariffe: elimina le file e rimuovi le tariffe prima.');
+      }
+      if (rowCount > 0) {
+        throw new ConflictException('Il settore contiene delle file: eliminale prima.');
+      }
+      if (rateCount > 0) {
+        throw new ConflictException('Il settore è usato da tariffe: rimuovile prima.');
       }
       await tx.sector.delete({ where: { id } });
       return existing;

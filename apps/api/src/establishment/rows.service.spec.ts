@@ -47,21 +47,35 @@ describe('RowsService', () => {
     await expect(service.remove('nope')).rejects.toBeInstanceOf(NotFoundException);
   });
 
-  it('remove: 409 se contiene ombrelloni', async () => {
+  it('remove: 409 con messaggio sui soli ombrelloni se ne contiene (non nomina le tariffe)', async () => {
     const { service, tx } = makeService();
     tx.row.findUnique.mockResolvedValue({ id: 'r', label: 'Fila 1', sortOrder: 1, umbrellas: [] });
     tx.umbrella.count.mockResolvedValue(4);
     tx.rate.count.mockResolvedValue(0);
     await expect(service.remove('r')).rejects.toBeInstanceOf(ConflictException);
+    await expect(service.remove('r')).rejects.toThrow('La fila contiene ombrelloni: eliminali prima.');
     expect(tx.row.delete).not.toHaveBeenCalled();
   });
 
-  it('remove: 409 se referenziata da tariffe', async () => {
+  it('remove: 409 con messaggio sulle sole tariffe se referenziata da tariffe (non nomina gli ombrelloni)', async () => {
     const { service, tx } = makeService();
     tx.row.findUnique.mockResolvedValue({ id: 'r', label: 'Fila 1', sortOrder: 1, umbrellas: [] });
     tx.umbrella.count.mockResolvedValue(0);
     tx.rate.count.mockResolvedValue(1);
     await expect(service.remove('r')).rejects.toBeInstanceOf(ConflictException);
+    await expect(service.remove('r')).rejects.toThrow('La fila è usata da tariffe: rimuovile prima.');
+    expect(tx.row.delete).not.toHaveBeenCalled();
+  });
+
+  it('remove: 409 con messaggio combinato se ha sia ombrelloni sia tariffe', async () => {
+    const { service, tx } = makeService();
+    tx.row.findUnique.mockResolvedValue({ id: 'r', label: 'Fila 1', sortOrder: 1, umbrellas: [] });
+    tx.umbrella.count.mockResolvedValue(4);
+    tx.rate.count.mockResolvedValue(1);
+    await expect(service.remove('r')).rejects.toThrow(
+      'La fila contiene ombrelloni ed è usata da tariffe: elimina gli ombrelloni e rimuovi le tariffe prima.',
+    );
+    expect(tx.row.delete).not.toHaveBeenCalled();
   });
 
   it('remove: elimina se vuota e senza tariffe', async () => {

@@ -58,21 +58,34 @@ describe('SectorsService', () => {
     await expect(service.remove('nope')).rejects.toBeInstanceOf(NotFoundException);
   });
 
-  it('remove: 409 se contiene file', async () => {
+  it('remove: 409 con messaggio sulle sole file se contiene file (non nomina le tariffe)', async () => {
     const { service, tx } = makeService();
     tx.sector.findUnique.mockResolvedValue({ id: 's', name: 'Centro', sortOrder: 1, kind: 'grid', rows: [] });
     tx.row.count.mockResolvedValue(2);
     tx.rate.count.mockResolvedValue(0);
     await expect(service.remove('s')).rejects.toBeInstanceOf(ConflictException);
+    await expect(service.remove('s')).rejects.toThrow('Il settore contiene delle file: eliminale prima.');
     expect(tx.sector.delete).not.toHaveBeenCalled();
   });
 
-  it('remove: 409 se referenziato da tariffe', async () => {
+  it('remove: 409 con messaggio sulle sole tariffe se referenziato da tariffe (non nomina le file)', async () => {
     const { service, tx } = makeService();
     tx.sector.findUnique.mockResolvedValue({ id: 's', name: 'Centro', sortOrder: 1, kind: 'grid', rows: [] });
     tx.row.count.mockResolvedValue(0);
     tx.rate.count.mockResolvedValue(3);
     await expect(service.remove('s')).rejects.toBeInstanceOf(ConflictException);
+    await expect(service.remove('s')).rejects.toThrow('Il settore è usato da tariffe: rimuovile prima.');
+    expect(tx.sector.delete).not.toHaveBeenCalled();
+  });
+
+  it('remove: 409 con messaggio combinato se ha sia file sia tariffe', async () => {
+    const { service, tx } = makeService();
+    tx.sector.findUnique.mockResolvedValue({ id: 's', name: 'Centro', sortOrder: 1, kind: 'grid', rows: [] });
+    tx.row.count.mockResolvedValue(2);
+    tx.rate.count.mockResolvedValue(3);
+    await expect(service.remove('s')).rejects.toThrow(
+      'Il settore contiene file ed è usato da tariffe: elimina le file e rimuovi le tariffe prima.',
+    );
     expect(tx.sector.delete).not.toHaveBeenCalled();
   });
 

@@ -55,8 +55,14 @@ export class RowsService {
         tx.umbrella.count({ where: { rowId: id } }),
         tx.rate.count({ where: { rowId: id } }),
       ]);
-      if (umbrellaCount > 0 || rateCount > 0) {
-        throw new ConflictException('Fila non vuota o in uso da tariffe: svuotala o rimuovi le tariffe prima.');
+      if (umbrellaCount > 0 && rateCount > 0) {
+        throw new ConflictException('La fila contiene ombrelloni ed è usata da tariffe: elimina gli ombrelloni e rimuovi le tariffe prima.');
+      }
+      if (umbrellaCount > 0) {
+        throw new ConflictException('La fila contiene ombrelloni: eliminali prima.');
+      }
+      if (rateCount > 0) {
+        throw new ConflictException('La fila è usata da tariffe: rimuovile prima.');
       }
       await tx.row.delete({ where: { id } });
       return existing;
