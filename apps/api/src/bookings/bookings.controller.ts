@@ -1,5 +1,5 @@
-import { Body, Controller, Delete, Get, HttpCode, Param, Patch, Post, Query } from '@nestjs/common';
-import type { BookingDTO, BookingQuoteDTO, SubscriptionListItemDTO } from '@coralyn/contracts';
+import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, Patch, Post, Query } from '@nestjs/common';
+import type { BookingDTO, BookingQuoteDTO, CustomerProvisionResponse, SubscriptionListItemDTO } from '@coralyn/contracts';
 import { Role } from '@coralyn/contracts';
 import { BookingsService } from './bookings.service';
 import { CreateBookingDto } from './dto/create-booking.dto';
@@ -15,11 +15,17 @@ import { TransferSubscriptionDto } from './dto/transfer-subscription.dto';
 import { SetAbsenceConsentDto } from './dto/set-absence-consent.dto';
 import { ReleaseAbsenceDto } from './dto/release-absence.dto';
 import { Roles } from '../identity/roles.decorator';
+import { CurrentUser } from '../identity/current-user.decorator';
+import type { AuthUser } from '../identity/auth-user';
+import { CustomerAccessService } from '../customer-auth/customer-access.service';
 import { resolveDate } from '../common/dates';
 
 @Controller('bookings')
 export class BookingsController {
-  constructor(private readonly bookings: BookingsService) {}
+  constructor(
+    private readonly bookings: BookingsService,
+    private readonly customerAccess: CustomerAccessService,
+  ) {}
 
   @Get('quote')
   quote(@Query() query: QuoteBookingDto): Promise<BookingQuoteDTO> {
@@ -102,5 +108,18 @@ export class BookingsController {
   @Roles(Role.Admin)
   cancelAbsenceRelease(@Param('id') id: string, @Param('rid') rid: string): Promise<BookingDTO> {
     return this.bookings.cancelAbsenceRelease(id, rid);
+  }
+
+  @Post(':id/customer-access')
+  @Roles(Role.Admin)
+  provisionCustomerAccess(@Param('id') id: string, @CurrentUser() user: AuthUser): Promise<CustomerProvisionResponse> {
+    return this.customerAccess.provisionAccess(id, user.id);
+  }
+
+  @Post(':id/customer-access/revoke')
+  @Roles(Role.Admin)
+  @HttpCode(HttpStatus.NO_CONTENT)
+  revokeCustomerAccess(@Param('id') id: string): Promise<void> {
+    return this.customerAccess.revokeAccess(id);
   }
 }
