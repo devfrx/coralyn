@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { CustomerTokenService } from './customer-token.service';
+import { CustomerJwtGuard } from './customer-jwt.guard';
 
 @Module({
   imports: [
@@ -13,7 +14,7 @@ import { CustomerTokenService } from './customer-token.service';
       }),
     }),
   ],
-  providers: [CustomerTokenService],
-  exports: [CustomerTokenService],
+  providers: [CustomerTokenService, CustomerJwtGuard],
+  exports: [CustomerTokenService, CustomerJwtGuard],
 })
 export class CustomerAuthModule {}
