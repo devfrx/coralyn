@@ -56,8 +56,10 @@ non a mano dalla UI.
 
 **Verifica LIVE (Docker, container `api` ricostruito):** id malformato → 400 · DELETE settore-con-file → nuovo
 messaggio · **toast corretto mostrato nella UI** (screenshot in sessione). **DoD [ADR-0009]:** nessun cambio a
-modello/flusso/macchina-a-stati/direzione-UI → nessun design doc, nessun nuovo ADR, nessuna voce `deferred.md`
-(l'asimmetria param è **risolta**, non deferita).
+modello/flusso/macchina-a-stati/direzione-UI → nessun design doc, nessun nuovo ADR. **NB (emerso in review):**
+l'asimmetria param è risolta **solo per i 4 controller struttura**; i controller **catalog** siblings
+(`equipment-types`/`packages`/`rates`/`seasons`/`time-slots`) hanno lo stesso `:id` non validato → **tracciato in
+[D-050]** (filtro globale Prisma `P2023`→`400`, companion di [D-041] — soluzione superiore allo spargere pipe).
 
 ## 3. GOTCHA / lezioni
 
@@ -89,9 +91,9 @@ Con §4.1 chiuso, **tutti i difetti §4 sono chiusi**. Resta:
   Invariante: rivendita SOLO su release esplicita, zero cassa sull'abbonato ([ADR-0048]).
 - **Backlog `deferred.md`:** [D-049] (testTimeout e2e, one-line) · [D-036] report avanzato · **[D-040]** estrazione
   `EstablishmentStructureView.vue` (~406 righe, ora che l'editor è "chiuso" è un buon momento) / [D-038] drag-reorder ·
-  [D-047] audit admin · [D-041] filtro globale Prisma → status puliti (il ParseUUIDPipe di questa sessione copre il
-  P2023 sui param struttura; il P2002→409 globale resta) · [D-012] cabine (**l'utente lo ritiene poco utile — NON
-  partire senza sua riconferma**).
+  [D-047] audit admin · **[D-050]** (NUOVO, emerso in review) validazione uniforme `:id` + filtro globale Prisma
+  `P2023`→`400` sui controller catalog · [D-041] filtro globale Prisma `P2002`→`409` (companion di D-050) · [D-012]
+  cabine (**l'utente lo ritiene poco utile — NON partire senza sua riconferma**).
 
 ## 5. Metodo (replicare)
 Gate review spec → (**brainstorming** se modulo/decisione strutturale — **obbligatorio per S3**) → **writing-plans**
@@ -118,3 +120,4 @@ ok utente). Preferenza utente: nelle scelte "coerente vs scorciatoia" sempre la 
 [D-041]: ../architecture/deferred.md
 [D-047]: ../architecture/deferred.md
 [D-049]: ../architecture/deferred.md
+[D-050]: ../architecture/deferred.md
