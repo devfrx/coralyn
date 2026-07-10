@@ -1,8 +1,10 @@
+import { PrismaClient } from '@prisma/client';
 import {
   KEEP_LIST,
   assertResettableEnv,
   selectTablesToWipe,
   assertCoherence,
+  resetTenantData,
 } from '../prisma/reset-dev.core';
 
 describe('reset-dev core — funzioni pure', () => {
@@ -38,5 +40,50 @@ describe('reset-dev core — funzioni pure', () => {
     expect(() => assertCoherence(['Booking', 'Weird'], ['Booking'], KEEP_LIST)).toThrow(
       /senza establishmentId.*Weird/,
     );
+  });
+});
+
+describe('resetTenantData — integrazione (transazione con rollback, non distruttivo)', () => {
+  const prisma = new PrismaClient();
+  afterAll(async () => {
+    await prisma.$disconnect();
+  });
+
+  it('TRUNCATE azzera le tenant e preserva User/Establishment (poi rollback)', async () => {
+    const SENTINEL = new Error('rollback-sentinel');
+    let report: Awaited<ReturnType<typeof resetTenantData>> | undefined;
+    let customerAfter = -1;
+    let establishmentAfter = -1;
+    try {
+      await prisma.$transaction(
+        async (tx) => {
+          // Seed nella tx: Establishment (non-RLS) + Customer (RLS → serve la GUC del tenant).
+          const est = await tx.establishment.create({ data: { name: 'RESET TEST' } });
+          await tx.$executeRaw`SELECT set_config('app.current_tenant', ${est.id}, true)`;
+          await tx.customer.create({ data: { establishmentId: est.id, firstName: 'Del', lastName: 'Me' } });
+
+          // Esegue il reset reale dentro la tx.
+          report = await resetTenantData(tx, { dryRun: false });
+
+          // Asserzioni dentro la tx, dopo il TRUNCATE.
+          const [{ n }] = await tx.$queryRaw<{ n: bigint }[]>`SELECT count(*) AS n FROM "Customer"`;
+          customerAfter = Number(n);
+          const [{ e }] = await tx.$queryRaw<{ e: bigint }[]>`
+            SELECT count(*) AS e FROM "Establishment" WHERE id = ${est.id}::uuid`;
+          establishmentAfter = Number(e);
+
+          throw SENTINEL; // forza il rollback: zero impatto sul DB condiviso
+        },
+        { timeout: 30000 },
+      );
+    } catch (err) {
+      if (err !== SENTINEL) throw err;
+    }
+
+    expect(report?.tables).toContain('Customer');
+    expect(report?.tables).not.toContain('User');
+    expect(report?.tables).not.toContain('Establishment');
+    expect(customerAfter).toBe(0); // TRUNCATE ha azzerato la tenant
+    expect(establishmentAfter).toBe(1); // Establishment preservato
   });
 });

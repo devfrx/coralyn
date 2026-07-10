@@ -50,3 +50,65 @@ export function assertCoherence(
     );
   }
 }
+
+/** Tabelle con RLS FORCE (= le tenant, per convenzione di progetto). */
+export async function forcedRlsTables(exec: Executor): Promise<string[]> {
+  const rows = await exec.$queryRaw<{ relname: string }[]>`
+    SELECT c.relname
+    FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace
+    WHERE n.nspname = 'public' AND c.relkind = 'r' AND c.relforcerowsecurity = true
+    ORDER BY c.relname`;
+  return rows.map((r) => r.relname);
+}
+
+/** Tabelle con una colonna `establishmentId`. */
+export async function tablesWithEstablishmentId(exec: Executor): Promise<string[]> {
+  const rows = await exec.$queryRaw<{ table_name: string }[]>`
+    SELECT table_name FROM information_schema.columns
+    WHERE table_schema = 'public' AND column_name = 'establishmentId'
+    ORDER BY table_name`;
+  return rows.map((r) => r.table_name);
+}
+
+/**
+ * Stima righe per tabella (n_live_tup): un COUNT esatto sarebbe filtrato dall'RLS FORCE senza GUC,
+ * mentre pg_stat non è RLS-filtrato → riflette tutti i tenant, che è ciò che il TRUNCATE azzererà.
+ */
+export async function estimatedRowCounts(
+  exec: Executor,
+  tables: string[],
+): Promise<Record<string, number>> {
+  const rows = await exec.$queryRaw<{ relname: string; n: bigint }[]>`
+    SELECT relname, n_live_tup AS n FROM pg_stat_user_tables WHERE schemaname = 'public'`;
+  const byName = new Map(rows.map((r) => [r.relname, Number(r.n)]));
+  return Object.fromEntries(tables.map((t) => [t, byName.get(t) ?? 0]));
+}
+
+export interface ResetReport {
+  tables: string[];
+  estimatedRows: Record<string, number>;
+  dryRun: boolean;
+}
+
+/** Cuore riusabile: introspetta, valida (coherence + keep-list), e (se !dryRun) TRUNCATE … CASCADE. */
+export async function resetTenantData(
+  exec: Executor,
+  opts: { dryRun: boolean },
+): Promise<ResetReport> {
+  const forced = await forcedRlsTables(exec);
+  const withEstId = await tablesWithEstablishmentId(exec);
+  assertCoherence(forced, withEstId, KEEP_LIST);
+  const tables = selectTablesToWipe(forced, KEEP_LIST);
+  // Asserzione anti-catastrofe: il set non deve MAI intersecare la keep-list.
+  const keepSet = new Set(KEEP_LIST);
+  const leaked = tables.filter((t) => keepSet.has(t));
+  if (leaked.length) {
+    throw new Error(`reset-dev: keep-list violata da [${leaked.join(', ')}] — abort`);
+  }
+  const estimatedRows = await estimatedRowCounts(exec, tables);
+  if (!opts.dryRun && tables.length > 0) {
+    const list = tables.map((t) => `"${t}"`).join(', ');
+    await exec.$executeRawUnsafe(`TRUNCATE TABLE ${list} RESTART IDENTITY CASCADE`);
+  }
+  return { tables, estimatedRows, dryRun: opts.dryRun };
+}
