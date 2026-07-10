@@ -101,14 +101,14 @@ esercita genuinamente il filtro globale, non una difesa locale preesistente.
 - **Skippato per istruzione esplicita:** Step 3 del brief (verifica LIVE Docker) — il controller la
   farà separatamente.
 
-## 3. Deferred M1 (minor, per il triage successivo)
+## 3. M1 — RISOLTO (fix wave post-review)
 
-Nel filtro, il campo `error` della risposta JSON è derivato da un **ternario sullo status**
+Il campo `error` della risposta JSON era derivato da un ternario sullo status
 (`mapped.status === HttpStatus.CONFLICT ? 'Conflict' : 'Bad Request'`) invece che dal mapper
-stesso. Funziona per i 2 codici attuali, ma un futuro 3° codice mappato (es. `P2025`→404) andrebbe
-a finire etichettato "Bad Request" per errore. Fix a costo quasi zero: far ritornare `error` da
-`mapPrismaKnownError` insieme a `status`/`message`, e leggerlo dal mapped object nel filtro. Non
-bloccante (0 impatto sui 2 codici correnti), tracciato qui per non perderlo.
+stesso — un futuro 3° codice mappato sarebbe finito etichettato erroneamente. **Risolto**:
+`mapPrismaKnownError` ora ritorna anche `error` (`'Conflict'`/`'Bad Request'`) insieme a
+`status`/`message`, e il filtro lo legge direttamente dal mapped object. Risposta per i 2 codici
+correnti invariata byte-per-byte. Unit spec del mapper aggiornata di conseguenza (3 test verdi).
 
 ## 4. GOTCHA / lezioni
 
@@ -152,8 +152,7 @@ Resta, in ordine di peso:
 - **Backlog `deferred.md` residuo:** [D-036] report avanzato (heatmap, occupazione media) ·
   [D-038] drag-reorder struttura · [D-047] audit di tenant per azioni admin-in-tenant · [D-012]
   cabine/servizi accessori (**l'utente lo ritiene poco utile — NON partire senza sua
-  riconferma**) · M1 (§3 sopra, minor cosmetico sul filtro, cheap fix quando si tocca di nuovo il
-  file).
+  riconferma**). (M1 §3 sopra: risolto in questa fix wave, non più backlog.)
 - **Verifica LIVE Docker** di questo slice (Step 3 del brief originale) — da fare separatamente
   prima del merge FF: ricostruire il container `api` e confermare `DELETE
   /api/seasons/not-a-uuid` → 400 (era 500) sul path reale, non solo nei test.

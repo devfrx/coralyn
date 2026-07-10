@@ -8,17 +8,21 @@ import type { Response } from 'express';
  * `null` = codice non gestito → il chiamante delega al comportamento di default (500 + log).
  * D-041 (P2002→409) e D-050 (P2023→400): companion, gestiti in un unico punto.
  */
-export function mapPrismaKnownError(code: string): { status: number; message: string } | null {
+export function mapPrismaKnownError(
+  code: string,
+): { status: number; message: string; error: string } | null {
   switch (code) {
     case 'P2002':
       return {
         status: HttpStatus.CONFLICT,
         message: 'Operazione in conflitto: esiste già una risorsa con questi dati.',
+        error: 'Conflict',
       };
     case 'P2023':
       return {
         status: HttpStatus.BAD_REQUEST,
         message: 'Identificatore non valido.',
+        error: 'Bad Request',
       };
     default:
       return null;
@@ -38,7 +42,7 @@ export class PrismaExceptionFilter extends BaseExceptionFilter {
     res.status(mapped.status).json({
       statusCode: mapped.status,
       message: mapped.message,
-      error: mapped.status === HttpStatus.CONFLICT ? 'Conflict' : 'Bad Request',
+      error: mapped.error,
     });
   }
 }

@@ -7,6 +7,7 @@ describe('mapPrismaKnownError', () => {
     expect(m).toEqual({
       status: HttpStatus.CONFLICT,
       message: 'Operazione in conflitto: esiste già una risorsa con questi dati.',
+      error: 'Conflict',
     });
   });
 
@@ -15,6 +16,7 @@ describe('mapPrismaKnownError', () => {
     expect(m).toEqual({
       status: HttpStatus.BAD_REQUEST,
       message: 'Identificatore non valido.',
+      error: 'Bad Request',
     });
   });
 
