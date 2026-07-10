@@ -16,7 +16,7 @@
 - **Tabelle token = FUORI-RLS** (dato d'identità pre-tenant, ADR-0026): CREATE TABLE senza `ENABLE ROW LEVEL SECURITY`, accessore unico applicativo, `establishmentId` denormalizzato come sorgente tenant.
 - **Comandi test (forma esatta, dal brief):** unit `corepack pnpm --filter @coralyn/api test --runInBand -t '<pattern>'`; e2e `corepack pnpm --filter @coralyn/api test:e2e --runInBand -t '<pattern>'` — **NON** ri-passare `--config` (già bakeato nello script → duplica → errore). Full-run e2e senza `-t`. Non lanciare web-staff test e api test:e2e in parallelo.
 - **Deferiti risolti in-scope:** D-026 (refresh/revoca), D-027 (rate-limit), D-029 (anti-enumeration). D-028 (RLS `User`) resta tracciato (non-trigger).
-- **Env nuove:** `CUSTOMER_JWT_EXPIRES_IN` (default `30m`), `CUSTOMER_ENROLLMENT_TTL_HOURS` (default `2160` = 90g), `CUSTOMER_REFRESH_TTL_DAYS` (default `120`), `CUSTOMER_APP_URL` (base per `activationUrl`), `CUSTOMER_PIN_MAX_ATTEMPTS` (default `5`).
+- **Env nuove:** `CUSTOMER_JWT_EXPIRES_IN` (default `30m`), `CUSTOMER_ENROLLMENT_TTL_HOURS` (default `2160` = 90g), `CUSTOMER_REFRESH_TTL_DAYS` (default `120`), `CUSTOMER_APP_URL` (base per `activationUrl`), `CUSTOMER_PIN_MAX_ATTEMPTS` (default `5`), `CUSTOMER_THROTTLE_LIMIT` (default `10`, finestra 60s; rate-limit `/customer/*`).
 - **DoD ([ADR-0009]):** ogni cambio a modello/flusso/macchina-a-stati → aggiorna `docs/design/` nello stesso slice (Task 12). Ogni debito consapevole → riga in `deferred.md`.
 - **Commit:** frequenti, uno per task. Branch corrente `feat/customer-channel-d035-s3`. **Nessun merge/push** senza OK esplicito utente.
 
@@ -507,7 +507,7 @@ describe('Customer access provisioning (D-035 S3)', () => {
       .post(`/api/bookings/${bookingId}/customer-access`)
       .set('Authorization', `Bearer ${adminToken}`)
       .expect(201);
-    expect(res.body.activationUrl).toContain(res.body.token ?? ''); // url contiene il raw
+    expect(res.body.activationUrl).toMatch(/\/attiva\?token=.+/); // url contiene il raw token
     expect(res.body.pin).toMatch(/^\d{6}$/);
     expect(new Date(res.body.expiresAt).getTime()).toBeGreaterThan(Date.now());
     // e nel DB esiste 1 CustomerEnrollmentToken vivo per C con activatedAt=null
@@ -667,7 +667,8 @@ git commit -m "feat(api): provisioning/revoca accesso cliente (admin-only) [D-03
 ```typescript
 describe('Customer activate (D-035 S3)', () => {
   it('token+PIN corretti → { accessToken, refreshToken }, consuma il one-time', async () => {
-    // arrange: provisiona (Task 6) per ottenere raw token+pin dalla response
+    // arrange: provisiona (Task 6); estrai il raw token da
+    //   new URL(prov.activationUrl).searchParams.get('token')  e il pin da prov.pin
     const res = await request(app.getHttpServer())
       .post('/api/customer/activate')
       .send({ enrollmentToken: rawToken, pin })
@@ -1076,80 +1077,93 @@ git commit -m "test(api): isolamento cross-tenant/cross-customer del canale clie
 
 ---
 
-### Task 11: Rate-limiting endpoint pubblici (`@nestjs/throttler`, D-027)
+### Task 11: Rate-limiting endpoint pubblici cliente (`@nestjs/throttler`, D-027)
 
 **Files:**
 - Modify: `apps/api/package.json` (dep `@nestjs/throttler`)
-- Modify: `apps/api/src/app.module.ts` (ThrottlerModule + APP_GUARD ThrottlerGuard)
-- Modify: `apps/api/src/customer-auth/customer-auth.controller.ts` (`@Throttle` stretto su activate/refresh)
-- Modify: `apps/api/test/customer-access.e2e-spec.ts` (blocco 429)
+- Modify: `apps/api/src/app.module.ts` (`ThrottlerModule.forRootAsync` — storage + default; **NESSUN** `APP_GUARD` globale)
+- Modify: `apps/api/src/customer-auth/customer-auth.controller.ts` (`@UseGuards(ThrottlerGuard)` a livello classe → throttle SOLO `/customer/*`)
+- Modify: `apps/api/test/customer-access.e2e-spec.ts` (nel `beforeAll`, prima di costruire l'app, alza il limite per non far scattare 429 nei test funzionali)
+- Create: `apps/api/test/customer-throttle.e2e-spec.ts` (file dedicato, limite basso, prova il 429)
 
 **Interfaces:**
-- Produces: rate-limit per-IP su `POST /customer/activate` e `/customer/refresh` (429 oltre soglia).
+- Produces: rate-limit per-IP su `POST /customer/*` (429 oltre soglia). Limite = env `CUSTOMER_THROTTLE_LIMIT` (default `10`), finestra 60s.
+
+**Perché controller-scoped + env-configurabile (non un `APP_GUARD` globale):** un guard globale con keying per-IP farebbe scattare 429 spuri nell'intera suite e2e (tutte le richieste supertest vengono da 127.0.0.1) → regressione della baseline. Lo scope è solo il canale pubblico cliente (spec §5.5). Il limite è env-driven così la suite funzionale lo alza e resta strict in prod.
 
 - [ ] **Step 1: Installa la dipendenza**
 
 Run: `cd apps/api && corepack pnpm add @nestjs/throttler`
 Expected: aggiunta a `dependencies`. (Se pnpm chiede purge: `CI=true corepack pnpm install`.)
 
-- [ ] **Step 2: Write the failing test (e2e)** — aggiungi:
+- [ ] **Step 2: Write the failing test (e2e)** — crea `apps/api/test/customer-throttle.e2e-spec.ts`. Nel `beforeAll`, **prima** di `Test.createTestingModule`, imposta un limite basso così il test è deterministico:
 
 ```typescript
-describe('Customer activate rate-limit (D-027)', () => {
-  it('oltre soglia ravvicinata → 429', async () => {
+// beforeAll: process.env.CUSTOMER_THROTTLE_LIMIT = '5'; POI costruisci app con createTestApp.
+describe('Customer channel rate-limit (D-027)', () => {
+  it('oltre soglia ravvicinata su /customer/activate → 429', async () => {
     let got429 = false;
-    for (let i = 0; i < 12; i++) {
-      const res = await request(app.getHttpServer()).post('/api/customer/activate').send({ enrollmentToken: 'x', pin: '000000' });
+    for (let i = 0; i < 8; i++) {
+      const res = await request(app.getHttpServer())
+        .post('/api/customer/activate')
+        .send({ enrollmentToken: 'nope', pin: '000000' });
       if (res.status === 429) { got429 = true; break; }
     }
-    expect(got429).toBe(true);
+    expect(got429).toBe(true); // le prime ~5 → 401, poi 429
   });
 });
 ```
 
 - [ ] **Step 3: Run test to verify it fails**
 
-Run: `corepack pnpm --filter @coralyn/api test:e2e --runInBand -t 'rate-limit'`
-Expected: FAIL (nessun 429, tutte 401).
+Run: `corepack pnpm --filter @coralyn/api test:e2e --runInBand -t 'Customer channel rate-limit'`
+Expected: FAIL (nessun 429, tutte 401 — throttler non ancora attivo).
 
-- [ ] **Step 4: Configura ThrottlerModule** in `app.module.ts` (import + provider globale):
+- [ ] **Step 4: Configura il throttler.** In `app.module.ts` (storage + default env-driven; **niente** APP_GUARD):
 
 ```typescript
-import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
-import { APP_GUARD } from '@nestjs/core';
-// ...
-  imports: [
-    // ...esistenti...
-    ThrottlerModule.forRoot([{ ttl: 60_000, limit: 100 }]), // default generoso app-wide
+import { ThrottlerModule } from '@nestjs/throttler';
+import { ConfigService } from '@nestjs/config';
+// ...nelle imports, dopo ConfigModule.forRoot:
+    ThrottlerModule.forRootAsync({
+      inject: [ConfigService],
+      useFactory: (config: ConfigService) => [
+        { ttl: 60_000, limit: Number(config.get<string>('CUSTOMER_THROTTLE_LIMIT') || '10') },
+      ],
+    }),
     CustomerAuthModule,
-  ],
-  providers: [
-    { provide: APP_FILTER, useClass: PrismaExceptionFilter },
-    { provide: APP_GUARD, useClass: ThrottlerGuard },
-  ],
 ```
 
-E in `customer-auth.controller.ts` limiti stretti sugli endpoint pubblici sensibili:
+In `customer-auth.controller.ts` applica il guard **solo** a questo controller (a livello classe):
 
 ```typescript
-import { Throttle } from '@nestjs/throttler';
-// su activate e refresh:
-  @Throttle({ default: { ttl: 60_000, limit: 10 } })
+import { ThrottlerGuard } from '@nestjs/throttler';
+import { UseGuards } from '@nestjs/common';
+
+@UseGuards(ThrottlerGuard)
+@Controller('customer')
+export class CustomerAuthController { /* ... */ }
 ```
 
-- [ ] **Step 5: Run test to verify it passes**
+- [ ] **Step 5: Evita 429 spuri nella suite funzionale.** In `apps/api/test/customer-access.e2e-spec.ts`, nel `beforeAll` **prima** di costruire l'app, aggiungi:
 
-Run: `corepack pnpm --filter @coralyn/api test:e2e --runInBand -t 'rate-limit'`
-Expected: PASS. Poi il **full-run e2e** per verificare che il throttler globale non rompa altre suite (usa un limite app-wide alto = 100/min):
+```typescript
+process.env.CUSTOMER_THROTTLE_LIMIT = '1000'; // suite funzionale: limite alto, niente 429 spuri
+```
+
+- [ ] **Step 6: Run test to verify it passes**
+
+Run: `corepack pnpm --filter @coralyn/api test:e2e --runInBand -t 'Customer channel rate-limit'`
+Expected: PASS. Poi il **full-run e2e** per confermare zero regressioni (il throttler tocca solo `/customer/*`):
 
 Run: `corepack pnpm --filter @coralyn/api test:e2e --runInBand`
 Expected: **330 + i nuovi** passed (nessuna regressione).
 
-- [ ] **Step 6: Commit**
+- [ ] **Step 7: Commit**
 
 ```bash
-git add apps/api/package.json apps/api/src/app.module.ts apps/api/src/customer-auth apps/api/test/customer-access.e2e-spec.ts
-git commit -m "feat(api): rate-limiting @nestjs/throttler su endpoint cliente pubblici (D-027) [D-035 S3]"
+git add apps/api/package.json apps/api/src/app.module.ts apps/api/src/customer-auth apps/api/test/customer-access.e2e-spec.ts apps/api/test/customer-throttle.e2e-spec.ts
+git commit -m "feat(api): rate-limiting @nestjs/throttler controller-scoped su /customer/* (D-027) [D-035 S3]"
 ```
 
 ---
