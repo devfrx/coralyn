@@ -32,6 +32,7 @@ model Establishment {
   bookingTransfers   BookingTransfer[]
   absenceReleases    AbsenceRelease[]
   customerEnrollmentTokens CustomerEnrollmentToken[]
+  customerSessions CustomerSession[]
 }
 
 model Customer {
@@ -72,6 +73,7 @@ model CustomerEnrollmentToken {
 
   customer      Customer      @relation(fields: [customerId], references: [id], onDelete: Cascade)
   establishment Establishment @relation(fields: [establishmentId], references: [id])
+  sessions      CustomerSession[]
 
   @@index([customerId])
   @@index([establishmentId])
@@ -91,7 +93,11 @@ model CustomerSession {
   lastUsedAt        DateTime?
   createdAt         DateTime  @default(now())
 
-  customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  customer        Customer                @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  establishment   Establishment           @relation(fields: [establishmentId], references: [id])
+  enrollmentToken CustomerEnrollmentToken @relation(fields: [enrollmentTokenId], references: [id], onDelete: Cascade)
+  rotatedFrom     CustomerSession?        @relation("CustomerSessionRotation", fields: [rotatedFromId], references: [id], onDelete: SetNull)
+  rotatedInto     CustomerSession[]       @relation("CustomerSessionRotation")
 
   @@index([customerId])
   @@index([enrollmentTokenId])
