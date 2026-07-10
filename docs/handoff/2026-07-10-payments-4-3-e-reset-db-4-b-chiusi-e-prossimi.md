@@ -68,7 +68,10 @@ Spec [`2026-07-10-reset-db-dev-design.md`](../superpowers/specs/2026-07-10-reset
   DATABASE_URL="postgresql://coralyn_app:coralyn_app@localhost:5433/coralyn_dev?schema=public" \
     corepack pnpm --filter @coralyn/api run db:reset            # dry-run
   DATABASE_URL="…" corepack pnpm --filter @coralyn/api run db:reset -- --yes   # esecuzione
-  corepack pnpm --filter @coralyn/api exec prisma db seed       # ripristina la demo
+  # Ripristina la demo. ⚠️ Passa DEV_ADMIN_PASSWORD o il seed resetta la password admin al default
+  # 'coralyn-admin' (upsert update:{passwordHash}) → 401 al login. In alternativa: seed dentro il container.
+  DATABASE_URL="…" DEV_ADMIN_EMAIL="admin@coralyn.dev" DEV_ADMIN_PASSWORD="coralyn-admin-8473" \
+    corepack pnpm --filter @coralyn/api exec prisma db seed
   ```
 
 ## 3. GOTCHA / lezioni
@@ -83,6 +86,12 @@ Spec [`2026-07-10-reset-db-dev-design.md`](../superpowers/specs/2026-07-10-reset
 - **`TRUNCATE` è transazionale in Postgres** → si testa in una tx con rollback (zero impatto sul DB condiviso).
 - **script ts-node nudi (`seed:demo`, `db:reset`) NON caricano `.env`** → passa `DATABASE_URL` a mano (header dei
   file lo documenta). Il main seed (`prisma db seed`) invece lo carica (via prisma CLI).
+- **⚠️ `prisma db seed` dall'host resetta la PASSWORD ADMIN** → `seed.ts` fa `user.upsert({ update: { passwordHash } })`
+  con `DEV_ADMIN_PASSWORD ?? 'coralyn-admin'`: se rilanciato da host **senza** `DEV_ADMIN_PASSWORD`, sovrascrive la
+  password admin col default `'coralyn-admin'` → **401** al login (la password vera `coralyn-admin-8473` sta
+  nell'env del container). Reseed corretto: passa `DEV_ADMIN_PASSWORD="coralyn-admin-8473"`, **oppure** rilancia il
+  seed **dentro il container** (`docker exec coralyn-api …`, ha già l'env). Successo 2026-07-10 dopo la verifica
+  LIVE di §4.b (il reseed da host aveva clobberato la password; ripristinata rilanciando col DEV_ADMIN_PASSWORD).
 - **Full-run e2e flaky al default 5s** → [D-049](../architecture/deferred.md), usa `--testTimeout=30000`.
 - **api e2e mirati** richiedono `--config ./test/jest-e2e.json` o jest matcha 0 test (falso pass). **api unit** =
   `corepack pnpm --filter @coralyn/api run test` (rootDir=src; i test di tool sotto `prisma/` vanno in `test/*.e2e-spec.ts`).
@@ -92,8 +101,10 @@ Spec [`2026-07-10-reset-db-dev-design.md`](../superpowers/specs/2026-07-10-reset
 Molti errori/bug segnalati, **sospetto dati legacy** nel DB dev (stato creato prima dei refactor struttura). **Il
 reset §4.b è l'abilitatore:** riproduci su dati puliti —
 ```
-DATABASE_URL="…" corepack pnpm --filter @coralyn/api run db:reset -- --yes && corepack pnpm --filter @coralyn/api exec prisma db seed
+DATABASE_URL="…" corepack pnpm --filter @coralyn/api run db:reset -- --yes
+DATABASE_URL="…" DEV_ADMIN_PASSWORD="coralyn-admin-8473" corepack pnpm --filter @coralyn/api exec prisma db seed
 ```
+(⚠️ `DEV_ADMIN_PASSWORD` obbligatorio nel reseed da host — vedi §3, altrimenti login admin → 401)
 poi ricostruisci la struttura **da UI** (bottone «Configura» dello Stabilimento) e osserva quali difetti emergono
 su stato pulito (vs. quali sparivano perché erano solo dati sporchi). Indagare
 [`EstablishmentStructureView.vue`](../../apps/web-staff/src/features/establishment/EstablishmentStructureView.vue)
