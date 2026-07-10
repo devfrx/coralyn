@@ -2,7 +2,7 @@
 // tabelle RLS FORCE) preservando SOLO User+Establishment (+token/audit non-tenant), così da poter
 // loggarsi su un DB pulito. Abilitatore di §4.1 (riprodurre «Configura» su struttura pulita).
 // Come gli altri script ts-node "nudi" (seed-report-demo.ts), NON auto-carica .env → passa
-// DATABASE_URL a mano. Guardie: NODE_ENV≠production + database ~ /dev|test/ + --yes obbligatorio.
+// DATABASE_URL a mano. Guardie: NODE_ENV≠production + database ~ /^coralyn_(dev|test)/i + --yes obbligatorio (nel core, difesa in profondità).
 //   Dry-run (default, nessuna modifica):
 //     DATABASE_URL="postgresql://coralyn_app:coralyn_app@localhost:5433/coralyn_dev?schema=public" \
 //       corepack pnpm --filter @coralyn/api run db:reset
@@ -10,18 +10,17 @@
 //     DATABASE_URL="postgresql://coralyn_app:coralyn_app@localhost:5433/coralyn_dev?schema=public" \
 //       corepack pnpm --filter @coralyn/api run db:reset -- --yes
 import { PrismaClient } from '@prisma/client';
-import { assertResettableEnv, resetTenantData } from './reset-dev.core';
+import { resetTenantData } from './reset-dev.core';
 
 async function main(): Promise<void> {
   const yes = process.argv.includes('--yes');
   const prisma = new PrismaClient();
   try {
-    const [{ db }] = await prisma.$queryRaw<{ db: string }[]>`SELECT current_database() AS db`;
-    assertResettableEnv(process.env.NODE_ENV, db);
-
     const report = await resetTenantData(prisma, { dryRun: !yes });
 
-    console.log(`\nreset-dev · database "${db}" · ${report.dryRun ? 'DRY-RUN (nessuna modifica)' : 'ESECUZIONE'}`);
+    console.log(
+      `\nreset-dev · database "${report.database}" · ${report.dryRun ? 'DRY-RUN (nessuna modifica)' : 'ESECUZIONE'}`,
+    );
     for (const t of report.tables) {
       const verb = report.dryRun ? 'azzererei ' : 'azzerata  ';
       console.log(`  ${verb} ${t.padEnd(20)} ~${report.estimatedRows[t]} righe`);

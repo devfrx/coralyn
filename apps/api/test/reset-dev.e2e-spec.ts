@@ -17,7 +17,7 @@ describe('reset-dev core — funzioni pure', () => {
   });
 
   it('assertResettableEnv rifiuta un DB che non è dev/test', () => {
-    expect(() => assertResettableEnv('development', 'coralyn_prod')).toThrow(/non sembra dev\/test/);
+    expect(() => assertResettableEnv('development', 'coralyn_prod')).toThrow(/non matcha/);
   });
 
   it('assertResettableEnv accetta dev', () => {
@@ -85,5 +85,37 @@ describe('resetTenantData — integrazione (transazione con rollback, non distru
     expect(report?.tables).not.toContain('Establishment');
     expect(customerAfter).toBe(0); // TRUNCATE ha azzerato la tenant
     expect(establishmentAfter).toBe(1); // Establishment preservato
+  });
+
+  it('dry-run non trunca — Customer sopravvive, report.dryRun=true (poi rollback)', async () => {
+    const SENTINEL = new Error('rollback-sentinel-dry-run');
+    let report: Awaited<ReturnType<typeof resetTenantData>> | undefined;
+    let customerAfter = -1;
+    try {
+      await prisma.$transaction(
+        async (tx) => {
+          // Seed nella tx: Establishment (non-RLS) + Customer (RLS → serve la GUC del tenant).
+          const est = await tx.establishment.create({ data: { name: 'RESET DRY-RUN TEST' } });
+          await tx.$executeRaw`SELECT set_config('app.current_tenant', ${est.id}, true)`;
+          await tx.customer.create({ data: { establishmentId: est.id, firstName: 'Del', lastName: 'Me' } });
+
+          // Esegue il reset in dry-run dentro la tx: nessun TRUNCATE deve avvenire.
+          report = await resetTenantData(tx, { dryRun: true });
+
+          // Asserzioni dentro la tx: il dry-run NON deve aver azzerato nulla.
+          const [{ n }] = await tx.$queryRaw<{ n: bigint }[]>`SELECT count(*) AS n FROM "Customer"`;
+          customerAfter = Number(n);
+
+          throw SENTINEL; // forza il rollback: zero impatto sul DB condiviso
+        },
+        { timeout: 30000 },
+      );
+    } catch (err) {
+      if (err !== SENTINEL) throw err;
+    }
+
+    expect(customerAfter).toBe(1); // dry-run non ha truncato: il Customer seedato sopravvive
+    expect(report?.dryRun).toBe(true);
+    expect(report?.tables).toContain('Customer');
   });
 });

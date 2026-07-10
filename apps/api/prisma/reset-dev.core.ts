@@ -17,8 +17,10 @@ export function assertResettableEnv(nodeEnv: string | undefined, dbName: string)
   if (nodeEnv === 'production') {
     throw new Error('reset-dev: rifiutato in NODE_ENV=production');
   }
-  if (!/dev|test/.test(dbName)) {
-    throw new Error(`reset-dev: database "${dbName}" non sembra dev/test — rifiutato`);
+  if (!/^coralyn_(dev|test)/i.test(dbName)) {
+    throw new Error(
+      `reset-dev: database "${dbName}" non matcha /^coralyn_(dev|test)/i — rifiutato`,
+    );
   }
 }
 
@@ -85,6 +87,7 @@ export async function estimatedRowCounts(
 }
 
 export interface ResetReport {
+  database: string;
   tables: string[];
   estimatedRows: Record<string, number>;
   dryRun: boolean;
@@ -95,6 +98,11 @@ export async function resetTenantData(
   exec: Executor,
   opts: { dryRun: boolean },
 ): Promise<ResetReport> {
+  // Difesa in profondità: la guardia va anche sul primitivo, non solo sulla CLI che lo chiama.
+  const [{ database }] = await exec.$queryRaw<{ database: string }[]>`
+    SELECT current_database() AS database`;
+  assertResettableEnv(process.env.NODE_ENV, database);
+
   const forced = await forcedRlsTables(exec);
   const withEstId = await tablesWithEstablishmentId(exec);
   assertCoherence(forced, withEstId, KEEP_LIST);
@@ -110,5 +118,5 @@ export async function resetTenantData(
     const list = tables.map((t) => `"${t}"`).join(', ');
     await exec.$executeRawUnsafe(`TRUNCATE TABLE ${list} RESTART IDENTITY CASCADE`);
   }
-  return { tables, estimatedRows, dryRun: opts.dryRun };
+  return { database, tables, estimatedRows, dryRun: opts.dryRun };
 }
