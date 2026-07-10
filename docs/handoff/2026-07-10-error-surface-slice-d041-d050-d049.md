@@ -6,31 +6,37 @@
 > il gap 500→status-pulito su tutti i controller (incluso il catalog, senza spargere
 > `ParseUUIDPipe`); il full-run e2e è ora stabile senza flag manuale (`testTimeout` [D-049]);
 > eliminata la duplicazione del bootstrap e2e (`createTestApp()`). **Nessun nuovo ADR**
-> (error-surface puro). Verifica LIVE su Docker **delegata al controller** (fuori scope di questa
-> sessione). Baseline finale verde: api unit **232** · api e2e **330** · web-staff **375**
-> (non toccato) · typecheck pulito.
+> (error-surface puro). **Mergiato FF su `main` + pushato** (`main` = `origin/main` = `722fdaf`),
+> dopo whole-branch review su opus (Ready-to-merge, 0 Crit/0 Imp) e **verifica LIVE su Docker** (id
+> malformato → 400 confermato sul container ricostruito). Baseline finale verde: api unit **232** ·
+> api e2e **330** · web-staff **375** (non toccato) · typecheck pulito.
 
 ---
 
 ## 1. Stato `git` & baseline
 
-- **`main` locale = `abbabc1`** (punto di partenza dello slice). Branch di lavoro
-  **`feat/error-surface-d041-d050-d049`**, creato da `abbabc1`, **4 commit implementativi + 1
-  commit docs (questa sessione)**:
+- **`main` = `origin/main` = `722fdaf`** (mergiato FF + pushato 2026-07-10 con OK esplicito
+  utente; allineati 0/0). Branch di lavoro **`feat/error-surface-d041-d050-d049`** (creato da
+  `abbabc1`) **mergiato e eliminato**. **7 commit** (`abbabc1..722fdaf`):
   - `08ebee5` — `testTimeout: 20000` in `apps/api/test/jest-e2e.json` (D-049).
   - `0c6d25e` — `PrismaExceptionFilter` globale (`P2002`→409 D-041, `P2023`→400 D-050) via
     `APP_FILTER`.
   - `7bc17ef` — estrazione `createTestApp()`, eliminata duplicazione bootstrap e2e (22 suite / 24
     blocchi `beforeAll`).
   - `7397ba9` — e2e `catalog-error-surface.e2e-spec.ts` (13 casi, id malformato catalog → 400).
-  - *(questa sessione)* — `docs: chiudi D-041/D-050/D-049 (error-surface) + handoff`.
-- **Merge FF su `main` e push:** **gated**, in attesa di OK esplicito dell'utente (dopo whole-branch
-  review, come da metodo — non eseguita in questa sessione, è Task 5 = solo docs+verifica).
-- **Verifica LIVE su Docker:** **NON eseguita in questa sessione** (esplicitamente esclusa dal
-  brief — "il controller farà la verifica Docker separatamente"). Il container `api` **non è stato
-  ricostruito**; il codice sul branch non è ancora quello in esecuzione nel container. Prima del
-  merge, ricostruire (`docker compose --profile full up -d --build api`) e verificare almeno
-  `DELETE /api/seasons/not-a-uuid` → **400** (era 500).
+  - `9e756d4` + `bc94a20` — `docs: chiudi D-041/D-050/D-049 (error-surface) + handoff` (+ fix ref
+    `[D-041]` mancante).
+  - `722fdaf` — **fix wave post-review**: M1 (`error` data-driven dal mapper) + M2 (link plan doc).
+- **Whole-branch review su opus (`abbabc1..722fdaf`, 6 commit al momento della review):**
+  **Ready-to-merge**, 0 Critical / 0 Important. Tutti e 5 i named-risk verificati safe (il filtro
+  non doppia-gestisce il `ConflictException` proattivo di `rates.service`; `super.catch` delega i
+  codici non mappati; `createTestApp` = `main.ts` senza filtro; i 13 e2e sono genuini; il
+  `ParseUUIDPipe` struttura §4.1 è intatto). I 2 Minor (M1/M2) chiusi nella fix wave `722fdaf`.
+- **Verifica LIVE su Docker: ESEGUITA e verde.** Container `api` ricostruito
+  (`docker compose --profile full up -d --build api`); `DELETE /api/{seasons,equipment-types,time-slots}/not-a-uuid`
+  → **400** con body `{"statusCode":400,"message":"Identificatore non valido.","error":"Bad Request"}`
+  (era 500). Controllo: uuid ben formato ma inesistente → **404** (il filtro non over-catcha, gli id
+  validi proseguono sul path normale).
 - **Baseline finale (verificata REALE in questa sessione, tutta verde):**
   - api unit: `corepack pnpm test --runInBand` → **232 passed** (41 suite; era 229, +3 = i test del
     mapper `mapPrismaKnownError`).
@@ -149,13 +155,28 @@ Resta, in ordine di peso:
   sull'abbonato ([ADR-0048]).
 - **D-040** — estrazione `EstablishmentStructureView.vue` (~406 righe, editor «Configura» ora
   "chiuso" — buon momento per il refactor puro, nessun cambio di comportamento).
-- **Backlog `deferred.md` residuo:** [D-036] report avanzato (heatmap, occupazione media) ·
-  [D-038] drag-reorder struttura · [D-047] audit di tenant per azioni admin-in-tenant · [D-012]
-  cabine/servizi accessori (**l'utente lo ritiene poco utile — NON partire senza sua
-  riconferma**). (M1 §3 sopra: risolto in questa fix wave, non più backlog.)
-- **Verifica LIVE Docker** di questo slice (Step 3 del brief originale) — da fare separatamente
-  prima del merge FF: ricostruire il container `api` e confermare `DELETE
-  /api/seasons/not-a-uuid` → 400 (era 500) sul path reale, non solo nei test.
+- **Backlog `deferred.md` — è la lista COMPLETA e autoritativa (leggerla per intero prima di
+  scegliere).** Mappa dei residui attivi al 2026-07-10 (D-041/D-049/D-050 ora Risolte; M1/M2 chiusi
+  in questa fix wave, non backlog):
+  - *Refactor/qualità, basso rischio (buoni "riscaldamenti"):* **[D-040]** estrazione
+    `EstablishmentStructureView.vue` (~406 righe) · **[D-038]** drag-reorder & re-parent struttura
+    (lega a D-040) · [D-021] validazione runtime payload FE (`zod` ai bordi) · [D-023] least-privilege
+    ruolo DB applicativo.
+  - *Feature di dominio:* **[D-036]** report avanzato (heatmap/serie stagione/export — lega
+    occupancy% D-048 §7) · [D-015] orari arbitrari · [D-018] prezzo per tipologia · [D-033]/[D-034]
+    pricing multi-stagione/forfait · [D-006] liste d'attesa avanzate · **[D-012] cabine/servizi
+    accessori (⚠️ utente lo ritiene poco utile — NON partire senza riconferma)**.
+  - *Sicurezza/infra (molti atterrano con S3/S4):* **[D-026]/[D-027]/[D-028]/[D-029]** (refresh/revoca
+    token, rate-limiting login, RLS `User`, login a tempo costante) · **[D-037]** 401 FE globale (S4) ·
+    [D-002] infra multi-tenancy SaaS · [D-024] consenso/informativa GDPR (core erasure già fatto) ·
+    [D-047] audit di tenant per azioni admin · [D-042] impersonation supporto.
+  - *Platform console (nice-to-have a scala):* [D-043] vista materializzata metriche · [D-044]
+    `User.lastLoginAt` · [D-046] deliverability invito.
+  - *Minori/i18n/altro:* [D-003] i18n · [D-005] editor planimetria pixel · [D-007] Electron · [D-008]
+    offline-sync · [D-009]/[D-004] entità Pagamento & Cassa · [D-010] silo DB · [D-014] rostering ·
+    [D-016] log raw superuser · [D-019] ombrellone standalone · [D-020] pattern colorblind · [D-025]
+    cambio-ruolo utente · [D-031] timezone per-tenant. **Ogni voce in `deferred.md` ha motivazione +
+    trigger + impatto: quella è la fonte di verità, questo è solo un indice.**
 
 ## 6. Metodo (replicare)
 
@@ -187,3 +208,30 @@ scelte "coerente vs scorciatoia" sempre la soluzione **professionale/senza-debit
 [D-047]: ../architecture/deferred.md
 [D-049]: ../architecture/deferred.md
 [D-050]: ../architecture/deferred.md
+[D-002]: ../architecture/deferred.md
+[D-003]: ../architecture/deferred.md
+[D-004]: ../architecture/deferred.md
+[D-005]: ../architecture/deferred.md
+[D-006]: ../architecture/deferred.md
+[D-007]: ../architecture/deferred.md
+[D-008]: ../architecture/deferred.md
+[D-009]: ../architecture/deferred.md
+[D-010]: ../architecture/deferred.md
+[D-014]: ../architecture/deferred.md
+[D-015]: ../architecture/deferred.md
+[D-016]: ../architecture/deferred.md
+[D-018]: ../architecture/deferred.md
+[D-019]: ../architecture/deferred.md
+[D-020]: ../architecture/deferred.md
+[D-021]: ../architecture/deferred.md
+[D-023]: ../architecture/deferred.md
+[D-024]: ../architecture/deferred.md
+[D-025]: ../architecture/deferred.md
+[D-031]: ../architecture/deferred.md
+[D-033]: ../architecture/deferred.md
+[D-034]: ../architecture/deferred.md
+[D-042]: ../architecture/deferred.md
+[D-043]: ../architecture/deferred.md
+[D-044]: ../architecture/deferred.md
+[D-046]: ../architecture/deferred.md
+[D-048]: ../architecture/deferred.md
