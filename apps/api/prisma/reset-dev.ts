@@ -1,3 +1,14 @@
+// Script DEV-ONLY: reset TOTALE del DB di sviluppo (§4.b). Azzera i dati di TUTTI i tenant (le 18
+// tabelle RLS FORCE) preservando SOLO User+Establishment (+token/audit non-tenant), così da poter
+// loggarsi su un DB pulito. Abilitatore di §4.1 (riprodurre «Configura» su struttura pulita).
+// Come gli altri script ts-node "nudi" (seed-report-demo.ts), NON auto-carica .env → passa
+// DATABASE_URL a mano. Guardie: NODE_ENV≠production + database ~ /dev|test/ + --yes obbligatorio.
+//   Dry-run (default, nessuna modifica):
+//     DATABASE_URL="postgresql://coralyn_app:coralyn_app@localhost:5433/coralyn_dev?schema=public" \
+//       corepack pnpm --filter @coralyn/api run db:reset
+//   Esecuzione reale (aggiungi -- --yes):
+//     DATABASE_URL="postgresql://coralyn_app:coralyn_app@localhost:5433/coralyn_dev?schema=public" \
+//       corepack pnpm --filter @coralyn/api run db:reset -- --yes
 import { PrismaClient } from '@prisma/client';
 import { assertResettableEnv, resetTenantData } from './reset-dev.core';
 
