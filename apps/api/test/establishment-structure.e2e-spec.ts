@@ -89,4 +89,34 @@ describe('Establishment structure + umbrella-types (e2e)', () => {
     });
     await request(app.getHttpServer()).delete(`/api/establishment/umbrella-types/${typeId}`).set(...bearer(adminT)).expect(200);
   });
+
+  // Hardening: :id malformato deve dare 400 pulito (ParseUUIDPipe), non 500 da Prisma P2023.
+  // Coerente con la validazione @IsUUID dei body dei DTO.
+  describe('param :id malformato → 400 (non 500)', () => {
+    const BAD = 'not-a-uuid';
+    it('DELETE /sectors/:id', async () => {
+      await request(app.getHttpServer()).delete(`/api/establishment/sectors/${BAD}`).set(...bearer(adminT)).expect(400);
+    });
+    it('PATCH /sectors/:id', async () => {
+      await request(app.getHttpServer()).patch(`/api/establishment/sectors/${BAD}`).set(...bearer(adminT)).send({ name: 'X' }).expect(400);
+    });
+    it('DELETE /rows/:id', async () => {
+      await request(app.getHttpServer()).delete(`/api/establishment/rows/${BAD}`).set(...bearer(adminT)).expect(400);
+    });
+    it('PATCH /rows/:id', async () => {
+      await request(app.getHttpServer()).patch(`/api/establishment/rows/${BAD}`).set(...bearer(adminT)).send({ label: 'X' }).expect(400);
+    });
+    it('DELETE /umbrellas/:id', async () => {
+      await request(app.getHttpServer()).delete(`/api/establishment/umbrellas/${BAD}`).set(...bearer(adminT)).expect(400);
+    });
+    it('PATCH /umbrellas/:id', async () => {
+      await request(app.getHttpServer()).patch(`/api/establishment/umbrellas/${BAD}`).set(...bearer(adminT)).send({ label: 'X' }).expect(400);
+    });
+    it('DELETE /umbrella-types/:id', async () => {
+      await request(app.getHttpServer()).delete(`/api/establishment/umbrella-types/${BAD}`).set(...bearer(adminT)).expect(400);
+    });
+    it('PATCH /umbrella-types/:id', async () => {
+      await request(app.getHttpServer()).patch(`/api/establishment/umbrella-types/${BAD}`).set(...bearer(adminT)).send({ name: 'X' }).expect(400);
+    });
+  });
 });

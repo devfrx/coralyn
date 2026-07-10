@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Param, Patch, Post } from '@nestjs/common';
+import { Body, Controller, Delete, Param, ParseUUIDPipe, Patch, Post } from '@nestjs/common';
 import { Role } from '@coralyn/contracts';
 import type { StructureRowDTO } from '@coralyn/contracts';
 import { Roles } from '../identity/roles.decorator';
@@ -17,12 +17,12 @@ export class RowsController {
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() body: UpdateRowDto): Promise<StructureRowDTO> {
+  update(@Param('id', ParseUUIDPipe) id: string, @Body() body: UpdateRowDto): Promise<StructureRowDTO> {
     return this.rows.update(id, body);
   }
 
   @Delete(':id')
-  remove(@Param('id') id: string): Promise<StructureRowDTO> {
+  remove(@Param('id', ParseUUIDPipe) id: string): Promise<StructureRowDTO> {
     return this.rows.remove(id);
   }
 }

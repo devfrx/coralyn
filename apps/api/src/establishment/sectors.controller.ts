@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Param, Patch, Post } from '@nestjs/common';
+import { Body, Controller, Delete, Param, ParseUUIDPipe, Patch, Post } from '@nestjs/common';
 import { Role } from '@coralyn/contracts';
 import type { StructureSectorDTO } from '@coralyn/contracts';
 import { Roles } from '../identity/roles.decorator';
@@ -17,12 +17,12 @@ export class SectorsController {
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() body: UpdateSectorDto): Promise<StructureSectorDTO> {
+  update(@Param('id', ParseUUIDPipe) id: string, @Body() body: UpdateSectorDto): Promise<StructureSectorDTO> {
     return this.sectors.update(id, body);
   }
 
   @Delete(':id')
-  remove(@Param('id') id: string): Promise<StructureSectorDTO> {
+  remove(@Param('id', ParseUUIDPipe) id: string): Promise<StructureSectorDTO> {
     return this.sectors.remove(id);
   }
 }

@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Param, Patch, Post } from '@nestjs/common';
+import { Body, Controller, Delete, Param, ParseUUIDPipe, Patch, Post } from '@nestjs/common';
 import { Role } from '@coralyn/contracts';
 import type { GenerateUmbrellasResultDTO, StructureUmbrellaDTO } from '@coralyn/contracts';
 import { Roles } from '../identity/roles.decorator';
@@ -23,12 +23,12 @@ export class UmbrellasController {
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() body: UpdateUmbrellaDto): Promise<StructureUmbrellaDTO> {
+  update(@Param('id', ParseUUIDPipe) id: string, @Body() body: UpdateUmbrellaDto): Promise<StructureUmbrellaDTO> {
     return this.umbrellas.update(id, body);
   }
 
   @Delete(':id')
-  remove(@Param('id') id: string): Promise<StructureUmbrellaDTO> {
+  remove(@Param('id', ParseUUIDPipe) id: string): Promise<StructureUmbrellaDTO> {
     return this.umbrellas.remove(id);
   }
 }
