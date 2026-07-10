@@ -31,6 +31,7 @@ model Establishment {
   bookingSuspensions BookingSuspension[]
   bookingTransfers   BookingTransfer[]
   absenceReleases    AbsenceRelease[]
+  customerEnrollmentTokens CustomerEnrollmentToken[]
 }
 
 model Customer {
@@ -47,8 +48,53 @@ model Customer {
   bookings        Booking[]
   transfersOut    BookingTransfer[] @relation("BookingTransferPrevious")
   transfersIn     BookingTransfer[] @relation("BookingTransferNew")
+  enrollmentTokens CustomerEnrollmentToken[]
+  customerSessions CustomerSession[]
 
   @@index([establishmentId])
+}
+
+// Accesso self-service del cliente (D-035 S3). Token OPACO provisioned dal lido: enrollment one-time
+// nel QR/link. FUORI-RLS (dato d'identità pre-tenant, come CredentialSetupToken/ADR-0026): il tenant
+// è derivato da establishmentId denormalizzato. Raw del token/PIN mai persistito (solo hash).
+model CustomerEnrollmentToken {
+  id              String    @id @default(uuid()) @db.Uuid
+  customerId      String    @db.Uuid
+  establishmentId String    @db.Uuid // denorm: SORGENTE DEL TENANT (tabella fuori-RLS)
+  tokenHash       String    @unique   // sha256(raw); raw solo nel link consegnato
+  pinHash         String              // argon2id(PIN); secondo fattore, mai in chiaro
+  pinAttempts     Int       @default(0)
+  expiresAt       DateTime
+  activatedAt     DateTime? // one-time: valorizzato alla 1ª attivazione riuscita
+  revokedAt       DateTime? // revoca operatore / lock PIN
+  createdByUserId String    @db.Uuid
+  createdAt       DateTime  @default(now())
+
+  customer      Customer      @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  establishment Establishment @relation(fields: [establishmentId], references: [id])
+
+  @@index([customerId])
+  @@index([establishmentId])
+}
+
+// Sessione cliente = refresh token DEVICE-BOUND, ROTANTE, revocabile (D-026). Raw solo sul device.
+// La catena rotatedFromId dà theft-detection (riuso di un refresh già ruotato → revoca catena).
+model CustomerSession {
+  id                String    @id @default(uuid()) @db.Uuid
+  customerId        String    @db.Uuid
+  establishmentId   String    @db.Uuid
+  enrollmentTokenId String    @db.Uuid
+  refreshTokenHash  String    @unique // sha256(raw); raw solo sul device
+  rotatedFromId     String?   @db.Uuid
+  expiresAt         DateTime
+  revokedAt         DateTime?
+  lastUsedAt        DateTime?
+  createdAt         DateTime  @default(now())
+
+  customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  @@index([customerId])
+  @@index([enrollmentTokenId])
 }
 
 enum Role {
