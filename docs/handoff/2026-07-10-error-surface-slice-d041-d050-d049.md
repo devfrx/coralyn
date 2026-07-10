@@ -184,6 +184,7 @@ scelte "coerente vs scorciatoia" sempre la soluzione **professionale/senza-debit
 [D-037]: ../architecture/deferred.md
 [D-038]: ../architecture/deferred.md
 [D-040]: ../architecture/deferred.md
+[D-041]: ../architecture/deferred.md
 [D-047]: ../architecture/deferred.md
 [D-049]: ../architecture/deferred.md
 [D-050]: ../architecture/deferred.md
