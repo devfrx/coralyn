@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { APP_FILTER } from '@nestjs/core';
 import { ConfigModule } from '@nestjs/config';
 import { HealthController } from './health/health.controller';
 import { PrismaModule } from './prisma/prisma.module';
@@ -11,6 +12,7 @@ import { CatalogModule } from './catalog/catalog.module';
 import { ReportsModule } from './reports/reports.module';
 import { EstablishmentModule } from './establishment/establishment.module';
 import { PlatformModule } from './platform/platform.module';
+import { PrismaExceptionFilter } from './common/prisma-exception.filter';
 
 @Module({
   imports: [
@@ -27,5 +29,6 @@ import { PlatformModule } from './platform/platform.module';
     PlatformModule,
   ],
   controllers: [HealthController],
+  providers: [{ provide: APP_FILTER, useClass: PrismaExceptionFilter }],
 })
 export class AppModule {}
