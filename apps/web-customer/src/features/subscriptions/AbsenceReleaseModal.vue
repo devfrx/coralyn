@@ -40,6 +40,13 @@ watch(open, (isOpen) => {
 
 async function confirm(): Promise<void> {
   if (!props.booking) return;
+  // Guardia UX: l'input nativo type=date con min/max impedisce già la selezione fuori range,
+  // ma non protegge da input non-standard (autofill, devtools, browser che ignorano min/max).
+  // Il backend resta l'autorità (422 sotto); qui evitiamo solo una mutation inutile.
+  if (date.value < minDate.value || date.value > maxDate.value) {
+    error.value = 'Seleziona un giorno valido per questo abbonamento.';
+    return;
+  }
   if (releasedDates.value.has(date.value)) {
     error.value = 'Assenza già registrata per quel giorno.';
     return;
@@ -66,8 +73,10 @@ async function confirm(): Promise<void> {
 <template>
   <Modal v-model:open="open" title="Segnala assenza" eyebrow="Assenze comunicate">
     <div v-if="booking" class="flex flex-col gap-[18px]">
-      <p class="text-[13px] text-[var(--color-text-2nd)]">
-        Comunica un giorno in cui sei sicuro di non essere presente su <b>{{ booking.umbrellaLabel }}</b>.
+      <p data-testid="absence-prompt" class="text-[13px] text-[var(--color-text-2nd)]">
+        <template v-if="booking.umbrellaLabel"
+          >Comunica un giorno in cui sei sicuro di non essere presente su <b>{{ booking.umbrellaLabel }}</b>.</template
+        ><template v-else>Comunica un giorno in cui sei sicuro di non essere presente.</template>
       </p>
       <Field label="Giorno di assenza">
         <Input v-model="date" data-testid="absence-date" type="date" :min="minDate" :max="maxDate" />

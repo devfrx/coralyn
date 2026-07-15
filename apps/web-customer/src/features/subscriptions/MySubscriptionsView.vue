@@ -32,7 +32,9 @@ function isCanceling(releaseId: string): boolean {
   return cancelRelease.isPending.value && cancelRelease.variables.value === releaseId;
 }
 
-function cancelableReleases(sub: CustomerBookingDTO): AbsenceReleaseDTO[] {
+// Tutte le release dell'abbonamento (non solo quelle annullabili: il template applica il
+// gating resold/canceled riga per riga tramite i badge/il bottone "Annulla").
+function releasesFor(sub: CustomerBookingDTO): AbsenceReleaseDTO[] {
   return sub.absenceReleases ?? [];
 }
 </script>
@@ -71,12 +73,12 @@ function cancelableReleases(sub: CustomerBookingDTO): AbsenceReleaseDTO[] {
           @click="openAbsenceModal(sub)"
         >Segnala assenza</Button>
 
-        <div v-if="cancelableReleases(sub).length > 0" class="mt-4 flex flex-col gap-2">
+        <div v-if="releasesFor(sub).length > 0" class="mt-4 flex flex-col gap-2">
           <p class="text-[11px] font-semibold uppercase tracking-[.06em] text-[var(--color-text-muted)]">
             Assenze comunicate
           </p>
           <div
-            v-for="rel in cancelableReleases(sub)"
+            v-for="rel in releasesFor(sub)"
             :key="rel.id"
             data-testid="absence-release-row"
             class="flex items-center gap-2 rounded-[var(--radius-md)] bg-[var(--color-raised)] px-3 py-2 text-[12.5px] text-[var(--color-text)]"

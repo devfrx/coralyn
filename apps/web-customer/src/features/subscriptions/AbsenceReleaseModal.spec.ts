@@ -72,6 +72,47 @@ describe('AbsenceReleaseModal', () => {
     w.unmount();
   });
 
+  it('la prompt riporta la label dell\'ombrellone dell\'abbonamento', async () => {
+    const w = await mount();
+    const prompt = document.querySelector('[data-testid="absence-prompt"]')?.textContent ?? '';
+    expect(prompt).toContain('non essere presente su A12.');
+    expect(prompt).not.toMatch(/su\s*\./);
+    w.unmount();
+  });
+
+  it('senza label (DTO difensivo), la prompt resta una frase pulita senza "su ." pendente', async () => {
+    vi.mocked(useReleaseAbsence).mockReturnValue(mutationStub() as any);
+    const w = mountApp(AbsenceReleaseModal, {
+      attachTo: document.body,
+      props: { booking: { ...sub, umbrellaLabel: '' }, open: false },
+    });
+    await w.setProps({ open: true });
+    await flushPromises();
+    await tick();
+    const prompt = document.querySelector('[data-testid="absence-prompt"]')?.textContent ?? '';
+    expect(prompt).toContain('non essere presente.');
+    expect(prompt).not.toMatch(/su\s*\./);
+    w.unmount();
+  });
+
+  it('data fuori range (fuori dallo span dell\'abbonamento) → errore inline generico, mutation NON chiamata', async () => {
+    const mutateAsync = vi.fn().mockResolvedValue(undefined);
+    const w = await mount(mutateAsync);
+    const dateInput = document.querySelector('input[data-testid="absence-date"]') as HTMLInputElement;
+    // Forza un valore fuori dal range [minDate, maxDate] aggirando i vincoli nativi min/max
+    // dell'input (come farebbe un autofill o un browser che li ignora).
+    dateInput.value = '2027-01-01'; // dopo endDate (2026-09-30)
+    dateInput.dispatchEvent(new Event('input'));
+    await tick();
+    (document.querySelector('[data-testid="absence-confirm"]') as HTMLButtonElement).click();
+    await flushPromises();
+    await tick();
+    const errorEl = document.querySelector('[data-testid="absence-error"]');
+    expect(errorEl?.textContent).toBe('Seleziona un giorno valido per questo abbonamento.');
+    expect(mutateAsync).not.toHaveBeenCalled();
+    w.unmount();
+  });
+
   it('su errore 409, mostra SOLO il messaggio generico inline del modale (niente testo raw del backend)', async () => {
     const mutateAsync = vi.fn().mockRejectedValue(new ApiError(409, '/customer/subscriptions/sub-1/absence-releases', 'raw backend conflict detail'));
     const w = await mount(mutateAsync);

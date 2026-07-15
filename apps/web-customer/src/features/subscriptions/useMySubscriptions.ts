@@ -21,6 +21,12 @@ export function useReleaseAbsence(bookingId: () => string) {
   });
 }
 
+// Annulla un'assenza comunicata (D-035 S4). Azione INLINE in riga (bottone "Annulla", nessun
+// modale) — a differenza di useReleaseAbsence sopra, qui NON c'è un errore inline già mostrato
+// dal chiamante, quindi NON è `quiet`: l'utente ha bisogno del toast per sapere perché l'azione
+// è fallita, in particolare il 409 "giorno già rivenduto" (non annullabile), per cui il backend
+// restituisce già un messaggio di dominio pulito in italiano. Impostare `quiet: true` qui
+// silenzierebbe quel feedback senza che nessun'altra UI lo sostituisca — scelta intenzionale.
 export function useCancelRelease(bookingId: () => string) {
   return mutationResource({
     mutationFn: (releaseId: string) =>

@@ -59,8 +59,14 @@ export async function apiFetch<T>(
   let res = await rawFetch(path, init);
   if (res.status === 401 && handler && retryOn401) {
     const ok = await handler.refresh();               // rotazione silenziosa (una volta)
-    if (ok) res = await rawFetch(path, init);          // ritenta con il nuovo access token
-    else handler.onAuthFailure();                      // refresh morto → logout + redirect attivazione
+    if (ok) {
+      res = await rawFetch(path, init);                // ritenta con il nuovo access token
+      // Il refresh è riuscito ma il retry è COMUNQUE 401 (es. token revocato tra refresh e
+      // retry): non c'è recupero possibile, l'utente resta altrimenti "appeso". Logout esplicito.
+      if (res.status === 401) handler.onAuthFailure();
+    } else {
+      handler.onAuthFailure();                         // refresh morto → logout + redirect attivazione
+    }
   }
   if (!res.ok) throw new ApiError(res.status, path, await readErrorMessage(res));
   // NestJS serializza un ritorno `null` come body VUOTO (non il literal JSON "null").

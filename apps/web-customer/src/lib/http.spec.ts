@@ -30,6 +30,21 @@ describe('apiFetch — interceptor 401 (D-037)', () => {
     expect(onFailure).toHaveBeenCalledOnce();
   });
 
+  it('401 → refresh riuscito → il retry è COMUNQUE 401 (token revocato nel frattempo) → onAuthFailure + ApiError', async () => {
+    setAccessToken('old'); setRefreshToken('r1');
+    const onFailure = vi.fn();
+    setRefreshHandler({
+      refresh: async () => { setAccessToken('new'); return true; },
+      onAuthFailure: onFailure,
+    });
+    const fetchMock = vi.spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce(new Response('', { status: 401 }))
+      .mockResolvedValueOnce(new Response('', { status: 401 }));
+    await expect(apiFetch('/customer/me/subscriptions')).rejects.toBeInstanceOf(ApiError);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(onFailure).toHaveBeenCalledOnce(); // niente ricorsione, niente doppia chiamata
+  });
+
   it('retryOn401:false → 401 NON chiama refresh/onAuthFailure e lancia ApiError direttamente (no ricorsione su /customer/refresh)', async () => {
     setAccessToken('old'); setRefreshToken('r1');
     const refreshFn = vi.fn(async () => true);
