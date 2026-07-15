@@ -3,6 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import type {
   CustomerActivateInput,
   CustomerAuthResponse,
+  CustomerMeDTO,
   CustomerRefreshInput,
 } from '@coralyn/contracts';
 import { PrismaService } from '../prisma/prisma.service';
@@ -122,5 +123,36 @@ export class CustomerSessionService {
       });
       return { accessToken, refreshToken: refreshRaw };
     });
+  }
+
+  /** Revoca la sessione corrente (idempotente). Public: identifica la sessione dal refresh. */
+  async logout(refreshToken: string): Promise<void> {
+    await this.prisma.customerSession.updateMany({
+      where: { refreshTokenHash: hashToken(refreshToken), revokedAt: null },
+      data: { revokedAt: new Date() },
+    });
+  }
+
+  /** Profilo del cliente autenticato (session-check). Tenant-scoped via forTenant (RLS): sia il
+   *  customerId sia il tenant provengono dal claim JWT (CustomerJwtGuard). */
+  async getMe(customerId: string, tenantId: string): Promise<CustomerMeDTO> {
+    const c = await this.prisma.forTenant(tenantId, async (tx) => {
+      return tx.customer.findFirst({
+        where: { id: customerId },
+        select: {
+          id: true,
+          firstName: true,
+          lastName: true,
+          establishment: { select: { name: true } },
+        },
+      });
+    });
+    if (!c) throw new UnauthorizedException(INVALID);
+    return {
+      customerId: c.id,
+      firstName: c.firstName,
+      lastName: c.lastName,
+      establishmentName: c.establishment.name,
+    };
   }
 }

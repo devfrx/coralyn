@@ -199,4 +199,38 @@ describe('Customer access provisioning (D-035 S3)', () => {
         .expect(401);
     });
   });
+
+  describe('Customer me + logout (D-035 S3)', () => {
+    it('GET /customer/me con access JWT -> profilo del cliente', async () => {
+      const { accessToken } = await activate();
+
+      const r = await request(app.getHttpServer())
+        .get('/api/customer/me')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .expect(200);
+      expect(r.body).toMatchObject({
+        customerId: expect.any(String),
+        firstName: expect.any(String),
+        establishmentName: expect.any(String),
+      });
+    });
+
+    it('GET /customer/me senza token -> 401', async () => {
+      await request(app.getHttpServer()).get('/api/customer/me').expect(401);
+    });
+
+    it('logout revoca la sessione: il refresh non ruota più', async () => {
+      const { refreshToken } = await activate();
+
+      await request(app.getHttpServer())
+        .post('/api/customer/logout')
+        .send({ refreshToken })
+        .expect(204);
+
+      await request(app.getHttpServer())
+        .post('/api/customer/refresh')
+        .send({ refreshToken })
+        .expect(401);
+    });
+  });
 });
