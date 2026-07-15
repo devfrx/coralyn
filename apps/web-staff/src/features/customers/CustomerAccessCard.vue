@@ -28,8 +28,12 @@ const lastActivated = computed(() =>
 );
 
 async function onGenerate(): Promise<void> {
-  const res = await provision.mutateAsync(undefined);
-  emit('provisioned', res);
+  try {
+    const res = await provision.mutateAsync(undefined);
+    emit('provisioned', res);
+  } catch {
+    // errore già mostrato dal toast globale (mutationResource onError); qui evitiamo l'unhandled rejection
+  }
 }
 
 const confirmRevoke = ref(false);
