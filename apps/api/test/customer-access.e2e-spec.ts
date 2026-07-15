@@ -8,6 +8,7 @@ import { createUser, login } from './helpers/seed-auth';
 import { cleanMapTenant, seedMapTenant, type MapSeedIds } from './helpers/seed-map';
 import { insertBookingWithCoverage } from './helpers/insert-booking-with-coverage';
 import { createTestApp } from './helpers/create-test-app';
+import { provisionCustomerAccess, activateCustomer } from './helpers/customer-auth';
 
 const bearer = (t: string): [string, string] => ['Authorization', `Bearer ${t}`];
 
@@ -96,28 +97,21 @@ describe('Customer access provisioning (D-035 S3)', () => {
   });
 
   /** Provisiona un enrollment fresco (admin) e restituisce raw token + pin per l'attivazione.
-   *  Default sul tenant A; parametrizzabile per l'isolamento cross-tenant (Task 10). */
+   *  Default sul tenant A; parametrizzabile per l'isolamento cross-tenant (Task 10).
+   *  Thin wrapper sull'helper condiviso (DRY per S4): adatta solo la forma del ritorno
+   *  ({ token, pin }) ai call-site esistenti di questo spec. */
   async function provision(
     bId: string = bookingId,
     aToken: string = adminToken,
   ): Promise<{ token: string; pin: string }> {
-    const res = await request(app.getHttpServer())
-      .post(`/api/bookings/${bId}/customer-access`)
-      .set(...bearer(aToken))
-      .expect(201);
-    // activationUrl è relativo in test (CUSTOMER_APP_URL non settato): estrai il token via regex.
-    const token = res.body.activationUrl.match(/token=([^&]+)/)![1];
-    return { token, pin: res.body.pin };
+    const { enrollmentToken, pin } = await provisionCustomerAccess(app, aToken, bId);
+    return { token: enrollmentToken, pin };
   }
 
   /** Provisiona + attiva: restituisce la coppia { accessToken, refreshToken } di una sessione viva. */
   async function activate(): Promise<{ accessToken: string; refreshToken: string }> {
     const { token, pin } = await provision();
-    const res = await request(app.getHttpServer())
-      .post('/api/customer/activate')
-      .send({ enrollmentToken: token, pin })
-      .expect(200);
-    return res.body;
+    return activateCustomer(app, token, pin);
   }
 
   it('POST /bookings/:id/customer-access ritorna activationUrl+pin+expiresAt (admin)', async () => {
