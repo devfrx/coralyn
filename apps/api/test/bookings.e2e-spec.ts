@@ -8,6 +8,7 @@ import { createUser, login } from './helpers/seed-auth';
 import { cleanMapTenant, seedMapTenant, type MapSeedIds } from './helpers/seed-map';
 import { seedPricingTenant, cleanPricingTenant } from './helpers/seed-pricing';
 import { createTestApp } from './helpers/create-test-app';
+import { todayInRome } from '../src/common/dates';
 
 describe('Bookings (e2e)', () => {
   let app: INestApplication;
@@ -970,6 +971,13 @@ describe('Bookings (e2e)', () => {
     const coverageOf = (id: string) =>
       prisma.forTenant(s1, (tx) => tx.bookingCoverage.findMany({ where: { bookingId: id }, orderBy: { startDate: 'asc' } }));
     const iso = (d: Date): string => d.toISOString().slice(0, 10);
+    // Data di release relativa a oggi (Roma): futura e dentro la stagione [07-01, 09-30],
+    // così i test non marciscono col passare del tempo (guard PAST_DATE su date < oggi).
+    const addDays = (isoDate: string, n: number): string => {
+      const [y, m, d] = isoDate.split('-').map(Number);
+      return new Date(Date.UTC(y, m - 1, d + n)).toISOString().slice(0, 10);
+    };
+    const releaseDate = addDays(todayInRome(), 3);
 
     it('D1: suspend-open → terminate → 409 (riattiva prima di disdire)', async () => {
       const { id } = await makeSub();
@@ -994,14 +1002,14 @@ describe('Bookings (e2e)', () => {
       await request(app.getHttpServer()).post(`/api/bookings/${id}/suspend`).set(...bearer(token1))
         .send({ startDate: '2026-07-20' }).expect(200);
       await request(app.getHttpServer()).post(`/api/bookings/${id}/absence-releases`).set(...bearer(token1))
-        .send({ date: '2026-07-10' }).expect(422);
+        .send({ date: releaseDate }).expect(422);
     });
 
     it('C2: release → suspend-open → cancel-release → 422 (sospensione aperta)', async () => {
       const { id } = await makeSub();
       await grantConsent(id);
       await request(app.getHttpServer()).post(`/api/bookings/${id}/absence-releases`).set(...bearer(token1))
-        .send({ date: '2026-07-10' }).expect(200);
+        .send({ date: releaseDate }).expect(200);
       await request(app.getHttpServer()).post(`/api/bookings/${id}/suspend`).set(...bearer(token1))
         .send({ startDate: '2026-07-20' }).expect(200);
       const rel = await rawRelease(id);
@@ -1013,7 +1021,7 @@ describe('Bookings (e2e)', () => {
       const { id } = await makeSub();
       await grantConsent(id);
       await request(app.getHttpServer()).post(`/api/bookings/${id}/absence-releases`).set(...bearer(token1))
-        .send({ date: '2026-07-10' }).expect(200);
+        .send({ date: releaseDate }).expect(200);
       const rel = await rawRelease(id);
       await request(app.getHttpServer()).delete(`/api/bookings/${id}`).set(...bearer(token1)).expect(200);
       await request(app.getHttpServer()).post(`/api/bookings/${id}/absence-releases/${rel!.id}/cancel`).set(...bearer(token1))
@@ -1024,7 +1032,7 @@ describe('Bookings (e2e)', () => {
       const { id } = await makeSub();
       await grantConsent(id);
       await request(app.getHttpServer()).post(`/api/bookings/${id}/absence-releases`).set(...bearer(token1))
-        .send({ date: '2026-07-10' }).expect(200);
+        .send({ date: releaseDate }).expect(200);
       const rel = await rawRelease(id);
       await request(app.getHttpServer()).post(`/api/bookings/${id}/terminate`).set(...bearer(token1))
         .send({ effectiveDate: '2026-09-01', refundAmount: 0 }).expect(200);
