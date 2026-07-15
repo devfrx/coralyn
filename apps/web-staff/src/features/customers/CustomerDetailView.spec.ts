@@ -10,6 +10,8 @@ import { useSessionStore } from '@/stores/session';
 import { useToasts, clearToasts } from '@/lib/toasts';
 import CustomerDetailView from './CustomerDetailView.vue';
 
+vi.mock('qrcode', () => ({ default: { toDataURL: vi.fn().mockResolvedValue('data:image/png;base64,QRMOCK') } }));
+
 async function settle() {
   await flushPromises();
   await new Promise((r) => setTimeout(r, 0));
@@ -237,6 +239,30 @@ describe('CustomerDetailView', () => {
       expect(w.text()).toContain('Dati personali rimossi');
       expect(w.find('[data-testid="delete-customer"]').exists()).toBe(false);
       expect(w.text()).not.toContain('Anagrafica e contatti');
+    });
+  });
+
+  describe('CustomerDetailView — accesso cliente (D-051)', () => {
+    it('con abbonamento → monta la card «Accesso cliente»', async () => {
+      server.use(
+        http.get('/api/customers/:id/bookings', () =>
+          HttpResponse.json([
+            { id: 'sub-1', umbrellaId: 'u1', timeSlotId: 's1', startDate: '2026-05-01', endDate: '2030-09-30', type: 'subscription', status: 'confirmed', totalPrice: 800, paymentStatus: 'paid', amountCollected: 800, umbrellaLabel: 'A12', seasonName: 'Estate', seniority: 2 },
+          ]),
+        ),
+        http.get('/api/bookings/:id/customer-access', () => HttpResponse.json({ state: 'none', lastActivatedAt: null })),
+      );
+      const w = mountDetail('c-1');
+      await settle();
+      expect(w.text()).toContain('Accesso cliente');
+      expect(w.find('[data-testid="access-state"]').exists()).toBe(true);
+    });
+
+    it('senza abbonamenti → nessuna card «Accesso cliente»', async () => {
+      server.use(http.get('/api/customers/:id/bookings', () => HttpResponse.json([])));
+      const w = mountDetail('c-1');
+      await settle();
+      expect(w.find('[data-testid="access-state"]').exists()).toBe(false);
     });
   });
 });

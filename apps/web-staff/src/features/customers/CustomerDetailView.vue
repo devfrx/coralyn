@@ -16,7 +16,9 @@ import SuspendSubscriptionModal from './SuspendSubscriptionModal.vue';
 import ReactivateSubscriptionModal from './ReactivateSubscriptionModal.vue';
 import TransferSubscriptionModal from './TransferSubscriptionModal.vue';
 import AbsenceReleaseModal from './AbsenceReleaseModal.vue';
-import type { CustomerBookingDTO, SuspensionDTO } from '@coralyn/contracts';
+import CustomerAccessCard from './CustomerAccessCard.vue';
+import CustomerAccessModal from './CustomerAccessModal.vue';
+import type { CustomerBookingDTO, SuspensionDTO, CustomerProvisionResponse } from '@coralyn/contracts';
 
 const props = defineProps<{ id: string }>();
 const router = useRouter();
@@ -66,6 +68,20 @@ function onAbsence(b: CustomerBookingDTO) {
 }
 function onCancelAbsence(p: { booking: CustomerBookingDTO; releaseId: string }) {
   cancelAbsence.mutate({ id: p.booking.id, releaseId: p.releaseId });
+}
+
+// D-051: l'accesso cliente è per-cliente ma gli endpoint prendono un bookingId; usiamo il primo
+// abbonamento come id rappresentativo (qualunque booking del cliente risolve lo stesso customer,
+// la rotazione è unica). Senza abbonamento l'app cliente sarebbe vuota → card assente.
+const accessBookingId = computed<string | null>(() => {
+  const sub = (bookings.value ?? []).find((b) => b.type === 'subscription');
+  return sub?.id ?? null;
+});
+const accessModalOpen = ref(false);
+const accessResult = ref<CustomerProvisionResponse | null>(null);
+function onProvisioned(res: CustomerProvisionResponse): void {
+  accessResult.value = res;
+  accessModalOpen.value = true;
 }
 
 const ini = computed(() => (customer.value ? ((customer.value.firstName[0] ?? '') + (customer.value.lastName[0] ?? '')).toUpperCase() : ''));
@@ -150,6 +166,7 @@ function onConfirmDelete() {
       </SectionCard>
 
       <div class="flex flex-col gap-3.5">
+        <CustomerAccessCard v-if="accessBookingId" :booking-id="accessBookingId" :is-admin="isAdmin" @provisioned="onProvisioned" />
         <CustomerSubscriptionsCard :bookings="bookings ?? []" :ceded="ceded ?? []" :is-admin="isAdmin" @terminate="onTerminate" @suspend="onSuspend" @reactivate="onReactivate" @transfer="onTransfer" @consent="onConsent" @absence="onAbsence" @cancelAbsence="onCancelAbsence" />
         <CustomerHistoryCard :bookings="bookings ?? []" />
         <CustomerPaymentsCard :bookings="bookings ?? []" />
@@ -169,6 +186,7 @@ function onConfirmDelete() {
       <ReactivateSubscriptionModal :booking="reactivateBooking" :suspension="reactivateSuspension" :customer-id="id" v-model:open="reactivateOpen" />
       <TransferSubscriptionModal :booking="transferTarget" :customer-id="id" v-model:open="transferOpen" />
       <AbsenceReleaseModal :booking="absenceBooking" :customer-id="id" v-model:open="absenceOpen" />
+      <CustomerAccessModal v-model:open="accessModalOpen" :result="accessResult" />
     </template>
   </section>
 </template>
