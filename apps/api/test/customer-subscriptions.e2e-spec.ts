@@ -186,6 +186,18 @@ describe('Customer subscriptions channel (D-035 S4)', () => {
       .expect(404); // stesso codice di "non trovato": nessun leak d'esistenza
   });
 
+  it("OWNERSHIP (IDOR same-tenant): A non può liberare l'abbonamento di un altro cliente dello stesso lido → 404", async () => {
+    // Stesso tenant (sA) di accessTokenA: qui la RLS lascia passare la riga, quindi il 404
+    // può venire SOLO dal filtro actingCustomerId (ownership) in bookings.service.ts.
+    const { bookingId: bookingIdC } = await makeSubscriptionWithAccess();
+
+    await request(app.getHttpServer())
+      .post(`/api/customer/subscriptions/${bookingIdC}/absence-releases`)
+      .set(...bearer(accessTokenA))
+      .send({ date: relativeFutureDate() })
+      .expect(404);
+  });
+
   it('OWNERSHIP: bookingId inesistente → 404', async () => {
     await request(app.getHttpServer())
       .post('/api/customer/subscriptions/00000000-0000-0000-0000-0000000000fa/absence-releases')
