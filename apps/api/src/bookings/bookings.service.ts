@@ -949,10 +949,17 @@ export class BookingsService {
    * Rifiuta abbonamento non confermato/disdetto (422 NOT_CONFIRMED/TERMINATED, D5) e la sospensione
    * aperta (422 OPEN_SUSPENSION, C2).
    */
-  async cancelAbsenceRelease(id: string, releaseId: string): Promise<BookingDTO> {
+  async cancelAbsenceRelease(
+    id: string,
+    releaseId: string,
+    opts?: { actingCustomerId?: string },
+  ): Promise<BookingDTO> {
     const tenantId = this.tenant.require();
     const outcome = await this.prisma.forTenant(tenantId, async (tx) => {
-      const booking = await tx.booking.findFirst({ where: { id }, include: { timeSlot: true, suspensions: true } });
+      const booking = await tx.booking.findFirst({
+        where: { id, ...(opts?.actingCustomerId ? { customerId: opts.actingCustomerId } : {}) },
+        include: { timeSlot: true, suspensions: true },
+      });
       if (!booking) return { error: 'NOT_FOUND' as const };
       const release = await tx.absenceRelease.findFirst({ where: { id: releaseId, bookingId: id } });
       if (!release) return { error: 'RELEASE_NOT_FOUND' as const };
