@@ -89,7 +89,12 @@ secret/audience separati per i due canali (non fatto — fuori scope, il check `
 
 ## 5. Prossimi passi (backlog `deferred.md` — da valutare con l'utente)
 
-- **D-035 è CHIUSA.** Nessun lavoro residuo sul canale cliente.
+- **D-035 è CHIUSA** come modulo, **MA** manca il tassello operatore: 👉 **[D-051] — UI provisioning accesso cliente
+  in `web-staff`** (azione «Genera accesso cliente» + «Revoca» + stato nella Scheda cliente). **Il backend esiste**
+  (`POST /bookings/:id/customer-access` + `/revoke`, admin-only, S3/ADR-0049) ma **nessuna UI lo chiama** → oggi
+  l'operatore genera/revoca l'accesso **solo via API**. Senza questa UI il canale cliente non è azionabile da un
+  operatore reale. **L'utente l'ha indicata come prossima sessione.** Additivo, nessuna migrazione; riusa consegna
+  credenziali [ADR-0042] e i mockup `web-customer-*.html` per lo stile.
 - **D-037 lato web-staff:** la stessa gestione globale del 401 (interceptor) serve ancora a web-staff (lì è aperta:
   gestione *graceful* del 401 senza refresh, il pattern web-customer è riusabile).
 - **D-005/D-038/D-040** — editor struttura «Configura» (layer pixel/coordinate, drag-reorder, estrazione
