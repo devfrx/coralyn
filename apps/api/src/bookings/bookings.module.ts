@@ -5,10 +5,11 @@ import { CatalogModule } from '../catalog/catalog.module';
 import { RenewalCampaignsController } from './renewal-campaigns.controller';
 import { RenewalCampaignsService } from './renewal-campaigns.service';
 import { CustomerAuthModule } from '../customer-auth/customer-auth.module';
+import { CustomerBookingsController } from './customer-bookings.controller';
 
 @Module({
   imports: [CatalogModule, CustomerAuthModule],
-  controllers: [BookingsController, RenewalCampaignsController],
+  controllers: [BookingsController, RenewalCampaignsController, CustomerBookingsController],
   providers: [BookingsService, RenewalCampaignsService],
   exports: [BookingsService, RenewalCampaignsService],
 })
