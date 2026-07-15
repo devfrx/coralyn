@@ -71,12 +71,17 @@ model CustomerSession {
   lastUsedAt        DateTime?
   createdAt         DateTime  @default(now())
 
-  customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  customer        Customer                @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  establishment   Establishment           @relation(fields: [establishmentId], references: [id])
+  enrollmentToken CustomerEnrollmentToken @relation(fields: [enrollmentTokenId], references: [id], onDelete: Cascade)
+  rotatedFrom     CustomerSession?        @relation("CustomerSessionRotation", fields: [rotatedFromId], references: [id], onDelete: SetNull)
+  rotatedInto     CustomerSession[]       @relation("CustomerSessionRotation")
 
   @@index([customerId])
   @@index([enrollmentTokenId])
 }
 ```
+> **Integrità referenziale (review Task 1):** `CustomerSession` porta FK reali su `establishmentId` (Establishment), `enrollmentTokenId` (CustomerEnrollmentToken, `onDelete: Cascade`) e la self-relation `rotatedFromId` (`onDelete: SetNull`) — non colonne nude. Coerente con `CustomerEnrollmentToken`; nessuna session orfana né tenant che deriva.
 
 - [ ] **Step 2: Aggiungi le relazioni inverse.** Nel model `Customer` (dopo `transfersIn`):
 
@@ -89,6 +94,13 @@ Nel model `Establishment` (dopo `absenceReleases    AbsenceRelease[]`, riga 33):
 
 ```prisma
   customerEnrollmentTokens CustomerEnrollmentToken[]
+  customerSessions         CustomerSession[]
+```
+
+Nel model `CustomerEnrollmentToken` (relazione inversa verso le sessioni):
+
+```prisma
+  sessions CustomerSession[]
 ```
 
 - [ ] **Step 3: Genera la migration** (senza reseed che clobbera l'admin — passa la password nota):

@@ -3,11 +3,13 @@ import type { PrismaClient, Prisma } from '@prisma/client';
 /** Executor: il PrismaClient o un TransactionClient (per il test in rollback). */
 export type Executor = PrismaClient | Prisma.TransactionClient;
 
-/** Tabelle non-tenant preservate SEMPRE (identità/audit/migrazioni). */
+/** Tabelle non-tenant preservate SEMPRE (identità/audit/migrazioni, token cliente fuori-RLS). */
 export const KEEP_LIST: readonly string[] = [
   'User',
   'Establishment',
   'CredentialSetupToken',
+  'CustomerEnrollmentToken',
+  'CustomerSession',
   'PlatformAuditLog',
   '_prisma_migrations',
 ];
@@ -32,8 +34,8 @@ export function selectTablesToWipe(forced: string[], keep: readonly string[]): s
 
 /**
  * Coherence guard: incrocia due criteri indipendenti e aborta rumorosamente sulla divergenza.
- * `forced` (RLS FORCE) deve coincidere con `withEstablishmentId \ keep` (User è l'unica tenant-column
- * non-RLS by design, ADR-0026 → carve-out via keep-list).
+ * `forced` (RLS FORCE) deve coincidere con `withEstablishmentId \ keep` (User, CustomerEnrollmentToken,
+ * CustomerSession sono tabelle non-RLS con establishmentId denormalizzato, ADR-0026 → carve-out via keep-list).
  */
 export function assertCoherence(
   forced: string[],

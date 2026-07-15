@@ -30,6 +30,16 @@ describe('reset-dev core — funzioni pure', () => {
     ).not.toThrow();
   });
 
+  it('assertCoherence passa col carve-out dei token cliente (establishmentId ma non-RLS)', () => {
+    expect(() =>
+      assertCoherence(
+        ['Booking', 'Customer'],
+        ['Booking', 'Customer', 'CustomerEnrollmentToken', 'CustomerSession'],
+        KEEP_LIST,
+      ),
+    ).not.toThrow();
+  });
+
   it('assertCoherence aborta se una tenant table (establishmentId) manca RLS FORCE', () => {
     expect(() => assertCoherence(['Booking'], ['Booking', 'Customer'], KEEP_LIST)).toThrow(
       /senza RLS FORCE.*Customer/,
