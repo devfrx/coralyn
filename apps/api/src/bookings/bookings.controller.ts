@@ -1,5 +1,11 @@
 import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, Patch, Post, Query } from '@nestjs/common';
-import type { BookingDTO, BookingQuoteDTO, CustomerProvisionResponse, SubscriptionListItemDTO } from '@coralyn/contracts';
+import type {
+  BookingDTO,
+  BookingQuoteDTO,
+  CustomerAccessStatusDTO,
+  CustomerProvisionResponse,
+  SubscriptionListItemDTO,
+} from '@coralyn/contracts';
 import { Role } from '@coralyn/contracts';
 import { BookingsService } from './bookings.service';
 import { CreateBookingDto } from './dto/create-booking.dto';
@@ -108,6 +114,12 @@ export class BookingsController {
   @Roles(Role.Admin)
   cancelAbsenceRelease(@Param('id') id: string, @Param('rid') rid: string): Promise<BookingDTO> {
     return this.bookings.cancelAbsenceRelease(id, rid);
+  }
+
+  @Get(':id/customer-access')
+  @Roles(Role.Admin)
+  customerAccessStatus(@Param('id') id: string): Promise<CustomerAccessStatusDTO> {
+    return this.customerAccess.accessStatusForBooking(id);
   }
 
   @Post(':id/customer-access')

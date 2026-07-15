@@ -20,15 +20,22 @@ export class CustomerAccessService {
     return Number(this.config.get<string>('CUSTOMER_ENROLLMENT_TTL_HOURS') || '2160');
   }
 
-  /** Provisiona l'accesso del cliente titolare della booking. Invalida enrollment/sessioni vivi
-   *  precedenti (rotazione pulita) e crea un nuovo enrollment one-time. admin-only (controller). */
-  async provisionAccess(bookingId: string, createdByUserId: string): Promise<CustomerProvisionResponse> {
+  /** Risolve il customerId titolare della booking, tenant-scoped (RLS): 404 se la booking
+   *  non è nel tenant corrente o non esiste. Unico punto di risoluzione booking→customer. */
+  private async resolveCustomerId(bookingId: string): Promise<string> {
     const tenantId = this.tenant.require();
-    // 1. Risolvi il customer titolare, tenant-scoped (RLS).
     const booking = await this.prisma.forTenant(tenantId, async (tx) => {
       return tx.booking.findFirst({ where: { id: bookingId }, select: { customerId: true } });
     });
     if (!booking) throw new NotFoundException('Prenotazione non trovata');
+    return booking.customerId;
+  }
+
+  /** Provisiona l'accesso del cliente titolare della booking. Invalida enrollment/sessioni vivi
+   *  precedenti (rotazione pulita) e crea un nuovo enrollment one-time. admin-only (controller). */
+  async provisionAccess(bookingId: string, createdByUserId: string): Promise<CustomerProvisionResponse> {
+    const tenantId = this.tenant.require();
+    const customerId = await this.resolveCustomerId(bookingId);
 
     const raw = generateRawToken();
     const pin = generatePin();
@@ -38,15 +45,15 @@ export class CustomerAccessService {
     // 2. Tabelle fuori-RLS → prisma diretto (no forTenant). establishmentId denorm = tenantId.
     await this.prisma.$transaction(async (tx) => {
       await tx.customerEnrollmentToken.updateMany({
-        where: { customerId: booking.customerId, revokedAt: null },
+        where: { customerId, revokedAt: null },
         data: { revokedAt: new Date() },
       });
       await tx.customerSession.updateMany({
-        where: { customerId: booking.customerId, revokedAt: null },
+        where: { customerId, revokedAt: null },
         data: { revokedAt: new Date() },
       });
       await tx.customerEnrollmentToken.create({
-        data: { customerId: booking.customerId, establishmentId: tenantId, tokenHash, pinHash, expiresAt, createdByUserId },
+        data: { customerId, establishmentId: tenantId, tokenHash, pinHash, expiresAt, createdByUserId },
       });
     });
 
@@ -56,20 +63,23 @@ export class CustomerAccessService {
 
   /** Revoca l'accesso del cliente titolare della booking (enrollment + sessioni). admin-only. */
   async revokeAccess(bookingId: string): Promise<void> {
-    const tenantId = this.tenant.require();
-    const booking = await this.prisma.forTenant(tenantId, async (tx) => {
-      return tx.booking.findFirst({ where: { id: bookingId }, select: { customerId: true } });
-    });
-    if (!booking) throw new NotFoundException('Prenotazione non trovata');
+    const customerId = await this.resolveCustomerId(bookingId);
     const now = new Date();
     await this.prisma.$transaction(async (tx) => {
-      await tx.customerEnrollmentToken.updateMany({ where: { customerId: booking.customerId, revokedAt: null }, data: { revokedAt: now } });
-      await tx.customerSession.updateMany({ where: { customerId: booking.customerId, revokedAt: null }, data: { revokedAt: now } });
+      await tx.customerEnrollmentToken.updateMany({ where: { customerId, revokedAt: null }, data: { revokedAt: now } });
+      await tx.customerSession.updateMany({ where: { customerId, revokedAt: null }, data: { revokedAt: now } });
     });
   }
 
+  /** Stato accesso per una booking (Scheda cliente). Risolve il customer tenant-scoped
+   *  (nessun IDOR cross-tenant), poi delega allo stato per-cliente. admin-only (controller). */
+  async accessStatusForBooking(bookingId: string): Promise<CustomerAccessStatusDTO> {
+    const customerId = await this.resolveCustomerId(bookingId);
+    return this.accessStatus(customerId);
+  }
+
   /** Stato accesso per la Scheda cliente (nessun segreto). */
-  async accessStatus(customerId: string): Promise<CustomerAccessStatusDTO> {
+  private async accessStatus(customerId: string): Promise<CustomerAccessStatusDTO> {
     const latest = await this.prisma.customerEnrollmentToken.findFirst({
       where: { customerId },
       orderBy: { createdAt: 'desc' },

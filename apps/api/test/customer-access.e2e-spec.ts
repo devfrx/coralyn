@@ -288,4 +288,79 @@ describe('Customer access provisioning (D-035 S3)', () => {
         .expect(401);
     });
   });
+
+  describe('Customer access status (D-051)', () => {
+    let freshBookingId: string;
+
+    beforeAll(async () => {
+      const c = await prisma.forTenant(s1, (tx) =>
+        tx.customer.create({ data: { establishmentId: s1, firstName: 'Nuovo', lastName: 'Cliente' } }),
+      );
+      const b = await insertBookingWithCoverage(prisma, s1, {
+        establishmentId: s1,
+        customerId: c.id,
+        umbrellaId: ids.u1,
+        timeSlotId: ids.slotMorning,
+        startDate: new Date('2026-07-11'),
+        endDate: new Date('2026-07-11'),
+      });
+      freshBookingId = b.id;
+    });
+
+    it("stato 'none' prima di qualsiasi provisioning", async () => {
+      const r = await request(app.getHttpServer())
+        .get(`/api/bookings/${freshBookingId}/customer-access`)
+        .set(...bearer(adminToken))
+        .expect(200);
+      expect(r.body).toEqual({ state: 'none', lastActivatedAt: null });
+    });
+
+    it("stato 'issued' dopo il provisioning", async () => {
+      await provisionCustomerAccess(app, adminToken, freshBookingId);
+      const r = await request(app.getHttpServer())
+        .get(`/api/bookings/${freshBookingId}/customer-access`)
+        .set(...bearer(adminToken))
+        .expect(200);
+      expect(r.body.state).toBe('issued');
+      expect(r.body.lastActivatedAt).toBeNull();
+    });
+
+    it("stato 'active' dopo l'attivazione", async () => {
+      const { enrollmentToken, pin } = await provisionCustomerAccess(app, adminToken, freshBookingId);
+      await activateCustomer(app, enrollmentToken, pin);
+      const r = await request(app.getHttpServer())
+        .get(`/api/bookings/${freshBookingId}/customer-access`)
+        .set(...bearer(adminToken))
+        .expect(200);
+      expect(r.body.state).toBe('active');
+      expect(r.body.lastActivatedAt).not.toBeNull();
+    });
+
+    it("stato 'revoked' dopo la revoca", async () => {
+      await provisionCustomerAccess(app, adminToken, freshBookingId);
+      await request(app.getHttpServer())
+        .post(`/api/bookings/${freshBookingId}/customer-access/revoke`)
+        .set(...bearer(adminToken))
+        .expect(204);
+      const r = await request(app.getHttpServer())
+        .get(`/api/bookings/${freshBookingId}/customer-access`)
+        .set(...bearer(adminToken))
+        .expect(200);
+      expect(r.body.state).toBe('revoked');
+    });
+
+    it('admin del tenant A su booking del tenant B -> 404 (nessun leak cross-tenant)', async () => {
+      await request(app.getHttpServer())
+        .get(`/api/bookings/${bookingId2}/customer-access`)
+        .set(...bearer(adminToken))
+        .expect(404);
+    });
+
+    it('non-admin (staff) -> 403', async () => {
+      await request(app.getHttpServer())
+        .get(`/api/bookings/${freshBookingId}/customer-access`)
+        .set(...bearer(staffToken))
+        .expect(403);
+    });
+  });
 });
