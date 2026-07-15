@@ -20,6 +20,11 @@ describe('Customer access provisioning (D-035 S3)', () => {
   let ids: MapSeedIds;
   let customerId: string;
   let bookingId: string;
+  // Tenant B: usato solo dai test di isolamento (Task 10).
+  let s2: string;
+  let adminToken2: string;
+  let customerId2: string;
+  let bookingId2: string;
 
   beforeAll(async () => {
     const moduleRef = await Test.createTestingModule({ imports: [AppModule] }).compile();
@@ -48,24 +53,53 @@ describe('Customer access provisioning (D-035 S3)', () => {
       endDate: new Date('2026-07-10'),
     });
     bookingId = booking.id;
+
+    // Tenant B (isolamento): stabilimento + admin + mappa + customer + booking-subscription.
+    s2 = (await prisma.establishment.create({ data: { name: 'CA B' } })).id;
+    await createUser(prisma, { email: 'cb.admin@e2e.test', password: 'pw1', role: Role.admin, establishmentId: s2 });
+    adminToken2 = await login(app, 'cb.admin@e2e.test', 'pw1');
+
+    const ids2 = await seedMapTenant(prisma, s2);
+    const customerB = await prisma.forTenant(s2, (tx) =>
+      tx.customer.create({ data: { establishmentId: s2, firstName: 'Luigi', lastName: 'Verdi' } }),
+    );
+    customerId2 = customerB.id;
+    const bookingB = await insertBookingWithCoverage(prisma, s2, {
+      establishmentId: s2,
+      customerId: customerId2,
+      umbrellaId: ids2.u1,
+      timeSlotId: ids2.slotMorning,
+      startDate: new Date('2026-07-10'),
+      endDate: new Date('2026-07-10'),
+    });
+    bookingId2 = bookingB.id;
   });
 
   afterAll(async () => {
-    await prisma.customerSession.deleteMany({ where: { customerId } });
-    await prisma.customerEnrollmentToken.deleteMany({ where: { customerId } });
+    await prisma.customerSession.deleteMany({ where: { customerId: { in: [customerId, customerId2] } } });
+    await prisma.customerEnrollmentToken.deleteMany({ where: { customerId: { in: [customerId, customerId2] } } });
     await prisma.forTenant(s1, (tx) => tx.booking.deleteMany({}));
     await prisma.forTenant(s1, (tx) => tx.customer.deleteMany({}));
     await cleanMapTenant(prisma, s1);
-    await prisma.user.deleteMany({ where: { email: { in: ['ca.admin@e2e.test', 'ca.staff@e2e.test'] } } });
-    await prisma.establishment.deleteMany({ where: { id: s1 } });
+    await prisma.forTenant(s2, (tx) => tx.booking.deleteMany({}));
+    await prisma.forTenant(s2, (tx) => tx.customer.deleteMany({}));
+    await cleanMapTenant(prisma, s2);
+    await prisma.user.deleteMany({
+      where: { email: { in: ['ca.admin@e2e.test', 'ca.staff@e2e.test', 'cb.admin@e2e.test'] } },
+    });
+    await prisma.establishment.deleteMany({ where: { id: { in: [s1, s2] } } });
     await app.close();
   });
 
-  /** Provisiona un enrollment fresco (admin) e restituisce raw token + pin per l'attivazione. */
-  async function provision(): Promise<{ token: string; pin: string }> {
+  /** Provisiona un enrollment fresco (admin) e restituisce raw token + pin per l'attivazione.
+   *  Default sul tenant A; parametrizzabile per l'isolamento cross-tenant (Task 10). */
+  async function provision(
+    bId: string = bookingId,
+    aToken: string = adminToken,
+  ): Promise<{ token: string; pin: string }> {
     const res = await request(app.getHttpServer())
-      .post(`/api/bookings/${bookingId}/customer-access`)
-      .set(...bearer(adminToken))
+      .post(`/api/bookings/${bId}/customer-access`)
+      .set(...bearer(aToken))
       .expect(201);
     // activationUrl è relativo in test (CUSTOMER_APP_URL non settato): estrai il token via regex.
     const token = res.body.activationUrl.match(/token=([^&]+)/)![1];
@@ -230,6 +264,29 @@ describe('Customer access provisioning (D-035 S3)', () => {
       await request(app.getHttpServer())
         .post('/api/customer/refresh')
         .send({ refreshToken })
+        .expect(401);
+    });
+  });
+
+  describe('Customer channel isolation (D-035 S3, sicurezza)', () => {
+    it('un access JWT del tenant A non risolve dati del tenant B', async () => {
+      const { accessToken } = await activate(); // sessione del cliente di A
+
+      const r = await request(app.getHttpServer())
+        .get('/api/customer/me')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .expect(200);
+      expect(r.body.establishmentName).toBe('CA A'); // mai 'CA B'
+    });
+
+    it("l'enrollment del tenant A non è attivabile con il PIN del tenant B", async () => {
+      const a = await provision(); // tenant A: tokenA + pinA
+      const b = await provision(bookingId2, adminToken2); // tenant B: tokenB + pinB
+
+      // token di A con PIN di B -> 401 (il PIN è legato al singolo enrollment)
+      await request(app.getHttpServer())
+        .post('/api/customer/activate')
+        .send({ enrollmentToken: a.token, pin: b.pin })
         .expect(401);
     });
   });
