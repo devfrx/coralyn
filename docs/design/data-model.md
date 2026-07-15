@@ -77,6 +77,21 @@
 > canale cliente (S4). Vedi [ADR-0048](../architecture/decisions/0048-assenze-comunicate-release-occupazione.md)
 > e la spec
 > [2026-07-09-assenze-comunicate-release-operatore-design.md](../superpowers/specs/2026-07-09-assenze-comunicate-release-operatore-design.md).
+>
+> **Slice D-035 (canale cliente, sotto-slice S3 — fondazione auth, implementata):** due nuove tabelle
+> **fuori-RLS** — `CustomerEnrollmentToken` e `CustomerSession` — danno al cliente del lido un accesso
+> self-service **provisioned dall'operatore** (non self-registration). L'operatore genera un **enrollment
+> token opaco** (nel QR/link) + un **PIN** a 6 cifre; il cliente attiva one-time+PIN e riceve un **access JWT
+> cliente** breve (`kind:'customer'`, 30m) + un **refresh token device-bound rotante**. Sono fuori-RLS come
+> `User`/`CredentialSetupToken` ([ADR-0026](../architecture/decisions/0026-identita-rls-utente.md)): dato
+> d'identità **pre-tenant**, con `establishmentId` **denormalizzato** come sorgente del tenant (un
+> `CustomerJwtGuard` dedicato lo estrae dal claim e popola `req.tenantId`, così `forTenant`/RLS restano
+> invariati a valle). Segreti solo-hash (token `sha256`, PIN argon2id via `PasswordHasher`); refresh rotante
+> con theft-detection (riuso ⇒ revoca catena); rate-limit controller-scoped su `/customer/*`. Risolve
+> [D-026](../architecture/deferred.md)/[D-027](../architecture/deferred.md)/[D-029](../architecture/deferred.md).
+> Vedi [ADR-0049](../architecture/decisions/0049-auth-cliente-provisioned-tenant-pubblico.md) e la spec
+> [2026-07-10-canale-cliente-self-service-d035-s3-s4-design.md](../superpowers/specs/2026-07-10-canale-cliente-self-service-d035-s3-s4-design.md).
+> S4 (feature release `source='customer'` + app `web-customer`) è un piano separato.
 
 Fonte di verità del modello dati del Core operativo. Decisioni:
 [mappa](../architecture/decisions/0005-modello-mappa.md),
@@ -119,6 +134,12 @@ erDiagram
     ESTABLISHMENT ||--o{ ABSENCE_RELEASE : "possiede"
     CUSTOMER ||--o{ BOOKING_TRANSFER : "cede via (previousCustomer)"
     CUSTOMER ||--o{ BOOKING_TRANSFER : "riceve via (newCustomer)"
+    CUSTOMER ||--o{ CUSTOMER_ENROLLMENT_TOKEN : "accesso provisioned via"
+    CUSTOMER ||--o{ CUSTOMER_SESSION : "sessione via"
+    ESTABLISHMENT ||--o{ CUSTOMER_ENROLLMENT_TOKEN : "possiede (denorm, fuori-RLS)"
+    ESTABLISHMENT ||--o{ CUSTOMER_SESSION : "possiede (denorm, fuori-RLS)"
+    CUSTOMER_ENROLLMENT_TOKEN ||--o{ CUSTOMER_SESSION : "attiva (0..N)"
+    CUSTOMER_SESSION ||--o| CUSTOMER_SESSION : "ruotata da (rotatedFrom)"
     CUSTOMER ||--o{ WAITLIST : "richiede"
     SEASON ||--o{ RENEWAL_CAMPAIGN : "origine di"
     SEASON ||--o{ RENEWAL_CAMPAIGN : "destinazione di"
@@ -271,6 +292,31 @@ erDiagram
         string source "operator|customer (default operator); S4 additivo"
         timestamp canceledAt "nullable; annullo soft prima della rivendita; null = attiva"
         string reason "nullable"
+        timestamp createdAt
+    }
+    CUSTOMER_ENROLLMENT_TOKEN {
+        uuid id PK
+        uuid customerId FK "CASCADE"
+        uuid establishmentId FK "denorm: SORGENTE DEL TENANT (fuori-RLS, ADR-0026)"
+        string tokenHash "sha256(raw); raw solo nel link consegnato, mai a riposo"
+        string pinHash "argon2id(PIN); 2o fattore, mai in chiaro"
+        int pinAttempts "default 0; lock a CUSTOMER_PIN_MAX_ATTEMPTS"
+        timestamp expiresAt
+        timestamp activatedAt "nullable; one-time: valorizzato alla 1a attivazione"
+        timestamp revokedAt "nullable; revoca operatore / lock PIN"
+        uuid createdByUserId "admin che ha provisionato"
+        timestamp createdAt
+    }
+    CUSTOMER_SESSION {
+        uuid id PK
+        uuid customerId FK "CASCADE"
+        uuid establishmentId FK "denorm: tenant (fuori-RLS)"
+        uuid enrollmentTokenId FK "CASCADE; la catena della sessione"
+        string refreshTokenHash "sha256(raw); raw solo sul device, device-bound"
+        uuid rotatedFromId FK "nullable, self-link; catena di rotazione per theft-detection"
+        timestamp expiresAt
+        timestamp revokedAt "nullable; rotazione / logout / revoca operatore"
+        timestamp lastUsedAt "nullable"
         timestamp createdAt
     }
     WAITLIST {
@@ -443,3 +489,18 @@ erDiagram
   ([ADR-0026](../architecture/decisions/0026-identita-rls-utente.md)). Il tenant delle richieste
   è ricavato dal **JWT** dalla `JwtAuthGuard`, che popola `req.tenantId`
   ([ADR-0024](../architecture/decisions/0024-strategia-auth.md)).
+- **Auth canale cliente (D-035 S3, [ADR-0049](../architecture/decisions/0049-auth-cliente-provisioned-tenant-pubblico.md))**:
+  `CustomerEnrollmentToken` e `CustomerSession` sono **fuori-RLS** come `User`/`CredentialSetupToken` (dato
+  d'identità **pre-tenant**): l'`establishmentId` **denormalizzato** è la **sorgente del tenant**, non una
+  colonna filtrata da RLS. L'accesso è **provisioned dall'operatore** (admin), mai self-registration: token
+  opaco one-time + PIN (secondo fattore), entrambi **solo-hash** a riposo (token `sha256`, PIN argon2id via
+  `PasswordHasher`). L'attivazione emette un **access JWT cliente** breve (`kind:'customer'`, claim `sub`
+  /`establishmentId`) + un **refresh token device-bound rotante**; un `CustomerJwtGuard` **dedicato**
+  (controller-scoped, le rotte `/customer/*` sono `@Public()` rispetto alla `JwtAuthGuard` staff) valida
+  l'access JWT e popola `req.tenantId = establishmentId` **dal claim**, così `forTenant`/RLS restano invariati
+  a valle. Ownership a **due assi**: RLS isola il tenant, il principal (`req.customer.id`) isola il cliente
+  nel tenant. La sessione ruota a ogni refresh (`rotatedFromId`); il **riuso** di un refresh già ruotato è
+  furto ⇒ **revoca dell'intera catena** (`enrollmentTokenId`). Fallimenti auth = **401 generico** (no
+  enumeration, D-029); rate-limit controller-scoped su `/customer/*` (D-027). Risolve
+  [D-026](../architecture/deferred.md)/[D-027](../architecture/deferred.md)/[D-029](../architecture/deferred.md);
+  [D-028](../architecture/deferred.md) (percorso RLS `User`) valutato e confermato non-trigger.

@@ -359,3 +359,78 @@ hardening, copiata da spec §5):
 > debito estinto. «Incassato» (Scheda cliente) è **netto dei rimborsi**: `Σ (amountCollected − refundedAmount)`,
 > coerente col ledger cumulativo `refundedAmount` (disdetta + sospensione).
 
+## 9. Auth del canale cliente: provisioning → attivazione → sessione rotante (D-035 S3, implementata)
+
+L'operatore (admin) **provisiona** l'accesso self-service del cliente dalla sua prenotazione-abbonamento; il
+cliente attiva one-time+PIN e ottiene una sessione device-bound rotante. È la **fondazione auth** del canale
+cliente (S3): la feature release `source='customer'` e l'app `web-customer` sono S4. Il tenant è **derivato
+dal token** (denormalizzato sulle tabelle fuori-RLS), così `forTenant`/RLS restano invariati a valle. Vedi la
+[spec](../superpowers/specs/2026-07-10-canale-cliente-self-service-d035-s3-s4-design.md),
+[ADR-0049](../architecture/decisions/0049-auth-cliente-provisioned-tenant-pubblico.md) (accesso provisioned +
+tenant pubblico), [ADR-0026](../architecture/decisions/0026-identita-rls-utente.md) (fuori-RLS),
+[ADR-0042](../architecture/decisions/0042-trasporto-email-e-consegna-credenziali.md) (token opaco hashato).
+
+**Flusso end-to-end** (operatore admin → cliente sul proprio device):
+
+```mermaid
+flowchart TD
+    OP["Operatore (admin): POST /bookings/:id/customer-access"] --> PROV["Genera enrollment token opaco + PIN 6 cifre<br/>(solo-hash a riposo) · invalida enrollment/sessioni vivi precedenti"]
+    PROV --> LINK["activationUrl (token nel QR/link) + PIN mostrato UNA volta"]
+    LINK --> ACT["Cliente: POST /customer/activate {enrollmentToken, pin}"]
+    ACT --> GA{Guardie}
+    GA -->|token inesistente/scaduto/revocato/già attivato| E401a[401 generico]
+    GA -->|PIN errato| INC["pinAttempts++ ; lock a soglia"]
+    INC --> E401b[401 generico]
+    GA -->|token valido + PIN ok| OK["claim one-time atomico (activatedAt) +<br/>CustomerSession.create (refresh) + access JWT"]
+    OK --> SESS["{ accessToken 30m, refreshToken device-bound }"]
+    SESS --> USE{Uso}
+    USE -->|GET /customer/me + Bearer JWT| ME["CustomerJwtGuard: req.tenantId dal claim → profilo"]
+    USE -->|POST /customer/refresh| ROT["Rotazione (vedi sotto)"]
+    USE -->|POST /customer/logout| LO["Revoca la sessione (dal refresh)"]
+    OP -.->|POST /bookings/:id/customer-access/revoke| REV["Revoca enrollment + sessioni vive del cliente"]
+```
+
+**Macchina a stati dell'enrollment** (`CustomerEnrollmentToken`; stato esposto dal `CustomerAccessStatusDTO`
+per la Scheda cliente: `none | issued | active | revoked`):
+
+```mermaid
+stateDiagram-v2
+    [*] --> issued: provision (POST customer-access)<br/>tokenHash+pinHash, expiresAt
+    issued --> active: activate ok (token+PIN)<br/>activatedAt, one-time consumato
+    issued --> revoked: PIN oltre soglia (lock) ·<br/>expire · revoca operatore · ri-provisioning
+    active --> revoked: revoca operatore · ri-provisioning
+    revoked --> [*]
+    note right of issued
+        activate con token già attivato → 401
+        (one-time: claim atomico activatedAt:null)
+    end note
+    note right of active
+        emette la 1a CustomerSession;
+        i refresh successivi rotano la sessione,
+        non ri-consumano l'enrollment
+    end note
+```
+
+**Rotazione della sessione + theft-detection** (`CustomerSession`, D-026):
+
+```mermaid
+flowchart LR
+    R0["POST /customer/refresh {refreshToken}"] --> F{Lookup refreshTokenHash}
+    F -->|non trovato| X1[401 generico]
+    F -->|trovato, revokedAt != null| THEFT["RIUSO di un refresh già ruotato = furto<br/>→ revoca l'INTERA catena (enrollmentTokenId)"]
+    THEFT --> X2[401 generico]
+    F -->|scaduto| X3[401 generico]
+    F -->|vivo| ROT["revoca il corrente (rotatedInto) +<br/>crea nuovo refresh (rotatedFromId) + nuovo access JWT"]
+    ROT --> OUT["{ accessToken, refreshToken nuovo }"]
+```
+
+> **Invarianti chiave** (spec §5, [ADR-0049](../architecture/decisions/0049-auth-cliente-provisioned-tenant-pubblico.md)):
+> segreti **mai in chiaro** a riposo (token `sha256`, PIN argon2id); attivazione **one-time** (claim atomico
+> `updateMany` con `activatedAt: null` → race-safe) + **PIN** come 2° fattore con **lock** a
+> `CUSTOMER_PIN_MAX_ATTEMPTS`; ogni fallimento è un **401 generico identico** (no enumeration, D-029); il
+> **tenant** è quello del **claim** (`establishmentId`), popolato in `req.tenantId` dal `CustomerJwtGuard`, mai
+> da header/path; ownership a due assi (RLS = tenant, principal = cliente-nel-tenant); refresh **device-bound
+> rotante** con **theft-detection** (riuso di un refresh ruotato ⇒ revoca dell'intera catena della sessione,
+> D-026); revoca operatore e ri-provisioning invalidano enrollment + sessioni vive; rate-limit
+> **controller-scoped** su `/customer/*` (`CUSTOMER_THROTTLE_LIMIT`/60s, D-027), non un guard globale.
+
