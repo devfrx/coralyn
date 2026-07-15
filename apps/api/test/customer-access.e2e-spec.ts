@@ -61,6 +61,17 @@ describe('Customer access provisioning (D-035 S3)', () => {
     await app.close();
   });
 
+  /** Provisiona un enrollment fresco (admin) e restituisce raw token + pin per l'attivazione. */
+  async function provision(): Promise<{ token: string; pin: string }> {
+    const res = await request(app.getHttpServer())
+      .post(`/api/bookings/${bookingId}/customer-access`)
+      .set(...bearer(adminToken))
+      .expect(201);
+    // activationUrl è relativo in test (CUSTOMER_APP_URL non settato): estrai il token via regex.
+    const token = res.body.activationUrl.match(/token=([^&]+)/)![1];
+    return { token, pin: res.body.pin };
+  }
+
   it('POST /bookings/:id/customer-access ritorna activationUrl+pin+expiresAt (admin)', async () => {
     const res = await request(app.getHttpServer())
       .post(`/api/bookings/${bookingId}/customer-access`)
@@ -101,5 +112,48 @@ describe('Customer access provisioning (D-035 S3)', () => {
       .post(`/api/bookings/${bookingId}/customer-access`)
       .set(...bearer(staffToken))
       .expect(403);
+  });
+
+  describe('Customer activate (D-035 S3)', () => {
+    it('token+PIN corretti -> { accessToken, refreshToken }, consuma il one-time', async () => {
+      const { token, pin } = await provision();
+
+      const res = await request(app.getHttpServer())
+        .post('/api/customer/activate')
+        .send({ enrollmentToken: token, pin })
+        .expect(200);
+      expect(typeof res.body.accessToken).toBe('string');
+      expect(typeof res.body.refreshToken).toBe('string');
+
+      // seconda attivazione con lo stesso token -> 401 (one-time già consumato)
+      await request(app.getHttpServer())
+        .post('/api/customer/activate')
+        .send({ enrollmentToken: token, pin })
+        .expect(401);
+    });
+
+    it('PIN errato -> 401 generico e incrementa i tentativi; oltre soglia -> lock (revokedAt)', async () => {
+      const { token, pin } = await provision();
+      const wrong = pin === '000000' ? '111111' : '000000';
+
+      for (let i = 0; i < 5; i++) {
+        await request(app.getHttpServer())
+          .post('/api/customer/activate')
+          .send({ enrollmentToken: token, pin: wrong })
+          .expect(401);
+      }
+      // soglia superata: ora anche col PIN GIUSTO -> 401 (enrollment revocato/lock)
+      await request(app.getHttpServer())
+        .post('/api/customer/activate')
+        .send({ enrollmentToken: token, pin })
+        .expect(401);
+    });
+
+    it('token inesistente -> 401 generico', async () => {
+      await request(app.getHttpServer())
+        .post('/api/customer/activate')
+        .send({ enrollmentToken: 'nope', pin: '123456' })
+        .expect(401);
+    });
   });
 });

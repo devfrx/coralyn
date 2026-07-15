@@ -4,6 +4,8 @@ import { ConfigService } from '@nestjs/config';
 import { CustomerTokenService } from './customer-token.service';
 import { CustomerJwtGuard } from './customer-jwt.guard';
 import { CustomerAccessService } from './customer-access.service';
+import { CustomerSessionService } from './customer-session.service';
+import { CustomerAuthController } from './customer-auth.controller';
 import { TenantModule } from '../tenant/tenant.module';
 import { PasswordHasher } from '../identity/password-hasher';
 
@@ -21,7 +23,14 @@ import { PasswordHasher } from '../identity/password-hasher';
       }),
     }),
   ],
-  providers: [CustomerTokenService, CustomerJwtGuard, CustomerAccessService, PasswordHasher],
-  exports: [CustomerTokenService, CustomerJwtGuard, CustomerAccessService],
+  controllers: [CustomerAuthController],
+  providers: [
+    CustomerTokenService,
+    CustomerJwtGuard,
+    CustomerAccessService,
+    CustomerSessionService,
+    PasswordHasher,
+  ],
+  exports: [CustomerTokenService, CustomerJwtGuard, CustomerAccessService, CustomerSessionService],
 })
 export class CustomerAuthModule {}

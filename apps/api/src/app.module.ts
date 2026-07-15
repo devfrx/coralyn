@@ -12,6 +12,7 @@ import { CatalogModule } from './catalog/catalog.module';
 import { ReportsModule } from './reports/reports.module';
 import { EstablishmentModule } from './establishment/establishment.module';
 import { PlatformModule } from './platform/platform.module';
+import { CustomerAuthModule } from './customer-auth/customer-auth.module';
 import { PrismaExceptionFilter } from './common/prisma-exception.filter';
 
 @Module({
@@ -27,6 +28,7 @@ import { PrismaExceptionFilter } from './common/prisma-exception.filter';
     ReportsModule,
     EstablishmentModule,
     PlatformModule,
+    CustomerAuthModule,
   ],
   controllers: [HealthController],
   providers: [{ provide: APP_FILTER, useClass: PrismaExceptionFilter }],
