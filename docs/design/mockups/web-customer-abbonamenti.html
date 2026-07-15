@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Coralyn — web-customer: I miei abbonamenti (mockup)</title>
+<style>
+  /* Mockup self-contained (ADR-0009): nessun asset esterno, nessun build.
+     Palette "Mediterraneo Caldo" (ADR-0027), coerente con Coralyn.dc.html. */
+  :root{
+    --sand:#ECE3D5; --panel:#FBF6EE; --panel-2:#F4ECE0;
+    --teal-900:#0F3C49; --teal-700:#16505E; --teal-border:#23606E;
+    --ink:#2B2722; --muted:#8A8175; --muted-teal:#6E9197;
+    --coral:#E0795A; --coral-700:#C9613F;
+    --border:#E7DCCB; --border-2:#D8CBB6;
+    --ok:#2E7D6B; --warn:#B77A2B; --danger:#B4472E;
+    --radius:14px;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    font-family:'Inter',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+    background:var(--sand); color:var(--ink);
+    -webkit-font-smoothing:antialiased; padding:28px 20px 60px;
+  }
+  .doc{max-width:1120px;margin:0 auto;}
+  .doc-head{margin-bottom:22px;}
+  .doc-head h1{font-size:20px;font-weight:700;letter-spacing:-.01em;margin:0 0 6px;}
+  .doc-head p{margin:0;color:var(--muted);font-size:13px;line-height:1.5;max-width:78ch;}
+  .badge-design{display:inline-block;font-size:10px;font-weight:600;letter-spacing:.08em;
+    text-transform:uppercase;color:#1f5a3f;background:#DEEDE2;border:1px solid #BEDBC6;
+    padding:3px 9px;border-radius:99px;margin-bottom:10px;}
+  .gallery{display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:22px;align-items:start;}
+  .frame{background:var(--panel-2);border:1px solid var(--border);border-radius:18px;padding:16px;
+    box-shadow:0 1px 2px rgba(43,39,34,.04);}
+  .frame > .cap{font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;
+    color:var(--muted-teal);margin:2px 2px 12px;}
+
+  /* ---- Phone frame (PWA cliente) ---- */
+  .phone{width:100%;max-width:360px;margin:0 auto;background:var(--panel);border:1px solid var(--border-2);
+    border-radius:32px;box-shadow:0 18px 44px -20px rgba(15,60,73,.4);padding:8px;}
+  .phone-bar{display:flex;justify-content:space-between;align-items:center;padding:6px 16px 4px;
+    font-size:11px;font-weight:600;color:var(--muted);}
+  .phone-screen{background:var(--sand);border-radius:26px;padding:20px 16px 24px;min-height:600px;}
+
+  /* ---- App content ---- */
+  .app-h1{font-size:20px;font-weight:700;letter-spacing:-.02em;margin:0 0 3px;color:var(--ink);}
+  .app-sub{margin:0 0 16px;font-size:12.5px;color:var(--muted);}
+
+  .sec-card{background:var(--panel);border:1px solid var(--border);border-radius:var(--radius);
+    padding:13px 14px;margin-bottom:14px;}
+  .sec-card .h{display:flex;align-items:flex-start;gap:10px;margin-bottom:8px;}
+  .sec-ic{width:34px;height:34px;flex:none;border-radius:9px;background:linear-gradient(150deg,#85B4B2,#5E9AA6);
+    display:flex;align-items:center;justify-content:center;color:#0F3C49;}
+  .sec-ic svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;}
+  .sec-card .t{font-size:13.5px;font-weight:600;flex:1;}
+  .badge{font-size:10px;font-weight:600;letter-spacing:.03em;padding:3px 8px;border-radius:99px;white-space:nowrap;}
+  .badge.success{background:#DEEDE2;border:1px solid #BEDBC6;color:#1f5a3f;}
+  .badge.neutral{background:#F1EEE7;border:1px solid var(--border);color:var(--muted);}
+  .sec-card .range{margin:0 0 2px;font-size:12.5px;color:var(--ink);}
+  .sec-card .season{margin:0 0 10px;font-size:11.5px;color:var(--muted);}
+  .btn{font:inherit;font-size:12px;font-weight:600;border-radius:9px;padding:7px 12px;cursor:pointer;
+    border:1px solid transparent;display:inline-flex;align-items:center;gap:6px;}
+  .btn-secondary{background:#EEE7DB;color:var(--teal-900);border-color:var(--border-2);}
+  .btn-ghost{background:transparent;border-color:var(--border-2);color:var(--ink);}
+  .rel-label{font-size:10.5px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;
+    color:var(--muted);margin:12px 0 6px;}
+  .rel-row{display:flex;align-items:center;gap:8px;font-size:12px;background:var(--panel-2);
+    border:1px solid var(--border);border-radius:9px;padding:7px 10px;margin-bottom:6px;}
+  .rel-row .grow{flex:1;}
+  .empty{text-align:center;padding:36px 12px;color:var(--muted);font-size:13px;}
+  .foot-note{margin-top:26px;color:var(--muted);font-size:12px;line-height:1.55;max-width:86ch;}
+  .foot-note code{background:#F1EADC;padding:1px 5px;border-radius:5px;font-size:11.5px;}
+</style>
+</head>
+<body>
+<div class="doc">
+  <div class="doc-head">
+    <span class="badge-design">Mockup · implementata (D-035 S4)</span>
+    <h1>web-customer — I miei abbonamenti (<code>MySubscriptionsView</code>)</h1>
+    <p>Vista principale post-login: lista <b>read-only</b> degli abbonamenti del cliente autenticato
+      (<code>GET /customer/me/subscriptions</code>, riusa <code>CustomerBookingDTO</code>), con il canale
+      "assenze comunicate" — badge di stato consenso e CTA <b>Segnala assenza</b> solo se
+      <code>absenceConsentAt</code> è attivo (il consenso resta gestito dall'operatore, S1). Nessuna barra di
+      navigazione persistente: <code>CustomerShell</code> è minimale (solo <code>RouterView</code> + toast).</p>
+  </div>
+
+  <div class="gallery">
+
+    <!-- ============ LISTA CON ABBONAMENTI ============ -->
+    <div class="frame">
+      <div class="cap">Lista abbonamenti — consenso attivo/non attivo</div>
+      <div class="phone">
+        <div class="phone-bar"><span>9:41</span><span>●●●●</span></div>
+        <div class="phone-screen">
+          <h1 class="app-h1">I miei abbonamenti</h1>
+          <p class="app-sub">Bagno Stella Marina</p>
+
+          <div class="sec-card" data-testid="subscription-row">
+            <div class="h">
+              <span class="sec-ic"><svg viewBox="0 0 24 24"><path d="M3.2 11.5a8.8 8.8 0 0 1 17.6 0Z"/><path d="M12 11.5v6.6a2 2 0 0 0 4 0"/></svg></span>
+              <span class="t">Ombrellone 12 · Fila A</span>
+              <span class="badge success">Assenze comunicate attive</span>
+            </div>
+            <p class="range">01 giu – 15 set 2026</p>
+            <p class="season">Stagione 2026</p>
+            <button class="btn btn-secondary" data-testid="report-absence-b1">Segnala assenza</button>
+
+            <p class="rel-label">Assenze comunicate</p>
+            <div class="rel-row" data-testid="absence-release-row">
+              <span class="grow">22 lug · impegno di lavoro</span>
+              <button class="btn btn-ghost" data-testid="cancel-release-r1">Annulla</button>
+            </div>
+          </div>
+
+          <div class="sec-card" data-testid="subscription-row">
+            <div class="h">
+              <span class="sec-ic"><svg viewBox="0 0 24 24"><path d="M3.2 11.5a8.8 8.8 0 0 1 17.6 0Z"/><path d="M12 11.5v6.6a2 2 0 0 0 4 0"/></svg></span>
+              <span class="t">Ombrellone 07 · Fila C</span>
+              <span class="badge neutral">Assenze comunicate non attive</span>
+            </div>
+            <p class="range">01 giu – 15 set 2026</p>
+            <p class="season">Stagione 2026</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============ EMPTY STATE ============ -->
+    <div class="frame">
+      <div class="cap">Nessun abbonamento attivo</div>
+      <div class="phone">
+        <div class="phone-bar"><span>9:41</span><span>●●●●</span></div>
+        <div class="phone-screen">
+          <h1 class="app-h1">I miei abbonamenti</h1>
+          <p class="app-sub">Bagno Stella Marina</p>
+          <div class="empty">Non hai abbonamenti attivi.</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <p class="foot-note">
+    <b>Note di design.</b> Il pulsante <b>Segnala assenza</b> compare <b>solo</b> se il consenso è attivo — nessun
+    hint di errore lato client, il gate è già a monte (mirror del pattern staff, §7 di
+    <a href="../flows.md">flows.md</a>). Le righe sotto "Assenze comunicate" derivano da
+    <code>sub.absenceReleases[]</code>: <b>Annulla</b> è offerta solo se non annullata e non rivenduta (il caso
+    "rivenduta"/"annullata" è dettagliato nel mockup
+    <a href="web-customer-storico.html">web-customer-storico.html</a>). Componenti riusati dal
+    <code>ui-kit</code> (<code>SectionCard</code>/<code>Badge</code>/<code>Button</code>/<code>EmptyState</code>);
+    nessun nuovo componente.
+  </p>
+</div>
+</body>
+</html>

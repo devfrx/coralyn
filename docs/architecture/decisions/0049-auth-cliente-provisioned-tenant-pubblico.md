@@ -164,6 +164,58 @@ strict. **D-027 risolta** per il canale cliente (il login staff interno resta fu
   scadenza senza segnale di compromissione; la rotazione + theft-detection (riuso ⇒ revoca catena) rende il
   furto **rilevabile e contenibile** (D-026).
 
+## Addendum: S4 realizzata (2026-07-15)
+
+La feature release del canale cliente (S4, deferita da questo ADR in fase S3) è **implementata** sopra la
+fondazione auth sopra descritta, additivamente (nessuna modifica a `bookings.service.ts` oltre l'estensione di
+firma dei due metodi esistenti). Spec/piano:
+[2026-07-10-canale-cliente-self-service-d035-s3-s4-design.md](../../superpowers/specs/2026-07-10-canale-cliente-self-service-d035-s3-s4-design.md),
+piano [2026-07-15-canale-cliente-d035-s4.md](../../superpowers/plans/2026-07-15-canale-cliente-d035-s4.md).
+
+**Tre endpoint cliente** (`CustomerBookingsController`, `@Controller('customer')`, guarded
+`CustomerJwtGuard`): `GET /customer/me/subscriptions` (lista read-only, riusa `CustomerBookingDTO`),
+`POST /customer/subscriptions/:bookingId/absence-releases` e
+`POST /customer/subscriptions/:bookingId/absence-releases/:rid/cancel` — riusano **senza duplicazione** i
+domain service `releaseAbsence`/`cancelAbsenceRelease` di S1/S2 ([ADR-0048](0048-assenze-comunicate-release-occupazione.md)),
+estesi con un parametro opzionale `opts?: { source?: AbsenceReleaseSource; actingCustomerId?: string }`;
+gli endpoint operatore non passano `opts` e restano `source='operator'` — nessuna regressione.
+
+**`source` impostato dal controller, non dal body — refinement di sicurezza sulla spec.** La spec (§6.3) citava
+letteralmente `input.source`; l'implementazione se ne discosta **deliberatamente**: `source` **non** è un campo
+del DTO che il client invia, ma un valore che il `CustomerBookingsController` fissa a `'customer'` prima di
+chiamare il service. Un cliente che potesse scrivere `source='operator'` nel body potrebbe far apparire le
+proprie release come registrate dall'operatore (falsificazione di provenienza) — coerente col vincolo dominante
+di questo ADR (la sicurezza del canale cliente non è negoziabile). Stesso effetto di dominio della spec,
+superficie più sicura.
+
+**Ownership a due assi**, come previsto in (b) sopra e ora effettivamente cablato: RLS isola il **tenant**
+(`req.tenantId` dal `CustomerJwtGuard`, invariato); il **cliente-nel-tenant** è vincolato da
+`actingCustomerId = req.customer.id`, aggiunto al `where` della lookup del booking. Un mismatch (booking di un
+altro cliente, o di un altro tenant) cade nello stesso ramo `NOT_FOUND` → **404** — nessun leak d'esistenza
+distinguibile da un ID inesistente. Verificato da e2e di isolamento cross-tenant e cross-customer dedicati.
+
+**App `web-customer`** (nuova, `apps/web-customer/`): clone di `web-platform` (stesso stack Vue 3 + Vite +
+Pinia + vue-router + TanStack Query + `@coralyn/ui-kit`/`@coralyn/contracts`), PWA (`vite-plugin-pwa`), **chiavi
+`localStorage` distinte** da `web-platform`/`web-staff` (app separata, storage separato — nessuna collisione di
+sessione tra i tre canali sullo stesso device). Tre viste: `ActivationView` (consuma il token dal QR/link +
+PIN), `MySubscriptionsView` (lista abbonamenti + segnalazione/storico assenze inline), `AbsenceReleaseModal`
+(mirror del modale operatore, senza campi operator-only). Mockup:
+[web-customer-attivazione.html](../../design/mockups/web-customer-attivazione.html),
+[web-customer-abbonamenti.html](../../design/mockups/web-customer-abbonamenti.html),
+[web-customer-segnala-assenza.html](../../design/mockups/web-customer-segnala-assenza.html),
+[web-customer-storico.html](../../design/mockups/web-customer-storico.html).
+
+**Interceptor `401` → refresh single-flight (D-037).** `src/lib/http.ts` intercetta ogni `401` globalmente: se
+non è già in corso un refresh, ne avvia uno (`POST /customer/refresh`), **accoda** le richieste concorrenti
+fallite in attesa dell'esito (single-flight — un solo refresh anche con più `401` simultanei), poi le riprova
+con il nuovo access token; se il refresh stesso fallisce, `session.logout()` + redirect a `/attiva`. Gli
+endpoint di `customer-auth` (`activate`/`refresh`/`logout`) sono marcati `retryOn401:false` per evitare
+**ricorsione** (un `401` di `refresh` non deve tentare di nuovo un `refresh`). Questo pattern **chiude D-037
+per `web-customer`**; resta applicabile a `web-staff` come follow-up (vedi [deferred.md](../deferred.md)).
+
+**Nessuna nuova tabella o migration**: le tabelle (`AbsenceRelease` con `source`, `CustomerEnrollmentToken`,
+`CustomerSession`) esistevano già da S1/S2/S3; S4 è puramente additiva su schema invariato.
+
 ## Rubric check ([ADR-0002](0002-decision-rubric.md))
 
 1. **Professionalità** — la sicurezza è trattata come vincolo dominante e risolta in modo coeso

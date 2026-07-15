@@ -359,6 +359,18 @@ hardening, copiata da spec §5):
 > debito estinto. «Incassato» (Scheda cliente) è **netto dei rimborsi**: `Σ (amountCollected − refundedAmount)`,
 > coerente col ledger cumulativo `refundedAmount` (disdetta + sospensione).
 
+> **Canale cliente (D-035 S4, implementata).** Lo stesso flusso sopra (carve giorno-singolo, guardie,
+> invarianti) è ora raggiungibile **anche** dal cliente, dal proprio device, via `POST
+> /customer/subscriptions/:bookingId/absence-releases[/:rid/cancel]` (app `web-customer`,
+> [ADR-0049](../architecture/decisions/0049-auth-cliente-provisioned-tenant-pubblico.md) addendum S4). La
+> meccanica è **identica** (`AbsenceRelease.create`, stesse guardie 422/409, zero cassa); cambiano solo **due**
+> cose: l'attore (cliente autenticato invece di operatore admin) e `AbsenceRelease.source`, che vale
+> `'customer'` invece di `'operator'` — impostato dal **controller** in base al canale, mai da un campo del
+> body. Il consenso (`absenceConsentAt`) resta gestito **solo** dall'operatore (nessun self-service sul
+> consenso); l'ownership cliente-nel-tenant (`actingCustomerId`) è un vincolo aggiuntivo assente sul canale
+> operatore. Mockup: [web-customer-segnala-assenza.html](mockups/web-customer-segnala-assenza.html),
+> [web-customer-storico.html](mockups/web-customer-storico.html).
+
 ## 9. Auth del canale cliente: provisioning → attivazione → sessione rotante (D-035 S3, implementata)
 
 L'operatore (admin) **provisiona** l'accesso self-service del cliente dalla sua prenotazione-abbonamento; il
