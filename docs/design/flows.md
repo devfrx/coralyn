@@ -446,3 +446,11 @@ flowchart LR
 > D-026); revoca operatore e ri-provisioning invalidano enrollment + sessioni vive; rate-limit
 > **controller-scoped** su `/customer/*` (`CUSTOMER_THROTTLE_LIMIT`/60s, D-027), non un guard globale.
 
+**UI operatore del provisioning (D-051, realizzata 2026-07-15).** L'azione `OP["POST /bookings/:id/customer-access"]`
+in cima al diagramma è ora azionabile **dall'interfaccia**, non solo via API diretta: la Scheda cliente in
+`web-staff` mostra una card **«Accesso cliente»** con lo stato corrente dell'enrollment
+(`none | issued | active | revoked`, letto da un nuovo `GET /bookings/:id/customer-access` → `CustomerAccessStatusDTO`,
+admin-only) e le azioni **Genera**/**Rigenera** (chiama `POST /bookings/:id/customer-access`, poi rivela QR + link +
+PIN **una volta** in un modale di reveal, con copia) e **Revoca** (chiama `POST /bookings/:id/customer-access/revoke`,
+dietro conferma). Nessuna nuova macchina a stati: la card riflette 1:1 quella di `CustomerEnrollmentToken` sopra.
+

@@ -236,3 +236,32 @@ per `web-customer`**; resta applicabile a `web-staff` come follow-up (vedi [defe
    (D-028 percorso RLS `User` valutato e confermato non-trigger; D-047 audit attore; storage throttler
    distribuito su scale-out), non silenziosi; `establishmentId` denormalizzato registra un fatto necessario,
    non machinery speculativa.
+
+## Addendum: D-051 — UI operatore provisioning (realizzata 2026-07-15)
+
+Il provisioning descritto in (a)/(c) sopra era, fino a questa slice, azionabile **solo via API diretta**
+(curl): nessuna UI in `web-staff` chiamava `POST /bookings/:id/customer-access` o la sua revoca. **D-051**
+([deferred.md](../deferred.md)) chiude questo gap rendendo la garanzia **provisioning-by-controller** di
+questo ADR **azionabile da interfaccia**, senza cambiarne la semantica: spec
+[2026-07-15-ui-provisioning-accesso-cliente-d051-design.md](../../superpowers/specs/2026-07-15-ui-provisioning-accesso-cliente-d051-design.md),
+piano [2026-07-15-ui-provisioning-accesso-cliente-d051.md](../../superpowers/plans/2026-07-15-ui-provisioning-accesso-cliente-d051.md).
+
+**Nuovo endpoint di sola lettura, tenant-scoped.** `GET /bookings/:id/customer-access` (admin-only) espone lo
+stato dell'enrollment per la Scheda cliente (`CustomerAccessStatusDTO`: `state: none|issued|active|revoked` +
+`lastActivatedAt`), **nessun segreto**. Risolve il `customerId` titolare tramite lo stesso `resolveCustomerId`
+già usato da `provisionAccess`/`revokeAccess` — la booking è cercata `forTenant(tenantId, …)` sotto RLS, quindi
+un `bookingId` di un altro tenant è **invisibile** (404), non un IDOR. Refactor DRY collegato: la logica di
+risoluzione booking→customer, prima duplicata, è ora l'**unico** punto di accesso condiviso dai tre metodi del
+service; `accessStatus` (calcolo dello stato dal `CustomerEnrollmentToken` più recente) è stato reso
+**privato** — nessun chiamante esterno ne ha bisogno, solo `accessStatusForBooking` è pubblico.
+
+**UI `web-staff`**: card **`CustomerAccessCard`** nella Scheda cliente (badge di stato + azioni
+Genera/Rigenera/Revoca, visibile quando il cliente ha ≥1 abbonamento) e modale **`CustomerAccessModal`** che
+rivela QR (nuova dipendenza `qrcode`, generato client-side dall'`activationUrl`) + link + PIN **una volta**,
+con copia — stesso principio "mostrato una sola volta, mai ri-recuperabile" di
+[ADR-0042](0042-trasporto-email-e-consegna-credenziali.md). Tre hook TanStack Query
+(`useCustomerAccessStatus`/`useProvisionCustomerAccess`/`useRevokeCustomerAccess`); icone `copy`/`smartphone`
+aggiunte a `@coralyn/ui-kit`. Mockup: `docs/design/mockups/web-staff-customer-access.html`.
+
+**Nessuna nuova tabella o migration**: additiva su schema e auth invariati da D-035 S3; **nessun nuovo ADR**
+(addendum su questo).

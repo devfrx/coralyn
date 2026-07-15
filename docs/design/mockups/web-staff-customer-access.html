@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Coralyn — web-staff: Accesso cliente (mockup)</title>
+<style>
+  /* Mockup self-contained (ADR-0009): nessun asset esterno, nessun build.
+     Palette "Mediterraneo Caldo" (ADR-0027), coerente con Coralyn.dc.html. */
+  :root{
+    --sand:#ECE3D5; --panel:#FBF6EE; --panel-2:#F4ECE0;
+    --teal-900:#0F3C49; --teal-700:#16505E; --teal-border:#23606E;
+    --ink:#2B2722; --muted:#8A8175; --muted-teal:#6E9197;
+    --coral:#E0795A; --coral-700:#C9613F;
+    --border:#E7DCCB; --border-2:#D8CBB6;
+    --ok:#2E7D6B; --warn:#B77A2B; --danger:#B4472E;
+    --radius:14px;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    font-family:'Inter',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+    background:var(--sand); color:var(--ink);
+    -webkit-font-smoothing:antialiased; padding:28px 20px 60px;
+  }
+  .doc{max-width:1120px;margin:0 auto;}
+  .doc-head{margin-bottom:22px;}
+  .doc-head h1{font-size:20px;font-weight:700;letter-spacing:-.01em;margin:0 0 6px;}
+  .doc-head p{margin:0;color:var(--muted);font-size:13px;line-height:1.5;max-width:78ch;}
+  .badge-design{display:inline-block;font-size:10px;font-weight:600;letter-spacing:.08em;
+    text-transform:uppercase;color:#1f5a3f;background:#DEEDE2;border:1px solid #BEDBC6;
+    padding:3px 9px;border-radius:99px;margin-bottom:10px;}
+  .gallery{display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:22px;align-items:start;}
+  .frame{background:var(--panel-2);border:1px solid var(--border);border-radius:18px;padding:16px;
+    box-shadow:0 1px 2px rgba(43,39,34,.04);}
+  .frame > .cap{font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;
+    color:var(--muted-teal);margin:2px 2px 12px;}
+
+  /* ---- Scheda card excerpt ---- */
+  .card{background:var(--panel);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;}
+  .card-h{display:flex;align-items:center;gap:10px;padding:13px 15px;border-bottom:1px solid var(--border);}
+  .card-h .ic{width:26px;height:26px;flex:none;border-radius:8px;background:linear-gradient(150deg,#85B4B2,#5E9AA6);
+    display:flex;align-items:center;justify-content:center;color:#0F3C49;}
+  .card-h .ic svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round;}
+  .card-h .t{font-size:13.5px;font-weight:600;}
+  .card-b{padding:14px 15px 15px;}
+  .row-top{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;}
+  .row-top .last{margin-top:6px;font-size:11.5px;color:var(--muted);}
+  .actions{display:flex;flex:none;gap:8px;}
+
+  /* ---- Badge (stato accesso) ---- */
+  .badge{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;font-weight:600;
+    padding:4px 10px;border-radius:99px;border:1px solid transparent;}
+  .badge .dot{width:6px;height:6px;border-radius:99px;flex:none;}
+  .badge.neutral{background:#F1EEE7;border-color:var(--border);color:var(--muted);}
+  .badge.neutral .dot{background:var(--border-2);}
+  .badge.warning{background:#FBEFE7;border-color:#F0D6C4;color:var(--warn);}
+  .badge.warning .dot{background:var(--warn);}
+  .badge.success{background:#DEEDE2;border-color:#BEDBC6;color:var(--ok);}
+  .badge.success .dot{background:var(--ok);}
+  .badge.danger{background:#F7E4DF;border-color:#EBC5B9;color:var(--danger);}
+  .badge.danger .dot{background:var(--danger);}
+
+  .hint-inline{margin-top:9px;font-size:11.5px;color:var(--muted);line-height:1.45;}
+
+  /* ---- Buttons ---- */
+  .btn{font:inherit;font-size:12.5px;font-weight:600;border-radius:9px;padding:8px 13px;cursor:pointer;
+    border:1px solid transparent;display:inline-flex;align-items:center;gap:6px;line-height:1;white-space:nowrap;}
+  .btn svg{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;}
+  .btn-primary{background:var(--coral);color:#fff;}
+  .btn-primary:hover{background:var(--coral-700);}
+  .btn-secondary{background:#EEE7DB;color:var(--teal-900);border-color:var(--border-2);}
+  .btn-secondary:hover{background:#E5DCCC;}
+  .btn-danger{background:transparent;border-color:#EBC5B9;color:var(--danger);}
+  .btn-danger:hover{background:#F7E4DF;}
+  .btn-sm{font-size:11.5px;padding:6px 10px;}
+
+  /* ---- Modal ---- */
+  .modal-scrim{background:rgba(15,60,73,.14);border:1px dashed var(--border-2);border-radius:16px;
+    padding:22px;display:flex;justify-content:center;}
+  .modal{width:100%;max-width:400px;background:var(--panel);border:1px solid var(--border);border-radius:16px;
+    box-shadow:0 18px 44px -20px rgba(15,60,73,.4);overflow:hidden;}
+  .modal-h{padding:16px 18px 14px;border-bottom:1px solid var(--border);}
+  .modal-h .row{display:flex;align-items:center;gap:10px;}
+  .modal-h .eyebrow{font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;
+    color:var(--muted-teal);margin:0 0 4px;}
+  .modal-h h3{margin:0;font-size:15px;font-weight:700;letter-spacing:-.01em;}
+  .modal-h .x{margin-left:auto;width:28px;height:28px;border:0;background:transparent;border-radius:8px;
+    color:var(--muted);cursor:pointer;display:flex;align-items:center;justify-content:center;}
+  .modal-h .x svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;}
+  .modal-b{padding:16px 18px;display:flex;flex-direction:column;gap:14px;}
+  .modal-f{padding:13px 18px 16px;border-top:1px solid var(--border);display:flex;gap:9px;justify-content:flex-end;background:var(--panel-2);}
+  .modal-b p.lead{margin:0;font-size:13px;line-height:1.5;color:var(--ink);}
+
+  .qr-wrap{display:flex;justify-content:center;}
+  .qr-ph{width:180px;height:180px;border-radius:11px;border:1px solid var(--border-2);background:
+    repeating-conic-gradient(#2B2722 0% 25%, #FFFDF8 0% 50%) 0 0/18px 18px;
+    display:flex;align-items:center;justify-content:center;}
+  .qr-ph span{background:var(--panel);padding:3px 8px;border-radius:5px;font-size:10px;font-weight:700;
+    letter-spacing:.04em;text-transform:uppercase;color:var(--muted);}
+
+  .reveal-box{border-radius:var(--radius);border:1px solid var(--border);background:var(--panel-2);padding:14px;}
+  .reveal-lbl{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);
+    margin-bottom:5px;}
+  .reveal-row{display:flex;align-items:center;gap:8px;}
+  .reveal-row + .reveal-lbl{margin-top:12px;}
+  .reveal-val{min-width:0;flex:1;font-size:13px;font-weight:500;color:var(--ink);overflow:hidden;
+    text-overflow:ellipsis;white-space:nowrap;}
+  .reveal-val.pin{font-size:18px;font-weight:700;letter-spacing:.22em;font-variant-numeric:tabular-nums;}
+  .reveal-val.exp{font-size:13px;font-weight:600;font-variant-numeric:tabular-nums;}
+
+  .note{font-size:11.5px;color:var(--muted);background:#F1EEE7;border:1px solid var(--border);border-radius:9px;
+    padding:9px 11px;line-height:1.45;margin-top:2px;}
+  .foot-note{margin-top:26px;color:var(--muted);font-size:12px;line-height:1.55;max-width:86ch;}
+  .foot-note code{background:#F1EADC;padding:1px 5px;border-radius:5px;font-size:11.5px;}
+</style>
+</head>
+<body>
+<div class="doc">
+  <div class="doc-head">
+    <span class="badge-design">Mockup · implementata (D-051)</span>
+    <h1>web-staff — Scheda cliente: «Accesso cliente» (<code>CustomerAccessCard</code> + <code>CustomerAccessModal</code>)</h1>
+    <p>D-051 rende azionabile da interfaccia il provisioning dell'accesso self-service del cliente, la cui
+      fondazione backend esisteva già da D-035 S3
+      (<a href="../../architecture/decisions/0049-auth-cliente-provisioned-tenant-pubblico.md">ADR-0049</a>).
+      La card riflette lo stato dell'enrollment letto da un nuovo <code>GET /bookings/:id/customer-access</code>
+      (admin-only, tenant-scoped): <code>none → issued → active</code>, con <code>revoked</code> raggiungibile
+      da qualunque stato via revoca o ri-provisioning. Visibile nella Scheda cliente quando il cliente ha
+      ≥1 abbonamento.</p>
+  </div>
+
+  <div class="gallery">
+
+    <!-- ============ STATO: none ============ -->
+    <div class="frame">
+      <div class="cap">CustomerAccessCard — stato <code>none</code> (mai generato)</div>
+      <div class="card">
+        <div class="card-h">
+          <span class="ic"><svg viewBox="0 0 24 24"><rect x="7" y="2" width="10" height="20" rx="2"/><path d="M11 18h2"/></svg></span>
+          <span class="t">Accesso cliente</span>
+        </div>
+        <div class="card-b">
+          <div class="row-top">
+            <div>
+              <span class="badge neutral" data-testid="access-state"><span class="dot"></span>Mai generato</span>
+            </div>
+            <div class="actions">
+              <button class="btn btn-secondary" data-testid="access-generate">
+                <svg viewBox="0 0 24 24"><rect x="7" y="2" width="10" height="20" rx="2"/><path d="M11 18h2"/></svg>
+                Genera accesso
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============ STATO: issued ============ -->
+    <div class="frame">
+      <div class="cap">CustomerAccessCard — stato <code>issued</code> (emesso, non ancora attivato)</div>
+      <div class="card">
+        <div class="card-h">
+          <span class="ic"><svg viewBox="0 0 24 24"><rect x="7" y="2" width="10" height="20" rx="2"/><path d="M11 18h2"/></svg></span>
+          <span class="t">Accesso cliente</span>
+        </div>
+        <div class="card-b">
+          <div class="row-top">
+            <div>
+              <span class="badge warning" data-testid="access-state"><span class="dot"></span>Emesso, in attesa di attivazione</span>
+            </div>
+            <div class="actions">
+              <button class="btn btn-secondary btn-sm" data-testid="access-generate">
+                <svg viewBox="0 0 24 24"><rect x="7" y="2" width="10" height="20" rx="2"/><path d="M11 18h2"/></svg>
+                Rigenera
+              </button>
+              <button class="btn btn-danger btn-sm" data-testid="access-revoke">
+                <svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg>
+                Revoca
+              </button>
+            </div>
+          </div>
+          <p class="hint-inline">«Rigenera» invalida il link e il PIN precedenti e disconnette il cliente.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============ STATO: active ============ -->
+    <div class="frame">
+      <div class="cap">CustomerAccessCard — stato <code>active</code> (attivato dal cliente)</div>
+      <div class="card">
+        <div class="card-h">
+          <span class="ic"><svg viewBox="0 0 24 24"><rect x="7" y="2" width="10" height="20" rx="2"/><path d="M11 18h2"/></svg></span>
+          <span class="t">Accesso cliente</span>
+        </div>
+        <div class="card-b">
+          <div class="row-top">
+            <div>
+              <span class="badge success" data-testid="access-state"><span class="dot"></span>Attivo</span>
+              <div class="last">Ultima attivazione: 12 lug 2026</div>
+            </div>
+            <div class="actions">
+              <button class="btn btn-secondary btn-sm" data-testid="access-generate">
+                <svg viewBox="0 0 24 24"><rect x="7" y="2" width="10" height="20" rx="2"/><path d="M11 18h2"/></svg>
+                Rigenera
+              </button>
+              <button class="btn btn-danger btn-sm" data-testid="access-revoke">
+                <svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg>
+                Revoca
+              </button>
+            </div>
+          </div>
+          <p class="hint-inline">«Rigenera» invalida il link e il PIN precedenti e disconnette il cliente.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============ STATO: revoked ============ -->
+    <div class="frame">
+      <div class="cap">CustomerAccessCard — stato <code>revoked</code> (revocato dall'operatore)</div>
+      <div class="card">
+        <div class="card-h">
+          <span class="ic"><svg viewBox="0 0 24 24"><rect x="7" y="2" width="10" height="20" rx="2"/><path d="M11 18h2"/></svg></span>
+          <span class="t">Accesso cliente</span>
+        </div>
+        <div class="card-b">
+          <div class="row-top">
+            <div>
+              <span class="badge danger" data-testid="access-state"><span class="dot"></span>Revocato</span>
+              <div class="last">Ultima attivazione: 03 lug 2026</div>
+            </div>
+            <div class="actions">
+              <button class="btn btn-secondary" data-testid="access-generate">
+                <svg viewBox="0 0 24 24"><rect x="7" y="2" width="10" height="20" rx="2"/><path d="M11 18h2"/></svg>
+                Genera accesso
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============ REVEAL MODAL ============ -->
+    <div class="frame" style="grid-column:1 / -1;max-width:420px;">
+      <div class="cap">CustomerAccessModal — reveal dopo Genera/Rigenera (una sola volta)</div>
+      <div class="modal-scrim">
+        <div class="modal">
+          <div class="modal-h">
+            <div class="row">
+              <div>
+                <p class="eyebrow">Consegna una volta sola</p>
+                <h3>Accesso cliente generato</h3>
+              </div>
+              <button class="x" aria-label="Chiudi"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+            </div>
+          </div>
+          <div class="modal-b">
+            <p class="lead">Consegna questi dati al cliente <b>ora</b>: non saranno più recuperabili. Se li
+              perdi, genera un nuovo accesso.</p>
+
+            <div class="qr-wrap">
+              <div class="qr-ph" data-testid="access-qr"><span>QR placeholder</span></div>
+            </div>
+
+            <div class="reveal-box">
+              <div class="reveal-lbl">Link di attivazione</div>
+              <div class="reveal-row">
+                <div class="reveal-val" data-testid="access-link">https://app.coralyn.example/attiva?token=8f2c…a91</div>
+                <button class="btn btn-secondary btn-sm" data-testid="copy-link">
+                  <svg viewBox="0 0 24 24"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>
+                  Copia
+                </button>
+              </div>
+              <div class="reveal-lbl">PIN</div>
+              <div class="reveal-row">
+                <div class="reveal-val pin" data-testid="access-pin">482 917</div>
+                <button class="btn btn-secondary btn-sm" data-testid="copy-pin">
+                  <svg viewBox="0 0 24 24"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>
+                  Copia
+                </button>
+              </div>
+              <div class="reveal-lbl">Scade il</div>
+              <div class="reveal-val exp" data-testid="access-expires">10 ott 2026, 14:30</div>
+            </div>
+
+            <p class="note">Il QR e il link funzionano solo se l'app cliente è configurata (in sviluppo il
+              link è relativo).</p>
+          </div>
+          <div class="modal-f">
+            <button class="btn btn-primary" data-testid="access-done">Fatto</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <p class="foot-note">
+    <b>Note di design.</b> Stato letto da <code>GET /bookings/:id/customer-access</code> →
+    <code>CustomerAccessStatusDTO</code> (<code>state: none|issued|active|revoked</code> +
+    <code>lastActivatedAt</code>), risolto tenant-scoped tramite lo stesso <code>resolveCustomerId</code> usato
+    da provisioning/revoca (nessun IDOR cross-tenant). «Genera»/«Rigenera» chiamano
+    <code>POST /bookings/:id/customer-access</code> e aprono il modale di reveal (QR generato client-side dalla
+    dipendenza <code>qrcode</code> a partire da <code>activationUrl</code>); «Revoca» chiama
+    <code>POST /bookings/:id/customer-access/revoke</code> dietro <code>ConfirmDialog</code>. Azioni visibili
+    solo ad <b>admin</b> (stesso pattern <code>isAdmin</code> delle altre card della Scheda cliente). QR/link/PIN
+    sono mostrati <b>una sola volta</b> — stesso principio di consegna credenziali di
+    <a href="../../architecture/decisions/0042-trasporto-email-e-consegna-credenziali.md">ADR-0042</a>. Icone
+    <code>copy</code>/<code>smartphone</code> nuove in <code>@coralyn/ui-kit</code>; componenti riusati
+    (<code>SectionCard</code>/<code>Badge</code>/<code>Button</code>/<code>Icon</code>/<code>ConfirmDialog</code>/<code>Modal</code>).
+  </p>
+</div>
+</body>
+</html>
