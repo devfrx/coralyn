@@ -70,7 +70,7 @@ flowchart TD
 > è rimandata ([D-011](../architecture/deferred.md)); nell'MVP la campagna rinnovi è
 > guidata ma manuale.
 
-## 5. Sospensione abbonamento (D-013, *in design*)
+## 5. Sospensione abbonamento (D-013, implementata e MERGIATA)
 
 Un abbonato libera un periodo del proprio abbonamento (rivendita abilitata nel buco) e poi riprende. Agisce
 **solo sull'occupazione** (`BookingCoverage`), mai sullo span di contratto: prezzo, rinnovo, prelazione e

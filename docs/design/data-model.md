@@ -410,7 +410,7 @@ erDiagram
 - **Disdetta e sospensione (D-013), contratto ↔ occupazione separati**: lo **span di contratto**
   (`Booking.startDate/endDate`) guida prezzo, rinnovo, **prelazione**, seniority; la **copertura** guida
   l'occupazione. La **disdetta** (1/3, implementata) tronca *entrambi* in modo permanente (`endDate=E-1`,
-  `terminatedAt`, rimborso in `refundedAmount`). La **sospensione** (`BookingSuspension`, *in design*) scava
+  `terminatedAt`, rimborso in `refundedAmount`). La **sospensione** (`BookingSuspension`, implementata e MERGIATA) scava
   un **buco** nella sola copertura `[S,R-1]` e **non tocca** lo span: un sospeso resta abbonato con tutti i
   diritti; il buco è rivendibile (walk-in) e, in modalità chiusa, la coda `[R,end]` resta riservata. Due
   modalità unificate da `endDate` nullable (aperta = `NULL`, chiusa via riattiva). `refundedAmount` **aggrega**
