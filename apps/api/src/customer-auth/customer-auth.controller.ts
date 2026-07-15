@@ -1,4 +1,5 @@
 import { Body, Controller, Get, HttpCode, HttpStatus, Post, UseGuards } from '@nestjs/common';
+import { ThrottlerGuard } from '@nestjs/throttler';
 import type { CustomerAuthResponse, CustomerMeDTO } from '@coralyn/contracts';
 import { Public } from '../identity/public.decorator';
 import { CustomerSessionService } from './customer-session.service';
@@ -10,6 +11,7 @@ import { CustomerRefreshDto } from './dto/customer-refresh.dto';
 
 /** Endpoint pubblici del canale cliente self-service (D-035 S3). @Public: bypassano la
  *  JwtAuthGuard globale (staff); l'auth cliente vera è nel body/token del canale. */
+@UseGuards(ThrottlerGuard)
 @Controller('customer')
 export class CustomerAuthController {
   constructor(private readonly sessions: CustomerSessionService) {}

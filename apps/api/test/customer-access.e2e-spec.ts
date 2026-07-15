@@ -27,6 +27,9 @@ describe('Customer access provisioning (D-035 S3)', () => {
   let bookingId2: string;
 
   beforeAll(async () => {
+    // Suite funzionale: limite alto così le molte chiamate /customer/* non scatenano 429 spuri
+    // (il throttler è controller-scoped, D-027). Il 429 vero è testato in customer-throttle.e2e.
+    process.env.CUSTOMER_THROTTLE_LIMIT = '1000';
     const moduleRef = await Test.createTestingModule({ imports: [AppModule] }).compile();
     app = await createTestApp(moduleRef);
     prisma = app.get(PrismaService);
@@ -88,6 +91,7 @@ describe('Customer access provisioning (D-035 S3)', () => {
       where: { email: { in: ['ca.admin@e2e.test', 'ca.staff@e2e.test', 'cb.admin@e2e.test'] } },
     });
     await prisma.establishment.deleteMany({ where: { id: { in: [s1, s2] } } });
+    delete process.env.CUSTOMER_THROTTLE_LIMIT;
     await app.close();
   });
 

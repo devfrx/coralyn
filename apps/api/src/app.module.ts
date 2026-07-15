@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { APP_FILTER } from '@nestjs/core';
-import { ConfigModule } from '@nestjs/config';
+import { ConfigModule, ConfigService } from '@nestjs/config';
+import { ThrottlerModule } from '@nestjs/throttler';
 import { HealthController } from './health/health.controller';
 import { PrismaModule } from './prisma/prisma.module';
 import { TenantModule } from './tenant/tenant.module';
@@ -18,6 +19,14 @@ import { PrismaExceptionFilter } from './common/prisma-exception.filter';
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
+    // Rate-limit env-driven. NESSUN APP_GUARD globale: il ThrottlerGuard è applicato solo al
+    // CustomerAuthController (controller-scoped) così tocca esclusivamente /customer/* (D-027).
+    ThrottlerModule.forRootAsync({
+      inject: [ConfigService],
+      useFactory: (config: ConfigService) => [
+        { ttl: 60_000, limit: Number(config.get<string>('CUSTOMER_THROTTLE_LIMIT') || '10') },
+      ],
+    }),
     PrismaModule,
     TenantModule,
     IdentityModule,
