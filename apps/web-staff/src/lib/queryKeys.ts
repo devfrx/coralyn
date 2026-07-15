@@ -3,6 +3,7 @@ export const queryKeys = {
   customer: (tenantId: string, id: string) => ['customer', tenantId, id] as const,
   customerBookings: (tenantId: string, id: string) => ['customer', tenantId, id, 'bookings'] as const,
   cededSubscriptions: (tenantId: string, id: string) => ['customer', tenantId, id, 'ceded'] as const,
+  customerAccess: (tenantId: string, bookingId: string) => ['customer-access', tenantId, bookingId] as const,
   dayMap: (tenantId: string, date: string) => ['map', tenantId, date] as const,
   bookings: (tenantId: string, date: string) => ['bookings', tenantId, date] as const,
   packages: (tenantId: string) => ['packages', tenantId] as const,

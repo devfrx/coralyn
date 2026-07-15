@@ -1,4 +1,4 @@
-import type { CustomerDTO, CreateCustomerInput, UpdateCustomerInput, CustomerBookingDTO, DeleteCustomerResult, BookingDTO, TerminateSubscriptionInput, SuspendSubscriptionInput, ReactivateSubscriptionInput, CededSubscriptionDTO, TransferSubscriptionInput, SetAbsenceConsentInput, ReleaseAbsenceInput } from '@coralyn/contracts';
+import type { CustomerDTO, CreateCustomerInput, UpdateCustomerInput, CustomerBookingDTO, DeleteCustomerResult, BookingDTO, TerminateSubscriptionInput, SuspendSubscriptionInput, ReactivateSubscriptionInput, CededSubscriptionDTO, TransferSubscriptionInput, SetAbsenceConsentInput, ReleaseAbsenceInput, CustomerAccessStatusDTO, CustomerProvisionResponse } from '@coralyn/contracts';
 import { apiFetch } from '@/lib/http';
 import { queryKeys } from '@/lib/queryKeys';
 import { useSessionStore } from '@/stores/session';
@@ -145,5 +145,35 @@ export function useCededSubscriptions(id: string) {
   return queryResource({
     queryKey: () => queryKeys.cededSubscriptions(session.establishmentId, id),
     queryFn: () => apiFetch<CededSubscriptionDTO[]>(`/customers/${id}/ceded-subscriptions`),
+  });
+}
+
+/** Stato accesso cliente per la Scheda (D-051). Chiave per bookingId rappresentativo del cliente. */
+export function useCustomerAccessStatus(bookingId: string) {
+  const session = useSessionStore();
+  return queryResource({
+    queryKey: () => queryKeys.customerAccess(session.establishmentId, bookingId),
+    queryFn: () => apiFetch<CustomerAccessStatusDTO>(`/bookings/${bookingId}/customer-access`),
+  });
+}
+
+/** (Ri)genera l'accesso cliente (D-051, admin-only). `quiet`: il chiamante mostra i segreti nel modale;
+ *  un eventuale errore affiora via toast solo se non quiet — qui NON quiet così un fallimento è visibile. */
+export function useProvisionCustomerAccess(bookingId: string) {
+  const session = useSessionStore();
+  return mutationResource({
+    mutationFn: () =>
+      apiFetch<CustomerProvisionResponse>(`/bookings/${bookingId}/customer-access`, { method: 'POST' }),
+    invalidates: () => [queryKeys.customerAccess(session.establishmentId, bookingId)],
+  });
+}
+
+/** Revoca l'accesso cliente (D-051, admin-only). Invalida lo stato accesso. */
+export function useRevokeCustomerAccess(bookingId: string) {
+  const session = useSessionStore();
+  return mutationResource({
+    mutationFn: () =>
+      apiFetch<void>(`/bookings/${bookingId}/customer-access/revoke`, { method: 'POST' }),
+    invalidates: () => [queryKeys.customerAccess(session.establishmentId, bookingId)],
   });
 }

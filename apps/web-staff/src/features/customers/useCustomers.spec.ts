@@ -4,7 +4,7 @@ import { http, HttpResponse } from 'msw';
 import { flushPromises } from '@vue/test-utils';
 import { mountApp } from '@/test/utils';
 import { server } from '@/mocks/server';
-import { useCustomer, useUpdateCustomer, useSuspendSubscription, useReactivateSubscription, useSetAbsenceConsent, useReleaseAbsence, useCancelAbsenceRelease } from './useCustomers';
+import { useCustomer, useUpdateCustomer, useSuspendSubscription, useReactivateSubscription, useSetAbsenceConsent, useReleaseAbsence, useCancelAbsenceRelease, useCustomerAccessStatus, useProvisionCustomerAccess, useRevokeCustomerAccess } from './useCustomers';
 
 const Probe = defineComponent({
   setup() {
@@ -66,6 +66,27 @@ const CancelAbsenceReleaseProbe = defineComponent({
     return () => h('button', {
       onClick: () => m.mutate({ id: 'b1', releaseId: 'r1' }),
     }, 'cancel-release');
+  },
+});
+
+const AccessStatusProbe = defineComponent({
+  setup() {
+    const q = useCustomerAccessStatus('b1');
+    return () => h('div', q.data.value ? q.data.value.state : 'loading');
+  },
+});
+
+const ProvisionProbe = defineComponent({
+  setup() {
+    const m = useProvisionCustomerAccess('b1');
+    return () => h('button', { onClick: () => m.mutate(undefined) }, 'provision');
+  },
+});
+
+const RevokeProbe = defineComponent({
+  setup() {
+    const m = useRevokeCustomerAccess('b1');
+    return () => h('button', { onClick: () => m.mutate(undefined) }, 'revoke');
   },
 });
 
@@ -169,6 +190,57 @@ describe('useCancelAbsenceRelease', () => {
       }),
     );
     const w = mountApp(CancelAbsenceReleaseProbe);
+    await w.find('button').trigger('click');
+    await flushPromises();
+    await new Promise((r) => setTimeout(r, 0));
+    expect(called).toBe(true);
+  });
+});
+
+describe('useCustomerAccessStatus', () => {
+  it('legge lo stato accesso per bookingId dal mock', async () => {
+    server.use(
+      http.get('/api/bookings/:id/customer-access', ({ params }) => {
+        expect(params.id).toBe('b1');
+        return HttpResponse.json({ state: 'active', lastActivatedAt: '2026-07-01T09:00:00.000Z' });
+      }),
+    );
+    const w = mountApp(AccessStatusProbe);
+    await flushPromises();
+    await new Promise((r) => setTimeout(r, 0));
+    expect(w.text()).toContain('active');
+  });
+});
+
+describe('useProvisionCustomerAccess', () => {
+  it('POSTa /bookings/:id/customer-access', async () => {
+    let called = false;
+    server.use(
+      http.post('/api/bookings/:id/customer-access', ({ params }) => {
+        called = true;
+        expect(params.id).toBe('b1');
+        return HttpResponse.json({ activationUrl: '/attiva?token=x', pin: '123456', expiresAt: '2026-08-01T00:00:00.000Z' });
+      }),
+    );
+    const w = mountApp(ProvisionProbe);
+    await w.find('button').trigger('click');
+    await flushPromises();
+    await new Promise((r) => setTimeout(r, 0));
+    expect(called).toBe(true);
+  });
+});
+
+describe('useRevokeCustomerAccess', () => {
+  it('POSTa /bookings/:id/customer-access/revoke', async () => {
+    let called = false;
+    server.use(
+      http.post('/api/bookings/:id/customer-access/revoke', ({ params }) => {
+        called = true;
+        expect(params.id).toBe('b1');
+        return new HttpResponse(null, { status: 204 });
+      }),
+    );
+    const w = mountApp(RevokeProbe);
     await w.find('button').trigger('click');
     await flushPromises();
     await new Promise((r) => setTimeout(r, 0));
