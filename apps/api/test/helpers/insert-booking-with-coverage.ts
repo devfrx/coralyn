@@ -1,22 +1,27 @@
 import type { PrismaService } from '../../src/prisma/prisma.service';
 
 /** Inserisce un Booking confermato + la sua coverage 1:1, bypassando il service (per test DB-level).
- *  I minuti della coverage li riempie il trigger; lo status della coverage = quello del booking. */
+ *  I minuti della coverage li riempie il trigger; lo status della coverage = quello del booking.
+ *  `type`/`absenceConsentAt` opzionali (default `'daily'`/`null`) per riuso negli e2e S4 (abbonamenti
+ *  con consenso assenze) senza toccare i call-site esistenti (`daily`, nessun consenso). */
 export async function insertBookingWithCoverage(
   prisma: PrismaService,
   tenantId: string,
   data: {
     establishmentId: string; customerId: string; umbrellaId: string; timeSlotId: string;
     startDate: Date; endDate: Date; status?: 'confirmed' | 'cancelled';
+    type?: 'daily' | 'subscription'; absenceConsentAt?: Date;
   },
 ) {
   const status = data.status ?? 'confirmed';
+  const type = data.type ?? 'daily';
   return prisma.forTenant(tenantId, async (tx) => {
     const booking = await tx.booking.create({
       data: {
         establishmentId: data.establishmentId, customerId: data.customerId,
         umbrellaId: data.umbrellaId, timeSlotId: data.timeSlotId,
-        startDate: data.startDate, endDate: data.endDate, type: 'daily', status, totalPrice: 10,
+        startDate: data.startDate, endDate: data.endDate, type, status, totalPrice: 10,
+        absenceConsentAt: data.absenceConsentAt ?? null,
       },
     });
     await tx.bookingCoverage.create({
