@@ -158,6 +158,15 @@ export class BookingsService {
     });
   }
 
+  /** Solo gli ABBONAMENTI del cliente (canale self-service D-035 S4). Riusa listByCustomer
+   *  (single source: stessa proiezione, resold, arricchimenti); il canale cliente passa il proprio
+   *  customerId dal JWT → nessun IDOR. Il piccolo over-fetch (booking non-subscription poi scartati)
+   *  è trascurabile sul volume di un singolo cliente. */
+  async listSubscriptionsForCustomer(customerId: string): Promise<CustomerBookingDTO[]> {
+    const all = await this.listByCustomer(customerId);
+    return all.filter((b) => b.type === 'subscription');
+  }
+
   /** Cessioni EFFETTUATE da un cliente (previousCustomerId = customerId): per la sezione "cessioni
    *  effettuate" della sua Scheda. Read-only, tenant-scoped. Ordine effectiveDate desc. */
   async listCededByCustomer(customerId: string): Promise<CededSubscriptionDTO[]> {
