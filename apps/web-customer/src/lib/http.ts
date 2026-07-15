@@ -46,9 +46,18 @@ async function rawFetch(path: string, init: RequestInit): Promise<Response> {
 // Il tenant non viaggia più in un header: è dedotto dal JWT lato backend (ADR-0026).
 // apiFetch allega il Bearer dal token di sessione (se presente); su 401 innesca UNA rotazione
 // silenziosa via l'handler registrato dalla store (D-037) e ritenta una sola volta.
-export async function apiFetch<T>(path: string, init: RequestInit = {}): Promise<T> {
+// `retryOn401: false` (default true) esclude questa logica: usato dalle chiamate pubbliche/che
+// GESTISCONO i token stessi (/customer/refresh, /customer/activate) — un 401 lì è terminale e NON
+// deve rientrare nell'interceptor, altrimenti un refresh-token scaduto/revocato causa una
+// ricorsione infinita (refresh() → apiFetch('/customer/refresh') → 401 → refresh() → ...).
+export async function apiFetch<T>(
+  path: string,
+  init: RequestInit = {},
+  opts: { retryOn401?: boolean } = {},
+): Promise<T> {
+  const { retryOn401 = true } = opts;
   let res = await rawFetch(path, init);
-  if (res.status === 401 && handler) {
+  if (res.status === 401 && handler && retryOn401) {
     const ok = await handler.refresh();               // rotazione silenziosa (una volta)
     if (ok) res = await rawFetch(path, init);          // ritenta con il nuovo access token
     else handler.onAuthFailure();                      // refresh morto → logout + redirect attivazione

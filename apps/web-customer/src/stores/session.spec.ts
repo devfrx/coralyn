@@ -29,6 +29,41 @@ describe('session store — activate/refresh/logout/rehydrate', () => {
     expect(getRefreshToken()).toBe('r2');
   });
 
+  it('refresh: due chiamate concorrenti condividono una sola round-trip (single-flight, anti-theft-detection)', async () => {
+    localStorage.setItem('coralyn.customer.refresh.token', 'r1');
+    let resolveApiFetch!: (v: { accessToken: string; refreshToken: string }) => void;
+    const pending = new Promise<{ accessToken: string; refreshToken: string }>((resolve) => {
+      resolveApiFetch = resolve;
+    });
+    const spy = vi.spyOn(http, 'apiFetch').mockReturnValueOnce(pending);
+    const s = useSessionStore();
+
+    const p1 = s.refresh();
+    const p2 = s.refresh();
+    resolveApiFetch({ accessToken: 'a2', refreshToken: 'r2' });
+    const [ok1, ok2] = await Promise.all([p1, p2]);
+
+    expect(ok1).toBe(true);
+    expect(ok2).toBe(true);
+    expect(spy).toHaveBeenCalledTimes(1); // UNA sola /customer/refresh nonostante due chiamanti concorrenti
+    expect(getAccessToken()).toBe('a2');
+    expect(getRefreshToken()).toBe('r2');
+  });
+
+  it('refresh: chiamate sequenziali (non concorrenti) fanno una round-trip ciascuna', async () => {
+    localStorage.setItem('coralyn.customer.refresh.token', 'r1');
+    const spy = vi.spyOn(http, 'apiFetch')
+      .mockResolvedValueOnce({ accessToken: 'a2', refreshToken: 'r2' })
+      .mockResolvedValueOnce({ accessToken: 'a3', refreshToken: 'r3' });
+    const s = useSessionStore();
+
+    await s.refresh();
+    await s.refresh();
+
+    expect(spy).toHaveBeenCalledTimes(2);
+    expect(getAccessToken()).toBe('a3');
+  });
+
   it('refresh: senza refresh token persistito ritorna false senza chiamare apiFetch', async () => {
     const spy = vi.spyOn(http, 'apiFetch');
     const s = useSessionStore();
