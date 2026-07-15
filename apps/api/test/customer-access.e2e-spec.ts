@@ -72,6 +72,16 @@ describe('Customer access provisioning (D-035 S3)', () => {
     return { token, pin: res.body.pin };
   }
 
+  /** Provisiona + attiva: restituisce la coppia { accessToken, refreshToken } di una sessione viva. */
+  async function activate(): Promise<{ accessToken: string; refreshToken: string }> {
+    const { token, pin } = await provision();
+    const res = await request(app.getHttpServer())
+      .post('/api/customer/activate')
+      .send({ enrollmentToken: token, pin })
+      .expect(200);
+    return res.body;
+  }
+
   it('POST /bookings/:id/customer-access ritorna activationUrl+pin+expiresAt (admin)', async () => {
     const res = await request(app.getHttpServer())
       .post(`/api/bookings/${bookingId}/customer-access`)
@@ -153,6 +163,39 @@ describe('Customer access provisioning (D-035 S3)', () => {
       await request(app.getHttpServer())
         .post('/api/customer/activate')
         .send({ enrollmentToken: 'nope', pin: '123456' })
+        .expect(401);
+    });
+  });
+
+  describe('Customer refresh (D-035 S3)', () => {
+    it('refresh valido -> ruota (nuovo refresh) e nuovo accessToken', async () => {
+      const first = await activate();
+
+      const r = await request(app.getHttpServer())
+        .post('/api/customer/refresh')
+        .send({ refreshToken: first.refreshToken })
+        .expect(200);
+      expect(r.body.refreshToken).not.toBe(first.refreshToken); // ruotato
+      expect(typeof r.body.accessToken).toBe('string');
+    });
+
+    it("riuso di un refresh già ruotato -> 401 e REVOCA l'intera catena della sessione", async () => {
+      const first = await activate();
+      const rotated = await request(app.getHttpServer())
+        .post('/api/customer/refresh')
+        .send({ refreshToken: first.refreshToken })
+        .expect(200);
+
+      // riuso del vecchio refresh (già ruotato) -> furto sospetto
+      await request(app.getHttpServer())
+        .post('/api/customer/refresh')
+        .send({ refreshToken: first.refreshToken })
+        .expect(401);
+
+      // ora anche il refresh nuovo è morto (catena revocata)
+      await request(app.getHttpServer())
+        .post('/api/customer/refresh')
+        .send({ refreshToken: rotated.body.refreshToken })
         .expect(401);
     });
   });

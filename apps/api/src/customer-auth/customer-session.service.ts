@@ -1,6 +1,10 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import type { CustomerActivateInput, CustomerAuthResponse } from '@coralyn/contracts';
+import type {
+  CustomerActivateInput,
+  CustomerAuthResponse,
+  CustomerRefreshInput,
+} from '@coralyn/contracts';
 import { PrismaService } from '../prisma/prisma.service';
 import { PasswordHasher } from '../identity/password-hasher';
 import { generateRawToken, hashToken } from '../credential/token-hash';
@@ -68,6 +72,52 @@ export class CustomerSessionService {
       const accessToken = this.tokens.sign({
         sub: token.customerId,
         establishmentId: token.establishmentId,
+        kind: 'customer',
+      });
+      return { accessToken, refreshToken: refreshRaw };
+    });
+  }
+
+  /** Rotazione del refresh (D-026). Theft-detection: se il refresh presentato risulta GIÀ ruotato
+   *  (revokedAt!=null ma ancora presente), è un riuso sospetto → revoca l'intera catena della
+   *  sessione (enrollmentTokenId) e 401. */
+  async refresh(input: CustomerRefreshInput): Promise<CustomerAuthResponse> {
+    const presentedHash = hashToken(input.refreshToken);
+    const session = await this.prisma.customerSession.findUnique({
+      where: { refreshTokenHash: presentedHash },
+    });
+    if (!session) throw new UnauthorizedException(INVALID);
+
+    // Riuso di un refresh già ruotato/revocato → furto: brucia tutta la catena della sessione.
+    if (session.revokedAt) {
+      await this.prisma.customerSession.updateMany({
+        where: { enrollmentTokenId: session.enrollmentTokenId, revokedAt: null },
+        data: { revokedAt: new Date() },
+      });
+      throw new UnauthorizedException(INVALID);
+    }
+    if (session.expiresAt <= new Date()) throw new UnauthorizedException(INVALID);
+
+    const refreshRaw = generateRawToken();
+    return this.prisma.$transaction(async (tx) => {
+      const claim = await tx.customerSession.updateMany({
+        where: { id: session.id, revokedAt: null },
+        data: { revokedAt: new Date(), lastUsedAt: new Date() },
+      });
+      if (claim.count !== 1) throw new UnauthorizedException(INVALID);
+      await tx.customerSession.create({
+        data: {
+          customerId: session.customerId,
+          establishmentId: session.establishmentId,
+          enrollmentTokenId: session.enrollmentTokenId,
+          refreshTokenHash: hashToken(refreshRaw),
+          rotatedFromId: session.id,
+          expiresAt: new Date(Date.now() + this.refreshTtlMs()),
+        },
+      });
+      const accessToken = this.tokens.sign({
+        sub: session.customerId,
+        establishmentId: session.establishmentId,
         kind: 'customer',
       });
       return { accessToken, refreshToken: refreshRaw };
