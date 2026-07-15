@@ -10,11 +10,14 @@ export function useMySubscriptions() {
   });
 }
 
+// Segnala un'assenza (D-035 S4). Azione modale (AbsenceReleaseModal): `quiet` perché il
+// modale mostra già l'errore inline (409/422/altro), come in web-staff useReleaseAbsence.
 export function useReleaseAbsence(bookingId: () => string) {
   return mutationResource({
     mutationFn: (input: { date: string; reason?: string }) =>
       apiFetch(`/customer/subscriptions/${bookingId()}/absence-releases`, { method: 'POST', body: JSON.stringify(input) }),
     invalidates: () => [queryKeys.mySubscriptions()],
+    quiet: true,
   });
 }
 
