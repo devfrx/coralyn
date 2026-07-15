@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import type { Prisma, Booking, TimeSlot } from '@prisma/client';
 import type {
+  AbsenceReleaseSource,
   BookingDTO,
   BookingQuoteDTO,
   BookingType,
@@ -877,11 +878,19 @@ export class BookingsService {
    * cassa/span dell'abbonamento (ADR-0048). admin-only. La rivendita usa il flusso giornaliero.
    * Rifiuta la sospensione aperta (422 OPEN_SUSPENSION, C2): il posto è già liberato/a-hold.
    */
-  async releaseAbsence(id: string, input: ReleaseAbsenceInput): Promise<BookingDTO> {
+  async releaseAbsence(
+    id: string,
+    input: ReleaseAbsenceInput,
+    opts?: { source?: AbsenceReleaseSource; actingCustomerId?: string },
+  ): Promise<BookingDTO> {
     const tenantId = this.tenant.require();
+    const source = opts?.source ?? 'operator';
     const day = 24 * 60 * 60 * 1000;
     const outcome = await this.prisma.forTenant(tenantId, async (tx) => {
-      const existing = await tx.booking.findFirst({ where: { id }, include: { absenceReleases: true, suspensions: true } });
+      const existing = await tx.booking.findFirst({
+        where: { id, ...(opts?.actingCustomerId ? { customerId: opts.actingCustomerId } : {}) },
+        include: { absenceReleases: true, suspensions: true },
+      });
       if (!existing) return { error: 'NOT_FOUND' as const };
       if (existing.type !== 'subscription') return { error: 'NOT_SUBSCRIPTION' as const };
       if (existing.status !== 'confirmed') return { error: 'NOT_CONFIRMED' as const };
@@ -913,7 +922,7 @@ export class BookingsService {
         });
       }
       await tx.absenceRelease.create({
-        data: { bookingId: id, establishmentId: tenantId, date: D, source: 'operator', reason: input.reason ?? null },
+        data: { bookingId: id, establishmentId: tenantId, date: D, source, reason: input.reason ?? null },
       });
       return { row: existing };
     });
