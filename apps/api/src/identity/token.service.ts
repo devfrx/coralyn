@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { Role } from '@coralyn/contracts';
 
@@ -19,7 +19,13 @@ export class TokenService {
   }
 
   verify(token: string): TokenClaims {
-    const payload = this.jwt.verify<TokenClaims & { iat: number; exp: number }>(token);
+    const payload = this.jwt.verify<TokenClaims & { kind?: string; iat: number; exp: number }>(token);
+    if (payload.kind === 'customer') {
+      // Difesa-in-profondità: staff e cliente condividono JWT_SECRET, quindi un token
+      // cliente verifica correttamente la firma. Va rifiutato esplicitamente qui
+      // (mirror di CustomerTokenService, che accetta solo kind='customer'). Vedi ADR-0049.
+      throw new UnauthorizedException('Token non valido per questo canale');
+    }
     return { sub: payload.sub, establishmentId: payload.establishmentId, role: payload.role };
   }
 }

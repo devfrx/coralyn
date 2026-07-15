@@ -241,6 +241,22 @@ describe('Customer subscriptions channel (D-035 S4)', () => {
       .expect(409);
   });
 
+  it('SICUREZZA (cross-auth): il token cliente NON autentica sulle rotte staff (JwtAuthGuard) → 401', async () => {
+    // Stesso JWT_SECRET di staff e cliente: senza un check esplicito su `kind`,
+    // un token cliente (kind='customer', no `role`) verifica correttamente la firma
+    // e passerebbe la JwtAuthGuard staff (RolesGuard lascia passare le rotte senza @Roles).
+    await request(app.getHttpServer())
+      .get('/api/bookings')
+      .query({ date: relativeFutureDate() })
+      .set(...bearer(accessTokenA))
+      .expect(401);
+
+    await request(app.getHttpServer())
+      .get('/api/customers')
+      .set(...bearer(accessTokenA))
+      .expect(401);
+  });
+
   it('REGRESSIONE: endpoint operatore restano source=operator', async () => {
     // Abbonamento separato: nessuna sessione cliente necessaria (flusso operatore puro).
     const u = await makeUmbrella(sA, idsA.rowId, 'Ops');
