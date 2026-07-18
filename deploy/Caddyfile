@@ -1,0 +1,31 @@
+# Caddy — reverse proxy di produzione per Coralyn.
+#
+# Caddy ottiene e rinnova i certificati TLS da Let's Encrypt DA SOLO (serve solo
+# che i DNS dei 3 sottodomini puntino a questo VPS e che le porte 80/443 siano aperte).
+# I nomi di dominio e l'email arrivano dall'ambiente (.env.prod) via {$VAR}.
+#
+# Flusso: browser --HTTPS--> Caddy --HTTP interno--> nginx del container web --/api--> api:3000
+# (ogni web-app ha già il proxy /api al suo interno, quindi qui basta instradare l'host).
+
+{
+	# Email per Let's Encrypt: ricevi avvisi se un rinnovo certificato fallisce.
+	email {$ACME_EMAIL}
+}
+
+# App staff (operatori del lido)
+{$DOMAIN_STAFF} {
+	encode gzip
+	reverse_proxy web:80
+}
+
+# Console di piattaforma (superuser: gestione lidi/tenant)
+{$DOMAIN_PLATFORM} {
+	encode gzip
+	reverse_proxy web-platform:80
+}
+
+# App clienti finali (destinazione dei QR/link degli inviti — CUSTOMER_APP_URL)
+{$DOMAIN_CUSTOMER} {
+	encode gzip
+	reverse_proxy web-customer:80
+}

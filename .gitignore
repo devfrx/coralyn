@@ -20,10 +20,12 @@ node_modules/
 build/
 *.tsbuildinfo
 
-# Variabili d'ambiente: ignora tutti i .env tranne l'esempio versionato
+# Variabili d'ambiente: ignora tutti i .env tranne gli esempi versionati
 .env
 .env.*
 !.env.example
+!*.env.example
+!deploy/.env.prod.example
 
 # Override locale di docker compose (porta DB specifica della macchina)
 docker-compose.override.yml

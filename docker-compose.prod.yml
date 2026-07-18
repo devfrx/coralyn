@@ -1,0 +1,107 @@
+# Coralyn — orchestrazione di PRODUZIONE (VPS singolo + Docker).
+#
+# Differenze rispetto a docker-compose.yml (dev):
+#   - I segreti arrivano da .env.prod (NON versionato), non hardcoded.
+#   - Postgres NON è esposto sull'host: vive solo sulla rete interna.
+#   - SEED_ON_START=false: niente lido demo in produzione.
+#   - Il ruolo applicativo RLS `coralyn_app` è creato da ./init.prod (password da env).
+#   - Un reverse proxy `caddy` termina l'HTTPS (Let's Encrypt automatico) e instrada
+#     i 3 sottodomini ai 3 container web. L'API resta interna: ogni web-app la
+#     raggiunge via il proprio nginx (proxy /api -> api:3000), come in dev.
+#
+# Avvio:   docker compose -f docker-compose.prod.yml up -d --build
+# Log:     docker compose -f docker-compose.prod.yml logs -f api
+# Stop:    docker compose -f docker-compose.prod.yml down
+#
+# NB: usando -f esplicito, docker-compose.override.yml (dev, gitignored) NON viene
+#     caricato: la produzione è isolata dalle personalizzazioni della tua macchina.
+
+services:
+  db:
+    image: postgres:16
+    container_name: coralyn-db
+    restart: unless-stopped
+    # env_file imposta le variabili DENTRO il container (POSTGRES_*, APP_DB_PASSWORD
+    # usata dallo script di init per creare coralyn_app con una password forte).
+    env_file: [.env.prod]
+    volumes:
+      - coralyn-pgdata-prod:/var/lib/postgresql/data
+      # init.prod: eseguito SOLO al primo avvio (volume vuoto). Crea il ruolo
+      # applicativo non-superuser per la RLS. Vedi init.prod/01-app-role.sh.
+      - ./init.prod:/docker-entrypoint-initdb.d
+    healthcheck:
+      # coralyn_app esiste solo dopo l'init: provarlo garantisce che il ruolo RLS
+      # sia pronto prima che l'api si connetta. $$ = $ letterale (espanso nel container).
+      test: ["CMD-SHELL", "pg_isready -U coralyn_app -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    # Nessun `ports:` — il DB non è raggiungibile da Internet, solo dalla rete compose.
+
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    container_name: coralyn-api
+    restart: unless-stopped
+    # Tutti i segreti runtime (DATABASE_URL, JWT_SECRET, MAIL_*, URL pubblici,
+    # PLATFORM_SUPERUSER_*, SEED_ON_START) arrivano da .env.prod.
+    env_file: [.env.prod]
+    depends_on:
+      db:
+        condition: service_healthy
+    # Nessun `ports:` — l'API è interna; le web-app la proxano su /api.
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web-staff/Dockerfile
+    container_name: coralyn-web
+    restart: unless-stopped
+    depends_on:
+      api:
+        condition: service_healthy
+
+  web-platform:
+    build:
+      context: .
+      dockerfile: apps/web-platform/Dockerfile
+    container_name: coralyn-web-platform
+    restart: unless-stopped
+    depends_on:
+      api:
+        condition: service_healthy
+
+  web-customer:
+    build:
+      context: .
+      dockerfile: apps/web-customer/Dockerfile
+    container_name: coralyn-web-customer
+    restart: unless-stopped
+    depends_on:
+      api:
+        condition: service_healthy
+
+  caddy:
+    image: caddy:2-alpine
+    container_name: coralyn-caddy
+    restart: unless-stopped
+    # Legge DOMAIN_STAFF/PLATFORM/CUSTOMER e ACME_EMAIL dal .env.prod per configurare
+    # i vhost e l'email di Let's Encrypt (avvisi di scadenza certificati).
+    env_file: [.env.prod]
+    ports:
+      - "80:80"     # necessaria per la sfida ACME HTTP + redirect a HTTPS
+      - "443:443"   # traffico HTTPS pubblico
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data        # certificati emessi (persistenti: non ri-emettere ad ogni restart)
+      - caddy-config:/config
+    depends_on:
+      - web
+      - web-platform
+      - web-customer
+
+volumes:
+  coralyn-pgdata-prod:
+  caddy-data:
+  caddy-config:
