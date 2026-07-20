@@ -679,3 +679,16 @@ export interface CreateRentalTariffInput {
 export interface UpdateRentalTariffInput {
   label?: string; price?: number; durationMinutes?: number | null; sortOrder?: number;
 }
+
+export type RentalStatus = 'active' | 'returned' | 'cancelled';
+export interface RentalDTO {
+  id: string; rentalItemId: string; rentalItemName: string;
+  rentalTariffId: string; tariffLabel: string;
+  customerId: string | null; customerName: string | null;
+  units: number; startAt: string; returnedAt: string | null; status: RentalStatus;
+  totalPrice: number; paymentStatus: PaymentStatus; amountCollected: number;
+  paymentMethod?: PaymentMethod; collectionDate?: string;
+}
+export interface RentalAvailabilityDTO { rentalItemId: string; stock: number | null; out: number; available: number | null; }
+export interface RentalsDayDTO { rentals: RentalDTO[]; availability: RentalAvailabilityDTO[]; }
+export interface CheckoutRentalInput { rentalItemId: string; rentalTariffId: string; customerId?: string | null; units?: number; }
