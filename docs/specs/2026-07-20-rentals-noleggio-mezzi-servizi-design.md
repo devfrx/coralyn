@@ -192,7 +192,8 @@ Applicare a `coralyn_dev` e `coralyn_test`; `prisma migrate status` pulito su en
     `ok=false` (riuso identico a bookings).
   - `rentalTariffId` esiste nel tenant, **non archiviato**, appartiene a `rentalItemId`, ed è della **stagione risolta** →
     altrimenti 422 "Tariffa non valida per l'articolo/stagione".
-  - `units` intero ≥ 1 (default 1) → altrimenti 422; `customerId`, se presente, esiste nel tenant (RLS) → altrimenti 422.
+  - `units` intero ≥ 1 (default 1): rifiutato a livello DTO (`@Min(1)`) → **400** (validazione, convenzione del codebase);
+    `customerId`, se presente, esiste nel tenant (RLS) → altrimenti 422.
   - Scrittura: `startAt = now()`, `totalPrice = tariff.price × units` (snapshot), incasso a `unpaid`. **Nessun** controllo
     scorta bloccante (disponibilità informativa). Ritorna `RentalDTO`.
 - `PATCH /rentals/:id/return` (**rientro**) → setta `returnedAt = now()` se attivo; **idempotente** se già rientrato
