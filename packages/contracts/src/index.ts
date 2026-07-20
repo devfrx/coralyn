@@ -668,3 +668,14 @@ export interface SetPasswordInput {
 export interface RentalItemDTO { id: string; name: string; stock: number | null; archived?: true; }
 export interface CreateRentalItemInput { name: string; stock?: number | null; }
 export interface UpdateRentalItemInput { name?: string; stock?: number | null; }
+
+export interface RentalTariffDTO {
+  id: string; rentalItemId: string; seasonId: string;
+  label: string; price: number; durationMinutes: number | null; archived?: true;
+}
+export interface CreateRentalTariffInput {
+  label: string; price: number; durationMinutes?: number | null; sortOrder?: number;
+}
+export interface UpdateRentalTariffInput {
+  label?: string; price?: number; durationMinutes?: number | null; sortOrder?: number;
+}
