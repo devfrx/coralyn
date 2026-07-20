@@ -47,9 +47,19 @@ describe('Rentals (e2e)', () => {
     expect(r.body).toMatchObject({ status: 'active', units: 2, totalPrice: 16, paymentStatus: 'unpaid' });
   });
 
-  it('checkout 422: tariffa di altro articolo / archiviata / units<1', async () => {
+  it('checkout 422: tariffa di altro articolo / archiviata', async () => {
     await request(srv()).post('/api/rentals').set(...bearer(t1))
       .send({ rentalItemId: otherItemId, rentalTariffId: tariffId }).expect(422);
+  });
+
+  it('checkout 400: units<1 (validazione DTO, @Min(1))', async () => {
+    await request(srv()).post('/api/rentals').set(...bearer(t1))
+      .send({ rentalItemId: itemId, rentalTariffId: tariffId, units: 0 }).expect(400);
+  });
+
+  it('checkout 422: customerId inesistente nel tenant', async () => {
+    await request(srv()).post('/api/rentals').set(...bearer(t1))
+      .send({ rentalItemId: itemId, rentalTariffId: tariffId, customerId: '00000000-0000-4000-8000-000000000000' }).expect(422);
   });
 
   it('return idempotente; cancel 409 se incassato; payment riusa resolvePayment', async () => {
@@ -72,11 +82,31 @@ describe('Rentals (e2e)', () => {
     await request(srv()).patch(`/api/rentals/${r.id}/payment`).set(...bearer(t1)).send({ amountCollected: 8, paymentMethod: 'cash' }).expect(409);
   });
 
-  it('GET ?date: elenco del giorno + availability (out somma solo attivi)', async () => {
+  it('GET ?date: elenco del giorno + availability (out somma solo attivi, available = stock-out)', async () => {
+    // Articolo/tariffa dedicati per un conteggio deterministico, indipendente dallo stato
+    // lasciato dai test precedenti su itemId (che ha già noleggi attivi/restituiti/annullati).
+    const qItemId = (await request(srv()).post('/api/rental-items').set(...bearer(t1))
+      .send({ name: 'Sup', stock: 4 })).body.id;
+    const qTariffId = (await request(srv()).post(`/api/rental-items/${qItemId}/tariffs`).set(...bearer(t1))
+      .send({ label: '1 ora', price: 5, durationMinutes: 60, sortOrder: 1 })).body.id;
+
+    // 2 unità attive
+    await request(srv()).post('/api/rentals').set(...bearer(t1))
+      .send({ rentalItemId: qItemId, rentalTariffId: qTariffId, units: 2 }).expect(201);
+    // 1 unità restituita (non conta in "out")
+    const returned = (await request(srv()).post('/api/rentals').set(...bearer(t1))
+      .send({ rentalItemId: qItemId, rentalTariffId: qTariffId, units: 1 })).body;
+    await request(srv()).patch(`/api/rentals/${returned.id}/return`).set(...bearer(t1)).expect(200);
+    // 1 unità annullata (non conta in "out")
+    const cancelled = (await request(srv()).post('/api/rentals').set(...bearer(t1))
+      .send({ rentalItemId: qItemId, rentalTariffId: qTariffId, units: 1 })).body;
+    await request(srv()).patch(`/api/rentals/${cancelled.id}/cancel`).set(...bearer(t1)).expect(200);
+
     const res = await request(srv()).get('/api/rentals').set(...bearer(t1)).expect(200);
-    const av = res.body.availability.find((a: { rentalItemId: string }) => a.rentalItemId === itemId);
-    expect(av).toMatchObject({ stock: expect.anything() });
     expect(Array.isArray(res.body.rentals)).toBe(true);
+    const av = res.body.availability.find((a: { rentalItemId: string }) => a.rentalItemId === qItemId);
+    // stock=4, out conta solo le 2 unità attive (restituita/annullata escluse) → available=4-2=2
+    expect(av).toMatchObject({ rentalItemId: qItemId, stock: 4, out: 2, available: 2 });
   });
 
   it('checkout 422 se la tariffa non è della stagione attiva', async () => {
