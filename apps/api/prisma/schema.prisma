@@ -33,6 +33,9 @@ model Establishment {
   absenceReleases    AbsenceRelease[]
   customerEnrollmentTokens CustomerEnrollmentToken[]
   customerSessions CustomerSession[]
+  rentalItems        RentalItem[]
+  rentalTariffs      RentalTariff[]
+  rentals            Rental[]
 }
 
 model Customer {
@@ -51,6 +54,7 @@ model Customer {
   transfersIn     BookingTransfer[] @relation("BookingTransferNew")
   enrollmentTokens CustomerEnrollmentToken[]
   customerSessions CustomerSession[]
+  rentals         Rental[]
 
   @@index([establishmentId])
 }
@@ -409,6 +413,7 @@ model Season {
   pricings               Pricing[]
   campaignsAsOrigin      RenewalCampaign[] @relation("CampaignOrigin")
   campaignsAsDestination RenewalCampaign[] @relation("CampaignDestination")
+  rentalTariffs          RentalTariff[]
 
   @@index([establishmentId])
 }
@@ -478,6 +483,66 @@ model PackageEquipment {
   @@id([packageId, equipmentTypeId])
   @@index([equipmentTypeId])
   @@index([establishmentId])
+}
+
+model RentalItem {
+  id              String         @id @default(uuid()) @db.Uuid
+  establishmentId String         @db.Uuid
+  name            String
+  stock           Int?
+  archivedAt      DateTime?
+  establishment   Establishment  @relation(fields: [establishmentId], references: [id])
+  tariffs         RentalTariff[]
+  rentals         Rental[]
+
+  @@unique([establishmentId, name])
+  @@index([establishmentId])
+}
+
+model RentalTariff {
+  id              String        @id @default(uuid()) @db.Uuid
+  establishmentId String        @db.Uuid
+  rentalItemId    String        @db.Uuid
+  seasonId        String        @db.Uuid
+  label           String
+  price           Decimal       @db.Decimal(10, 2)
+  durationMinutes Int?
+  sortOrder       Int
+  archivedAt      DateTime?
+  establishment   Establishment @relation(fields: [establishmentId], references: [id])
+  rentalItem      RentalItem    @relation(fields: [rentalItemId], references: [id], onDelete: Cascade)
+  season          Season        @relation(fields: [seasonId], references: [id])
+  rentals         Rental[]
+
+  @@index([establishmentId])
+  @@index([rentalItemId, seasonId])
+}
+
+model Rental {
+  id              String         @id @default(uuid()) @db.Uuid
+  establishmentId String         @db.Uuid
+  rentalItemId    String         @db.Uuid
+  rentalTariffId  String         @db.Uuid
+  customerId      String?        @db.Uuid
+  units           Int            @default(1)
+  startAt         DateTime       @default(now())
+  returnedAt      DateTime?
+  cancelledAt     DateTime?
+  totalPrice      Decimal        @db.Decimal(10, 2)
+  paymentStatus   PaymentStatus  @default(unpaid)
+  amountCollected Decimal        @default(0) @db.Decimal(10, 2)
+  paymentMethod   PaymentMethod?
+  collectionDate  DateTime?      @db.Date
+  createdAt       DateTime       @default(now())
+
+  establishment   Establishment  @relation(fields: [establishmentId], references: [id])
+  rentalItem      RentalItem     @relation(fields: [rentalItemId], references: [id], onDelete: Restrict)
+  rentalTariff    RentalTariff   @relation(fields: [rentalTariffId], references: [id], onDelete: Restrict)
+  customer        Customer?      @relation(fields: [customerId], references: [id])
+
+  @@index([establishmentId])
+  @@index([rentalItemId])
+  @@index([establishmentId, startAt])
 }
 
 enum PlatformAction {

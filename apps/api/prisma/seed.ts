@@ -170,6 +170,31 @@ async function main(): Promise<void> {
       create: { id: SEASON, establishmentId: EID, name: 'Estate 2026', startDate: t2('2026-05-01'), endDate: t2('2026-09-30') },
     });
 
+    // --- Noleggio demo: articoli fungibili + tariffe stagionali. ---
+    const PEDALO = '00000000-0000-0000-0000-0000000000a1';
+    const BABYSIT = '00000000-0000-0000-0000-0000000000a2';
+    await tx.rentalItem.upsert({
+      where: { establishmentId_name: { establishmentId: EID, name: 'Pedalò' } },
+      update: { stock: 5 },
+      create: { id: PEDALO, establishmentId: EID, name: 'Pedalò', stock: 5 },
+    });
+    await tx.rentalItem.upsert({
+      where: { establishmentId_name: { establishmentId: EID, name: 'Babysitting' } },
+      update: { stock: null },
+      create: { id: BABYSIT, establishmentId: EID, name: 'Babysitting', stock: null },
+    });
+    await tx.rentalTariff.deleteMany({ where: { rentalItemId: { in: [PEDALO, BABYSIT] } } });
+    for (const t of [
+      { itemId: PEDALO, label: '30 min', price: 5, durationMinutes: 30, sortOrder: 1 },
+      { itemId: PEDALO, label: '1 ora', price: 8, durationMinutes: 60, sortOrder: 2 },
+      { itemId: BABYSIT, label: '1 ora', price: 15, durationMinutes: 60, sortOrder: 1 },
+    ]) {
+      await tx.rentalTariff.create({
+        data: { establishmentId: EID, rentalItemId: t.itemId, seasonId: SEASON, label: t.label,
+                price: t.price, durationMinutes: t.durationMinutes, sortOrder: t.sortOrder },
+      });
+    }
+
     const PRICING = u(8, 1);
     await tx.pricing.upsert({
       where: { id: PRICING },
