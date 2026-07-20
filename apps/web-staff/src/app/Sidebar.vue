@@ -14,9 +14,11 @@ const roleLabel = computed(() =>
 const nav = [
   { to: '/map', label: 'Mappa', icon: 'map' },
   { to: '/bookings', label: 'Prenotazioni', icon: 'calendar' },
+  { to: '/rentals', label: 'Noleggi', icon: 'waves' },
   { to: '/renewals', label: 'Rinnovi', icon: 'renew' },
   { to: '/customers', label: 'Clienti', icon: 'users' },
   { to: '/pricing', label: 'Listino', icon: 'tag' },
+  { to: '/rentals/catalogo', label: 'Listino noleggi', icon: 'layers' },
   { to: '/report', label: 'Report', icon: 'chart' },
 ];
 const initials = computed(() => session.userEmail.slice(0, 2).toUpperCase());

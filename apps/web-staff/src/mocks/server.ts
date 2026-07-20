@@ -2,7 +2,7 @@ import { setupServer } from 'msw/node';
 import { http, HttpResponse } from 'msw';
 import { handlers } from './handlers';
 import { mapSeed, timeSlotsSeed } from './data/seed';
-import { Role, type CustomerDTO, type CustomerBookingDTO, type EquipmentTypeDTO, type PackageDTO, type RateDTO, type RenewalCampaignDetailDTO, type SeasonDTO, type TimeSlotDTO, type CreateTimeSlotInput, type UpdateTimeSlotInput, type UserDTO, type CredentialSetupContext, type RentalItemDTO, type RentalTariffDTO } from '@coralyn/contracts';
+import { Role, type CustomerDTO, type CustomerBookingDTO, type EquipmentTypeDTO, type PackageDTO, type RateDTO, type RenewalCampaignDetailDTO, type SeasonDTO, type TimeSlotDTO, type CreateTimeSlotInput, type UpdateTimeSlotInput, type UserDTO, type CredentialSetupContext, type RentalItemDTO, type RentalTariffDTO, type RentalDTO, type RentalAvailabilityDTO, type CheckoutRentalInput, type SettlePaymentInput } from '@coralyn/contracts';
 
 const INITIAL_CUSTOMERS: CustomerDTO[] = [
   { id: 'c-1', firstName: 'Mario', lastName: 'Rossi', phone: '+39 333 1111111', email: 'mario.rossi@email.it', notes: '' },
@@ -52,6 +52,22 @@ let rentalTariffs: RentalTariffDTO[] = INITIAL_RENTAL_TARIFFS.map((t) => ({ ...t
 export function resetRentalsSeed() {
   rentalItems = INITIAL_RENTAL_ITEMS.map((i) => ({ ...i }));
   rentalTariffs = INITIAL_RENTAL_TARIFFS.map((t) => ({ ...t }));
+}
+
+// --- Banco noleggi (D-052): noleggi del giorno, stato mutabile in-memory per i test del banco.
+// Default VUOTO (mirror di /api/bookings): i test che servono un noleggio esistente lo creano
+// tramite il flusso reale di checkout invece di un fixture statico, restando in sync con GET/PATCH. ---
+let dayRentals: RentalDTO[] = [];
+export function resetDayRentalsSeed() { dayRentals = []; }
+function rentalAvailability(): RentalAvailabilityDTO[] {
+  return rentalItems
+    .filter((i) => !i.archived)
+    .map((i) => {
+      const out = dayRentals
+        .filter((r) => r.rentalItemId === i.id && r.status === 'active')
+        .reduce((sum, r) => sum + r.units, 0);
+      return { rentalItemId: i.id, stock: i.stock, out, available: i.stock == null ? null : i.stock - out };
+    });
 }
 
 // --- Prelazione (D-011): stato campagna in-memory per i test ---
@@ -602,5 +618,57 @@ export const server = setupServer(
       void cid;
     }
     return new HttpResponse(null, { status: 404 });
+  }),
+  // Banco noleggi (D-052): noleggio del giorno (query ?date= ignorata dal mock, come /api/bookings —
+  // il FE è testato sul wiring, non sul filtro data lato server) + disponibilità derivata dallo stock.
+  http.get('/api/rentals', () => HttpResponse.json({ rentals: dayRentals, availability: rentalAvailability() })),
+  http.post('/api/rentals', async ({ request }) => {
+    const b = (await request.json()) as CheckoutRentalInput;
+    const item = rentalItems.find((i) => i.id === b.rentalItemId);
+    const tariff = rentalTariffs.find((t) => t.id === b.rentalTariffId);
+    if (!item || !tariff) return HttpResponse.json({ message: 'Articolo o tariffa non validi.' }, { status: 422 });
+    const units = b.units ?? 1;
+    const customer = b.customerId ? customers.find((c) => c.id === b.customerId) : undefined;
+    const created: RentalDTO = {
+      id: `rn-${dayRentals.length + 1}`,
+      rentalItemId: item.id, rentalItemName: item.name,
+      rentalTariffId: tariff.id, tariffLabel: tariff.label,
+      customerId: b.customerId ?? null, customerName: customer ? `${customer.firstName} ${customer.lastName}` : null,
+      units, startAt: new Date().toISOString(), returnedAt: null, status: 'active',
+      totalPrice: tariff.price * units, paymentStatus: 'unpaid', amountCollected: 0,
+    };
+    dayRentals.push(created);
+    return HttpResponse.json(created, { status: 201 });
+  }),
+  http.patch('/api/rentals/:id/return', ({ params }) => {
+    const i = dayRentals.findIndex((r) => r.id === params.id);
+    if (i < 0) return new HttpResponse(null, { status: 404 });
+    dayRentals[i] = { ...dayRentals[i], status: 'returned', returnedAt: new Date().toISOString() };
+    return HttpResponse.json(dayRentals[i]);
+  }),
+  http.patch('/api/rentals/:id/cancel', ({ params }) => {
+    const i = dayRentals.findIndex((r) => r.id === params.id);
+    if (i < 0) return new HttpResponse(null, { status: 404 });
+    // Guard: un noleggio con incasso registrato non si annulla a crudo (perderebbe lo storico
+    // dell'incasso) — l'operatore deve prima stornarlo (mirror del delete-guard fasce orarie).
+    if (dayRentals[i].amountCollected > 0) {
+      return HttpResponse.json({ message: "Storna l'incasso prima di annullare il noleggio." }, { status: 409 });
+    }
+    dayRentals[i] = { ...dayRentals[i], status: 'cancelled' };
+    return HttpResponse.json(dayRentals[i]);
+  }),
+  http.patch('/api/rentals/:id/payment', async ({ params, request }) => {
+    const b = (await request.json()) as SettlePaymentInput;
+    const i = dayRentals.findIndex((r) => r.id === params.id);
+    if (i < 0) return new HttpResponse(null, { status: 404 });
+    const paid = b.amountCollected > 0;
+    dayRentals[i] = {
+      ...dayRentals[i],
+      amountCollected: b.amountCollected,
+      paymentStatus: b.amountCollected >= dayRentals[i].totalPrice && paid ? 'paid' : paid ? 'partial' : 'unpaid',
+      paymentMethod: paid ? (b.paymentMethod ?? 'cash') : undefined,
+      collectionDate: paid ? (b.collectionDate ?? '2026-07-15') : undefined,
+    };
+    return HttpResponse.json(dayRentals[i]);
   }),
 );

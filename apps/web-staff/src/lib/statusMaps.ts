@@ -1,4 +1,4 @@
-import type { BookingType, PaymentMethod, PaymentStatus } from '@coralyn/contracts';
+import type { BookingType, PaymentMethod, PaymentStatus, RentalStatus } from '@coralyn/contracts';
 
 /** Mappe stato→presentazione (ADR-0033 §2, di dominio: conoscono i contratti Booking). */
 export const PAY_LABEL: Record<PaymentStatus, string> = {
@@ -21,4 +21,14 @@ export const PAYMENT_METHOD_LABEL: Record<PaymentMethod, string> = {
   card: 'Carta',
   transfer: 'Bonifico',
   other: 'Altro',
+};
+export const RENTAL_STATUS_LABEL: Record<RentalStatus, string> = {
+  active: 'Attivo',
+  returned: 'Rientrato',
+  cancelled: 'Annullato',
+};
+export const RENTAL_STATUS_TONE: Record<RentalStatus, 'accent' | 'success' | 'neutral'> = {
+  active: 'accent',
+  returned: 'success',
+  cancelled: 'neutral',
 };

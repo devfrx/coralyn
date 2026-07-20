@@ -13,6 +13,7 @@ export const queryKeys = {
   rentalItems: (tenantId: string) => ['rental-items', tenantId] as const,
   allRentalItems: (tenantId: string) => ['rental-items', tenantId, 'all'] as const,
   rentalTariffs: (tenantId: string, itemId: string, seasonId: string) => ['rental-tariffs', tenantId, itemId, seasonId] as const,
+  rentals: (tenantId: string, date: string) => ['rentals', tenantId, date] as const,
   subscriptions: (tenantId: string, seasonId: string) => ['subscriptions', tenantId, seasonId] as const,
   seasons: (tenantId: string) => ['seasons', tenantId] as const,
   rates: (tenantId: string, seasonId: string) => ['rates', tenantId, seasonId] as const,
