@@ -109,7 +109,8 @@ function confirmCheckout(): void {
     { rentalItemId: itemId.value, rentalTariffId: tariffId.value, customerId: customerId.value || undefined, units: units.value },
     { onSuccess: () => { modalOpen.value = false; } },
   );
-  // Su 422 (es. disponibilità esaurita): il modale resta aperto, il toast globale mostra il messaggio server.
+  // Su 422 (es. nessuna stagione attiva / tariffa non valida per articolo o stagione): il modale resta aperto,
+  // il toast globale mostra il messaggio server. La disponibilità è informativa e NON blocca il checkout.
 }
 </script>
 
