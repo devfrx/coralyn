@@ -1073,8 +1073,17 @@ it('GET ?date: elenco del giorno + availability (out somma solo attivi)', async 
   expect(av).toMatchObject({ stock: expect.anything() });
   expect(Array.isArray(res.body.rentals)).toBe(true);
 });
-it('checkout senza stagione attiva → 422', async () => {
-  // usa un tenant/stagione fuori da oggi, oppure elimina la stagione e riprova
+it('checkout 422 se la tariffa non è della stagione attiva', async () => {
+  // Crea una stagione PASSATA e una sua tariffa: la resolveSeasonWithin(oggi) risolve la stagione CORRENTE,
+  // quindi tariff.seasonId ≠ season.id → 422 (stesso 422 del ramo "nessuna stagione", esercitato in modo deterministico).
+  const py = new Date().getUTCFullYear() - 1;
+  const pastSeason = await prisma.forTenant(s1, (tx) => tx.season.create({ data: {
+    establishmentId: s1, name: `Stag ${py}`,
+    startDate: new Date(Date.UTC(py, 0, 1)), endDate: new Date(Date.UTC(py, 11, 31)) } }));
+  const pastTariff = await prisma.forTenant(s1, (tx) => tx.rentalTariff.create({ data: {
+    establishmentId: s1, rentalItemId: itemId, seasonId: pastSeason.id, label: 'vecchia', price: 4, sortOrder: 9 } }));
+  await request(srv()).post('/api/rentals').set(...bearer(t1))
+    .send({ rentalItemId: itemId, rentalTariffId: pastTariff.id }).expect(422);
 });
 ```
 > Prepara nel `beforeAll`: `tariffId` (POST tariffa) e `otherItemId` (secondo articolo **senza** tariffa). Cleanup
