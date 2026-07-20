@@ -8,9 +8,18 @@
   `EquipmentType` modellano la dotazione **inclusa** in una prenotazione (non venduta a parte, non prezzata per voce,
   ADR-0036), e il motore `Rate` prezza gli **ombrelloni** su dimensioni (tipo/settore/fila/pacchetto/fascia/periodo) che non
   si applicano a un pedalò. Il noleggio è un **bounded context distinto**.
-- **Confine con D-012:** D-012 (cabine/servizi accessori come **risorse prenotabili**, stesso pattern dell'Ombrellone) resta
-  deferred e distinto: la cabina è una risorsa **prenotabile in anticipo** con occupazione anti-overlap; il noleggio è un
-  evento **al banco, ora**, con disponibilità solo informativa. Nessuna sovrapposizione di modello.
+- **Confine con D-012 (chiarito con l'utente 2026-07-20):** il discrimine **non** è "custom / assegnabile al cliente /
+  stagionale" — quei tre attributi valgono per **entrambi** i casi e non separano nulla. Il discrimine è la **semantica di
+  occupazione**:
+  - **Noleggio** (questo spec): merce **fungibile** (un pedalò vale l'altro → si conta una scorta), presa **ora** al banco e
+    resa, **nessuna esclusiva** (disponibilità solo informativa), tempo **istante** (uscita/rientro sub-giornaliero).
+  - **D-012** (cabina/posto auto): risorsa **identificata** (cabina #12, come `Umbrella.label`), **riservata in anticipo**
+    per un **periodo** (spesso l'intera stagione), con **esclusiva hard anti-overlap** — la stessa macchina
+    `BookingCoverage`/[ADR-0046](../architecture/decisions/0046-occupazione-a-intervalli-coverage.md) degli ombrelloni. Da cui
+    la definizione D-012 "risorsa **gemella dell'Ombrellone**, stesso pattern". Nel lido dell'utente cabine/posti auto **non si
+    noleggiano** (si assegnano) → concetto diverso, fuori da questo bounded context, resta deferred.
+  - **Nota sul "stagionale":** nel noleggio è stagionale il **prezzo** (la tariffa), non l'occupazione (l'evento è
+    momentaneo); nella cabina sarebbe stagionale l'**occupazione stessa**. Sensi diversi.
 - **ADR di riferimento:** [ADR-0006](../architecture/decisions/0006-dominio-prenotazioni-e-pricing.md) (dominio prenotazioni/
   pricing — il noleggio è **fuori** da questo asse), [ADR-0011](../architecture/decisions/0011-incasso-base-nel-core.md)
   (incasso base derivato server-side — **riusato** tale e quale), [ADR-0031](../architecture/decisions/0031-fuso-orario-e-date-operative.md)
@@ -261,7 +270,12 @@ Applicare a `coralyn_dev` e `coralyn_test`; `prisma migrate status` pulito su en
    futura; **minimale** (`seasonId` sulla riga, no wrapper `Pricing`/catch-all → no over-engineering). *Edge*: stagioni non
    sovrapposte (invariante) → nessuna ambiguità di risoluzione; nessuna stagione oggi → 422 (riuso bookings); articolo senza
    tariffa nella stagione → non noleggiabile finché non se ne crea una.
-5. **Cliente opzionale** (utente): `customerId` nullable. *Edge*: cliente anonimizzato (GDPR) mantiene il link storico.
+5. **Cliente opzionale, mai Ombrellone** (utente + chiarimento 2026-07-20): `customerId` nullable; **nessun** link a
+   `Umbrella`. Il bersaglio del link è una **conseguenza** della semantica di occupazione (§1 confine): chi noleggia può
+   essere un walk-in **senza** ombrellone, e un pedalò non sta "su" una postazione → legarlo all'Ombrellone obbligherebbe ogni
+   noleggiatore ad avere una prenotazione (sbagliato per un banco). Al contrario una risorsa *assegnata* (D-012) viaggerebbe
+   sulla `Booking` (che già lega cliente+ombrellone+periodo+incasso) — ma è fuori scope. *Edge*: cliente anonimizzato (GDPR)
+   mantiene il link storico.
 6. **Tariffa = prezzo fisso** (revisione): `totalPrice = price × units`, snapshot; `returnedAt` serve a disponibilità/storia,
    **non** ricalcola. Evita il debito degli arrotondamenti al minuto; rispecchia il banco reale. *Edge dichiarato —
    overtime*: se il cliente resta oltre la durata della tariffa, l'MVP **non** riconteggia (l'operatore sceglie una tariffa
