@@ -663,3 +663,8 @@ export interface SetPasswordInput {
   token: string;
   password: string;
 }
+
+// --- Noleggio (rentals) -----------------------------------------------------
+export interface RentalItemDTO { id: string; name: string; stock: number | null; archived?: true; }
+export interface CreateRentalItemInput { name: string; stock?: number | null; }
+export interface UpdateRentalItemInput { name?: string; stock?: number | null; }
