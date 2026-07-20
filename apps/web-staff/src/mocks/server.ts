@@ -2,7 +2,7 @@ import { setupServer } from 'msw/node';
 import { http, HttpResponse } from 'msw';
 import { handlers } from './handlers';
 import { mapSeed, timeSlotsSeed } from './data/seed';
-import { Role, type CustomerDTO, type CustomerBookingDTO, type EquipmentTypeDTO, type PackageDTO, type RateDTO, type RenewalCampaignDetailDTO, type SeasonDTO, type TimeSlotDTO, type CreateTimeSlotInput, type UpdateTimeSlotInput, type UserDTO, type CredentialSetupContext } from '@coralyn/contracts';
+import { Role, type CustomerDTO, type CustomerBookingDTO, type EquipmentTypeDTO, type PackageDTO, type RateDTO, type RenewalCampaignDetailDTO, type SeasonDTO, type TimeSlotDTO, type CreateTimeSlotInput, type UpdateTimeSlotInput, type UserDTO, type CredentialSetupContext, type RentalItemDTO, type RentalTariffDTO } from '@coralyn/contracts';
 
 const INITIAL_CUSTOMERS: CustomerDTO[] = [
   { id: 'c-1', firstName: 'Mario', lastName: 'Rossi', phone: '+39 333 1111111', email: 'mario.rossi@email.it', notes: '' },
@@ -37,6 +37,21 @@ export function resetPricingSeed() {
   rates = [{ id: 'ra-1', seasonId: 'se-1', price: 28 }];
   timeSlots = timeSlotsSeed.map((s) => ({ ...s }));
   equipmentTypes = [{ id: 'eq-1', name: 'Lettino' }, { id: 'eq-2', name: 'Sdraio' }];
+}
+
+// --- Noleggio (D-051, catalogo/tariffe): stato mutabile in-memory per i test dell'editor ---
+const INITIAL_RENTAL_ITEMS: RentalItemDTO[] = [
+  { id: 'ri-1', name: 'SUP', stock: 5 },
+  { id: 'ri-2', name: 'Kayak', stock: null },
+];
+const INITIAL_RENTAL_TARIFFS: RentalTariffDTO[] = [
+  { id: 'rt-1', rentalItemId: 'ri-1', seasonId: 'se-1', label: 'Mezza giornata', price: 15, durationMinutes: 240 },
+];
+let rentalItems: RentalItemDTO[] = INITIAL_RENTAL_ITEMS.map((i) => ({ ...i }));
+let rentalTariffs: RentalTariffDTO[] = INITIAL_RENTAL_TARIFFS.map((t) => ({ ...t }));
+export function resetRentalsSeed() {
+  rentalItems = INITIAL_RENTAL_ITEMS.map((i) => ({ ...i }));
+  rentalTariffs = INITIAL_RENTAL_TARIFFS.map((t) => ({ ...t }));
 }
 
 // --- Prelazione (D-011): stato campagna in-memory per i test ---
@@ -231,6 +246,95 @@ export const server = setupServer(
     const i = equipmentTypes.findIndex((t) => t.id === params.id);
     if (i < 0) return new HttpResponse(null, { status: 404 });
     const [removed] = equipmentTypes.splice(i, 1);
+    return HttpResponse.json(removed);
+  }),
+  // Rental items / catalogo noleggio (CRUD)
+  http.get('/api/rental-items', ({ request }) => {
+    const includeArchived = new URL(request.url).searchParams.get('includeArchived') === 'true';
+    return HttpResponse.json(includeArchived ? rentalItems : rentalItems.filter((i) => !i.archived));
+  }),
+  http.post('/api/rental-items', async ({ request }) => {
+    const b = (await request.json()) as { name: string; stock?: number | null };
+    const created: RentalItemDTO = { id: `ri-${rentalItems.length + 1}`, name: b.name, stock: b.stock ?? null };
+    rentalItems.push(created);
+    return HttpResponse.json(created, { status: 201 });
+  }),
+  http.patch('/api/rental-items/:id', async ({ params, request }) => {
+    const patch = (await request.json()) as { name?: string; stock?: number | null };
+    const i = rentalItems.findIndex((x) => x.id === params.id);
+    if (i < 0) return new HttpResponse(null, { status: 404 });
+    rentalItems[i] = { ...rentalItems[i], ...patch };
+    return HttpResponse.json(rentalItems[i]);
+  }),
+  http.post('/api/rental-items/:id/archive', ({ params }) => {
+    const i = rentalItems.findIndex((x) => x.id === params.id);
+    if (i < 0) return new HttpResponse(null, { status: 404 });
+    rentalItems[i] = { ...rentalItems[i], archived: true };
+    return HttpResponse.json(rentalItems[i]);
+  }),
+  http.post('/api/rental-items/:id/restore', ({ params }) => {
+    const i = rentalItems.findIndex((x) => x.id === params.id);
+    if (i < 0) return new HttpResponse(null, { status: 404 });
+    const { archived: _d, ...rest } = rentalItems[i];
+    rentalItems[i] = rest;
+    return HttpResponse.json(rentalItems[i]);
+  }),
+  http.delete('/api/rental-items/:id', ({ params }) => {
+    const i = rentalItems.findIndex((x) => x.id === params.id);
+    if (i < 0) return new HttpResponse(null, { status: 404 });
+    const [removed] = rentalItems.splice(i, 1);
+    rentalTariffs = rentalTariffs.filter((t) => t.rentalItemId !== removed.id);
+    return HttpResponse.json(removed);
+  }),
+  // Rental tariffs / tariffe stagionali per articolo (CRUD)
+  http.get('/api/rental-items/:itemId/tariffs', ({ params, request }) => {
+    const url = new URL(request.url);
+    const seasonId = url.searchParams.get('seasonId') ?? '';
+    const includeArchived = url.searchParams.get('includeArchived') === 'true';
+    return HttpResponse.json(
+      rentalTariffs.filter(
+        (t) => t.rentalItemId === params.itemId && t.seasonId === seasonId && (includeArchived || !t.archived),
+      ),
+    );
+  }),
+  http.post('/api/rental-items/:itemId/tariffs', async ({ params, request }) => {
+    const seasonId = new URL(request.url).searchParams.get('seasonId') ?? '';
+    const b = (await request.json()) as { label: string; price: number; durationMinutes?: number | null };
+    const created: RentalTariffDTO = {
+      id: `rt-${rentalTariffs.length + 1}`,
+      rentalItemId: params.itemId as string,
+      seasonId,
+      label: b.label,
+      price: b.price,
+      durationMinutes: b.durationMinutes ?? null,
+    };
+    rentalTariffs.push(created);
+    return HttpResponse.json(created, { status: 201 });
+  }),
+  http.patch('/api/rental-tariffs/:id', async ({ params, request }) => {
+    const patch = (await request.json()) as Partial<RentalTariffDTO>;
+    const i = rentalTariffs.findIndex((x) => x.id === params.id);
+    if (i < 0) return new HttpResponse(null, { status: 404 });
+    rentalTariffs[i] = { ...rentalTariffs[i], ...patch };
+    return HttpResponse.json(rentalTariffs[i]);
+  }),
+  http.post('/api/rental-tariffs/:id/archive', ({ params }) => {
+    const i = rentalTariffs.findIndex((x) => x.id === params.id);
+    if (i < 0) return new HttpResponse(null, { status: 404 });
+    rentalTariffs[i] = { ...rentalTariffs[i], archived: true };
+    return HttpResponse.json(rentalTariffs[i]);
+  }),
+  http.post('/api/rental-tariffs/:id/restore', ({ params }) => {
+    const i = rentalTariffs.findIndex((x) => x.id === params.id);
+    if (i < 0) return new HttpResponse(null, { status: 404 });
+    const { archived: _d, ...rest } = rentalTariffs[i];
+    rentalTariffs[i] = rest;
+    return HttpResponse.json(rentalTariffs[i]);
+  }),
+  http.delete('/api/rental-tariffs/:id', ({ params }) => {
+    const i = rentalTariffs.findIndex((x) => x.id === params.id);
+    if (i < 0) return new HttpResponse(null, { status: 404 });
+    const [removed] = rentalTariffs.splice(i, 1);
     return HttpResponse.json(removed);
   }),
   // Rates (CRUD, filtrate per stagione)
