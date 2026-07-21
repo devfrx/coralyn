@@ -667,5 +667,24 @@ describe('MapView', () => {
     w.unmount();
   });
 
+  it('i tab settore mostrano la % di occupazione operativa (hint)', async () => {
+    const w = mountApp(MapView);
+    await flushPromises();
+    await new Promise((r) => setTimeout(r, 0));
+    await flushPromises();
+    // seed: Centro ha o-1 (daily/daily), o-2 (free/free), o-8 (booked/free) → 2/3 = 67%
+    expect(w.find('[data-test="seg-hint"]').text()).toBe('67%');
+  });
+
+  it('ogni fila mostra il righello occupate/totali', async () => {
+    const w = mountApp(MapView);
+    await flushPromises();
+    await new Promise((r) => setTimeout(r, 0));
+    await flushPromises();
+    const ruler = w.find('[data-test="row-ruler"]');
+    expect(ruler.exists()).toBe(true);
+    expect(ruler.text()).toContain('2/3');
+  });
+
   afterEach(() => { vi.restoreAllMocks(); });
 });

@@ -5,6 +5,7 @@ import { UmbrellaCell, SegmentedControl, Badge, Button, Drawer, ActionBar, Modal
 import type { UmbrellaDTO, SlotState, BookingDTO, BookingType } from '@coralyn/contracts';
 import { PAY_LABEL, PAY_TONE } from '@/lib/statusMaps';
 import { useDayMap } from './useDayMap';
+import { rowOccupancy, sectorOccupancyPct } from './mapDerive';
 import { useDayBookings, useCreateBooking, useCancelBooking } from '@/features/bookings/useBookings';
 import { useBookingQuote, type QuoteParams } from '@/features/bookings/useBookingQuote';
 import { usePackages } from '@/features/bookings/usePackages';
@@ -53,7 +54,9 @@ const special = computed(() => sectors.value.find((s) => s.name.toLowerCase() ==
 const activeSector = ref('');
 watch(normalSectors, (list) => { if (!activeSector.value && list.length) activeSector.value = list[0].id; }, { immediate: true });
 const currentSector = computed(() => normalSectors.value.find((s) => s.id === activeSector.value) ?? normalSectors.value[0] ?? null);
-const sectorOptions = computed(() => normalSectors.value.map((s) => ({ value: s.id, label: s.name })));
+const sectorOptions = computed(() =>
+  normalSectors.value.map((s) => ({ value: s.id, label: s.name, hint: `${sectorOccupancyPct(s)}%` })),
+);
 const spotCount = computed(() => currentSector.value?.rows.reduce((n, r) => n + r.umbrellas.length, 0) ?? 0);
 
 function slotStatesFor(u: UmbrellaDTO): SlotState[] {
@@ -270,6 +273,13 @@ const freeSlotOptions = computed(() =>
                 :type-icon="typeIcon(u)" :selected="sel?.u.id === u.id"
                 @select="open(u, currentSector!.name, r.label)" />
             </div>
+            <span data-test="row-ruler" class="w-[74px] flex-none">
+              <span class="block h-1 overflow-hidden rounded-full bg-[var(--color-warm-border-seg)]">
+                <span class="block h-full rounded-full bg-[var(--color-accent)] opacity-75"
+                  :style="{ width: `${(rowOccupancy(r).occupied / Math.max(rowOccupancy(r).total, 1)) * 100}%` }"></span>
+              </span>
+              <span class="mt-0.5 block text-right text-[9px] font-semibold tabular-nums text-[var(--color-stage-2)]">{{ rowOccupancy(r).occupied }}/{{ rowOccupancy(r).total }}</span>
+            </span>
           </div>
           <div v-if="special" class="mt-[18px] border-t border-dashed border-[var(--color-warm-border-stage)] pt-3.5">
             <div class="mb-2.5 text-[10px] font-semibold uppercase tracking-[.09em] text-[var(--color-stage-1)]">Settore Speciali · Palme</div>
