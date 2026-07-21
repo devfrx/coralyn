@@ -117,7 +117,7 @@ function onConfirmDelete() {
 }
 </script>
 <template>
-  <section class="max-w-[940px] px-[26px] pb-[30px] pt-[18px]">
+  <section class="px-[26px] pb-[30px] pt-[18px]">
     <p v-if="isLoading" class="text-[var(--color-text-muted)]">Caricamento…</p>
     <p v-else-if="isError" class="text-[var(--color-danger)]">Errore nel caricamento del cliente.</p>
     <template v-else-if="customer">
@@ -155,21 +155,24 @@ function onConfirmDelete() {
         </p>
       </Card>
 
-      <SectionCard v-if="!customer.anonymizedAt" title="Anagrafica e contatti" icon="users" class="mb-4">
-        <div class="grid grid-cols-2 gap-x-7 gap-y-[18px]">
-          <div><div class="mb-1 text-[11px] font-semibold uppercase tracking-[.05em] text-[var(--color-text-muted)]">Nome</div><div class="text-sm font-medium text-[var(--color-text)]">{{ customer.firstName }}</div></div>
-          <div><div class="mb-1 text-[11px] font-semibold uppercase tracking-[.05em] text-[var(--color-text-muted)]">Cognome</div><div class="text-sm font-medium text-[var(--color-text)]">{{ customer.lastName }}</div></div>
-          <div><div class="mb-1 text-[11px] font-semibold uppercase tracking-[.05em] text-[var(--color-text-muted)]">Telefono</div><div class="text-sm font-medium tabular-nums text-[var(--color-text)]">{{ customer.phone ?? '—' }}</div></div>
-          <div><div class="mb-1 text-[11px] font-semibold uppercase tracking-[.05em] text-[var(--color-text-muted)]">Email</div><div class="text-sm font-medium text-[var(--color-text)]">{{ customer.email ?? '—' }}</div></div>
-          <div class="col-span-2"><div class="mb-1 text-[11px] font-semibold uppercase tracking-[.05em] text-[var(--color-text-muted)]">Note</div><div class="whitespace-pre-wrap text-sm font-medium text-[var(--color-text)]">{{ customer.notes || '—' }}</div></div>
+      <div class="grid grid-cols-[1.6fr_1fr] items-start gap-3.5">
+        <div class="flex min-w-0 flex-col gap-3.5">
+          <CustomerSubscriptionsCard :bookings="bookings ?? []" :ceded="ceded ?? []" :is-admin="isAdmin" @terminate="onTerminate" @suspend="onSuspend" @reactivate="onReactivate" @transfer="onTransfer" @consent="onConsent" @absence="onAbsence" @cancelAbsence="onCancelAbsence" />
+          <CustomerHistoryCard :bookings="bookings ?? []" />
+          <CustomerPaymentsCard :bookings="bookings ?? []" />
         </div>
-      </SectionCard>
-
-      <div class="flex flex-col gap-3.5">
-        <CustomerAccessCard v-if="accessBookingId" :booking-id="accessBookingId" :is-admin="isAdmin" @provisioned="onProvisioned" />
-        <CustomerSubscriptionsCard :bookings="bookings ?? []" :ceded="ceded ?? []" :is-admin="isAdmin" @terminate="onTerminate" @suspend="onSuspend" @reactivate="onReactivate" @transfer="onTransfer" @consent="onConsent" @absence="onAbsence" @cancelAbsence="onCancelAbsence" />
-        <CustomerHistoryCard :bookings="bookings ?? []" />
-        <CustomerPaymentsCard :bookings="bookings ?? []" />
+        <div class="flex min-w-0 flex-col gap-3.5">
+          <SectionCard v-if="!customer.anonymizedAt" title="Anagrafica e contatti" icon="users">
+            <div class="grid grid-cols-2 gap-x-7 gap-y-[18px]">
+              <div><div class="mb-1 text-[11px] font-semibold uppercase tracking-[.05em] text-[var(--color-text-muted)]">Nome</div><div class="text-sm font-medium text-[var(--color-text)]">{{ customer.firstName }}</div></div>
+              <div><div class="mb-1 text-[11px] font-semibold uppercase tracking-[.05em] text-[var(--color-text-muted)]">Cognome</div><div class="text-sm font-medium text-[var(--color-text)]">{{ customer.lastName }}</div></div>
+              <div><div class="mb-1 text-[11px] font-semibold uppercase tracking-[.05em] text-[var(--color-text-muted)]">Telefono</div><div class="text-sm font-medium tabular-nums text-[var(--color-text)]">{{ customer.phone ?? '—' }}</div></div>
+              <div><div class="mb-1 text-[11px] font-semibold uppercase tracking-[.05em] text-[var(--color-text-muted)]">Email</div><div class="text-sm font-medium text-[var(--color-text)]">{{ customer.email ?? '—' }}</div></div>
+              <div class="col-span-2"><div class="mb-1 text-[11px] font-semibold uppercase tracking-[.05em] text-[var(--color-text-muted)]">Note</div><div class="whitespace-pre-wrap text-sm font-medium text-[var(--color-text)]">{{ customer.notes || '—' }}</div></div>
+            </div>
+          </SectionCard>
+          <CustomerAccessCard v-if="accessBookingId" :booking-id="accessBookingId" :is-admin="isAdmin" @provisioned="onProvisioned" />
+        </div>
       </div>
 
       <ConfirmDialog

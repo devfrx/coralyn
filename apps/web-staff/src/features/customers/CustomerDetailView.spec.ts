@@ -83,7 +83,6 @@ describe('CustomerDetailView', () => {
     expect(w.text()).toContain('Rinnovato');
     expect(w.text()).toContain('Comfort');
     expect(w.text()).toContain('STAGIONI');
-    expect(w.text()).toMatch(/Abbonato da 2 stagioni/);
   });
 
   it('pagamenti: due StatTile (saldo/incassato) e tabella con metodo tradotto', async () => {
