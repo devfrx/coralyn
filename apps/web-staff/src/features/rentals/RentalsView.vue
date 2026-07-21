@@ -2,9 +2,10 @@
 import { computed, ref, watch } from 'vue';
 import { storeToRefs } from 'pinia';
 import {
-  Button, Badge, DataTable, EmptyState, Modal, ConfirmDialog, Field, Select, Icon, ActionBar,
+  Button, Badge, DataTable, Modal, ConfirmDialog, Field, Select, Icon, ActionBar,
   PageToolbar, ModalFooter, formatEuro,
 } from '@coralyn/ui-kit';
+import type { DataTableColumn } from '@coralyn/ui-kit';
 import type { RentalDTO } from '@coralyn/contracts';
 import { useSessionStore } from '@/stores/session';
 import { RENTAL_STATUS_LABEL, RENTAL_STATUS_TONE } from '@/lib/statusMaps';
@@ -34,14 +35,14 @@ const activeSeasonId = computed(() => {
   return covering?.id ?? list[0]?.id ?? '';
 });
 
-const cols = [
+const cols: DataTableColumn[] = [
   { key: 'articolo', label: 'Articolo' },
   { key: 'tariffa', label: 'Tariffa' },
   { key: 'cliente', label: 'Cliente' },
-  { key: 'unita', label: 'Unità', numeric: true },
+  { key: 'unita', label: 'Unità', numeric: true, align: 'right' },
   { key: 'stato', label: 'Stato' },
-  { key: 'incasso', label: 'Incasso', align: 'right' as const },
-  { key: 'azioni', label: '', align: 'right' as const },
+  { key: 'incasso', label: 'Incasso', align: 'right' },
+  { key: 'azioni', label: '', align: 'right' },
 ];
 
 // --- Azioni riga ---
@@ -129,33 +130,35 @@ function confirmCheckout(): void {
       </Badge>
     </div>
 
-    <DataTable v-if="rentals.length" :columns="cols">
-      <tr v-for="r in rentals" :key="r.id" class="hover:bg-[var(--color-raised)]">
-        <td class="border-b border-[var(--color-border-row)] px-[18px] py-3.5 font-semibold text-[var(--color-text)]">{{ r.rentalItemName }}</td>
-        <td class="border-b border-[var(--color-border-row)] px-3.5 py-3.5 text-[var(--color-text-2nd)]">{{ r.tariffLabel }}</td>
-        <td class="border-b border-[var(--color-border-row)] px-3.5 py-3.5 text-[var(--color-text-2nd)]">{{ r.customerName ?? '—' }}</td>
-        <td class="border-b border-[var(--color-border-row)] px-3.5 py-3.5 text-right tabular-nums text-[var(--color-text-2nd)]">{{ r.units }}</td>
-        <td class="border-b border-[var(--color-border-row)] px-3.5 py-3.5">
-          <Badge :tone="RENTAL_STATUS_TONE[r.status]">{{ RENTAL_STATUS_LABEL[r.status] }}</Badge>
-        </td>
-        <td class="border-b border-[var(--color-border-row)] px-3.5 py-3.5 text-right">
-          <button
-            type="button"
-            class="font-semibold tabular-nums text-[var(--color-text)] underline-offset-2 hover:underline focus-visible:outline-none focus-visible:[box-shadow:var(--ring-focus)]"
-            :data-test="`settle-${r.id}`"
-            :disabled="r.status === 'cancelled'"
-            @click="openSettle(r)"
-          >{{ formatEuro(r.amountCollected) }} / {{ formatEuro(r.totalPrice) }}</button>
-        </td>
-        <td class="border-b border-[var(--color-border-row)] px-[18px] py-3.5 text-right">
-          <ActionBar gap="sm" align="end">
-            <Button v-if="r.status === 'active'" variant="secondary" size="sm" :data-test="`return-${r.id}`" @click="returnRental.mutate(r.id)">Rientro</Button>
-            <Button v-if="r.status === 'active'" variant="danger" size="sm" :data-test="`cancel-${r.id}`" @click="askCancel(r)">Annulla</Button>
-          </ActionBar>
-        </td>
-      </tr>
+    <DataTable
+      :columns="cols"
+      :rows="(rentals as unknown as Record<string, unknown>[])"
+      :row-key="(r) => (r as unknown as RentalDTO).id"
+      empty-message="Nessun noleggio per questa data."
+    >
+      <template #cell-articolo="{ row }"><span class="font-semibold text-[var(--color-text)]">{{ (row as unknown as RentalDTO).rentalItemName }}</span></template>
+      <template #cell-tariffa="{ row }"><span class="text-[var(--color-text-2nd)]">{{ (row as unknown as RentalDTO).tariffLabel }}</span></template>
+      <template #cell-cliente="{ row }"><span class="text-[var(--color-text-2nd)]">{{ (row as unknown as RentalDTO).customerName ?? '—' }}</span></template>
+      <template #cell-unita="{ row }"><span class="text-[var(--color-text-2nd)]">{{ (row as unknown as RentalDTO).units }}</span></template>
+      <template #cell-stato="{ row }">
+        <Badge :tone="RENTAL_STATUS_TONE[(row as unknown as RentalDTO).status]">{{ RENTAL_STATUS_LABEL[(row as unknown as RentalDTO).status] }}</Badge>
+      </template>
+      <template #cell-incasso="{ row }">
+        <button
+          type="button"
+          class="font-semibold tabular-nums text-[var(--color-text)] underline-offset-2 hover:underline focus-visible:outline-none focus-visible:[box-shadow:var(--ring-focus)]"
+          :data-test="`settle-${(row as unknown as RentalDTO).id}`"
+          :disabled="(row as unknown as RentalDTO).status === 'cancelled'"
+          @click="openSettle(row as unknown as RentalDTO)"
+        >{{ formatEuro((row as unknown as RentalDTO).amountCollected) }} / {{ formatEuro((row as unknown as RentalDTO).totalPrice) }}</button>
+      </template>
+      <template #cell-azioni="{ row }">
+        <ActionBar gap="sm" align="end">
+          <Button v-if="(row as unknown as RentalDTO).status === 'active'" variant="secondary" size="sm" :data-test="`return-${(row as unknown as RentalDTO).id}`" @click="returnRental.mutate((row as unknown as RentalDTO).id)">Rientro</Button>
+          <Button v-if="(row as unknown as RentalDTO).status === 'active'" variant="danger" size="sm" :data-test="`cancel-${(row as unknown as RentalDTO).id}`" @click="askCancel(row as unknown as RentalDTO)">Annulla</Button>
+        </ActionBar>
+      </template>
     </DataTable>
-    <EmptyState v-else message="Nessun noleggio per questa data." />
 
     <!-- Modale Nuovo noleggio -->
     <Modal v-model:open="modalOpen" title="Nuovo noleggio" eyebrow="Banco noleggi">
