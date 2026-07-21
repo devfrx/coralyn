@@ -12,7 +12,8 @@ describe('EstablishmentsListView', () => {
   it('mostra i lidi seed con il badge Sospeso', async () => {
     const w = mountApp(EstablishmentsListView, { attachTo: document.body });
     await settle();
-    expect(w.findAll('[data-testid="est-row"]')).toHaveLength(2);
+    // Le righe sono generate dal DataTable data-driven (niente più data-testid sul <tr>).
+    expect(w.findAll('tbody tr')).toHaveLength(2);
     expect(w.html()).toContain('Lido Alpha');
     expect(w.html()).toContain('Sospeso');
     w.unmount();

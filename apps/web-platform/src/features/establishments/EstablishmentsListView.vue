@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
-import { Button, ActionBar, Badge, ConfirmDialog, EmptyState, PageToolbar, Icon, formatEuro, TD, TD_FIRST, TD_RIGHT, TD_NUM } from '@coralyn/ui-kit';
+import { Button, ActionBar, Badge, ConfirmDialog, DataTable, EmptyState, PageToolbar, Icon, formatEuro } from '@coralyn/ui-kit';
+import type { DataTableColumn } from '@coralyn/ui-kit';
 import type { PlatformEstablishmentDTO } from '@coralyn/contracts';
 import { useEstablishmentsList, useSuspendEstablishment, useReactivateEstablishment } from './usePlatformEstablishments';
 import CreateEstablishmentModal from './CreateEstablishmentModal.vue';
@@ -54,6 +55,18 @@ function isSuspending(id: string): boolean {
 function isReactivating(id: string): boolean {
   return reactivate.isPending.value && reactivate.variables.value === id;
 }
+
+const cols: DataTableColumn[] = [
+  { key: 'name', label: 'Nome' },
+  { key: 'createdAt', label: 'Creato', numeric: true },
+  { key: 'umbrellas', label: 'Ombrelloni', align: 'right', numeric: true },
+  { key: 'staffUsersActive', label: 'Staff attivi', align: 'right', numeric: true },
+  { key: 'revenueSeasonTotal', label: 'Incasso stagione', align: 'right', numeric: true },
+  { key: 'occupancyPctToday', label: 'Occ. oggi', align: 'right', numeric: true },
+  { key: 'lastActivityAt', label: 'Ultima attività', numeric: true },
+  { key: 'suspendedAt', label: 'Stato' },
+  { key: 'actions', label: 'Azioni', align: 'right' },
+];
 </script>
 
 <template>
@@ -71,62 +84,46 @@ function isReactivating(id: string): boolean {
 
     <EmptyState v-else-if="establishments.length === 0" message="Nessun lido registrato." />
 
-    <div v-else class="overflow-hidden rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-[var(--color-surface)] [box-shadow:var(--shadow-card)]">
-      <table class="w-full border-collapse text-[13px]">
-        <thead>
-          <tr class="bg-[var(--color-raised)]">
-            <th class="border-b border-[var(--color-border)] px-[18px] py-3 text-left text-[10.5px] font-semibold uppercase tracking-[.07em] text-[var(--color-text-muted)]">Nome</th>
-            <th class="border-b border-[var(--color-border)] px-[18px] py-3 text-left text-[10.5px] font-semibold uppercase tracking-[.07em] text-[var(--color-text-muted)]">Creato</th>
-            <th class="border-b border-[var(--color-border)] px-[18px] py-3 text-right text-[10.5px] font-semibold uppercase tracking-[.07em] text-[var(--color-text-muted)]">Ombrelloni</th>
-            <th class="border-b border-[var(--color-border)] px-[18px] py-3 text-right text-[10.5px] font-semibold uppercase tracking-[.07em] text-[var(--color-text-muted)]">Staff attivi</th>
-            <th class="border-b border-[var(--color-border)] px-[18px] py-3 text-right text-[10.5px] font-semibold uppercase tracking-[.07em] text-[var(--color-text-muted)]">Incasso stagione</th>
-            <th class="border-b border-[var(--color-border)] px-[18px] py-3 text-right text-[10.5px] font-semibold uppercase tracking-[.07em] text-[var(--color-text-muted)]">Occ. oggi</th>
-            <th class="border-b border-[var(--color-border)] px-[18px] py-3 text-left text-[10.5px] font-semibold uppercase tracking-[.07em] text-[var(--color-text-muted)]">Ultima attività</th>
-            <th class="border-b border-[var(--color-border)] px-[18px] py-3 text-left text-[10.5px] font-semibold uppercase tracking-[.07em] text-[var(--color-text-muted)]">Stato</th>
-            <th class="border-b border-[var(--color-border)] px-[18px] py-3 text-right text-[10.5px] font-semibold uppercase tracking-[.07em] text-[var(--color-text-muted)]">Azioni</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="e in establishments" :key="e.id" data-testid="est-row" class="hover:bg-[var(--color-raised)]">
-            <td :class="TD_FIRST">
-              <span data-testid="est-name" class="font-semibold text-[var(--color-text)]">{{ e.name }}</span>
-            </td>
-            <td :class="[TD, TD_NUM]">{{ fmtDate(e.createdAt) }}</td>
-            <td :class="[TD_RIGHT, TD_NUM]">{{ e.umbrellas }}</td>
-            <td :class="[TD_RIGHT, TD_NUM]">{{ e.staffUsersActive }}</td>
-            <td :class="[TD_RIGHT, TD_NUM]">{{ formatEuro(e.revenueSeasonTotal) }}</td>
-            <td :class="[TD_RIGHT, TD_NUM]">{{ e.occupancyPctToday }}%</td>
-            <td :class="[TD, TD_NUM]">{{ fmtDate(e.lastActivityAt) }}</td>
-            <td :class="TD">
-              <Badge :tone="e.suspendedAt ? 'neutral' : 'success'">{{ e.suspendedAt ? 'Sospeso' : 'Attivo' }}</Badge>
-            </td>
-            <td :class="TD_RIGHT">
-              <ActionBar gap="sm" align="end">
-                <RouterLink :to="`/establishments/${e.id}`" data-testid="detail-link">
-                  <Button variant="secondary" size="sm">Dettaglio</Button>
-                </RouterLink>
-                <Button
-                  v-if="!e.suspendedAt"
-                  :data-testid="`suspend-${e.id}`"
-                  variant="secondary"
-                  size="sm"
-                  :disabled="isSuspending(e.id)"
-                  @click="askSuspend(e)"
-                >Sospendi</Button>
-                <Button
-                  v-else
-                  :data-testid="`reactivate-${e.id}`"
-                  variant="secondary"
-                  size="sm"
-                  :disabled="isReactivating(e.id)"
-                  @click="askReactivate(e)"
-                >Riattiva</Button>
-              </ActionBar>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
+    <DataTable
+      v-else
+      :columns="cols"
+      :rows="(establishments as unknown as Record<string, unknown>[])"
+      :row-key="(r) => (r as unknown as PlatformEstablishmentDTO).id"
+    >
+      <template #cell-name="{ row }">
+        <span data-testid="est-name" class="font-semibold text-[var(--color-text)]">{{ (row as unknown as PlatformEstablishmentDTO).name }}</span>
+      </template>
+      <template #cell-createdAt="{ row }">{{ fmtDate((row as unknown as PlatformEstablishmentDTO).createdAt) }}</template>
+      <template #cell-revenueSeasonTotal="{ row }">{{ formatEuro((row as unknown as PlatformEstablishmentDTO).revenueSeasonTotal) }}</template>
+      <template #cell-occupancyPctToday="{ row }">{{ (row as unknown as PlatformEstablishmentDTO).occupancyPctToday }}%</template>
+      <template #cell-lastActivityAt="{ row }">{{ fmtDate((row as unknown as PlatformEstablishmentDTO).lastActivityAt) }}</template>
+      <template #cell-suspendedAt="{ row }">
+        <Badge :tone="(row as unknown as PlatformEstablishmentDTO).suspendedAt ? 'neutral' : 'success'">{{ (row as unknown as PlatformEstablishmentDTO).suspendedAt ? 'Sospeso' : 'Attivo' }}</Badge>
+      </template>
+      <template #cell-actions="{ row }">
+        <ActionBar gap="sm" align="end">
+          <RouterLink :to="`/establishments/${(row as unknown as PlatformEstablishmentDTO).id}`" data-testid="detail-link">
+            <Button variant="secondary" size="sm">Dettaglio</Button>
+          </RouterLink>
+          <Button
+            v-if="!(row as unknown as PlatformEstablishmentDTO).suspendedAt"
+            :data-testid="`suspend-${(row as unknown as PlatformEstablishmentDTO).id}`"
+            variant="secondary"
+            size="sm"
+            :disabled="isSuspending((row as unknown as PlatformEstablishmentDTO).id)"
+            @click="askSuspend(row as unknown as PlatformEstablishmentDTO)"
+          >Sospendi</Button>
+          <Button
+            v-else
+            :data-testid="`reactivate-${(row as unknown as PlatformEstablishmentDTO).id}`"
+            variant="secondary"
+            size="sm"
+            :disabled="isReactivating((row as unknown as PlatformEstablishmentDTO).id)"
+            @click="askReactivate(row as unknown as PlatformEstablishmentDTO)"
+          >Riattiva</Button>
+        </ActionBar>
+      </template>
+    </DataTable>
 
     <CreateEstablishmentModal v-model:open="createOpen" />
 
