@@ -13,6 +13,7 @@ export { default as Input } from './components/Input.vue';
 export { default as SearchInput } from './components/SearchInput.vue';
 export { default as UmbrellaCell } from './components/UmbrellaCell.vue';
 export { default as Drawer } from './components/Drawer.vue';
+export { default as NavDrawer } from './components/NavDrawer.vue';
 export { default as Textarea } from './components/Textarea.vue';
 export { default as Avatar } from './components/Avatar.vue';
 export { default as SegmentedControl } from './components/SegmentedControl.vue';
