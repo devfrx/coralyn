@@ -89,7 +89,7 @@ function submitItem() {
 // --- Editor tariffe stagionali per l'articolo selezionato ---
 const getItemId = () => selectedItemId.value ?? '';
 const getSeasonId = () => activeSeasonId.value;
-const { data: tariffsData } = useRentalTariffs(getItemId, getSeasonId);
+const { data: tariffsData, isLoading: tariffsLoading } = useRentalTariffs(getItemId, getSeasonId);
 const createTariff = useCreateRentalTariff(getItemId, getSeasonId);
 const updateTariff = useUpdateRentalTariff(getItemId, getSeasonId);
 const archiveTariff = useArchiveRentalTariff(getItemId, getSeasonId);
@@ -265,7 +265,7 @@ function onConfirmDelete() {
         </Button>
       </div>
 
-      <DataTable :columns="tariffCols" :rows="(activeTariffs as unknown as Record<string, unknown>[])" :row-key="(r) => (r as unknown as RentalTariffDTO).id">
+      <DataTable :columns="tariffCols" :rows="(activeTariffs as unknown as Record<string, unknown>[])" :row-key="(r) => (r as unknown as RentalTariffDTO).id" :loading="tariffsLoading">
         <template #cell-label="{ row }"><span class="font-semibold text-[var(--color-text)]">{{ (row as unknown as RentalTariffDTO).label }}</span></template>
         <template #cell-duration="{ row }"><span class="text-[var(--color-text-2nd)]">{{ durationLabel((row as unknown as RentalTariffDTO).durationMinutes) }}</span></template>
         <template #cell-price="{ row }"><span class="font-bold tabular-nums text-[var(--color-text)]">{{ formatEuro((row as unknown as RentalTariffDTO).price) }}</span></template>

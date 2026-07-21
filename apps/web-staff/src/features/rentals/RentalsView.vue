@@ -18,7 +18,7 @@ import SettleRentalPaymentModal from './SettleRentalPaymentModal.vue';
 
 const session = useSessionStore();
 const { activeDate } = storeToRefs(session);
-const { data: day } = useRentals(activeDate);
+const { data: day, isLoading: dayLoading } = useRentals(activeDate);
 const rentals = computed<RentalDTO[]>(() => day.value?.rentals ?? []);
 const availability = computed(() => day.value?.availability ?? []);
 
@@ -135,6 +135,7 @@ function confirmCheckout(): void {
       :rows="(rentals as unknown as Record<string, unknown>[])"
       :row-key="(r) => (r as unknown as RentalDTO).id"
       empty-message="Nessun noleggio per questa data."
+      :loading="dayLoading"
     >
       <template #cell-articolo="{ row }"><span class="font-semibold text-[var(--color-text)]">{{ (row as unknown as RentalDTO).rentalItemName }}</span></template>
       <template #cell-tariffa="{ row }"><span class="text-[var(--color-text-2nd)]">{{ (row as unknown as RentalDTO).tariffLabel }}</span></template>
@@ -154,7 +155,9 @@ function confirmCheckout(): void {
       </template>
       <template #cell-azioni="{ row }">
         <ActionBar gap="sm" align="end">
-          <Button v-if="(row as unknown as RentalDTO).status === 'active'" variant="secondary" size="sm" :data-test="`return-${(row as unknown as RentalDTO).id}`" @click="returnRental.mutate((row as unknown as RentalDTO).id)">Rientro</Button>
+          <Button v-if="(row as unknown as RentalDTO).status === 'active'" variant="secondary" size="sm" :data-test="`return-${(row as unknown as RentalDTO).id}`"
+            :loading="returnRental.isPending.value && returnRental.variables.value === (row as unknown as RentalDTO).id"
+            @click="returnRental.mutate((row as unknown as RentalDTO).id)">Rientro</Button>
           <Button v-if="(row as unknown as RentalDTO).status === 'active'" variant="danger" size="sm" :data-test="`cancel-${(row as unknown as RentalDTO).id}`" @click="askCancel(row as unknown as RentalDTO)">Annulla</Button>
         </ActionBar>
       </template>
@@ -194,7 +197,7 @@ function confirmCheckout(): void {
         </div>
       </div>
       <template #footer>
-        <ModalFooter submit-label="Conferma noleggio" :submit-disabled="!itemId || !tariffId" @cancel="modalOpen = false" @submit="confirmCheckout" />
+        <ModalFooter submit-label="Conferma noleggio" :submit-disabled="!itemId || !tariffId" :submit-loading="checkout.isPending.value" @cancel="modalOpen = false" @submit="confirmCheckout" />
       </template>
     </Modal>
 

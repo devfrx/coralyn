@@ -95,7 +95,7 @@ async function confirm(): Promise<void> {
     </div>
 
     <template v-if="booking" #footer>
-      <ModalFooter submit-label="Conferma incasso" :submit-disabled="submitting" @cancel="open = false" @submit="confirm" />
+      <ModalFooter submit-label="Conferma incasso" :submit-loading="submitting" @cancel="open = false" @submit="confirm" />
     </template>
   </Modal>
 </template>

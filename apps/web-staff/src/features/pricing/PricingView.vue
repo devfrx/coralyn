@@ -75,7 +75,7 @@ const archivedEqtOpen = ref(false);
 const { data: equipmentTypesActive } = useEquipmentTypes();
 
 // --- Tariffe ---
-const { data: rates } = useRates(getSeasonId);
+const { data: rates, isLoading: ratesLoading } = useRates(getSeasonId);
 const createRate = useCreateRate(getSeasonId);
 const updateRate = useUpdateRate(getSeasonId);
 const deleteRate = useDeleteRate(getSeasonId);
@@ -537,7 +537,7 @@ const rateCols: DataTableColumn[] = [
     <p class="mb-2 text-[12px] text-[var(--color-text-muted)]">
       Quando più tariffe si applicano, vince la più specifica: periodo › fila › settore › pacchetto › fascia › tipo.
     </p>
-    <DataTable :columns="rateCols" :rows="(sortedRates as unknown as Record<string, unknown>[])" :row-key="(r) => (r as unknown as RateDTO).id">
+    <DataTable :columns="rateCols" :rows="(sortedRates as unknown as Record<string, unknown>[])" :row-key="(r) => (r as unknown as RateDTO).id" :loading="ratesLoading">
       <template #cell-position="{ row }"><span class="font-semibold text-[var(--color-text)]">{{ positionLabel(row as unknown as RateDTO) }}</span></template>
       <template #cell-package="{ row }"><span class="text-[var(--color-text-2nd)]">{{ pkgName((row as unknown as RateDTO).packageId) }}</span></template>
       <template #cell-slot="{ row }"><span class="text-[var(--color-text-2nd)]">{{ slotName((row as unknown as RateDTO).timeSlotId) }}</span></template>
