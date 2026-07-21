@@ -4,6 +4,8 @@ import { sortRows, type DataTableColumn, type SortDir, paginate, pageCount, coun
 import Icon from './Icon.vue';
 import IconButton from './IconButton.vue';
 import EmptyState from './EmptyState.vue';
+import Skeleton from './Skeleton.vue';
+import { useDelayedLoading } from '../useDelayedLoading';
 
 type Row = Record<string, unknown>;
 
@@ -18,8 +20,10 @@ const props = withDefaults(
     emptyMessage?: string;
     maxHeight?: string;
     rowClass?: (row: Row) => string;
+    loading?: boolean;
+    skeletonRows?: number;
   }>(),
-  { density: 'comfortable', showCount: false },
+  { density: 'comfortable', showCount: false, loading: false, skeletonRows: 5 },
 );
 
 const page = defineModel<number>('page', { default: 1 });
@@ -55,10 +59,20 @@ const totalPages = computed(() => (props.pageSize ? pageCount(sorted.value.lengt
 const visible = computed<Row[]>(() => (props.pageSize ? paginate(sorted.value, page.value, props.pageSize) : sorted.value));
 watch(() => props.rows, () => { page.value = 1; });
 
-const footerVisible = computed(() => !!props.rows && sorted.value.length > 0 && (!!props.pageSize || props.showCount));
 const footerLabel = computed(() =>
   countLabel(sorted.value.length, props.pageSize ? { page: page.value, pageSize: props.pageSize } : undefined),
 );
+
+// --- skeleton di caricamento (spec 2026-07-21-loading-states §4.1) ---
+// Gate interno: il chiamante passa isLoading grezzo. Input del gate = loading E 0 righe:
+// un refetch con dati stantii visibili non attiva mai lo skeleton (mai sopra dati reali).
+const skeletonBusy = useDelayedLoading(() => !!props.loading && (props.rows?.length ?? 0) === 0);
+const SKELETON_WIDTHS = ['70%', '85%', '60%', '75%', '90%'] as const;
+function skeletonWidth(r: number, c: number): string {
+  return SKELETON_WIDTHS[(r + c) % SKELETON_WIDTHS.length];
+}
+
+const footerVisible = computed(() => !skeletonBusy.value && !!props.rows && sorted.value.length > 0 && (!!props.pageSize || props.showCount));
 
 const HIDE = { sm: 'max-sm:hidden', md: 'max-md:hidden', lg: 'max-lg:hidden' } as const;
 
@@ -98,7 +112,10 @@ function rowClasses(row: Row): string {
 }
 </script>
 <template>
-  <div class="overflow-hidden rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-[var(--color-surface)] [box-shadow:var(--shadow-card)]">
+  <div
+    class="overflow-hidden rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-[var(--color-surface)] [box-shadow:var(--shadow-card)]"
+    :aria-busy="skeletonBusy ? 'true' : undefined"
+  >
     <div class="overflow-x-auto" :class="maxHeight ? 'overflow-y-auto' : ''" :style="maxHeight ? { maxHeight } : undefined">
       <table class="w-full border-collapse text-[13px]">
         <thead>
@@ -134,7 +151,14 @@ function rowClasses(row: Row): string {
             </th>
           </tr>
         </thead>
-        <tbody v-if="rows && rows.length === 0 && emptyMessage">
+        <tbody v-if="skeletonBusy">
+          <tr v-for="r in skeletonRows" :key="r">
+            <td v-for="(c, ci) in columns" :key="c.key" :class="cellClass(c, ci === 0)">
+              <Skeleton variant="line" :width="skeletonWidth(r, ci)" />
+            </td>
+          </tr>
+        </tbody>
+        <tbody v-else-if="rows && rows.length === 0 && emptyMessage && !loading">
           <tr><td :colspan="columns.length" class="p-4"><EmptyState :message="emptyMessage" /></td></tr>
         </tbody>
         <tbody v-else-if="rows">

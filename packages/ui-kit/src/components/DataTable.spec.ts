@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { mount } from '@vue/test-utils';
 import DataTable from './DataTable.vue';
 
@@ -237,5 +237,66 @@ describe('DataTable — righe interattive e stati', () => {
     expect(scroller.classes()).toContain('overflow-y-auto');
     expect(scroller.attributes('style')).toContain('max-height: 400px');
     expect(w.find('th').classes()).toEqual(expect.arrayContaining(['sticky', 'top-0']));
+  });
+});
+
+describe('DataTable — loading (skeleton in-card, gate anti-flicker interno)', () => {
+  beforeEach(() => vi.useFakeTimers());
+  afterEach(() => vi.useRealTimers());
+
+  it('pre-delay: niente skeleton, niente emptyMessage (finestra 0-150ms vuota)', () => {
+    const w = mount(DataTable, { props: { columns, rows: [], loading: true, emptyMessage: 'Vuoto' } });
+    expect(w.find('[data-test="skeleton"]').exists()).toBe(false);
+    expect(w.text()).not.toContain('Vuoto');
+  });
+
+  it('dopo il delay: righe skeleton (default 5) per tutte le colonne, aria-busy sul contenitore', async () => {
+    const w = mount(DataTable, { props: { columns, rows: [], loading: true, emptyMessage: 'Vuoto' } });
+    await vi.advanceTimersByTimeAsync(150);
+    await w.vm.$nextTick();
+    const trs = w.findAll('tbody tr');
+    expect(trs).toHaveLength(5);
+    expect(trs[0].findAll('[data-test="skeleton"]')).toHaveLength(columns.length);
+    expect(w.find('div.overflow-hidden').attributes('aria-busy')).toBe('true');
+    expect(w.text()).not.toContain('Vuoto');
+  });
+
+  it('skeletonRows personalizza il numero di righe', async () => {
+    const w = mount(DataTable, { props: { columns, rows: [], loading: true, skeletonRows: 3 } });
+    await vi.advanceTimersByTimeAsync(150);
+    await w.vm.$nextTick();
+    expect(w.findAll('tbody tr')).toHaveLength(3);
+  });
+
+  it('mai sopra dati reali: refetch con righe presenti → nessuno skeleton', async () => {
+    const w = mount(DataTable, { props: { columns, rows, loading: true } });
+    await vi.advanceTimersByTimeAsync(2000);
+    await w.vm.$nextTick();
+    expect(w.find('[data-test="skeleton"]').exists()).toBe(false);
+    expect(w.text()).toContain('Mario');
+  });
+
+  it('minVisible: i dati arrivati durante lo skeleton aspettano i 300ms; footer soppresso nel frattempo', async () => {
+    const w = mount(DataTable, { props: { columns, rows: [], loading: true, showCount: true } });
+    await vi.advanceTimersByTimeAsync(200); // skeleton visibile da 50ms
+    await w.setProps({ loading: false, rows });
+    await w.vm.$nextTick();
+    expect(w.findAll('[data-test="skeleton"]').length).toBeGreaterThan(0); // ancora skeleton
+    expect(w.find('[data-test="table-footer"]').exists()).toBe(false);
+    await vi.advanceTimersByTimeAsync(250); // 300ms dalla comparsa
+    await w.vm.$nextTick();
+    expect(w.find('[data-test="skeleton"]').exists()).toBe(false);
+    expect(w.text()).toContain('Mario');
+    expect(w.find('[data-test="table-footer"]').exists()).toBe(true);
+  });
+
+  it('risposta rapida: fine loading sotto i 150ms → mai skeleton, emptyMessage regolare', async () => {
+    const w = mount(DataTable, { props: { columns, rows: [], loading: true, emptyMessage: 'Vuoto' } });
+    await vi.advanceTimersByTimeAsync(100);
+    await w.setProps({ loading: false });
+    await vi.advanceTimersByTimeAsync(1000);
+    await w.vm.$nextTick();
+    expect(w.find('[data-test="skeleton"]').exists()).toBe(false);
+    expect(w.text()).toContain('Vuoto');
   });
 });
