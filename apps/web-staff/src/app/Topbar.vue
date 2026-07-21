@@ -5,6 +5,7 @@ import { Icon } from '@coralyn/ui-kit';
 import { useSessionStore } from '@/stores/session';
 import { addDays } from '@/lib/dates';
 const route = useRoute();
+const emit = defineEmits<{ 'open-nav': [] }>();
 const session = useSessionStore();
 const title = computed(() => (route.meta.title as string | undefined) ?? '');
 const subtitle = computed(() => (route.meta.subtitle as string | undefined) ?? '');
@@ -26,6 +27,9 @@ function onPickDate(e: Event): void {
 </script>
 <template>
   <header class="flex flex-none items-center gap-[18px] border-b border-[var(--color-border)] bg-[var(--color-raised)] px-[26px] py-4">
+    <button aria-label="Apri menu" class="grid size-9 flex-none place-items-center rounded-[10px] text-[var(--color-text-2nd)] hover:bg-[var(--color-raised)] focus-visible:outline-none focus-visible:[box-shadow:var(--ring-focus)] lg:hidden" @click="emit('open-nav')">
+      <Icon name="menu" :size="20" />
+    </button>
     <div class="min-w-0">
       <h1 class="whitespace-nowrap text-xl font-bold tracking-[-.015em] text-[var(--color-text)]">{{ title }}</h1>
       <p v-if="subtitle" class="mt-0.5 text-[12.5px] text-[var(--color-text-muted)]">{{ subtitle }}</p>

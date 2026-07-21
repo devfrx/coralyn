@@ -72,4 +72,13 @@ describe('Topbar — navigazione data', () => {
     const w = await mountAt('/customers');
     expect(w.find('[data-testid="date-nav"]').exists()).toBe(false);
   });
+
+  it('il bottone hamburger (visibile solo < lg) emette open-nav al click', async () => {
+    const w = await mountAt('/customers');
+    const burger = w.find('button[aria-label="Apri menu"]');
+    expect(burger.exists()).toBe(true);
+    expect(burger.classes()).toContain('lg:hidden');
+    await burger.trigger('click');
+    expect(w.emitted('open-nav')).toBeTruthy();
+  });
 });
