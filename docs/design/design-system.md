@@ -107,6 +107,7 @@ Palette grezza. **Non usare direttamente nei componenti**: passare sempre dai se
 /* ===== PRIMITIVE — Mare (gradiente) ===== */
 --color-sea-1: #E0EFF3; --color-sea-2: #BEDDE8; --color-sea-3: #A8D0DE;
 --color-sea-deep: #8FC2D4; /* cima del mare nella scena «Riva», §13.8 */
+--color-sea-veil: rgba(255,255,255,.16); --color-sea-veil-strong: rgba(255,255,255,.22); /* velature in drift, §13.8 */
 --color-sea-ink: #2E6B81;
 
 /* ===== PRIMITIVE — Feedback (bg/ink) ===== */
@@ -512,9 +513,9 @@ bundled/offline** dal `<Icon>`. **Fallback** finché manca `icona`: chiave di de
   outline-offset: 2px;` + alone `box-shadow: 0 0 0 4px var(--color-brand-tint)`.
 - **Focus da tastiera** (`:focus-visible`): `--ring-focus` (coral glow 3px) — sempre
   visibile su qualsiasi colore di stato. Selezione e focus possono coesistere.
-- **`dimmed`** (nuovo, guidato dalla **legenda operativa**, §13.6): la cella si attenua —
+- **`dimmed`** (nuovo, guidato dai **chip filtro stato** nella toolbar, §13.6): la cella si attenua —
   `opacity: .25` + `saturate(.5)`, transizione ~200ms su `opacity`/`filter` — quando ≥1 stato è
-  attivo in legenda e nessuna fascia dell'ombrellone lo corrisponde. Puramente visivo: la cella
+  attivo nel filtro e nessuna fascia dell'ombrellone lo corrisponde. Puramente visivo: la cella
   resta nel DOM, `<button>`/`aria-label` invariati (tastiera e aria non impattati).
 - **`found`** (nuovo, guidato dalla **ricerca rapida**, §13.8): impulso coral 2× (`animation:
   cell-found 1.15s var(--ease-standard) 2`, §8) sopra `--shadow-sun` quando la cella matcha la
@@ -529,7 +530,7 @@ bundled/offline** dal `<Icon>`. **Fallback** finché manca `icona`: chiave di de
 - Pattern colorblind sulle celle: **rimandato** ([D-020](../architecture/deferred.md)); l'ink +
   `aria-label` + legenda coprono l'MVP.
 
-### 13.6 Settore Speciali e legenda operativa
+### 13.6 Settore Speciali, filtri di stato e legenda
 
 - **Speciali** (palme): settore dedicato in coda, celle leggermente più grandi col proprio
   marcatore tipologia ([ADR-0016](../architecture/decisions/0016-tipologia-ombrellone.md)).
@@ -569,7 +570,7 @@ Struttura verticale dall'alto (`apps/web-staff/src/styles/map-scene.css`):
 
 - **Mare** (`.map-sea`, h ~64px, **sticky in cima**: l'orizzonte resta ancorato mentre le file
   scorrono sotto): gradiente verticale `--color-sea-deep → --color-sea-3 →
-  --color-sea-2 → --color-sea-1` + **3 velature** (`.map-sea-veil`, bianco a bassa opacità,
+  --color-sea-2 → --color-sea-1` + **3 velature** (`.map-sea-veil`, token `--color-sea-veil`/`-strong`,
   `border-radius` alto) in drift orizzontale lento (`map-sea-drift`, 19–33s, solo `transform`,
   `linear infinite`). Label discreta "MARE" (tracking largo, `--color-sea-ink`). Il vecchio
   specchio "mare" a barretta è rimosso.

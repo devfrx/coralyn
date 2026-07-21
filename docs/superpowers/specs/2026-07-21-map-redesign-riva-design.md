@@ -4,6 +4,13 @@
 > **Skills attive:** dev-discipline · dev-communication · frontend-design · brainstorming.
 > **Mockup approvato:** [`docs/design/mockups/map-redesign-esplorazione.html`](../../design/mockups/map-redesign-esplorazione.html)
 > (direzione «Riva» + cella **Tessera** scelte dall'utente; hovercard/legenda operativa/ricerca approvate).
+>
+> **⚠️ Iterazione post-merge (2026-07-21):** dopo il merge del piano è stata fatta un'**iterazione
+> UI** su richiesta utente — scena **full-bleed** (niente cornice-card, mare+bagnasciuga+toolbar
+> **sticky**), **filtri di stato spostati nella toolbar** e **legenda informativa in un `Popover`
+> pillola** (nuovo primitivo ui-kit). Questa spec descrive il design **iniziale**; per lo stato
+> **corrente** fa fede il living doc [`design-system.md`](../../design/design-system.md) §13.6/§13.8
+> e il codice (commit `93cd232`).
 
 ## 1. Contesto & problema
 
