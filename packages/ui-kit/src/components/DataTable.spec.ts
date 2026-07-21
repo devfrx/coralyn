@@ -110,3 +110,41 @@ describe('DataTable — colonne estese e densità', () => {
     expect(w.find('tbody td').classes()).not.toContain('py-3.5');
   });
 });
+
+describe('DataTable — ordinamento', () => {
+  const sortCols = [{ key: 'nome', label: 'Nome', sortable: true }, { key: 'eta', label: 'Età', numeric: true }];
+  const sortRows3 = [
+    { id: 'r1', nome: 'Mario', eta: 40 },
+    { id: 'r2', nome: 'Anna', eta: 32 },
+    { id: 'r3', nome: 'Luca', eta: 28 },
+  ];
+  const rk = (r: Record<string, unknown>) => r.id as string;
+  const names = (w: ReturnType<typeof mount>) => w.findAll('tbody tr').map((tr) => tr.findAll('td')[0].text());
+
+  it('click sull\'header cicla asc → desc → ordine originale, con aria-sort', async () => {
+    const w = mount(DataTable, { props: { columns: sortCols, rows: sortRows3, rowKey: rk } });
+    const btn = w.find('th button');
+    expect(btn.exists()).toBe(true);
+    await btn.trigger('click');
+    expect(names(w)).toEqual(['Anna', 'Luca', 'Mario']);
+    expect(w.find('th').attributes('aria-sort')).toBe('ascending');
+    await btn.trigger('click');
+    expect(names(w)).toEqual(['Mario', 'Luca', 'Anna']);
+    expect(w.find('th').attributes('aria-sort')).toBe('descending');
+    await btn.trigger('click');
+    expect(names(w)).toEqual(['Mario', 'Anna', 'Luca']);
+    expect(w.find('th').attributes('aria-sort')).toBeUndefined();
+  });
+
+  it('sortValue accessor usato al posto di row[key]', async () => {
+    const cols = [{ key: 'nome', label: 'Nome', sortable: true, sortValue: (r: Record<string, unknown>) => r.eta as number }];
+    const w = mount(DataTable, { props: { columns: cols, rows: sortRows3, rowKey: rk } });
+    await w.find('th button').trigger('click');
+    expect(names(w)).toEqual(['Luca', 'Anna', 'Mario']); // per età: 28, 32, 40
+  });
+
+  it('header non sortable: nessun button', () => {
+    const w = mount(DataTable, { props: { columns: sortCols, rows: sortRows3, rowKey: rk } });
+    expect(w.findAll('th')[1].find('button').exists()).toBe(false);
+  });
+});

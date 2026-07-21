@@ -1,5 +1,7 @@
 <script setup lang="ts">
-import type { DataTableColumn } from '../tableData';
+import { computed, ref } from 'vue';
+import { sortRows, type DataTableColumn, type SortDir } from '../tableData';
+import Icon from './Icon.vue';
 
 type Row = Record<string, unknown>;
 
@@ -12,6 +14,26 @@ const props = withDefaults(
   }>(),
   { density: 'comfortable' },
 );
+
+// --- ordinamento (client-side, si applica prima della paginazione) ---
+const sortKey = ref<string | null>(null);
+const sortDir = ref<SortDir>('asc');
+function toggleSort(col: DataTableColumn): void {
+  if (sortKey.value !== col.key) { sortKey.value = col.key; sortDir.value = 'asc'; return; }
+  if (sortDir.value === 'asc') { sortDir.value = 'desc'; return; }
+  sortKey.value = null; sortDir.value = 'asc';
+}
+function ariaSort(col: DataTableColumn): 'ascending' | 'descending' | undefined {
+  if (!col.sortable || sortKey.value !== col.key) return undefined;
+  return sortDir.value === 'asc' ? 'ascending' : 'descending';
+}
+const sorted = computed<Row[]>(() => {
+  const base = props.rows ?? [];
+  const col = props.columns.find((c) => c.key === sortKey.value);
+  if (!col) return base;
+  const accessor = col.sortValue ?? ((r: Row) => r[col.key] as string | number);
+  return sortRows(base, accessor, sortDir.value);
+});
 
 const HIDE = { sm: 'max-sm:hidden', md: 'max-md:hidden', lg: 'max-lg:hidden' } as const;
 
@@ -49,16 +71,32 @@ function cellTitle(col: DataTableColumn, row: Row): string | undefined {
             <th
               v-for="c in columns"
               :key="c.key"
+              :aria-sort="ariaSort(c)"
               :class="[
                 'border-b border-[var(--color-border)] px-[18px] py-3 text-[10.5px] font-semibold uppercase tracking-[.07em] text-[var(--color-text-muted)]',
                 c.align === 'right' ? 'text-right' : 'text-left',
                 c.hideBelow ? HIDE[c.hideBelow] : '',
               ]"
-            >{{ c.label }}</th>
+            >
+              <button
+                v-if="c.sortable"
+                type="button"
+                class="group inline-flex items-center gap-1 rounded uppercase transition-colors [transition-duration:var(--motion-fast)] [transition-timing-function:var(--ease-standard)] hover:text-[var(--color-text)] focus-visible:outline-none focus-visible:[box-shadow:var(--ring-focus)]"
+                @click="toggleSort(c)"
+              >
+                {{ c.label }}
+                <Icon
+                  :name="sortKey === c.key && sortDir === 'desc' ? 'arrow-down' : 'arrow-up'"
+                  :size="14"
+                  :class="sortKey === c.key ? 'text-[var(--color-accent)]' : 'opacity-0 transition-opacity group-hover:opacity-40'"
+                />
+              </button>
+              <template v-else>{{ c.label }}</template>
+            </th>
           </tr>
         </thead>
         <tbody v-if="rows">
-          <tr v-for="(row, i) in rows" :key="key(row, i)" class="hover:bg-[var(--color-raised)]">
+          <tr v-for="(row, i) in sorted" :key="key(row, i)" class="hover:bg-[var(--color-raised)]">
             <td
               v-for="(c, ci) in columns"
               :key="c.key"
