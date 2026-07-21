@@ -1,6 +1,6 @@
 /* Scena «Riva» della Mappa (spec 2026-07-21-map-redesign-riva §3).
    Feature-scoped: solo MapView la usa. Token Coralyn, nessun hex nuovo qui
-   (unica eccezione: la sabbia bagnata del bagnasciuga, tonalità di transizione). */
+   (unica eccezione: la sabbia bagnata del bagnasciuga #EDE6D2, tonalità di transizione). */
 
 .map-stage {
   position: relative;
@@ -24,10 +24,10 @@
 }
 .map-sea-veil {
   position: absolute; left: -50%; width: 200%; height: 200%;
-  border-radius: 46%; background: rgba(255, 255, 255, .16);
+  border-radius: 46%; background: var(--color-sea-veil);
 }
 .map-sea-veil:nth-child(1) { top: 52%; animation: map-sea-drift 26s linear infinite; }
-.map-sea-veil:nth-child(2) { top: 66%; background: rgba(255, 255, 255, .22); animation: map-sea-drift 19s linear infinite reverse; }
+.map-sea-veil:nth-child(2) { top: 66%; background: var(--color-sea-veil-strong); animation: map-sea-drift 19s linear infinite reverse; }
 .map-sea-veil:nth-child(3) { top: 80%; background: color-mix(in srgb, var(--color-sea-1) 50%, transparent); animation: map-sea-drift 33s linear infinite; }
 @keyframes map-sea-drift { from { transform: translateX(-3.5%); } to { transform: translateX(3.5%); } }
 

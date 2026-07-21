@@ -31,6 +31,7 @@
   --color-state-normal-mark: #D8CDBB;
   /* Mare */
   --color-sea-1: #E0EFF3; --color-sea-2: #BEDDE8; --color-sea-3: #A8D0DE; --color-sea-deep: #8FC2D4; --color-sea-ink: #2E6B81;
+  --color-sea-veil: rgba(255,255,255,.16); --color-sea-veil-strong: rgba(255,255,255,.22);
   /* ===== PRIMITIVE — Feedback (bg/ink) ===== */
   --color-success: #3F9D5B; --color-success-bg: #E7F1E9; --color-success-ink: #3E7A53;
   --color-warning: #E8A93C; --color-warning-bg: #FBF1DA; --color-warning-ink: #9A7322;
