@@ -38,7 +38,7 @@ const cols = [
         <StatTile layout="label-first" tone="accent" label="Saldo aperto" :value="formatEuro(balance)" />
         <StatTile layout="label-first" label="Incassato stagione" :value="formatEuro(collected)" />
       </div>
-      <DataTable :columns="cols" :rows="(active as unknown as Record<string, unknown>[])" :row-key="(r) => (r as unknown as CustomerBookingDTO).id">
+      <DataTable :columns="cols" :rows="(active as unknown as Record<string, unknown>[])" :row-key="(r) => (r as unknown as CustomerBookingDTO).id" density="compact">
         <template #cell-period="{ row }">{{ periodLabel(row as unknown as CustomerBookingDTO) }}</template>
         <template #cell-type="{ row }">{{ TYPE_LABEL[(row as unknown as CustomerBookingDTO).type] }}</template>
         <template #cell-umbrella="{ row }">{{ (row as unknown as CustomerBookingDTO).sectorName ?? '—' }} · {{ (row as unknown as CustomerBookingDTO).umbrellaLabel }}</template>

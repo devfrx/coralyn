@@ -357,12 +357,45 @@ interattivi: **default / hover / active / focus-visible / disabled**; focus = `-
   **Niente icone fuori dal wrapper.**
 - **DataTable** — componente `ui-kit` skinnato sui token: header `10.5px` maiuscolo
   `--tracking-caps` `--color-text-muted`, bg header `--color-raised`, righe `13px`, divisori
-  `--color-border-row`, numeri `tabular-nums` a destra, riga cliccabile (hover). Due API,
-  retro-compatibili ([ADR-0033](../architecture/decisions/0033-astrazione-componenti-frontend.md)):
-  **a slot** (il chiamante scrive `<tr>/<td>` a mano nel body — usata dove servono celle molto
-  particolari o comportamenti custom come il click-riga di Clienti) e **data-driven** (prop
-  opzionali `rows`/`rowKey`; genera le righe con le classi cella standard `TD`/`TD_FIRST`/
-  `TD_RIGHT`/`TD_NUM`, slot `#cell-<key>` per celle ricche). Per Clienti/Prenotazioni/Rinnovi.
+  `--color-border-row`, hover `--color-raised` su ogni riga. Due API, retro-compatibili
+  ([ADR-0033](../architecture/decisions/0033-astrazione-componenti-frontend.md)): **a slot** (il
+  chiamante scrive `<tr>/<td>` a mano nel body — usata dove servono celle molto particolari o
+  comportamenti custom) e **data-driven** (prop `rows`/`rowKey`, colonne tipizzate
+  `DataTableColumn[]`, slot `#cell-<key>` per celle ricche). L'API a slot resta **congelata**
+  (retro-compatibilità, nessuna feature nuova): tutte le viste correnti sono migrate alla
+  data-driven, che è dove vive ogni evoluzione futura. Le costanti `TD`/`TD_FIRST`/`TD_RIGHT`/
+  `TD_NUM` (`packages/ui-kit/src/styles/table.ts`) sono ora deprecate — nessun chiamante in
+  `web-staff` le usa più — e restano solo come export pubblico `ui-kit` in attesa di rimozione
+  (task separato).
+  - **Colonne**: `numeric` → `tabular-nums` + `whitespace-nowrap`, allineato a destra via
+    `align: 'right'`; `wrap: 'truncate'` + `maxWidth` per celle lunghe (title nativo col valore
+    intero, solo se la colonna non usa uno slot custom); `hideBelow: 'sm' | 'md' | 'lg'` nasconde
+    la colonna sotto il breakpoint via classi statiche (`max-sm:hidden` ecc., niente CSS
+    generato a runtime); `sortable` + `sortValue` opzionale per un accessor di ordinamento
+    diverso dal valore raw della cella.
+  - **Ordinamento**: click sull'header cicla asc → desc → nessuno; header sortable resi come
+    `<button>` (accessibili da tastiera); `aria-sort` sul `th` riflette lo stato corrente,
+    indicatore icona in `--color-accent` quando la colonna è ordinata. Si applica prima della
+    paginazione.
+  - **Paginazione**: `pageSize` opt-in (client-side) + `v-model:page` — componente
+    *controlled-capable*: fallback di stato interno se il chiamante non aggancia il `v-model`,
+    stesso componente pronto per un domani paginato lato server senza cambi d'API. Reset a
+    pagina 1 al cambio delle righe.
+  - **Footer**: conteggio/pager su sfondo `--color-raised`, testo `12.5px` muted, cifre
+    `tabular-nums`; visibile con `pageSize` attivo o `showCount: true`.
+  - **Densità**: `density="compact"` (`py-2` invece di `py-3.5`, font invariato) per contesti
+    densi (es. tabella pagamenti nel dettaglio cliente).
+  - **`emptyMessage`**: con 0 righe rende `EmptyState` dentro la card stessa (solo API
+    data-driven).
+  - **`maxHeight`**: scroll verticale interno alla card + `thead` sticky. Le due prop sono
+    vincolate insieme: dentro una card con `overflow-hidden`/`overflow-x-auto`, `position:
+    sticky` rispetto allo scroll di pagina non funziona (antenato con overflow) — sticky regge
+    solo nello scroll interno che `maxHeight` attiva.
+  - **`row-click`/`rowClass`**: cursor a mano solo se il chiamante aggancia l'emit `row-click`
+    (l'hover resta su ogni riga a prescindere); `rowClass` aggiunge una classe per riga (es.
+    tariffe archiviate `opacity-60`).
+  - Spec di riferimento: [spec DataTable QoL](../superpowers/specs/2026-07-21-datatable-qol-design.md).
+  Per Clienti/Prenotazioni/Noleggi/Listino/Listino noleggi/Rinnovi.
 - **EmptyState** — blocco vuoto ("Nessun/a…"): `--radius-lg`, bordo tratteggiato
   `--color-border`, testo `--color-text-2nd`. Prop `message`; slot `#default` per contenuto
   ricco (es. icona). Usato da liste (Prenotazioni, Rinnovi).

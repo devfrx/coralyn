@@ -2,6 +2,7 @@
 import { ref, computed } from 'vue';
 import { useRouter } from 'vue-router';
 import { SegmentedControl, Button, Badge, Avatar, DataTable, Icon, PageToolbar, EmptyState, formatEuro, initials, dateRange } from '@coralyn/ui-kit';
+import type { DataTableColumn } from '@coralyn/ui-kit';
 import type { BookingDTO, PaymentStatus } from '@coralyn/contracts';
 import { storeToRefs } from 'pinia';
 import { useSessionStore } from '@/stores/session';
@@ -26,14 +27,14 @@ const filtri = [
 const { customerName, umbrellaLabel, packageName } = useEntityLabels();
 const periodLabel = (b: BookingDTO): string => (b.type === 'daily' ? b.startDate : dateRange(b.startDate, b.endDate));
 
-const cols = [
+const cols: DataTableColumn[] = [
   { key: 'cliente', label: 'Cliente' },
   { key: 'ombrellone', label: 'Ombrellone', numeric: true },
-  { key: 'tipo', label: 'Tipo' },
-  { key: 'pacchetto', label: 'Pacchetto' },
+  { key: 'tipo', label: 'Tipo', hideBelow: 'md' },
+  { key: 'pacchetto', label: 'Pacchetto', hideBelow: 'lg', wrap: 'truncate', maxWidth: '180px' },
   { key: 'periodo', label: 'Periodo', numeric: true },
   { key: 'stato', label: 'Stato' },
-  { key: 'incasso', label: 'Incasso', align: 'right' as const },
+  { key: 'incasso', label: 'Incasso', align: 'right' },
 ];
 
 const rows = computed<BookingDTO[]>(() => {
