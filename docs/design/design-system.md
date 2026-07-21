@@ -106,6 +106,7 @@ Palette grezza. **Non usare direttamente nei componenti**: passare sempre dai se
 
 /* ===== PRIMITIVE — Mare (gradiente) ===== */
 --color-sea-1: #E0EFF3; --color-sea-2: #BEDDE8; --color-sea-3: #A8D0DE;
+--color-sea-deep: #8FC2D4; /* cima del mare nella scena «Riva», §13.8 */
 --color-sea-ink: #2E6B81;
 
 /* ===== PRIMITIVE — Feedback (bg/ink) ===== */
@@ -185,6 +186,10 @@ Ruoli consumati dai componenti. Ogni colore "di sfondo" ha il suo `-ink` (testo 
 --color-state-prenotato:       var(--color-state-prenotato);     /* #F1C879 */
 --color-state-prenotato-ink:   var(--color-state-prenotato-ink); /* #4A3711 */
 --color-state-normale-mark:    var(--color-state-normale-mark);  /* #D8CDBB */
+
+/* Cella mappa — Tessera (divisore colonne-fascia + riflesso "luce dall'alto", §13.2) */
+--color-cell-divider: rgba(255,255,255,.55);
+--color-cell-glare:   rgba(255,255,255,.35);
 ```
 
 ### 3.1 Contrasto verificato (etichetta su stato — testo piccolo, soglia AA 4.5)
@@ -256,7 +261,7 @@ Base **4px** ([ADR-0018](../architecture/decisions/0018-linguaggio-visivo.md)). 
 --radius-md:   11px;  /* bottoni, nav item */
 --radius-lg:   16px;  /* card, drawer */
 --radius-xl:   18px;  /* modal, canvas shell */
---radius-full: 999px; /* pill, avatar, cella ombrellone */
+--radius-full: 999px; /* pill, avatar */
 ```
 
 ## 7. Token — Elevazione (ombre)
@@ -269,6 +274,8 @@ Ombre **soft, tinte di teal navy** (rgb 15,60,73), elevazione contenuta; brand s
 --shadow-drawer: 0 12px 40px rgba(15,60,73,.13);  /* drawer laterale, popover */
 --shadow-modal:  0 24px 70px rgba(11,53,67,.34);  /* dialog / modal */
 --shadow-brand:  0 2px 8px rgba(224,121,90,.3);   /* bottone primario corallo */
+--shadow-sun:    0 5px 9px -3px rgba(138,110,63,.30), 0 1px 2px rgba(138,110,63,.12);
+                 /* ombra "da sole" delle celle mappa (tinta stage-1 calda) */
 --ring-focus:    0 0 0 3px rgba(224,121,90,.16);  /* :root — anello focus coral glow */
 ```
 
@@ -276,8 +283,8 @@ Ombre **soft, tinte di teal navy** (rgb 15,60,73), elevazione contenuta; brand s
 
 ```css
 :root {
-  --motion-fast: 120ms;  /* hover, focus */
-  --motion-base: 180ms;  /* selezione, fade */
+  --motion-fast: 140ms;  /* hover, focus */
+  --motion-base: 200ms;  /* selezione, fade */
   --motion-slow: 260ms;  /* enter di drawer/sheet */
   --ease-standard:   cubic-bezier(.2, 0, .2, 1);
   --ease-emphasized: cubic-bezier(.2, 0, 0, 1); /* enter espressivi (drawer/sheet) */
@@ -289,8 +296,9 @@ Ombre **soft, tinte di teal navy** (rgb 15,60,73), elevazione contenuta; brand s
 
 Uso: hover cella (translateY -1px + `--shadow-soft`, `--motion-fast`); apertura drawer (slide-in da
 destra per il drawer contestuale, da sinistra per il `NavDrawer` in layout compatto,
-`--motion-slow`/`--ease-emphasized`); load della mappa con reveal **scaglionato per fila**
-(`animation-delay` crescente, sobrio).
+`--motion-slow`/`--ease-emphasized`); drift velature mare (`map-sea-drift`, 19–33s, transform-only)
+e reveal scaglionato per fila (`map-row-in`); impulso ricerca `cell-found`. Tutte neutralizzate da
+`prefers-reduced-motion`.
 
 ## 9. Token — Layout, z-index, breakpoint
 
@@ -300,7 +308,7 @@ destra per il drawer contestuale, da sinistra per il `NavDrawer` in layout compa
   --sidebar-width: 220px;             /* esteso: sidebar piena */
   --drawer-width: 380px;              /* esteso: drawer laterale */
   --topbar-height: 56px;
-  --cell-size: 34px;                  /* desktop */
+  --cell-size: 40px;                  /* esteso; la Tessera usa 40/44 */
   --cell-size-touch: 44px;            /* tablet: target tocco ≥44px */
 
   --z-base: 0;
@@ -368,7 +376,18 @@ interattivi: **default / hover / active / focus-visible / disabled**; focus = `-
   Wrapper `mb-4 flex flex-wrap items-center gap-3`. Per Prenotazioni/Clienti (non adottato dove
   il contenitore ha classi di padding incompatibili, es. Mappa).
 - **Drawer** — su primitivo dialog/drawer Reka UI: focus trap, ESC, ARIA. `--color-surface`,
-  `--radius-lg`, `--shadow-drawer`; scrim `--z-overlay`. Vedi §13.4.
+  `--radius-lg`, `--shadow-drawer`; scrim `--z-overlay`. Vedi §13.7.
+- **SegmentedControl** — `role="radiogroup"` di bottoni `radio`; opzione attiva su
+  `--color-surface`/`--shadow-soft`, le altre in `--color-ink-600`. Estensione additiva
+  `options[].hint?`: testo secondario `tabular-nums` accanto alla label (es. la percentuale di
+  occupazione nei tab settore della mappa, §13.8), in `--color-accent` se l'opzione è attiva,
+  `--color-stage-2` altrimenti. Usato per i tab settore della mappa e per la fascia nel modale
+  di prenotazione.
+- **HoverCard** — wrapper del primitivo `HoverCard` di Reka UI (trigger/content a slot,
+  `openDelay` ~350ms, `closeDelay` breve, side `top` con freccetta, superficie `--color-surface`
+  + `--shadow-drawer`-like). **Solo consultazione**: nessuna azione al suo interno; il gating
+  hover-capable resta nel chiamante (prop `disabled`), il primitivo è agnostico. Uso: hovercard
+  delle celle mappa, §13.9.
 
 ### 10.1 Stato degli interattivi
 
@@ -436,47 +455,68 @@ struttura (admin). Dettaglio e riferimenti nella
 
 Resa **HTML/CSS** (non SVG). Griglia **Settore → Fila → Ombrellone**, layout di default
 "**file impilate verso il mare**" ([ADR-0005](../architecture/decisions/0005-modello-mappa.md)/[ADR-0014](../architecture/decisions/0014-setup-mappa-strutturato.md)).
-In testa lo **specchio "mare"**; gli **Speciali** in un settore dedicato in coda.
+In testa la scena **«Riva»** (mare a velature + bagnasciuga + sabbia, §13.8); gli **Speciali** in
+un settore dedicato in coda, stessa scena.
 
-### 13.1 `OmbrelloneCell` — anatomia a 4 assi
+### 13.1 `UmbrellaCell` — la Tessera, anatomia a 4 assi
 
 | Asse | Resa | Sorgente dato |
 |---|---|---|
 | **Etichetta** | numero/identificativo fisico, centrato, `tabular-nums`, ink per-stato | `Ombrellone.etichetta` (stringa libera; buchi e "20bis" ammessi, [ADR-0016](../architecture/decisions/0016-tipologia-ombrellone.md)) |
-| **Stato** | colore di riempimento; **split** se diverso per fascia | derivato per (ombrellone, data, fascia) — [ADR-0013](../architecture/decisions/0013-granularita-disponibilita-a-slot.md) |
+| **Stato** | colore di riempimento; **split in colonne verticali** se diverso per fascia (§13.2) | derivato per (ombrellone, data, fascia) — [ADR-0013](../architecture/decisions/0013-granularita-disponibilita-a-slot.md) |
 | **Tipologia** | **marcatore a icona** d'angolo (top-right); Normale (`NULL`) = nessun marcatore | `Tipologia.icona` = **chiave del registry icone** del `ui-kit` (nome breve, es. `palmtree`); fallback FE finché il backend non espone `icona` ([ADR-0020](../architecture/decisions/0020-resa-mappa.md)) |
 | **Selezione** | **anello brand** (corallo `--color-brand`) + alone tint `--color-brand-tint` | stato UI effimero (cella aperta nel drawer) |
 
-Forma: cerchio `--radius-full`, `--cell-size` (desktop) / `--cell-size-touch` (tablet),
-`--shadow-soft`. È un **`<button>`** (vedi §13.5).
+Forma: **Tessera** — quadrato arrotondato (`border-radius: 12px`), `--cell-size` (**40px**,
+esteso) / `--cell-size-touch` (**44px**, compatto/touch — coincide con la soglia `lg` del
+breakpoint, §9), `--shadow-sun` (ombra "da sole" portata in basso) + riflesso `--color-cell-glare`
+(velo chiaro sul 35% superiore). Hover: lift `-2px` (`translateY`, solo `transform`) con
+`--shadow-sun` che cresce; active: `scale(.97)`. È un **`<button>`** (vedi §13.5). Sostituisce il
+precedente cerchio a spicchi conici ([spec rework Riva](../superpowers/specs/2026-07-21-map-redesign-riva-design.md)
+§4) — i 4 assi restano quelli di ADR-0020 invariati (nessun emendamento: la forma è dettaglio del
+living doc, non dell'ADR).
 
-### 13.2 Stato — colore e split per fascia
+### 13.2 Stato — colore e split per fascia (colonne verticali)
 
 - **Pieno** (stesso stato tutto il giorno): riempimento = `--state-*`, etichetta = `--state-*-ink`.
 - **Split** (fasce diverse, [ADR-0013](../architecture/decisions/0013-granularita-disponibilita-a-slot.md)):
-  divisione **sinistra = Mattina / destra = Pomeriggio**, hard-stop al 50% con divisore sottile
-  (`--color-surface` a bassa opacità). L'etichetta resta centrata: l'ink scuro è leggibile su
-  entrambe le metà (tutti gli stati hanno ink scuro, §3.1).
+  **colonne verticali** in ordine `sortOrder` (prima fascia, es. Mattina, a **sinistra** —
+  mappa mentale del giorno), N-agnostico (N fasce → N colonne di larghezza uguale; con 3+ fasce
+  le colonne si stringono, caso raro accettato), divisore hairline **`--color-cell-divider`**
+  (`rgba(255,255,255,.55)`) tra le colonne. **Niente più conic-gradient** sulla cella: sostituisce
+  lo split a spicchi circolari del cerchio precedente.
+- L'etichetta resta centrata sopra le colonne: l'ink scuro neutro (`--color-text` sullo split,
+  `--state-*-ink` sul pieno) resta leggibile su qualunque combinazione (tutti gli stati hanno ink
+  scuro, §3.1).
 - Contrasto AA dell'etichetta: vedi tabella §3.1.
 
 ### 13.3 Marcatore tipologia
 
 Cerchietto `--color-surface` con `--shadow-soft`, icona `--color-accent` (`#2F7281`),
-posizionato top-right e **sopra** l'eventuale anello di selezione/focus. Data-driven: l'admin
-sceglie l'icona per ogni `Tipologia`; il valore di `Tipologia.icona` è la **chiave del registry**
-del `ui-kit` (nome breve, es. `palmtree`, `leaf`) — **non** il nome Iconify completo — risolta a
-un'icona **Lucide bundled/offline** dal `<Icon>`. **Fallback** finché manca `icona`: chiave di
-default (es. `umbrella`), senza cambiare il contratto del componente.
+posizionato top-right e **sopra** l'eventuale anello di selezione/focus (e sopra il riflesso
+`--color-cell-glare` della Tessera). Data-driven: l'admin sceglie l'icona per ogni `Tipologia`;
+il valore di `Tipologia.icona` è la **chiave del registry** del `ui-kit` (nome breve, es.
+`palmtree`, `leaf`) — **non** il nome Iconify completo — risolta a un'icona **Lucide
+bundled/offline** dal `<Icon>`. **Fallback** finché manca `icona`: chiave di default (es.
+`umbrella`), senza cambiare il contratto del componente.
 
 > **Convenzione di handshake:** i valori ammessi di `Tipologia.icona` sono le **chiavi del registry**
 > condiviso (offline). Il backend usa quelle chiavi; nomi sconosciuti ricadono sul fallback.
 
-### 13.4 Selezione e focus (distinti)
+### 13.4 Selezione, focus e stati aggiuntivi (`dimmed` / `found`)
 
 - **Selezione** (persistente, cella aperta nel drawer): `outline: 2px solid var(--color-brand);
   outline-offset: 2px;` + alone `box-shadow: 0 0 0 4px var(--color-brand-tint)`.
 - **Focus da tastiera** (`:focus-visible`): `--ring-focus` (coral glow 3px) — sempre
   visibile su qualsiasi colore di stato. Selezione e focus possono coesistere.
+- **`dimmed`** (nuovo, guidato dalla **legenda operativa**, §13.6): la cella si attenua —
+  `opacity: .25` + `saturate(.5)`, transizione ~200ms su `opacity`/`filter` — quando ≥1 stato è
+  attivo in legenda e nessuna fascia dell'ombrellone lo corrisponde. Puramente visivo: la cella
+  resta nel DOM, `<button>`/`aria-label` invariati (tastiera e aria non impattati).
+- **`found`** (nuovo, guidato dalla **ricerca rapida**, §13.8): impulso coral 2× (`animation:
+  cell-found 1.15s var(--ease-standard) 2`, §8) sopra `--shadow-sun` quando la cella matcha la
+  ricerca. Neutralizzato da `prefers-reduced-motion`.
+- Selezione, focus, `dimmed` e `found` sono indipendenti e composabili sulla stessa cella.
 
 ### 13.5 Accessibilità della cella ([ADR-0020](../architecture/decisions/0020-resa-mappa.md))
 
@@ -486,20 +526,81 @@ default (es. `umbrella`), senza cambiare il contratto del componente.
 - Pattern colorblind sulle celle: **rimandato** ([D-020](../architecture/deferred.md)); l'ink +
   `aria-label` + legenda coprono l'MVP.
 
-### 13.6 Settore Speciali e legenda
+### 13.6 Settore Speciali e legenda operativa
 
 - **Speciali** (palme): settore dedicato in coda, celle leggermente più grandi col proprio
   marcatore tipologia ([ADR-0016](../architecture/decisions/0016-tipologia-ombrellone.md)).
-- **Legenda** sempre presente: **Stato** (Libero/Abbonato/Giornaliero/Prenotato + "mezza
-  giornata") e **Tipologia** (Normale + tipi con icona). Micro-label maiuscole `--tracking-caps`.
+- **Legenda Stato — operativa** (non solo decorativa): i chip Libero / Abbonato / Giornaliero /
+  Prenotato / **Non disponibile** (`covered`, D-048) sono **toggle multi-select**
+  (`<button aria-pressed>`): con ≥1 chip attivo, le celle senza **nessuna** fascia in uno stato
+  attivo prendono `dimmed` (§13.4); un nuovo clic sull'ultimo chip attivo spegne il filtro. Hint
+  testuale «clic per filtrare · di nuovo per tutto». Filtro **solo visivo**: nessuna cella rimossa
+  dal DOM, tastiera/aria invariati.
+- **«Stato misto»**: voce puramente **informativa** (non cliccabile) con pallino a
+  `conic-gradient` a più fasce, a promemoria che una cella può avere stati diversi per fascia.
+- **Legenda Tipologia**: Normale (`--color-state-normale-mark`) + tipi con icona. Micro-label
+  maiuscole `--tracking-caps`.
 
-### 13.7 Drawer contestuale della mappa
+### 13.7 Dettaglio in `Drawer` overlay (riallineamento ADR-0019)
 
-Al clic su una cella ([flows §2](flows.md)): titolo **"Ombrellone «etichetta»"**, chip
-**tipologia**, crumb **Settore · Fila**, blocco **stato per fascia** (Mattina/Pomeriggio),
-dettaglio prenotazione (cliente, pacchetto, periodo — `tabular-nums`), **stato pagamento**
-(Saldato/Parziale/Non pagato · importo · metodo, [ADR-0011](../architecture/decisions/0011-incasso-base-nel-core.md)),
-e le azioni: **Nuova prenotazione**, **Assegna abbonamento**, **Registra presenza**.
+- Al clic su una cella ([flows §2](flows.md)) il dettaglio appare nel **`Drawer` ui-kit in
+  overlay** (non più un pannello inline nella colonna della mappa) — **riallinea il codice ad
+  [ADR-0019](../architecture/decisions/0019-app-shell-e-ux.md) §Decision** (drawer contestuale in
+  overlay), chiudendo una divergenza storica; la mappa resta sempre a piena larghezza.
+- Titolo **"Ombrellone «etichetta»"**, chip **tipologia**, crumb **Settore · Fila**, blocco
+  **stato per fascia** (Mattina/Pomeriggio, fasce cliccabili), dettaglio prenotazione (cliente,
+  pacchetto, periodo — `tabular-nums`), **stato pagamento**
+  (Saldato/Parziale/Non pagato · importo · metodo, [ADR-0011](../architecture/decisions/0011-incasso-base-nel-core.md)),
+  e le azioni in footer: **Nuova prenotazione**, **Abbonamento** (più, quando c'è una
+  prenotazione, Registra incasso / Annulla / Gestisci abbonamento).
+- Sotto `lg`: stesso drawer, `max-w-[86vw]` (come `NavDrawer`), coerente con
+  [ADR-0051](../architecture/decisions/0051-responsive-drawer-e-telefono-graceful.md).
+- La selezione cella (anello coral) resta visibile sotto lo scrim leggero (`--color-scrim`):
+  l'operatore non perde il riferimento spaziale mentre il drawer è aperto.
+
+### 13.8 La scena «Riva» (stage)
+
+Struttura verticale dello stage dall'alto (`apps/web-staff/src/styles/map-scene.css`):
+
+- **Mare** (`.map-sea`, h ~64px): gradiente verticale `--color-sea-deep → --color-sea-3 →
+  --color-sea-2 → --color-sea-1` + **3 velature** (`.map-sea-veil`, bianco a bassa opacità,
+  `border-radius` alto) in drift orizzontale lento (`map-sea-drift`, 19–33s, solo `transform`,
+  `linear infinite`). Label discreta "MARE" (tracking largo, `--color-sea-ink`). Il vecchio
+  specchio "mare" a barretta è rimosso.
+- **Bagnasciuga** (`.map-shore`, h ~16px): gradiente `--color-sea-1` → sabbia bagnata `#EDE6D2`
+  (tonalità di transizione, unica eccezione ai token in questo file) → `--color-warm-075`: il
+  mare *bagna* la sabbia invece di finire a spigolo.
+- **Sabbia** (`.map-stage`): gradiente `--color-warm-075 → --color-warm-150` + **grana**
+  impercettibile (SVG `feTurbulence` inline via `background-image` data-URI, `opacity .05`,
+  `mix-blend-mode: multiply`) — costo nullo, nessuna animazione.
+- **Header dello stage**: tab settore (`SegmentedControl` con `hint` = occupazione %, §10),
+  conteggio postazioni, campo **ricerca rapida** ("Trova ombrellone o cliente…").
+- **File**: marcatore fila a sinistra (`FILA n`, sottotitolo "prima linea" sulla fila 1), celle al
+  centro, **righello occupazione** a destra (track 4px + fill `--color-accent` opacità .75 +
+  etichetta `occupate/totali` `tabular-nums`) — occupata = **almeno una fascia `≠ free`** (i
+  `covered` contano come occupati: semantica di disponibilità operativa, distinta dalla metrica
+  del Report, D-048).
+- **Reveal scaglionato per fila** al mount (`.map-row-in`, `animation-delay` crescente, §8).
+- **Ricerca rapida**: match su etichetta esatta (case-insensitive) o nome cliente (substring, dai
+  bookings del giorno già in memoria), debounce ~150ms; i match prendono `found` (§13.4) e il
+  primo viene scrollato in vista (`scrollIntoView({block:'nearest'})`, istantaneo sotto
+  `prefers-reduced-motion`); se il match è in un altro settore, il tab di quel settore si attiva
+  automaticamente (l'input resta focused).
+- **Settore Speciali**: stessa scena, blocco dedicato in coda.
+
+Riferimenti: [spec rework Riva](../superpowers/specs/2026-07-21-map-redesign-riva-design.md)
+§3/§6/§7 · mockup [`map-redesign-esplorazione.html`](mockups/map-redesign-esplorazione.html).
+
+### 13.9 Hovercard delle celle (`HoverCard` ui-kit, §10)
+
+- Al passaggio del mouse su una Tessera, **solo su dispositivi hover-capable** (gating nel
+  chiamante `MapView`, via `useMediaQuery('(hover: hover)')`; il primitivo ui-kit resta
+  agnostico), appare una card di **consultazione**: etichetta + Settore · Fila, per ogni fascia
+  un pallino di stato + nome stato + cliente (se prenotata), footer "Clic per aprire il
+  dettaglio".
+- **Nessuna azione** al suo interno: le azioni restano nel `Drawer` (§13.7). Su touch: overhead
+  zero, il tap apre direttamente il drawer.
+- `openDelay` ~350ms evita flicker passando velocemente sulla griglia.
 
 ## 14. Accessibilità (trasversale)
 
