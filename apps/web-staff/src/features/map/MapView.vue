@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, watch, nextTick, onUnmounted } from 'vue';
 import { useRouter } from 'vue-router';
-import { UmbrellaCell, SegmentedControl, Badge, Button, Drawer, ActionBar, Modal, Icon, Select, ModalFooter, formatEuro } from '@coralyn/ui-kit';
+import { UmbrellaCell, SegmentedControl, Badge, Button, Drawer, ActionBar, Modal, Icon, Select, ModalFooter, formatEuro, HoverCard } from '@coralyn/ui-kit';
 import type { UmbrellaDTO, SlotState, BookingDTO, BookingType } from '@coralyn/contracts';
 import { PAY_LABEL, PAY_TONE } from '@/lib/statusMaps';
 import { useMediaQuery } from '@/lib/useMediaQuery';
@@ -117,6 +117,19 @@ function ariaLabel(u: UmbrellaDTO, sector: string, row: string): string {
     .map((s) => `${s.name} ${STATE_LABEL[(u.stateBySlot[s.id] ?? 'free') as SlotState]}`)
     .join(', ');
   return `Ombrellone ${u.label}, Settore ${sector} ${row}, tipologia ${typeName(u)}, ${perSlot}`;
+}
+
+// Hovercard sulle celle (solo hover-capable, es. desktop con mouse): jsdom non implementa
+// matchMedia ⇒ hoverCapable è false nei test ⇒ HoverCard disabled ⇒ DOM celle invariato.
+const hoverCapable = useMediaQuery('(hover: hover)');
+interface HoverRow { slotName: string; state: SlotState; customer: string | null }
+function hoverRows(u: UmbrellaDTO): HoverRow[] {
+  return timeSlots.value.map((s) => {
+    const st = (u.stateBySlot[s.id] ?? 'free') as SlotState;
+    const b = (bookings.value ?? []).find((x) => x.umbrellaId === u.id && x.timeSlotId === s.id);
+    const c = b ? (customers.value ?? []).find((x) => x.id === b.customerId) : undefined;
+    return { slotName: s.name, state: st, customer: c ? `${c.firstName} ${c.lastName}` : null };
+  });
 }
 
 const selectedSlotId = ref<string>('');
@@ -318,10 +331,25 @@ const freeSlotOptions = computed(() =>
               <span v-if="i === 0" class="text-[9px] text-[var(--color-stage-2)]">prima linea</span>
             </span>
             <div class="flex flex-wrap gap-2.5">
-              <UmbrellaCell v-for="u in r.umbrellas" :key="u.id" :label="u.label"
-                :ariaLabel="ariaLabel(u, currentSector!.name, r.label)" :slot-states="slotStatesFor(u)"
-                :type-icon="typeIcon(u)" :selected="sel?.u.id === u.id" :dimmed="isDimmed(u)" :found="isFound(u)"
-                @select="open(u, currentSector!.name, r.label)" />
+              <HoverCard v-for="u in r.umbrellas" :key="u.id" :disabled="!hoverCapable">
+                <template #trigger>
+                  <UmbrellaCell :label="u.label" :ariaLabel="ariaLabel(u, currentSector!.name, r.label)"
+                    :slot-states="slotStatesFor(u)" :type-icon="typeIcon(u)" :selected="sel?.u.id === u.id"
+                    :dimmed="isDimmed(u)" :found="isFound(u)" @select="open(u, currentSector!.name, r.label)" />
+                </template>
+                <template #content>
+                  <div class="mb-1.5 flex items-baseline gap-2">
+                    <b class="text-[13px] tracking-[-.01em] text-[var(--color-text)]">Ombrellone {{ u.label }}</b>
+                    <span class="text-[10.5px] text-[var(--color-text-muted)]">{{ currentSector!.name }} · {{ r.label }}</span>
+                  </div>
+                  <div v-for="h in hoverRows(u)" :key="h.slotName" class="flex items-center gap-2 py-0.5 text-[11.5px] text-[var(--color-text-2nd)]">
+                    <i class="size-[9px] flex-none rounded-full" :style="{ background: STATE_COLOR[h.state] }"></i>
+                    {{ h.slotName }} · <b class="font-semibold text-[var(--color-text)]">{{ STATE_LABEL[h.state] }}</b>
+                    <span v-if="h.customer" class="ml-auto text-[10.5px] text-[var(--color-text-muted)]">{{ h.customer }}</span>
+                  </div>
+                  <div class="mt-1.5 border-t border-dashed border-[var(--color-border)] pt-1.5 text-[10px] text-[var(--color-placeholder)]">Clic per aprire il dettaglio</div>
+                </template>
+              </HoverCard>
             </div>
             <span data-test="row-ruler" class="w-[74px] flex-none">
               <span class="block h-1 overflow-hidden rounded-full bg-[var(--color-warm-border-seg)]">
@@ -334,10 +362,25 @@ const freeSlotOptions = computed(() =>
           <div v-if="special" class="mt-[18px] border-t border-dashed border-[var(--color-warm-border-stage)] pt-3.5">
             <div class="mb-2.5 text-[10px] font-semibold uppercase tracking-[.09em] text-[var(--color-stage-1)]">Settore Speciali · Palme</div>
             <div v-for="r in special.rows" :key="r.id" class="flex flex-wrap gap-3.5">
-              <UmbrellaCell v-for="u in r.umbrellas" :key="u.id" :label="u.label"
-                :ariaLabel="ariaLabel(u, 'Speciali', r.label)" :slot-states="slotStatesFor(u)"
-                :type-icon="typeIcon(u)" :selected="sel?.u.id === u.id" :dimmed="isDimmed(u)" :found="isFound(u)"
-                @select="open(u, 'Speciali', r.label)" />
+              <HoverCard v-for="u in r.umbrellas" :key="u.id" :disabled="!hoverCapable">
+                <template #trigger>
+                  <UmbrellaCell :label="u.label" :ariaLabel="ariaLabel(u, 'Speciali', r.label)"
+                    :slot-states="slotStatesFor(u)" :type-icon="typeIcon(u)" :selected="sel?.u.id === u.id"
+                    :dimmed="isDimmed(u)" :found="isFound(u)" @select="open(u, 'Speciali', r.label)" />
+                </template>
+                <template #content>
+                  <div class="mb-1.5 flex items-baseline gap-2">
+                    <b class="text-[13px] tracking-[-.01em] text-[var(--color-text)]">Ombrellone {{ u.label }}</b>
+                    <span class="text-[10.5px] text-[var(--color-text-muted)]">Speciali · {{ r.label }}</span>
+                  </div>
+                  <div v-for="h in hoverRows(u)" :key="h.slotName" class="flex items-center gap-2 py-0.5 text-[11.5px] text-[var(--color-text-2nd)]">
+                    <i class="size-[9px] flex-none rounded-full" :style="{ background: STATE_COLOR[h.state] }"></i>
+                    {{ h.slotName }} · <b class="font-semibold text-[var(--color-text)]">{{ STATE_LABEL[h.state] }}</b>
+                    <span v-if="h.customer" class="ml-auto text-[10.5px] text-[var(--color-text-muted)]">{{ h.customer }}</span>
+                  </div>
+                  <div class="mt-1.5 border-t border-dashed border-[var(--color-border)] pt-1.5 text-[10px] text-[var(--color-placeholder)]">Clic per aprire il dettaglio</div>
+                </template>
+              </HoverCard>
             </div>
           </div>
           <div class="mt-[22px] flex flex-wrap gap-7 border-t border-[var(--color-warm-border-stage)] pt-4">

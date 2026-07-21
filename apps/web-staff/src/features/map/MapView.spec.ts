@@ -23,6 +23,13 @@ function drawerEl(): HTMLElement | null {
 function drawerButtons(): HTMLButtonElement[] {
   return Array.from(drawerEl()?.querySelectorAll('button') ?? []);
 }
+async function mountMap() {
+  const w = mountApp(MapView, { attachTo: document.body });
+  await flushPromises();
+  await new Promise((r) => setTimeout(r, 0));
+  await flushPromises();
+  return w;
+}
 
 describe('MapView', () => {
   it('rende settori e ombrelloni dal mock MSW', async () => {
@@ -747,6 +754,14 @@ describe('MapView', () => {
     } finally {
       vi.useRealTimers();
     }
+  });
+
+  it('hovercard: su ambienti senza hover (jsdom) le celle NON sono avvolte da HoverCardRoot', async () => {
+    const w = await mountMap();
+    // il trigger renderizzato è direttamente il button della cella, nessun contenuto card nel body
+    expect(document.body.innerHTML).not.toContain('data-reka-hover-card');
+    expect(w.findAllComponents({ name: 'UmbrellaCell' }).length).toBeGreaterThan(0);
+    w.unmount();
   });
 
   afterEach(() => { vi.restoreAllMocks(); });
