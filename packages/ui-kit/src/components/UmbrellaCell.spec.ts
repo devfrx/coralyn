@@ -8,7 +8,7 @@ const base = {
   slotStates: ['booked', 'free'] as const,
 };
 
-describe('UmbrellaCell', () => {
+describe('UmbrellaCell (Tessera)', () => {
   it('è un button con aria-label testuale completa', () => {
     const btn = mount(UmbrellaCell, { props: { ...base } }).get('button');
     expect(btn.attributes('aria-label')).toContain('Mattina Prenotato');
@@ -28,37 +28,48 @@ describe('UmbrellaCell', () => {
     expect(btn.attributes('aria-pressed')).toBe('true');
     expect(btn.classes()).toContain('outline');
   });
-  it('N=1: tinta piena (nessun conic-gradient)', () => {
+  it('N=1: una sola colonna piena', () => {
     const w = mount(UmbrellaCell, { props: { ...base, slotStates: ['free'] } });
     expect(w.vm.uniform).toBe(true);
-    expect(w.vm.bg).toBe('var(--color-state-free)');
+    expect(w.vm.fills).toEqual(['var(--color-state-free)']);
   });
-  it('fasce tutte uguali: tinta piena (nessun conic-gradient anche per N=3)', () => {
+  it('fasce tutte uguali: uniforme anche per N=3', () => {
     const w = mount(UmbrellaCell, { props: { ...base, slotStates: ['daily', 'daily', 'daily'] } });
     expect(w.vm.uniform).toBe(true);
-    expect(w.vm.bg).toBe('var(--color-state-daily)');
+    expect(w.vm.fills).toEqual(['var(--color-state-daily)']);
   });
-  it('N=3 stati misti: conic-gradient a spicchi (un colore per fascia)', () => {
+  it('N=3 misti: una colonna per fascia NELL\'ORDINE delle fasce (prima a sinistra)', () => {
     const w = mount(UmbrellaCell, { props: { ...base, slotStates: ['free', 'daily', 'booked'] } });
     expect(w.vm.uniform).toBe(false);
-    expect(w.vm.bg).toContain('conic-gradient');
-    expect(w.vm.bg).toContain('var(--color-state-free)');
-    expect(w.vm.bg).toContain('var(--color-state-daily)');
-    expect(w.vm.bg).toContain('var(--color-state-booked)');
+    expect(w.vm.fills).toEqual([
+      'var(--color-state-free)', 'var(--color-state-daily)', 'var(--color-state-booked)',
+    ]);
   });
   it('slotStates vuoto: non lancia, tratta come una fascia libera', () => {
     const w = mount(UmbrellaCell, { props: { ...base, slotStates: [] } });
     expect(w.vm.uniform).toBe(true);
-    expect(w.vm.bg).toBe('var(--color-state-free)');
+    expect(w.vm.fills).toEqual(['var(--color-state-free)']);
   });
-  it('include la fascia coperta come spicchio col colore neutro', () => {
+  it('la fascia coperta è una colonna col colore neutro', () => {
     const w = mount(UmbrellaCell, { props: { ...base, slotStates: ['daily', 'covered'] } });
     expect(w.vm.uniform).toBe(false);
-    expect(w.vm.bg).toContain('var(--color-state-covered)');
+    expect(w.vm.fills).toEqual(['var(--color-state-daily)', 'var(--color-state-covered)']);
   });
-  it('N=1 coperta: tinta piena neutra', () => {
+  it('N=1 coperta: colonna piena neutra', () => {
     const w = mount(UmbrellaCell, { props: { ...base, slotStates: ['covered'] } });
     expect(w.vm.uniform).toBe(true);
-    expect(w.vm.bg).toBe('var(--color-state-covered)');
+    expect(w.vm.fills).toEqual(['var(--color-state-covered)']);
+  });
+  it('dimmed: il wrapper si attenua (filtro legenda)', () => {
+    const w = mount(UmbrellaCell, { props: { ...base, dimmed: true } });
+    expect(w.classes()).toContain('opacity-25');
+  });
+  it('found: il button porta l\'animazione di impulso (ricerca)', () => {
+    const w = mount(UmbrellaCell, { props: { ...base, found: true } });
+    expect(w.get('button').attributes('class')).toContain('cell-found');
+  });
+  it('typeIcon: rende il marcatore tipologia', () => {
+    const w = mount(UmbrellaCell, { props: { ...base, typeIcon: 'palmtree' } });
+    expect(w.find('[data-test="type-badge"]').exists()).toBe(true);
   });
 });
