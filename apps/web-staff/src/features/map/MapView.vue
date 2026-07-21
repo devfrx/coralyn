@@ -62,6 +62,16 @@ const spotCount = computed(() => currentSector.value?.rows.reduce((n, r) => n + 
 function slotStatesFor(u: UmbrellaDTO): SlotState[] {
   return timeSlots.value.map((s) => (u.stateBySlot[s.id] ?? 'free') as SlotState);
 }
+const highlight = ref<Set<SlotState>>(new Set());
+function toggleHighlight(s: SlotState) {
+  const next = new Set(highlight.value);
+  next.has(s) ? next.delete(s) : next.add(s);
+  highlight.value = next;
+}
+function isDimmed(u: UmbrellaDTO): boolean {
+  if (highlight.value.size === 0) return false;
+  return !slotStatesFor(u).some((s) => highlight.value.has(s));
+}
 function typeIcon(u: UmbrellaDTO): string | null {
   return u.umbrellaTypeId ? (typesById.value.get(u.umbrellaTypeId)?.icon ?? 'umbrella') : null;
 }
@@ -270,7 +280,7 @@ const freeSlotOptions = computed(() =>
             <div class="flex flex-wrap gap-2.5">
               <UmbrellaCell v-for="u in r.umbrellas" :key="u.id" :label="u.label"
                 :ariaLabel="ariaLabel(u, currentSector!.name, r.label)" :slot-states="slotStatesFor(u)"
-                :type-icon="typeIcon(u)" :selected="sel?.u.id === u.id"
+                :type-icon="typeIcon(u)" :selected="sel?.u.id === u.id" :dimmed="isDimmed(u)"
                 @select="open(u, currentSector!.name, r.label)" />
             </div>
             <span data-test="row-ruler" class="w-[74px] flex-none">
@@ -286,20 +296,23 @@ const freeSlotOptions = computed(() =>
             <div v-for="r in special.rows" :key="r.id" class="flex flex-wrap gap-3.5">
               <UmbrellaCell v-for="u in r.umbrellas" :key="u.id" :label="u.label"
                 :ariaLabel="ariaLabel(u, 'Speciali', r.label)" :slot-states="slotStatesFor(u)"
-                :type-icon="typeIcon(u)" :selected="sel?.u.id === u.id"
+                :type-icon="typeIcon(u)" :selected="sel?.u.id === u.id" :dimmed="isDimmed(u)"
                 @select="open(u, 'Speciali', r.label)" />
             </div>
           </div>
           <div class="mt-[22px] flex flex-wrap gap-7 border-t border-[var(--color-warm-border-stage)] pt-4">
             <div>
               <div class="mb-2 text-[10px] font-semibold uppercase tracking-[.09em] text-[var(--color-stage-3)]">Stato</div>
-              <div class="flex flex-wrap gap-3.5 text-[11.5px] text-[var(--color-text-2nd)]">
-                <span class="inline-flex items-center gap-1.5"><i class="size-[13px] rounded-full" style="background:var(--color-state-free)"></i>Libero</span>
-                <span class="inline-flex items-center gap-1.5"><i class="size-[13px] rounded-full" style="background:var(--color-state-season)"></i>Abbonato</span>
-                <span class="inline-flex items-center gap-1.5"><i class="size-[13px] rounded-full" style="background:var(--color-state-daily)"></i>Giornaliero</span>
-                <span class="inline-flex items-center gap-1.5"><i class="size-[13px] rounded-full" style="background:var(--color-state-booked)"></i>Prenotato</span>
-                <span class="inline-flex items-center gap-1.5"><i class="size-[13px] rounded-full" style="background:var(--color-state-covered)"></i>Non disponibile</span>
-                <span class="inline-flex items-center gap-1.5"><i class="size-[13px] rounded-full" style="background:conic-gradient(from 0deg,var(--color-state-booked) 0 33.333%,var(--color-state-daily) 33.333% 66.666%,var(--color-state-free) 66.666% 100%)"></i>Stato misto</span>
+              <div class="flex flex-wrap gap-2 text-[11.5px]">
+                <button v-for="s in (['free','season','daily','booked','covered'] as SlotState[])" :key="s"
+                  type="button" data-test="legend-chip" :data-state="s" :aria-pressed="highlight.has(s)"
+                  class="inline-flex items-center gap-1.5 rounded-full border-[1.5px] bg-[var(--color-surface)] px-2.5 py-1 font-medium transition-shadow focus-visible:outline-none focus-visible:[box-shadow:var(--ring-focus)]"
+                  :class="highlight.has(s) ? 'border-[var(--color-accent)] font-semibold text-[var(--color-accent)] [box-shadow:0_0_0_3px_var(--color-accent-tint)]' : 'border-[var(--color-border)] text-[var(--color-text-2nd)]'"
+                  @click="toggleHighlight(s)">
+                  <i class="size-[11px] rounded-full" :style="{ background: STATE_COLOR[s] }"></i>{{ STATE_LABEL[s] }}
+                </button>
+                <span class="inline-flex items-center gap-1.5 px-1 text-[var(--color-text-2nd)]"><i class="size-[11px] rounded-full" style="background:conic-gradient(from 0deg,var(--color-state-booked) 0 33.333%,var(--color-state-daily) 33.333% 66.666%,var(--color-state-free) 66.666% 100%)"></i>Stato misto</span>
+                <span class="ml-auto self-center text-[10.5px] text-[var(--color-placeholder)]">clic per filtrare · di nuovo per tutto</span>
               </div>
             </div>
             <div>

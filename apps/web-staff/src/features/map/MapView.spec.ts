@@ -686,5 +686,23 @@ describe('MapView', () => {
     expect(ruler.text()).toContain('2/3');
   });
 
+  it('legenda operativa: clic su "Libero" attenua le celle senza fasce libere', async () => {
+    const w = mountApp(MapView);
+    await flushPromises();
+    await new Promise((r) => setTimeout(r, 0));
+    await flushPromises();
+
+    await w.get('[data-test="legend-chip"][data-state="free"]').trigger('click');
+    const cells = w.findAllComponents({ name: 'UmbrellaCell' });
+    const byLabel = (l: string) => cells.find((c) => c.props('label') === l)!;
+    expect(byLabel('1').props('dimmed')).toBe(true); // daily/daily: nessuna fascia libera
+    expect(byLabel('2').props('dimmed')).toBe(false); // free/free
+    expect(byLabel('8').props('dimmed')).toBe(false); // booked/free: ha una fascia libera
+
+    // secondo clic: filtro spento, niente dimmed
+    await w.get('[data-test="legend-chip"][data-state="free"]').trigger('click');
+    expect(byLabel('1').props('dimmed')).toBe(false);
+  });
+
   afterEach(() => { vi.restoreAllMocks(); });
 });
