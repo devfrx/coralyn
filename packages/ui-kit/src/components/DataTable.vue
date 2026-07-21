@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue';
+import { computed, ref, watch, getCurrentInstance } from 'vue';
 import { sortRows, type DataTableColumn, type SortDir, paginate, pageCount, countLabel } from '../tableData';
 import Icon from './Icon.vue';
 import IconButton from './IconButton.vue';
+import EmptyState from './EmptyState.vue';
 
 type Row = Record<string, unknown>;
 
@@ -14,11 +15,19 @@ const props = withDefaults(
     density?: 'comfortable' | 'compact';
     pageSize?: number;
     showCount?: boolean;
+    emptyMessage?: string;
+    maxHeight?: string;
+    rowClass?: (row: Row) => string;
   }>(),
   { density: 'comfortable', showCount: false },
 );
 
 const page = defineModel<number>('page', { default: 1 });
+
+const emit = defineEmits<{ 'row-click': [row: Row] }>();
+
+// Rilevato una volta al setup: con listener la riga diventa cliccabile (cursor + emit).
+const hasRowClick = !!getCurrentInstance()?.vnode.props?.['onRow-click'] || !!getCurrentInstance()?.vnode.props?.onRowClick;
 
 // --- ordinamento (client-side, si applica prima della paginazione) ---
 const sortKey = ref<string | null>(null);
@@ -76,10 +85,20 @@ function cellStyle(col: DataTableColumn): Record<string, string> | undefined {
 function cellTitle(col: DataTableColumn, row: Row): string | undefined {
   return col.wrap === 'truncate' ? String(row[col.key] ?? '') : undefined;
 }
+
+function rowClasses(row: Row): string {
+  const parts = ['hover:bg-[var(--color-raised)]'];
+  if (hasRowClick) parts.push('cursor-pointer');
+  if (props.rowClass) {
+    const extra = props.rowClass(row);
+    if (extra) parts.push(extra);
+  }
+  return parts.join(' ');
+}
 </script>
 <template>
   <div class="overflow-hidden rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-[var(--color-surface)] [box-shadow:var(--shadow-card)]">
-    <div class="overflow-x-auto">
+    <div class="overflow-x-auto" :class="maxHeight ? 'overflow-y-auto' : ''" :style="maxHeight ? { maxHeight } : undefined">
       <table class="w-full border-collapse text-[13px]">
         <thead>
           <tr class="bg-[var(--color-raised)]">
@@ -91,6 +110,7 @@ function cellTitle(col: DataTableColumn, row: Row): string | undefined {
                 'border-b border-[var(--color-border)] px-[18px] py-3 text-[10.5px] font-semibold uppercase tracking-[.07em] text-[var(--color-text-muted)]',
                 c.align === 'right' ? 'text-right' : 'text-left',
                 c.hideBelow ? HIDE[c.hideBelow] : '',
+                maxHeight ? 'sticky top-0 z-[1] bg-[var(--color-raised)]' : '',
               ]"
             >
               <button
@@ -110,8 +130,11 @@ function cellTitle(col: DataTableColumn, row: Row): string | undefined {
             </th>
           </tr>
         </thead>
-        <tbody v-if="rows">
-          <tr v-for="(row, i) in visible" :key="key(row, i)" class="hover:bg-[var(--color-raised)]">
+        <tbody v-if="rows && rows.length === 0 && emptyMessage">
+          <tr><td :colspan="columns.length" class="p-4"><EmptyState :message="emptyMessage" /></td></tr>
+        </tbody>
+        <tbody v-else-if="rows">
+          <tr v-for="(row, i) in visible" :key="key(row, i)" :class="rowClasses(row)" @click="hasRowClick && emit('row-click', row)">
             <td
               v-for="(c, ci) in columns"
               :key="c.key"

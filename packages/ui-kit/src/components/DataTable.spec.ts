@@ -191,3 +191,41 @@ describe('DataTable — paginazione e footer', () => {
     expect(mount(DataTable, { props: { columns: cols1, showCount: true } }).find('[data-test="table-footer"]').exists()).toBe(false);
   });
 });
+
+describe('DataTable — righe interattive e stati', () => {
+  const cols1 = [{ key: 'n', label: 'N' }];
+  const rows2 = [{ id: 'r1', n: 'uno' }, { id: 'r2', n: 'due' }];
+  const rk = (r: Record<string, unknown>) => r.id as string;
+
+  it('row-click: emesso al click, cursor-pointer solo con listener', async () => {
+    const w = mount(DataTable, {
+      props: { columns: cols1, rows: rows2, rowKey: rk, 'onRow-click': () => {} },
+    });
+    expect(w.find('tbody tr').classes()).toContain('cursor-pointer');
+    await w.find('tbody tr').trigger('click');
+    expect(w.emitted('row-click')?.[0]).toEqual([rows2[0]]);
+    const w2 = mount(DataTable, { props: { columns: cols1, rows: rows2, rowKey: rk } });
+    expect(w2.find('tbody tr').classes()).not.toContain('cursor-pointer');
+  });
+
+  it('rowClass applica classi per riga', () => {
+    const w = mount(DataTable, { props: { columns: cols1, rows: rows2, rowKey: rk, rowClass: (r) => (r.n === 'due' ? 'opacity-60' : '') } });
+    const trs = w.findAll('tbody tr');
+    expect(trs[0].classes()).not.toContain('opacity-60');
+    expect(trs[1].classes()).toContain('opacity-60');
+  });
+
+  it('emptyMessage: EmptyState dentro la card con 0 righe, footer nascosto', () => {
+    const w = mount(DataTable, { props: { columns: cols1, rows: [], rowKey: rk, pageSize: 20, emptyMessage: 'Nessun elemento' } });
+    expect(w.get('[data-test="empty-state"]').text()).toContain('Nessun elemento');
+    expect(w.find('[data-test="table-footer"]').exists()).toBe(false);
+  });
+
+  it('maxHeight: scroll interno e thead sticky', () => {
+    const w = mount(DataTable, { props: { columns: cols1, rows: rows2, rowKey: rk, maxHeight: '400px' } });
+    const scroller = w.find('div.overflow-x-auto');
+    expect(scroller.classes()).toContain('overflow-y-auto');
+    expect(scroller.attributes('style')).toContain('max-height: 400px');
+    expect(w.find('th').classes()).toEqual(expect.arrayContaining(['sticky', 'top-0']));
+  });
+});
