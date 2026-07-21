@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
+import { nextTick } from 'vue';
 import { http, HttpResponse } from 'msw';
 import { flushPromises } from '@vue/test-utils';
 import { mountApp } from '@/test/utils';
@@ -702,6 +703,50 @@ describe('MapView', () => {
     // secondo clic: filtro spento, niente dimmed
     await w.get('[data-test="legend-chip"][data-state="free"]').trigger('click');
     expect(byLabel('1').props('dimmed')).toBe(false);
+  });
+
+  it('ricerca per etichetta: la cella matchata pulsa (found)', async () => {
+    const w = mountApp(MapView);
+    await flushPromises();
+    await new Promise((r) => setTimeout(r, 0));
+    await flushPromises();
+
+    vi.useFakeTimers();
+    try {
+      await w.get('[data-test="map-find"]').setValue('8');
+      vi.advanceTimersByTime(200);
+      await nextTick();
+      const cells = w.findAllComponents({ name: 'UmbrellaCell' });
+      expect(cells.find((c) => c.props('label') === '8')!.props('found')).toBe(true);
+      expect(cells.find((c) => c.props('label') === '2')!.props('found')).toBe(false);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('ricerca per cliente: matcha gli ombrelloni prenotati da quel cliente', async () => {
+    // override bookings del giorno: Mario Rossi (c-1, già nel seed clienti) su o-8
+    server.use(http.get('/api/bookings', () => HttpResponse.json([
+      { id: 'b-x', customerId: 'c-1', umbrellaId: 'o-8', timeSlotId: 'f-mat',
+        startDate: '2026-06-27', endDate: '2026-06-27', type: 'daily', status: 'confirmed',
+        totalPrice: 25, paymentStatus: 'unpaid', amountCollected: 0 },
+    ])));
+
+    const w = mountApp(MapView);
+    await flushPromises();
+    await new Promise((r) => setTimeout(r, 0));
+    await flushPromises();
+
+    vi.useFakeTimers();
+    try {
+      await w.get('[data-test="map-find"]').setValue('rossi');
+      vi.advanceTimersByTime(200);
+      await nextTick();
+      const cells = w.findAllComponents({ name: 'UmbrellaCell' });
+      expect(cells.find((c) => c.props('label') === '8')!.props('found')).toBe(true);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   afterEach(() => { vi.restoreAllMocks(); });

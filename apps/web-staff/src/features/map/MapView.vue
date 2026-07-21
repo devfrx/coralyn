@@ -1,11 +1,12 @@
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue';
+import { ref, computed, watch, nextTick, onUnmounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { UmbrellaCell, SegmentedControl, Badge, Button, Drawer, ActionBar, Modal, Icon, Select, ModalFooter, formatEuro } from '@coralyn/ui-kit';
 import type { UmbrellaDTO, SlotState, BookingDTO, BookingType } from '@coralyn/contracts';
 import { PAY_LABEL, PAY_TONE } from '@/lib/statusMaps';
+import { useMediaQuery } from '@/lib/useMediaQuery';
 import { useDayMap } from './useDayMap';
-import { rowOccupancy, sectorOccupancyPct } from './mapDerive';
+import { rowOccupancy, sectorOccupancyPct, matchesQuery, namesByUmbrella } from './mapDerive';
 import { useDayBookings, useCreateBooking, useCancelBooking } from '@/features/bookings/useBookings';
 import { useBookingQuote, type QuoteParams } from '@/features/bookings/useBookingQuote';
 import { usePackages } from '@/features/bookings/usePackages';
@@ -58,6 +59,39 @@ const sectorOptions = computed(() =>
   normalSectors.value.map((s) => ({ value: s.id, label: s.name, hint: `${sectorOccupancyPct(s)}%` })),
 );
 const spotCount = computed(() => currentSector.value?.rows.reduce((n, r) => n + r.umbrellas.length, 0) ?? 0);
+
+// Ricerca / salto rapido (spec rework Riva §7): etichetta esatta o cliente substring, debounced 150ms.
+const findQuery = ref('');
+const findDebounced = ref('');
+let findTimer: ReturnType<typeof setTimeout> | undefined;
+watch(findQuery, (q) => {
+  clearTimeout(findTimer);
+  findTimer = setTimeout(() => { findDebounced.value = q; }, 150);
+});
+onUnmounted(() => clearTimeout(findTimer));
+const namesByUmb = computed(() => namesByUmbrella(bookings.value ?? [], customers.value ?? []));
+function isFound(u: UmbrellaDTO): boolean {
+  return matchesQuery(u, findDebounced.value, namesByUmb.value.get(u.id) ?? []);
+}
+// Auto-switch: se nessun match nel settore attivo ma ce n'è in un altro, attiva il settore del primo match;
+// poi porta in vista il primo match. scrollIntoView è guardato (jsdom non lo implementa) e sotto
+// prefers-reduced-motion lo scroll è istantaneo, non smooth.
+const reducedMotion = useMediaQuery('(prefers-reduced-motion: reduce)');
+watch(findDebounced, async (q) => {
+  if (!q.trim()) return;
+  const inActive = currentSector.value?.rows.some((r) => r.umbrellas.some((u) => isFound(u)));
+  if (!inActive) {
+    for (const s of normalSectors.value) {
+      const hit = s.rows.some((r) => r.umbrellas.some((u) => isFound(u)));
+      if (hit) { activeSector.value = s.id; break; }
+    }
+  }
+  await nextTick();
+  const first = sectors.value.flatMap((s) => s.rows).flatMap((r) => r.umbrellas).find((u) => isFound(u));
+  if (!first) return;
+  document.querySelector(`[aria-label^="Ombrellone ${first.label},"]`)
+    ?.scrollIntoView?.({ block: 'nearest', behavior: reducedMotion.value ? 'auto' : 'smooth' });
+});
 
 function slotStatesFor(u: UmbrellaDTO): SlotState[] {
   return timeSlots.value.map((s) => (u.stateBySlot[s.id] ?? 'free') as SlotState);
@@ -252,6 +286,12 @@ const freeSlotOptions = computed(() =>
     <div class="flex flex-wrap items-center gap-3 px-[26px] pt-4">
       <SegmentedControl v-if="sectorOptions.length" v-model="activeSector" :options="sectorOptions" />
       <div class="flex-1"></div>
+      <label class="flex min-w-[220px] items-center gap-2 rounded-full border-[1.5px] border-[var(--color-border)] bg-[var(--color-surface)] px-3.5 py-2">
+        <Icon name="search" :size="13" class="text-[var(--color-text-muted)]" />
+        <input data-test="map-find" v-model="findQuery" type="text" placeholder="Trova ombrellone o cliente…"
+          aria-label="Trova ombrellone o cliente"
+          class="w-full bg-transparent text-[12.5px] text-[var(--color-text)] placeholder:text-[var(--color-placeholder)] focus:outline-none" />
+      </label>
       <div class="flex items-center gap-2 text-xs text-[var(--color-text-muted)]">
         <Icon name="clock" :size="15" class="text-[var(--color-accent)]" />Stato per fascia
       </div>
@@ -280,7 +320,7 @@ const freeSlotOptions = computed(() =>
             <div class="flex flex-wrap gap-2.5">
               <UmbrellaCell v-for="u in r.umbrellas" :key="u.id" :label="u.label"
                 :ariaLabel="ariaLabel(u, currentSector!.name, r.label)" :slot-states="slotStatesFor(u)"
-                :type-icon="typeIcon(u)" :selected="sel?.u.id === u.id" :dimmed="isDimmed(u)"
+                :type-icon="typeIcon(u)" :selected="sel?.u.id === u.id" :dimmed="isDimmed(u)" :found="isFound(u)"
                 @select="open(u, currentSector!.name, r.label)" />
             </div>
             <span data-test="row-ruler" class="w-[74px] flex-none">
@@ -296,7 +336,7 @@ const freeSlotOptions = computed(() =>
             <div v-for="r in special.rows" :key="r.id" class="flex flex-wrap gap-3.5">
               <UmbrellaCell v-for="u in r.umbrellas" :key="u.id" :label="u.label"
                 :ariaLabel="ariaLabel(u, 'Speciali', r.label)" :slot-states="slotStatesFor(u)"
-                :type-icon="typeIcon(u)" :selected="sel?.u.id === u.id" :dimmed="isDimmed(u)"
+                :type-icon="typeIcon(u)" :selected="sel?.u.id === u.id" :dimmed="isDimmed(u)" :found="isFound(u)"
                 @select="open(u, 'Speciali', r.label)" />
             </div>
           </div>
