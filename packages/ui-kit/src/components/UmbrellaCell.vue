@@ -55,9 +55,9 @@ defineExpose({ uniform, fills });
     >
       <span aria-hidden="true" class="absolute inset-0 flex">
         <span v-for="(f, i) in fills" :key="i" class="h-full flex-1"
-          :class="i > 0 ? 'border-l border-[rgba(255,255,255,.55)]' : ''" :style="{ background: f }"></span>
+          :class="i > 0 ? 'border-l border-[var(--color-cell-divider)]' : ''" :style="{ background: f }"></span>
       </span>
-      <span aria-hidden="true" class="absolute inset-x-0 top-0 h-[35%] bg-gradient-to-b from-white/35 to-transparent"></span>
+      <span aria-hidden="true" class="absolute inset-x-0 top-0 h-[35%] bg-gradient-to-b from-[var(--color-cell-glare)] to-transparent"></span>
       <span class="relative z-[1]">{{ label }}</span>
     </button>
     <span v-if="typeIcon" data-test="type-badge" class="absolute -right-1 -top-1 z-10 grid size-[15px] place-items-center rounded-full bg-[var(--color-surface)] text-[var(--color-accent)] [box-shadow:var(--shadow-soft)]">

@@ -75,6 +75,9 @@
   --shadow-brand: 0 2px 8px rgba(224,121,90,.3);
   /* Ombra "da sole alto" delle celle mappa (tinta stage-1 calda, portata in basso) */
   --shadow-sun: 0 5px 9px -3px rgba(138,110,63,.30), 0 1px 2px rgba(138,110,63,.12);
+  /* Cella mappa: divisore hairline tra colonne-fascia e riflesso "luce dall'alto" */
+  --color-cell-divider: rgba(255,255,255,.55);
+  --color-cell-glare: rgba(255,255,255,.35);
   --ease-standard: cubic-bezier(.2,0,.2,1);
   --ease-emphasized: cubic-bezier(.2,0,0,1);
   --motion-fast: 140ms; --motion-base: 200ms; --motion-slow: 260ms;
