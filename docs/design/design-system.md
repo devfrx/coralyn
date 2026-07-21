@@ -388,6 +388,10 @@ interattivi: **default / hover / active / focus-visible / disabled**; focus = `-
   + `--shadow-drawer`-like). **Solo consultazione**: nessuna azione al suo interno; il gating
   hover-capable resta nel chiamante (prop `disabled`), il primitivo è agnostico. Uso: hovercard
   delle celle mappa, §13.9.
+- **Popover** — wrapper del primitivo `Popover` di Reka UI (trigger/content a slot, **click**
+  invece di hover — funziona anche su touch; `side`/`align` configurabili, freccetta, stessa
+  superficie della HoverCard; Esc/click-fuori chiudono dal primitivo). Uso: pillola «Legenda»
+  della mappa, §13.6.
 
 ### 10.1 Stato degli interattivi
 
@@ -529,16 +533,17 @@ bundled/offline** dal `<Icon>`. **Fallback** finché manca `icona`: chiave di de
 
 - **Speciali** (palme): settore dedicato in coda, celle leggermente più grandi col proprio
   marcatore tipologia ([ADR-0016](../architecture/decisions/0016-tipologia-ombrellone.md)).
-- **Legenda Stato — operativa** (non solo decorativa): i chip Libero / Abbonato / Giornaliero /
-  Prenotato / **Non disponibile** (`covered`, D-048) sono **toggle multi-select**
-  (`<button aria-pressed>`): con ≥1 chip attivo, le celle senza **nessuna** fascia in uno stato
-  attivo prendono `dimmed` (§13.4); un nuovo clic sull'ultimo chip attivo spegne il filtro. Hint
-  testuale «clic per filtrare · di nuovo per tutto». Filtro **solo visivo**: nessuna cella rimossa
-  dal DOM, tastiera/aria invariati.
-- **«Stato misto»**: voce puramente **informativa** (non cliccabile) con pallino a
-  `conic-gradient` a più fasce, a promemoria che una cella può avere stati diversi per fascia.
-- **Legenda Tipologia**: Normale (`--color-state-normale-mark`) + tipi con icona. Micro-label
-  maiuscole `--tracking-caps`.
+- **Filtri Stato — nella toolbar** (separati dalla legenda): i chip Libero / Abbonato /
+  Giornaliero / Prenotato / **Non disponibile** (`covered`, D-048) vivono nella **toolbar della
+  scena** (§13.8) come **toggle multi-select** compatti (`<button aria-pressed>`, in un
+  `role="group"`): con ≥1 chip attivo, le celle senza **nessuna** fascia in uno stato attivo
+  prendono `dimmed` (§13.4); un nuovo clic sull'ultimo chip attivo spegne il filtro. Filtro
+  **solo visivo**: nessuna cella rimossa dal DOM, tastiera/aria invariati.
+- **Legenda informativa — pillola «Legenda»** (`Popover` ui-kit, §10) nella toolbar: contenuto
+  puramente consultivo, separato dai comandi — «Stato misto» (pallino `conic-gradient`), la nota
+  «stato per fascia», l'istruzione d'uso dei chip, e la **Tipologia** (Normale
+  `--color-state-normale-mark` + tipi con icona). Un click apre, Esc/click-fuori chiude
+  (dal primitivo).
 
 ### 13.7 Dettaglio in `Drawer` overlay (riallineamento ADR-0019)
 
@@ -555,23 +560,30 @@ bundled/offline** dal `<Icon>`. **Fallback** finché manca `icona`: chiave di de
 - La selezione cella (anello coral) resta visibile sotto lo scrim leggero (`--color-scrim`):
   l'operatore non perde il riferimento spaziale mentre il drawer è aperto.
 
-### 13.8 La scena «Riva» (stage)
+### 13.8 La scena «Riva» (stage, full-bleed)
 
-Struttura verticale dello stage dall'alto (`apps/web-staff/src/styles/map-scene.css`):
+Lo stage è **full-bleed**: riempie l'intera area contenuto della vista, senza cornice-card
+(niente bordo/raggio/ombra né padding esterno). Lo scroll vive in uno **scroller interno**
+(`.map-scroll`) dentro lo stage, così la grana di sabbia copre sempre il viewport della scena.
+Struttura verticale dall'alto (`apps/web-staff/src/styles/map-scene.css`):
 
-- **Mare** (`.map-sea`, h ~64px): gradiente verticale `--color-sea-deep → --color-sea-3 →
+- **Mare** (`.map-sea`, h ~64px, **sticky in cima**: l'orizzonte resta ancorato mentre le file
+  scorrono sotto): gradiente verticale `--color-sea-deep → --color-sea-3 →
   --color-sea-2 → --color-sea-1` + **3 velature** (`.map-sea-veil`, bianco a bassa opacità,
   `border-radius` alto) in drift orizzontale lento (`map-sea-drift`, 19–33s, solo `transform`,
   `linear infinite`). Label discreta "MARE" (tracking largo, `--color-sea-ink`). Il vecchio
   specchio "mare" a barretta è rimosso.
-- **Bagnasciuga** (`.map-shore`, h ~16px): gradiente `--color-sea-1` → sabbia bagnata `#EDE6D2`
-  (tonalità di transizione, unica eccezione ai token in questo file) → `--color-warm-075`: il
-  mare *bagna* la sabbia invece di finire a spigolo.
+- **Toolbar della scena** (`.map-toolbar`, **sticky sotto il bagnasciuga**): vetro leggero
+  (`color-mix` su `--color-warm-075` + `backdrop-filter: blur`), contiene i comandi — tab
+  settore, **chip filtro stato** (§13.6), **ricerca rapida**, pillola **«Legenda»** (§13.6).
+- **Bagnasciuga** (`.map-shore`, h ~16px, **sticky sotto il mare**): gradiente `--color-sea-1` →
+  sabbia bagnata `#EDE6D2` (tonalità di transizione, unica eccezione ai token in questo file) →
+  `--color-warm-075`: il mare *bagna* la sabbia invece di finire a spigolo.
 - **Sabbia** (`.map-stage`): gradiente `--color-warm-075 → --color-warm-150` + **grana**
   impercettibile (SVG `feTurbulence` inline via `background-image` data-URI, `opacity .05`,
   `mix-blend-mode: multiply`) — costo nullo, nessuna animazione.
-- **Header dello stage**: tab settore (`SegmentedControl` con `hint` = occupazione %, §10),
-  conteggio postazioni, campo **ricerca rapida** ("Trova ombrellone o cliente…").
+- **Caption in scena**: sotto la toolbar, la riga "Spiaggia · Settore X" + conteggio postazioni
+  (i comandi stanno tutti nella toolbar sticky, §sopra).
 - **File**: marcatore fila a sinistra (`FILA n`, sottotitolo "prima linea" sulla fila 1), celle al
   centro, **righello occupazione** a destra (track 4px + fill `--color-accent` opacità .75 +
   etichetta `occupate/totali` `tabular-nums`) — occupata = **almeno una fascia `≠ free`** (i

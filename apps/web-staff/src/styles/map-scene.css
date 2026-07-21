@@ -2,10 +2,11 @@
    Feature-scoped: solo MapView la usa. Token Coralyn, nessun hex nuovo qui
    (unica eccezione: la sabbia bagnata del bagnasciuga #EDE6D2, tonalità di transizione). */
 
+/* Full-bleed: lo stage riempie l'area contenuto (niente card: no bordo/raggio/ombra).
+   Lo scroll vive nello scroller interno .map-scroll, così la grana (::after, inset-0
+   sullo stage che NON scrolla) copre sempre il viewport della scena. */
 .map-stage {
   position: relative;
-  border-radius: var(--radius-xl);
-  border: 1px solid var(--color-warm-border-stage);
   overflow: hidden;
   background: linear-gradient(172deg, var(--color-warm-075) 0%, var(--color-warm-150) 100%);
 }
@@ -16,10 +17,12 @@
   opacity: .05; mix-blend-mode: multiply;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)'/%3E%3C/svg%3E");
 }
+.map-scroll { position: absolute; inset: 0; overflow: auto; z-index: 1; }
 
-/* mare a orizzonte: gradiente profondo→chiaro + 3 velature in drift lento */
+/* mare a orizzonte: gradiente profondo→chiaro + 3 velature in drift lento.
+   Sticky: l'orizzonte resta ancorato in alto mentre le file scorrono sotto. */
 .map-sea {
-  position: relative; height: 64px; overflow: hidden;
+  position: sticky; top: 0; z-index: 3; height: 64px; overflow: hidden;
   background: linear-gradient(180deg, var(--color-sea-deep) 0%, var(--color-sea-3) 34%, var(--color-sea-2) 66%, var(--color-sea-1) 100%);
 }
 .map-sea-veil {
@@ -31,8 +34,17 @@
 .map-sea-veil:nth-child(3) { top: 80%; background: color-mix(in srgb, var(--color-sea-1) 50%, transparent); animation: map-sea-drift 33s linear infinite; }
 @keyframes map-sea-drift { from { transform: translateX(-3.5%); } to { transform: translateX(3.5%); } }
 
-/* bagnasciuga: il mare bagna la sabbia (sabbia bagnata di transizione) */
-.map-shore { height: 16px; background: linear-gradient(180deg, var(--color-sea-1) 0%, #EDE6D2 46%, var(--color-warm-075) 100%); }
+/* bagnasciuga: il mare bagna la sabbia (sabbia bagnata di transizione); sticky sotto il mare */
+.map-shore { position: sticky; top: 64px; z-index: 3; height: 16px; background: linear-gradient(180deg, var(--color-sea-1) 0%, #EDE6D2 46%, var(--color-warm-075) 100%); }
+
+/* toolbar flottante della scena: comandi (settori, filtri, ricerca, legenda) su vetro
+   leggero, sticky subito sotto il bagnasciuga (64px mare + 16px bagnasciuga) */
+.map-toolbar {
+  position: sticky; top: 80px; z-index: 2;
+  background: color-mix(in srgb, var(--color-warm-075) 78%, transparent);
+  backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+  border-bottom: 1px solid var(--color-warm-border-stage);
+}
 
 /* reveal scaglionato per fila (design-system §8) */
 .map-row-in { animation: map-row-in .5s var(--ease-emphasized) both; }

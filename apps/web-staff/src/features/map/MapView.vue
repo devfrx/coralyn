@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, watch, nextTick, onUnmounted } from 'vue';
 import { useRouter } from 'vue-router';
-import { UmbrellaCell, SegmentedControl, Badge, Button, Drawer, ActionBar, Modal, Icon, Select, ModalFooter, formatEuro, HoverCard } from '@coralyn/ui-kit';
+import { UmbrellaCell, SegmentedControl, Badge, Button, Drawer, ActionBar, Modal, Icon, Select, ModalFooter, formatEuro, HoverCard, Popover } from '@coralyn/ui-kit';
 import type { UmbrellaDTO, SlotState, BookingDTO, BookingType } from '@coralyn/contracts';
 import { PAY_LABEL, PAY_TONE } from '@/lib/statusMaps';
 import { useMediaQuery } from '@/lib/useMediaQuery';
@@ -295,31 +295,64 @@ const freeSlotOptions = computed(() =>
 </script>
 
 <template>
-  <section class="flex min-h-[560px] flex-col">
-    <div class="flex flex-wrap items-center gap-3 px-[26px] pt-4">
-      <SegmentedControl v-if="sectorOptions.length" v-model="activeSector" :options="sectorOptions" />
-      <div class="flex-1"></div>
-      <label class="flex min-w-[220px] items-center gap-2 rounded-full border-[1.5px] border-[var(--color-border)] bg-[var(--color-surface)] px-3.5 py-2">
-        <Icon name="search" :size="13" class="text-[var(--color-text-muted)]" />
-        <input data-test="map-find" v-model="findQuery" type="text" placeholder="Trova ombrellone o cliente…"
-          aria-label="Trova ombrellone o cliente"
-          class="w-full bg-transparent text-[12.5px] text-[var(--color-text)] placeholder:text-[var(--color-placeholder)] focus:outline-none" />
-      </label>
-      <div class="flex items-center gap-2 text-xs text-[var(--color-text-muted)]">
-        <Icon name="clock" :size="15" class="text-[var(--color-accent)]" />Stato per fascia
-      </div>
-    </div>
-
+  <section class="flex h-full min-h-[560px] flex-col">
     <p v-if="isLoading" class="px-[26px] py-10 text-[var(--color-text-muted)]">Caricamento…</p>
 
-    <div v-else class="flex flex-1 flex-col px-[26px] pb-[26px] pt-4">
-      <div class="map-stage relative min-w-0 flex-1 overflow-auto [box-shadow:var(--shadow-card)]">
+    <div v-else class="map-stage min-w-0 flex-1">
+      <div class="map-scroll">
         <div class="map-sea">
           <div class="map-sea-veil"></div><div class="map-sea-veil"></div><div class="map-sea-veil"></div>
           <span class="absolute right-3.5 top-2.5 text-[9px] font-semibold uppercase tracking-[.3em] text-[var(--color-sea-ink)] opacity-75">Mare</span>
         </div>
         <div class="map-shore"></div>
-        <div class="relative z-[1] p-5">
+
+        <div class="map-toolbar flex flex-wrap items-center gap-x-3 gap-y-2 px-5 py-2.5">
+          <SegmentedControl v-if="sectorOptions.length" v-model="activeSector" :options="sectorOptions" />
+          <div class="flex flex-wrap items-center gap-1.5" role="group" aria-label="Evidenzia per stato">
+            <button v-for="s in (['free','season','daily','booked','covered'] as SlotState[])" :key="s"
+              type="button" data-test="legend-chip" :data-state="s" :aria-pressed="highlight.has(s)"
+              class="inline-flex items-center gap-1.5 rounded-full border-[1.5px] bg-[var(--color-surface)] px-2 py-[3px] text-[11px] font-medium transition-shadow focus-visible:outline-none focus-visible:[box-shadow:var(--ring-focus)]"
+              :class="highlight.has(s) ? 'border-[var(--color-accent)] font-semibold text-[var(--color-accent)] [box-shadow:0_0_0_3px_var(--color-accent-tint)]' : 'border-[var(--color-border)] text-[var(--color-text-2nd)]'"
+              @click="toggleHighlight(s)">
+              <i class="size-[10px] rounded-full" :style="{ background: STATE_COLOR[s] }"></i>{{ STATE_LABEL[s] }}
+            </button>
+          </div>
+          <div class="flex-1"></div>
+          <label class="flex min-w-[200px] items-center gap-2 rounded-full border-[1.5px] border-[var(--color-border)] bg-[var(--color-surface)] px-3.5 py-1.5">
+            <Icon name="search" :size="13" class="text-[var(--color-text-muted)]" />
+            <input data-test="map-find" v-model="findQuery" type="text" placeholder="Trova ombrellone o cliente…"
+              aria-label="Trova ombrellone o cliente"
+              class="w-full bg-transparent text-[12.5px] text-[var(--color-text)] placeholder:text-[var(--color-placeholder)] focus:outline-none" />
+          </label>
+          <Popover>
+            <template #trigger>
+              <button type="button" data-test="legend-pill"
+                class="inline-flex items-center gap-1.5 rounded-full border-[1.5px] border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-1.5 text-[11.5px] font-medium text-[var(--color-text-2nd)] transition-shadow hover:text-[var(--color-text)] focus-visible:outline-none focus-visible:[box-shadow:var(--ring-focus)]">
+                <Icon name="info" :size="13" class="text-[var(--color-accent)]" />Legenda
+              </button>
+            </template>
+            <template #content>
+              <div data-test="legend-panel" class="flex flex-col gap-3 text-[11.5px] text-[var(--color-text-2nd)]">
+                <div>
+                  <div class="mb-1.5 text-[10px] font-semibold uppercase tracking-[.09em] text-[var(--color-stage-3)]">Stato</div>
+                  <div class="flex items-center gap-1.5"><i class="size-[11px] flex-none rounded-full" style="background:conic-gradient(from 0deg,var(--color-state-booked) 0 33.333%,var(--color-state-daily) 33.333% 66.666%,var(--color-state-free) 66.666% 100%)"></i>Stato misto — un colore per fascia</div>
+                  <div class="mt-1.5 flex items-center gap-1.5 text-[var(--color-text-muted)]"><Icon name="clock" :size="13" class="text-[var(--color-accent)]" />Ogni cella mostra lo stato per fascia</div>
+                  <div class="mt-1 text-[10.5px] text-[var(--color-placeholder)]">I chip nella barra filtrano: clic per evidenziare, di nuovo per tutto.</div>
+                </div>
+                <div class="border-t border-dashed border-[var(--color-border)] pt-2.5">
+                  <div class="mb-1.5 text-[10px] font-semibold uppercase tracking-[.09em] text-[var(--color-stage-3)]">Tipologia</div>
+                  <div class="flex flex-col gap-1">
+                    <span class="inline-flex items-center gap-1.5"><i class="size-[11px] rounded-full" style="background:var(--color-state-normal-mark)"></i>Normale</span>
+                    <span class="inline-flex items-center gap-1.5"><Icon name="leaf" :size="13" class="text-[var(--color-accent)]" />Mini-palma</span>
+                    <span class="inline-flex items-center gap-1.5"><Icon name="palmtree" :size="13" class="text-[var(--color-accent)]" />Palma</span>
+                  </div>
+                </div>
+              </div>
+            </template>
+          </Popover>
+        </div>
+
+        <div class="relative px-6 pb-6 pt-4">
           <div class="mb-3 flex items-baseline justify-between">
             <span class="text-[13.5px] font-semibold text-[var(--color-stage-1)]">Spiaggia · Settore {{ currentSector?.name }}</span>
             <span class="text-[10px] font-semibold uppercase tracking-[.09em] text-[var(--color-stage-2)]">{{ spotCount }} postazioni</span>
@@ -383,33 +416,8 @@ const freeSlotOptions = computed(() =>
               </HoverCard>
             </div>
           </div>
-          <div class="mt-[22px] flex flex-wrap gap-7 border-t border-[var(--color-warm-border-stage)] pt-4">
-            <div>
-              <div class="mb-2 text-[10px] font-semibold uppercase tracking-[.09em] text-[var(--color-stage-3)]">Stato</div>
-              <div class="flex flex-wrap gap-2 text-[11.5px]">
-                <button v-for="s in (['free','season','daily','booked','covered'] as SlotState[])" :key="s"
-                  type="button" data-test="legend-chip" :data-state="s" :aria-pressed="highlight.has(s)"
-                  class="inline-flex items-center gap-1.5 rounded-full border-[1.5px] bg-[var(--color-surface)] px-2.5 py-1 font-medium transition-shadow focus-visible:outline-none focus-visible:[box-shadow:var(--ring-focus)]"
-                  :class="highlight.has(s) ? 'border-[var(--color-accent)] font-semibold text-[var(--color-accent)] [box-shadow:0_0_0_3px_var(--color-accent-tint)]' : 'border-[var(--color-border)] text-[var(--color-text-2nd)]'"
-                  @click="toggleHighlight(s)">
-                  <i class="size-[11px] rounded-full" :style="{ background: STATE_COLOR[s] }"></i>{{ STATE_LABEL[s] }}
-                </button>
-                <span class="inline-flex items-center gap-1.5 px-1 text-[var(--color-text-2nd)]"><i class="size-[11px] rounded-full" style="background:conic-gradient(from 0deg,var(--color-state-booked) 0 33.333%,var(--color-state-daily) 33.333% 66.666%,var(--color-state-free) 66.666% 100%)"></i>Stato misto</span>
-                <span class="ml-auto self-center text-[10.5px] text-[var(--color-placeholder)]">clic per filtrare · di nuovo per tutto</span>
-              </div>
-            </div>
-            <div>
-              <div class="mb-2 text-[10px] font-semibold uppercase tracking-[.09em] text-[var(--color-stage-3)]">Tipologia</div>
-              <div class="flex flex-wrap gap-3.5 text-[11.5px] text-[var(--color-text-2nd)]">
-                <span class="inline-flex items-center gap-1.5"><i class="size-[13px] rounded-full" style="background:var(--color-state-normal-mark)"></i>Normale</span>
-                <span class="inline-flex items-center gap-1.5"><Icon name="leaf" :size="14" class="text-[var(--color-accent)]" />Mini-palma</span>
-                <span class="inline-flex items-center gap-1.5"><Icon name="palmtree" :size="14" class="text-[var(--color-accent)]" />Palma</span>
-              </div>
-            </div>
-          </div>
         </div>
       </div>
-
     </div>
 
     <Drawer :open="sel !== null" @update:open="(v: boolean) => { if (!v) close(); }"

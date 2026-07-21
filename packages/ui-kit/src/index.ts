@@ -14,6 +14,7 @@ export { default as SearchInput } from './components/SearchInput.vue';
 export { default as UmbrellaCell } from './components/UmbrellaCell.vue';
 export { default as Drawer } from './components/Drawer.vue';
 export { default as HoverCard } from './components/HoverCard.vue';
+export { default as Popover } from './components/Popover.vue';
 export { default as NavDrawer } from './components/NavDrawer.vue';
 export { default as Textarea } from './components/Textarea.vue';
 export { default as Avatar } from './components/Avatar.vue';

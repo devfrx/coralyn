@@ -8,6 +8,15 @@ import { useToasts } from '@/lib/toasts';
 import { mapSeed3 } from '@/mocks/data/seed';
 import MapView from './MapView.vue';
 
+// reka-ui Popper (Popover della legenda) misura il contenuto via ResizeObserver,
+// assente in jsdom — stesso stub guardato di HoverCard.spec/Popover.spec (ui-kit).
+class ResizeObserverStub {
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+}
+globalThis.ResizeObserver ??= ResizeObserverStub as unknown as typeof ResizeObserver;
+
 /**
  * Il dettaglio ombrellone vive ora nel Drawer (ui-kit), portato fuori dal DOM del
  * wrapper via reka-ui DialogPortal — stesso motivo per cui i test del Modal in questo
@@ -710,6 +719,25 @@ describe('MapView', () => {
     // secondo clic: filtro spento, niente dimmed
     await w.get('[data-test="legend-chip"][data-state="free"]').trigger('click');
     expect(byLabel('1').props('dimmed')).toBe(false);
+  });
+
+  it('legenda informativa: chiusa di default, il click sulla pillola apre il pannello nel portal', async () => {
+    const w = mountApp(MapView);
+    await flushPromises();
+    await new Promise((r) => setTimeout(r, 0));
+    await flushPromises();
+
+    // chiusa di default: il contenuto informativo non è montato
+    expect(document.body.textContent).not.toContain('Stato misto');
+    expect(document.body.textContent).not.toContain('Mini-palma');
+
+    await w.get('[data-test="legend-pill"]').trigger('click');
+    await flushPromises();
+    const panel = document.body.querySelector('[data-test="legend-panel"]');
+    expect(panel).not.toBeNull();
+    expect(panel!.textContent).toContain('Stato misto');
+    expect(panel!.textContent).toContain('Tipologia');
+    expect(panel!.textContent).toContain('Mini-palma');
   });
 
   it('ricerca per etichetta: la cella matchata pulsa (found)', async () => {
