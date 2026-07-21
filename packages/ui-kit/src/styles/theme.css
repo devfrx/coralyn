@@ -66,6 +66,9 @@
   /* Scrim degli overlay (teal-900): leggero per i drawer laterali, forte per i dialog bloccanti centrali */
   --color-scrim: color-mix(in srgb, var(--color-teal-900) 30%, transparent);
   --color-scrim-strong: color-mix(in srgb, var(--color-teal-900) 46%, transparent);
+  /* Skeleton di caricamento: base e sheen sui neutri caldi (vedi design-system §3) */
+  --color-skeleton: var(--color-warm-150);
+  --color-skeleton-sheen: var(--color-warm-050);
 
   --font-sans: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
   /* Micro-label maiuscole (legende, eyebrow, header tabella). I caps "display" deliberatamente
@@ -104,6 +107,16 @@
 @keyframes nav-out { from { transform: translateX(0) } to { transform: translateX(-100%) } }
 @keyframes toast-in   { from { opacity: 0; transform: translateY(8px) } to { opacity: 1; transform: translateY(0) } }
 @keyframes toast-out  { from { opacity: 1; transform: translateY(0) } to { opacity: 0; transform: translateY(8px) } }
+@keyframes skeleton-sheen { from { background-position: 150% 0 } to { background-position: -50% 0 } }
+/* Sheen dello Skeleton: gradiente in sweep sul bg token. Con prefers-reduced-motion la regola
+   globale azzera l'animazione e background-position resta 200% → blocco statico pulito. */
+.skeleton-sheen {
+  background-image: linear-gradient(100deg, transparent 30%, var(--color-skeleton-sheen) 50%, transparent 70%);
+  background-size: 200% 100%;
+  background-position: 200% 0;
+  background-repeat: no-repeat;
+  animation: skeleton-sheen 1.6s linear infinite;
+}
 
 :root {
   --ring-focus: 0 0 0 3px rgba(224,121,90,.16);

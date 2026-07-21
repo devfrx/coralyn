@@ -31,4 +31,5 @@ export { default as KpiCard } from './components/KpiCard.vue';
 export { default as ChartBar } from './components/ChartBar.vue';
 export { default as ChartDonut } from './components/ChartDonut.vue';
 export { default as StatTile } from './components/StatTile.vue';
+export { default as Skeleton } from './components/Skeleton.vue';
 export { formatEuro, initials, dateRange } from './format';
