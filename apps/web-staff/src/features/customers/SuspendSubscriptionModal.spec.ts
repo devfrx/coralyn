@@ -5,6 +5,7 @@ import { mountApp } from '@/test/utils';
 import { server } from '@/mocks/server';
 import { Role, type CustomerBookingDTO } from '@coralyn/contracts';
 import { useSessionStore } from '@/stores/session';
+import { todayIso, addDays } from '@/lib/dates';
 import SuspendSubscriptionModal from './SuspendSubscriptionModal.vue';
 
 const sub: CustomerBookingDTO = {
@@ -21,7 +22,7 @@ async function mount() {
   });
   const s = useSessionStore();
   s.user = { id: 'u-1', email: 'admin@coralyn.dev', role: Role.Admin, establishmentId: 'e-1', establishmentName: 'Lido' };
-  s.activeDate = '2026-07-20';
+  s.activeDate = todayIso();
   await w.setProps({ open: true });
   await flushPromises();
   await tick();
@@ -36,13 +37,14 @@ describe('SuspendSubscriptionModal', () => {
       return HttpResponse.json({ ...sub });
     }));
     const w = await mount();
-    (document.querySelector('input[data-testid="suspend-return"]') as HTMLInputElement).value = '2026-07-27';
+    const ret = addDays(todayIso(), 7);
+    (document.querySelector('input[data-testid="suspend-return"]') as HTMLInputElement).value = ret;
     (document.querySelector('input[data-testid="suspend-return"]') as HTMLInputElement).dispatchEvent(new Event('input'));
     await tick();
     (document.querySelector('[data-testid="suspend-confirm"]') as HTMLButtonElement).click();
     await flushPromises();
     await tick();
-    expect(captured).toMatchObject({ startDate: '2026-07-20', endDate: '2026-07-27' });
+    expect(captured).toMatchObject({ startDate: todayIso(), endDate: ret });
     expect((captured as { refundAmount?: number }).refundAmount).toBeGreaterThan(0);
     w.unmount();
   });
@@ -61,7 +63,7 @@ describe('SuspendSubscriptionModal', () => {
     (document.querySelector('[data-testid="suspend-confirm"]') as HTMLButtonElement).click();
     await flushPromises();
     await tick();
-    expect(captured.startDate).toBe('2026-07-20');
+    expect(captured.startDate).toBe(todayIso());
     expect(captured.endDate).toBeUndefined();
     expect(captured.refundAmount).toBeUndefined();
     w.unmount();
