@@ -2,7 +2,7 @@
 // Vista "I miei abbonamenti" (D-035 S4): lista read-only degli abbonamenti del cliente
 // autenticato + canale assenze comunicate (segnalazione/annullo self-service).
 import { computed, ref } from 'vue';
-import { Badge, Button, EmptyState, SectionCard, dateRange } from '@coralyn/ui-kit';
+import { Badge, Button, EmptyState, SectionCard, SkeletonText, dateRange, useDelayedLoading } from '@coralyn/ui-kit';
 import type { AbsenceReleaseDTO, CustomerBookingDTO } from '@coralyn/contracts';
 import { useSessionStore } from '@/stores/session';
 import { useMySubscriptions, useCancelRelease } from './useMySubscriptions';
@@ -11,6 +11,7 @@ import AbsenceReleaseModal from './AbsenceReleaseModal.vue';
 const session = useSessionStore();
 const { data, isLoading } = useMySubscriptions();
 const subscriptions = computed<CustomerBookingDTO[]>(() => data.value ?? []);
+const skeletonVisible = useDelayedLoading(() => isLoading.value);
 
 const modalOpen = ref(false);
 const selectedBooking = ref<CustomerBookingDTO | null>(null);
@@ -44,11 +45,19 @@ function releasesFor(sub: CustomerBookingDTO): AbsenceReleaseDTO[] {
     <h1 class="mb-1 text-[22px] font-bold tracking-[-.02em] text-[var(--color-text)]">I miei abbonamenti</h1>
     <p v-if="session.me" class="mb-5 text-sm text-[var(--color-text-muted)]">{{ session.me.establishmentName }}</p>
 
-    <p v-if="isLoading" class="py-10 text-center text-sm text-[var(--color-text-muted)]">Caricamento…</p>
+    <div v-if="skeletonVisible" aria-busy="true" class="flex flex-col gap-4">
+      <div
+        v-for="i in 2"
+        :key="i"
+        class="rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-[var(--color-surface)] p-5 [box-shadow:var(--shadow-card)]"
+      >
+        <SkeletonText :lines="3" />
+      </div>
+    </div>
 
-    <EmptyState v-else-if="subscriptions.length === 0" icon="umbrella" message="Non hai abbonamenti attivi." />
+    <EmptyState v-else-if="!isLoading && subscriptions.length === 0" icon="umbrella" message="Non hai abbonamenti attivi." />
 
-    <div v-else class="flex flex-col gap-4">
+    <div v-else-if="subscriptions.length > 0" class="flex flex-col gap-4">
       <SectionCard
         v-for="sub in subscriptions"
         :key="sub.id"

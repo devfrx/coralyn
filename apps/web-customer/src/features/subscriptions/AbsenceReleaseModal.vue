@@ -91,7 +91,7 @@ async function confirm(): Promise<void> {
           type="button"
           data-testid="absence-confirm"
           variant="primary"
-          :disabled="release.isPending.value"
+          :loading="release.isPending.value"
           @click="confirm"
         >Segnala assenza</Button>
       </div>
