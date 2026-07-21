@@ -761,6 +761,9 @@ describe('MapView', () => {
     // il trigger renderizzato è direttamente il button della cella, nessun contenuto card nel body
     expect(document.body.innerHTML).not.toContain('data-reka-hover-card');
     expect(w.findAllComponents({ name: 'UmbrellaCell' }).length).toBeGreaterThan(0);
+    // La prova reale del path disabled: il contenuto della hovercard (slot content) NON deve
+    // essere montato — se :disabled fosse invertito o mancante, questo testo apparirebbe nel body.
+    expect(document.body.innerHTML).not.toContain('Clic per aprire il dettaglio');
     w.unmount();
   });
 
