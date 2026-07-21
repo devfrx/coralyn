@@ -63,3 +63,50 @@ describe('DataTable — modalità data-driven (rows/rowKey)', () => {
     expect(w.find('td b.custom').text()).toBe('MARIO');
   });
 });
+
+describe('DataTable — colonne estese e densità', () => {
+  const rowsX = [{ id: 'r1', nome: 'Mario', note: 'nota lunga' }];
+  const rk = (r: Record<string, unknown>) => r.id as string;
+
+  it('numeric implica whitespace-nowrap', () => {
+    const w = mount(DataTable, { props: { columns: [{ key: 'nome', label: 'N', numeric: true }], rows: rowsX, rowKey: rk } });
+    expect(w.find('tbody td').classes()).toEqual(expect.arrayContaining(['tabular-nums', 'whitespace-nowrap']));
+  });
+
+  it('wrap nowrap / truncate: classi, maxWidth come style, title col testo pieno', () => {
+    const w = mount(DataTable, {
+      props: {
+        columns: [
+          { key: 'nome', label: 'N', wrap: 'nowrap' },
+          { key: 'note', label: 'Note', wrap: 'truncate', maxWidth: '280px' },
+        ],
+        rows: rowsX, rowKey: rk,
+      },
+    });
+    const tds = w.findAll('tbody td');
+    expect(tds[0].classes()).toContain('whitespace-nowrap');
+    expect(tds[1].classes()).toContain('truncate');
+    expect(tds[1].attributes('style')).toContain('max-width: 280px');
+    expect(tds[1].attributes('title')).toBe('nota lunga');
+  });
+
+  it('cella truncate resa via slot: nessun title automatico', () => {
+    const w = mount(DataTable, {
+      props: { columns: [{ key: 'note', label: 'Note', wrap: 'truncate' }], rows: rowsX, rowKey: rk },
+      slots: { 'cell-note': '<template #cell-note="{ row }"><i>{{ row.note }}</i></template>' },
+    });
+    expect(w.find('tbody td').attributes('title')).toBeUndefined();
+  });
+
+  it('hideBelow mappa su classi responsive statiche su th e td', () => {
+    const w = mount(DataTable, { props: { columns: [{ key: 'nome', label: 'N', hideBelow: 'md' }], rows: rowsX, rowKey: rk } });
+    expect(w.find('th').classes()).toContain('max-md:hidden');
+    expect(w.find('tbody td').classes()).toContain('max-md:hidden');
+  });
+
+  it('density compact: py-2 al posto di py-3.5 nelle celle', () => {
+    const w = mount(DataTable, { props: { columns: [{ key: 'nome', label: 'N' }], rows: rowsX, rowKey: rk, density: 'compact' } });
+    expect(w.find('tbody td').classes()).toContain('py-2');
+    expect(w.find('tbody td').classes()).not.toContain('py-3.5');
+  });
+});
