@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue';
-import { sortRows, type DataTableColumn, type SortDir } from '../tableData';
+import { computed, ref, watch } from 'vue';
+import { sortRows, type DataTableColumn, type SortDir, paginate, pageCount, countLabel } from '../tableData';
 import Icon from './Icon.vue';
+import IconButton from './IconButton.vue';
 
 type Row = Record<string, unknown>;
 
@@ -11,9 +12,13 @@ const props = withDefaults(
     rows?: Row[];
     rowKey?: (row: Row) => string;
     density?: 'comfortable' | 'compact';
+    pageSize?: number;
+    showCount?: boolean;
   }>(),
-  { density: 'comfortable' },
+  { density: 'comfortable', showCount: false },
 );
+
+const page = defineModel<number>('page', { default: 1 });
 
 // --- ordinamento (client-side, si applica prima della paginazione) ---
 const sortKey = ref<string | null>(null);
@@ -34,6 +39,16 @@ const sorted = computed<Row[]>(() => {
   const accessor = col.sortValue ?? ((r: Row) => r[col.key] as string | number);
   return sortRows(base, accessor, sortDir.value);
 });
+
+// --- paginazione (client-side; v-model:page opzionale con fallback interno) ---
+const totalPages = computed(() => (props.pageSize ? pageCount(sorted.value.length, props.pageSize) : 1));
+const visible = computed<Row[]>(() => (props.pageSize ? paginate(sorted.value, page.value, props.pageSize) : sorted.value));
+watch(() => props.rows, () => { page.value = 1; });
+
+const footerVisible = computed(() => !!props.rows && sorted.value.length > 0 && (!!props.pageSize || props.showCount));
+const footerLabel = computed(() =>
+  countLabel(sorted.value.length, props.pageSize ? { page: page.value, pageSize: props.pageSize } : undefined),
+);
 
 const HIDE = { sm: 'max-sm:hidden', md: 'max-md:hidden', lg: 'max-lg:hidden' } as const;
 
@@ -96,7 +111,7 @@ function cellTitle(col: DataTableColumn, row: Row): string | undefined {
           </tr>
         </thead>
         <tbody v-if="rows">
-          <tr v-for="(row, i) in sorted" :key="key(row, i)" class="hover:bg-[var(--color-raised)]">
+          <tr v-for="(row, i) in visible" :key="key(row, i)" class="hover:bg-[var(--color-raised)]">
             <td
               v-for="(c, ci) in columns"
               :key="c.key"
@@ -110,6 +125,14 @@ function cellTitle(col: DataTableColumn, row: Row): string | undefined {
         </tbody>
         <tbody v-else><slot /></tbody>
       </table>
+    </div>
+    <div v-if="footerVisible" data-test="table-footer" class="flex items-center justify-between bg-[var(--color-raised)] px-[18px] py-2">
+      <span data-test="table-count" class="text-[12.5px] tabular-nums text-[var(--color-text-muted)]">{{ footerLabel }}</span>
+      <div v-if="pageSize && totalPages > 1" class="flex items-center gap-1.5">
+        <IconButton icon="chevron-left" label="Pagina precedente" size="sm" :disabled="page <= 1" data-test="page-prev" @click="page = page - 1" />
+        <span data-test="page-indicator" class="text-[12.5px] tabular-nums text-[var(--color-text-muted)]">{{ page }} / {{ totalPages }}</span>
+        <IconButton icon="chevron-right" label="Pagina successiva" size="sm" :disabled="page >= totalPages" data-test="page-next" @click="page = page + 1" />
+      </div>
     </div>
   </div>
 </template>

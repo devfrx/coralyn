@@ -148,3 +148,46 @@ describe('DataTable — ordinamento', () => {
     expect(w.findAll('th')[1].find('button').exists()).toBe(false);
   });
 });
+
+describe('DataTable — paginazione e footer', () => {
+  const cols1 = [{ key: 'n', label: 'N' }];
+  const rows30 = Array.from({ length: 30 }, (_, i) => ({ id: `r${i}`, n: `riga-${i}` }));
+  const rk = (r: Record<string, unknown>) => r.id as string;
+
+  it('pageSize: rende solo la finestra corrente, footer con range e pager', async () => {
+    const w = mount(DataTable, { props: { columns: cols1, rows: rows30, rowKey: rk, pageSize: 20 } });
+    expect(w.findAll('tbody tr')).toHaveLength(20);
+    expect(w.get('[data-test="table-count"]').text()).toBe('1–20 di 30');
+    expect(w.get('[data-test="page-prev"]').attributes('disabled')).toBeDefined();
+    await w.get('[data-test="page-next"]').trigger('click');
+    expect(w.findAll('tbody tr')).toHaveLength(10);
+    expect(w.get('[data-test="table-count"]').text()).toBe('21–30 di 30');
+    expect(w.get('[data-test="page-next"]').attributes('disabled')).toBeDefined();
+    expect(w.get('[data-test="page-indicator"]').text()).toBe('2 / 2');
+  });
+
+  it('v-model:page controllato dall\'esterno', async () => {
+    const w = mount(DataTable, { props: { columns: cols1, rows: rows30, rowKey: rk, pageSize: 20, page: 2 } });
+    expect(w.get('[data-test="table-count"]').text()).toBe('21–30 di 30');
+    await w.get('[data-test="page-prev"]').trigger('click');
+    expect(w.emitted('update:page')?.at(-1)).toEqual([1]);
+  });
+
+  it('cambio rows → reset a pagina 1', async () => {
+    const w = mount(DataTable, { props: { columns: cols1, rows: rows30, rowKey: rk, pageSize: 20 } });
+    await w.get('[data-test="page-next"]').trigger('click');
+    await w.setProps({ rows: rows30.slice(0, 5) });
+    expect(w.get('[data-test="table-count"]').text()).toBe('1–5 di 5');
+  });
+
+  it('showCount senza pageSize: solo conteggio, niente pager', () => {
+    const w = mount(DataTable, { props: { columns: cols1, rows: rows30.slice(0, 3), rowKey: rk, showCount: true } });
+    expect(w.get('[data-test="table-count"]').text()).toBe('3 righe');
+    expect(w.find('[data-test="page-next"]').exists()).toBe(false);
+  });
+
+  it('senza pageSize né showCount (e in API a slot): nessun footer', () => {
+    expect(mount(DataTable, { props: { columns: cols1, rows: rows30, rowKey: rk } }).find('[data-test="table-footer"]').exists()).toBe(false);
+    expect(mount(DataTable, { props: { columns: cols1, showCount: true } }).find('[data-test="table-footer"]').exists()).toBe(false);
+  });
+});
