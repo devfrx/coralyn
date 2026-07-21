@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue';
 import { useRouter } from 'vue-router';
-import { Card, Avatar, Button, ActionBar, Icon, SectionCard, ConfirmDialog, Callout } from '@coralyn/ui-kit';
+import { Card, Avatar, Button, ActionBar, Icon, SectionCard, ConfirmDialog, Callout, Skeleton, SkeletonText, useDelayedLoading } from '@coralyn/ui-kit';
 import { Role } from '@coralyn/contracts';
 import { useSessionStore } from '@/stores/session';
 import { pushToast } from '@/lib/toasts';
@@ -24,6 +24,7 @@ const props = defineProps<{ id: string }>();
 const router = useRouter();
 const session = useSessionStore();
 const { data: customer, isLoading, isError } = useCustomer(props.id);
+const skeletonVisible = useDelayedLoading(() => isLoading.value);
 const { data: bookings } = useCustomerBookings(props.id);
 const { data: ceded } = useCededSubscriptions(props.id);
 const deleteCustomer = useDeleteCustomer(props.id);
@@ -118,7 +119,12 @@ function onConfirmDelete() {
 </script>
 <template>
   <section class="px-[26px] pb-[30px] pt-[18px]">
-    <p v-if="isLoading" class="text-[var(--color-text-muted)]">Caricamento…</p>
+    <div v-if="skeletonVisible" aria-busy="true" class="flex max-w-[720px] flex-col gap-4">
+      <Skeleton width="90px" />
+      <div class="rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-[var(--color-surface)] p-5 [box-shadow:var(--shadow-card)]">
+        <SkeletonText :lines="4" />
+      </div>
+    </div>
     <p v-else-if="isError" class="text-[var(--color-danger)]">Errore nel caricamento del cliente.</p>
     <template v-else-if="customer">
       <RouterLink :to="{ name: 'customers' }" class="mb-3 inline-flex items-center gap-1.5 text-[13px] font-semibold text-[var(--color-accent)]"><Icon name="chevron-left" :size="17" />Clienti</RouterLink>

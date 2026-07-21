@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
 import { useRouter } from 'vue-router';
-import { Card, StatTile, Badge, Button, Avatar, Icon, Modal, Field, Input, Select, ConfirmDialog, ActionBar } from '@coralyn/ui-kit';
+import { Card, StatTile, Badge, Button, Avatar, Icon, Modal, Field, Input, Select, ConfirmDialog, ActionBar, SkeletonText, useDelayedLoading } from '@coralyn/ui-kit';
 import { Role } from '@coralyn/contracts';
 import { useSessionStore } from '@/stores/session';
 import { pushToast } from '@/lib/toasts';
@@ -10,6 +10,7 @@ import { useEstablishmentOverview, useRenameEstablishment, useCreateStaffUser, u
 const session = useSessionStore();
 const router = useRouter();
 const { data, isPending, isError } = useEstablishmentOverview();
+const skeletonVisible = useDelayedLoading(() => isPending.value);
 
 function signOut() {
   session.logout();
@@ -132,7 +133,8 @@ function onConfirmReset() {
       <Card>
         <div class="p-5">
           <span class="text-sm font-bold text-[var(--color-text)]">Informazioni stabilimento</span>
-          <div class="mt-4 flex flex-col gap-3.5">
+          <SkeletonText v-if="skeletonVisible" :lines="3" class="mt-4" aria-busy="true" />
+          <div v-else class="mt-4 flex flex-col gap-3.5">
             <div><div class="mb-1 text-[11px] font-semibold uppercase tracking-caps text-[var(--color-text-muted)]">Nome</div><div class="text-sm font-medium text-[var(--color-text)]">{{ data?.establishment.name ?? '…' }}</div></div>
             <div><div class="mb-1 text-[11px] font-semibold uppercase tracking-caps text-[var(--color-text-muted)]">Stagione attiva</div><div class="text-sm font-medium tabular-nums text-[var(--color-text)]">{{ seasonLabel }}</div></div>
             <div><div class="mb-1 text-[11px] font-semibold uppercase tracking-caps text-[var(--color-text-muted)]">Fasce operative</div><div class="text-sm font-medium text-[var(--color-text)]">{{ slotsLabel }}</div></div>
@@ -147,7 +149,7 @@ function onConfirmReset() {
             <Badge v-else tone="soon">Configura · in arrivo</Badge>
           </div>
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-            <StatTile v-for="s in structureTiles" :key="s.label" :value="s.value" :label="s.label" />
+            <StatTile v-for="s in structureTiles" :key="s.label" :value="s.value" :label="s.label" :loading="isPending" />
           </div>
         </div>
       </Card>
@@ -162,7 +164,8 @@ function onConfirmReset() {
         </div>
         <p class="mb-3 text-xs leading-relaxed text-[var(--color-text-muted)]">Il team dello stabilimento ha ruoli <strong class="text-[var(--color-text-2nd)]">Amministratore</strong> e <strong class="text-[var(--color-text-2nd)]">Staff</strong>. Il ruolo <strong class="text-[var(--color-text-2nd)]">Superuser</strong> è di piattaforma (console cross-stabilimento) e non appartiene al team del lido.</p>
         <p v-if="!isPending && team.length === 0" class="py-3 text-sm text-[var(--color-text-muted)]">Nessun utente nel team.</p>
-        <div class="flex flex-col">
+        <SkeletonText v-if="skeletonVisible" :lines="3" aria-busy="true" />
+        <div v-else class="flex flex-col">
           <div v-for="u in team" :key="u.id" data-testid="team-row" class="flex items-center gap-3 border-b border-[var(--color-border-row)] py-3 last:border-0" :class="u.disabled && 'opacity-55'">
             <Avatar :initials="u.ini" size="md" :tone="u.tone === 'brand' ? 'brand' : 'accent'" />
             <div class="flex flex-1 items-center gap-2">
@@ -172,8 +175,8 @@ function onConfirmReset() {
             </div>
             <Badge :tone="u.tone">{{ u.roleLabel }}</Badge>
             <ActionBar v-if="isAdmin && !u.you" gap="sm">
-              <Button data-testid="toggle-user-disabled" variant="secondary" size="sm" :disabled="togglingDisabled" @click="toggleDisabled(u)">{{ u.disabled ? 'Riabilita' : 'Disabilita' }}</Button>
-              <Button v-if="!u.disabled" data-testid="reset-user-password" variant="secondary" size="sm" :disabled="resetStaff.isPending.value" @click="askReset(u)">Reset password</Button>
+              <Button data-testid="toggle-user-disabled" variant="secondary" size="sm" :loading="togglingDisabled" @click="toggleDisabled(u)">{{ u.disabled ? 'Riabilita' : 'Disabilita' }}</Button>
+              <Button v-if="!u.disabled" data-testid="reset-user-password" variant="secondary" size="sm" :loading="resetStaff.isPending.value" @click="askReset(u)">Reset password</Button>
             </ActionBar>
           </div>
         </div>
