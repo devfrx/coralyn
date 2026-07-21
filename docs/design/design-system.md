@@ -355,8 +355,10 @@ interattivi: **default / hover / active / focus-visible / disabled**; focus = `-
   mail, refresh-cw, pencil, log-out, building-2, layers, filter, chevron-down, ecc.);
   nessuno sprite custom. `currentColor`, `stroke-width` 1.75, dimensioni 14/16/20/24.
   **Niente icone fuori dal wrapper.**
-- **DataTable** — componente `ui-kit` skinnato sui token: header `10.5px` maiuscolo
-  `--tracking-caps` `--color-text-muted`, bg header `--color-raised`, righe `13px`, divisori
+- **DataTable** — componente `ui-kit` skinnato sui token: header `10.5px` maiuscolo,
+  tracking `0.07em` (`tracking-[.07em]` hardcoded — valore proprio, non consuma
+  `--tracking-caps` che vale `0.05em`; drift preesistente, non toccato in questo task)
+  `--color-text-muted`, bg header `--color-raised`, righe `13px`, divisori
   `--color-border-row`, hover `--color-raised` su ogni riga. Due API, retro-compatibili
   ([ADR-0033](../architecture/decisions/0033-astrazione-componenti-frontend.md)): **a slot** (il
   chiamante scrive `<tr>/<td>` a mano nel body — usata dove servono celle molto particolari o
@@ -382,7 +384,7 @@ interattivi: **default / hover / active / focus-visible / disabled**; focus = `-
     stesso componente pronto per un domani paginato lato server senza cambi d'API. Reset a
     pagina 1 al cambio delle righe.
   - **Footer**: conteggio/pager su sfondo `--color-raised`, testo `12.5px` muted, cifre
-    `tabular-nums`; visibile con `pageSize` attivo o `showCount: true`.
+    `tabular-nums`; visibile con almeno una riga e `pageSize` attivo o `showCount: true`.
   - **Densità**: `density="compact"` (`py-2` invece di `py-3.5`, font invariato) per contesti
     densi (es. tabella pagamenti nel dettaglio cliente).
   - **`emptyMessage`**: con 0 righe rende `EmptyState` dentro la card stessa (solo API
