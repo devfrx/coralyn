@@ -1,8 +1,9 @@
 import { describe, it, expect, beforeEach } from 'vitest';
+import { http, HttpResponse } from 'msw';
 import { flushPromises } from '@vue/test-utils';
 import EstablishmentsListView from './EstablishmentsListView.vue';
 import { mountApp } from '@/test/utils';
-import { resetPlatformSeed } from '@/mocks/server';
+import { server, resetPlatformSeed } from '@/mocks/server';
 
 const settle = async () => { await flushPromises(); await new Promise((r) => setTimeout(r, 0)); await flushPromises(); };
 
@@ -16,6 +17,14 @@ describe('EstablishmentsListView', () => {
     expect(w.findAll('tbody tr')).toHaveLength(2);
     expect(w.html()).toContain('Lido Alpha');
     expect(w.html()).toContain('Sospeso');
+    w.unmount();
+  });
+
+  it('senza lidi: messaggio vuoto in-card dentro la tabella', async () => {
+    server.use(http.get('/api/platform/establishments', () => HttpResponse.json([])));
+    const w = mountApp(EstablishmentsListView, { attachTo: document.body });
+    await settle();
+    expect(w.find('tbody').text()).toContain('Nessun lido registrato');
     w.unmount();
   });
 

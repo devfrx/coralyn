@@ -120,7 +120,7 @@ function stateBadge(s: RenewalWindowState): { tone: 'success' | 'warning' | 'neu
       <span class="inline-flex items-center gap-1.5"><Badge tone="warning">Scaduta</Badge> finestra chiusa</span>
     </div>
 
-    <DataTable v-if="campaign && windowRows.length" :columns="cols" :rows="(windowRows as unknown as Record<string, unknown>[])" :row-key="(r) => (r as unknown as RenewalWindowItemDTO).sourceBookingId">
+    <DataTable v-if="campaign" :columns="cols" :rows="(windowRows as unknown as Record<string, unknown>[])" :row-key="(r) => (r as unknown as RenewalWindowItemDTO).sourceBookingId" empty-message="Nessuna finestra di prelazione per questa campagna.">
       <template #cell-cliente="{ row }">
         <div class="flex items-center gap-2.5">
           <Avatar :initials="initials(customerName((row as unknown as RenewalWindowItemDTO).customerId))" size="sm" />
@@ -136,12 +136,11 @@ function stateBadge(s: RenewalWindowState): { tone: 'success' | 'warning' | 'neu
         <Button size="sm" :disabled="(row as unknown as RenewalWindowItemDTO).state === 'exercised' || !destinationSeasonId" @click="doRenew((row as unknown as RenewalWindowItemDTO).sourceBookingId)">Rinnova</Button>
       </template>
     </DataTable>
-    <EmptyState v-else-if="campaign" message="Nessuna finestra di prelazione per questa campagna." />
 
     <template v-else>
       <EmptyState v-if="!destinationSeasonId" message="Scegli una stagione di destinazione per gestire i rinnovi." />
       <template v-else>
-        <DataTable v-if="rows.length" :columns="cols" :rows="(rows as unknown as Record<string, unknown>[])" :row-key="(r) => (r as unknown as SubscriptionListItemDTO).id">
+        <DataTable :columns="cols" :rows="(rows as unknown as Record<string, unknown>[])" :row-key="(r) => (r as unknown as SubscriptionListItemDTO).id" empty-message="Nessun abbonato nella stagione di origine.">
           <template #cell-cliente="{ row }">
             <div class="flex items-center gap-2.5">
               <Avatar :initials="initials(customerName((row as unknown as SubscriptionListItemDTO).customerId))" size="sm" />
@@ -157,7 +156,6 @@ function stateBadge(s: RenewalWindowState): { tone: 'success' | 'warning' | 'neu
             <Button size="sm" :disabled="(row as unknown as SubscriptionListItemDTO).renewed" @click="doRenew((row as unknown as SubscriptionListItemDTO).id)">Rinnova</Button>
           </template>
         </DataTable>
-        <EmptyState v-else message="Nessun abbonato nella stagione di origine." />
       </template>
     </template>
 

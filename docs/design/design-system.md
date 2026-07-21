@@ -400,7 +400,10 @@ interattivi: **default / hover / active / focus-visible / disabled**; focus = `-
   Pagamenti cliente) e `web-platform` (Lidi). Nessuna tabella scritta a mano resta nel monorepo.
 - **EmptyState** — blocco vuoto ("Nessun/a…"): `--radius-lg`, bordo tratteggiato
   `--color-border`, testo `--color-text-2nd`. Prop `message`; slot `#default` per contenuto
-  ricco (es. icona). Usato da liste (Prenotazioni, Rinnovi).
+  ricco (es. icona). Standalone solo dove la condizione **non** è «0 righe di una tabella»
+  (guida alla selezione in Rinnovi/Catalogo noleggi, entità di dominio assenti in
+  Listino/Catalogo, errore nel dettaglio Lido, abbonamenti in web-customer); per le tabelle
+  con 0 righe il pattern è `emptyMessage` del DataTable (EmptyState in-card, vedi sopra).
 - **Select** — `<select>` stilizzato gemello di `Input.vue` (stesso raggio/bordo/focus),
   usabile dentro `Field`. `v-model` + `props.options` **o** slot `#default` per `<option>`
   custom (gruppi, opzioni disabilitate). Passthrough attributi nativi.

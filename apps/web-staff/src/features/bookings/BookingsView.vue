@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue';
 import { useRouter } from 'vue-router';
-import { SegmentedControl, Button, Badge, Avatar, DataTable, Icon, PageToolbar, EmptyState, formatEuro, initials, dateRange } from '@coralyn/ui-kit';
+import { SegmentedControl, Button, Badge, Avatar, DataTable, Icon, PageToolbar, formatEuro, initials, dateRange } from '@coralyn/ui-kit';
 import type { DataTableColumn } from '@coralyn/ui-kit';
 import type { BookingDTO, PaymentStatus } from '@coralyn/contracts';
 import { storeToRefs } from 'pinia';
@@ -57,7 +57,7 @@ function openSettle(b: BookingDTO): void {
       <template #right><Button @click="router.push('/map')"><Icon name="plus" :size="16" />Nuova prenotazione</Button></template>
     </PageToolbar>
 
-    <DataTable v-if="rows.length" :columns="cols" :rows="(rows as unknown as Record<string, unknown>[])" :row-key="(r) => (r as unknown as BookingDTO).id">
+    <DataTable :columns="cols" :rows="(rows as unknown as Record<string, unknown>[])" :row-key="(r) => (r as unknown as BookingDTO).id" empty-message="Nessuna prenotazione per questa data.">
       <template #cell-cliente="{ row }">
         <div class="flex items-center gap-2.5">
           <Avatar :initials="initials(customerName((row as unknown as BookingDTO).customerId))" size="sm" />
@@ -77,7 +77,6 @@ function openSettle(b: BookingDTO): void {
         >{{ formatEuro((row as unknown as BookingDTO).amountCollected) }} / {{ formatEuro((row as unknown as BookingDTO).totalPrice) }}</button>
       </template>
     </DataTable>
-    <EmptyState v-else message="Nessuna prenotazione per questa data." />
 
     <SettlePaymentModal v-model="modalOpen" :booking="selected" />
   </section>

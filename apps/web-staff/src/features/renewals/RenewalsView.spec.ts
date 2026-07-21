@@ -138,6 +138,27 @@ describe('RenewalsView', () => {
     w.unmount();
   });
 
+  it('campagna senza finestre: messaggio vuoto in-card dentro la tabella', async () => {
+    const emptyCampaign: RenewalCampaignDetailDTO = {
+      id: 'camp-empty',
+      originSeasonId: 'se-1',
+      destinationSeasonId: 'se-2',
+      deadline: '2027-06-15',
+      windows: [],
+    };
+    server.use(
+      http.get('/api/renewal-campaigns', () => HttpResponse.json(emptyCampaign)),
+    );
+
+    const w = mountApp(RenewalsView);
+    await flushPromises();
+    await tick();
+    await flushPromises();
+    await setDestination(w, 'se-2');
+
+    expect(w.find('tbody').text()).toContain('Nessuna finestra di prelazione');
+  });
+
   it('finestre "exercised"/"expired" mostrano i badge corretti e "Rinnova" è disabilitato solo su esercitata', async () => {
     const multiStateCampaign: RenewalCampaignDetailDTO = {
       id: 'camp-multi',

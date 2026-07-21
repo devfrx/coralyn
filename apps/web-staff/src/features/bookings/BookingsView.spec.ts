@@ -12,7 +12,8 @@ describe('BookingsView', () => {
     const w = mountApp(BookingsView);
     await flushPromises();
     await tick();
-    expect(w.text()).toContain('Nessuna prenotazione');
+    // Il messaggio vive dentro la tabella (emptyMessage in-card), non come EmptyState esterno.
+    expect(w.find('tbody').text()).toContain('Nessuna prenotazione');
   });
 
   it('mostra le prenotazioni del giorno con stato pagamento', async () => {

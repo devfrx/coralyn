@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
-import { Button, ActionBar, Badge, ConfirmDialog, DataTable, EmptyState, PageToolbar, Icon, formatEuro } from '@coralyn/ui-kit';
+import { Button, ActionBar, Badge, ConfirmDialog, DataTable, PageToolbar, Icon, formatEuro } from '@coralyn/ui-kit';
 import type { DataTableColumn } from '@coralyn/ui-kit';
 import type { PlatformEstablishmentDTO } from '@coralyn/contracts';
 import { useEstablishmentsList, useSuspendEstablishment, useReactivateEstablishment } from './usePlatformEstablishments';
@@ -82,13 +82,12 @@ const cols: DataTableColumn[] = [
 
     <p v-if="isLoading" class="py-10 text-center text-sm text-[var(--color-text-muted)]">Caricamento…</p>
 
-    <EmptyState v-else-if="establishments.length === 0" message="Nessun lido registrato." />
-
     <DataTable
       v-else
       :columns="cols"
       :rows="(establishments as unknown as Record<string, unknown>[])"
       :row-key="(r) => (r as unknown as PlatformEstablishmentDTO).id"
+      empty-message="Nessun lido registrato."
     >
       <template #cell-name="{ row }">
         <span data-testid="est-name" class="font-semibold text-[var(--color-text)]">{{ (row as unknown as PlatformEstablishmentDTO).name }}</span>
