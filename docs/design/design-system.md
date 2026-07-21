@@ -396,7 +396,8 @@ interattivi: **default / hover / active / focus-visible / disabled**; focus = `-
     (l'hover resta su ogni riga a prescindere); `rowClass` aggiunge una classe per riga (es.
     tariffe archiviate `opacity-60`).
   - Spec di riferimento: [spec DataTable QoL](../superpowers/specs/2026-07-21-datatable-qol-design.md).
-  Per Clienti/Prenotazioni/Noleggi/Listino/Listino noleggi/Rinnovi.
+  Consumatori: `web-staff` (Clienti, Prenotazioni, Noleggi, Listino, Catalogo noleggi, Rinnovi,
+  Pagamenti cliente) e `web-platform` (Lidi). Nessuna tabella scritta a mano resta nel monorepo.
 - **EmptyState** — blocco vuoto ("Nessun/a…"): `--radius-lg`, bordo tratteggiato
   `--color-border`, testo `--color-text-2nd`. Prop `message`; slot `#default` per contenuto
   ricco (es. icona). Usato da liste (Prenotazioni, Rinnovi).
