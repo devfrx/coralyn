@@ -62,6 +62,9 @@
   --color-on-sidebar: var(--color-on-teal);
   --color-on-sidebar-strong: var(--color-on-teal-strong);
   --color-on-sidebar-muted: var(--color-on-teal-muted);
+  /* Scrim degli overlay (teal-900): leggero per i drawer laterali, forte per i dialog bloccanti centrali */
+  --color-scrim: color-mix(in srgb, var(--color-teal-900) 30%, transparent);
+  --color-scrim-strong: color-mix(in srgb, var(--color-teal-900) 46%, transparent);
 
   --font-sans: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
   --radius-sm: 9px; --radius-md: 11px; --radius-lg: 16px; --radius-xl: 18px; --radius-full: 999px;

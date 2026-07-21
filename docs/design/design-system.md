@@ -162,6 +162,10 @@ Ruoli consumati dai componenti. Ogni colore "di sfondo" ha il suo `-ink` (testo 
 --color-on-sidebar-strong: var(--color-on-teal-strong); /* #F6EEE1 */
 --color-on-sidebar-muted:  var(--color-on-teal-muted);  /* #6E9197 */
 
+/* Scrim overlay (teal-900) — leggero per i drawer laterali, forte per i dialog bloccanti */
+--color-scrim:        color-mix(in srgb, var(--color-teal-900) 30%, transparent); /* NavDrawer/Drawer */
+--color-scrim-strong: color-mix(in srgb, var(--color-teal-900) 46%, transparent); /* Modal/ConfirmDialog */
+
 /* Feedback */
 --color-success: #3F9D5B; --color-success-bg: #E7F1E9; --color-success-ink: #3E7A53;
 --color-warning: #E8A93C; --color-warning-bg: #FBF1DA; --color-warning-ink: #9A7322;

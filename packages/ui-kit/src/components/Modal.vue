@@ -7,7 +7,7 @@ const open = defineModel<boolean>('open', { required: true });
 <template>
   <DialogRoot v-model:open="open">
     <DialogPortal>
-      <DialogOverlay class="fixed inset-0 z-[80] bg-[rgba(11,53,67,.46)] data-[state=open]:[animation:overlay-in_var(--motion-base)_var(--ease-standard)] data-[state=closed]:[animation:overlay-out_var(--motion-fast)_var(--ease-standard)]" />
+      <DialogOverlay class="fixed inset-0 z-[80] bg-[var(--color-scrim-strong)] data-[state=open]:[animation:overlay-in_var(--motion-base)_var(--ease-standard)] data-[state=closed]:[animation:overlay-out_var(--motion-fast)_var(--ease-standard)]" />
       <DialogContent class="fixed left-1/2 top-1/2 z-[80] flex max-h-[90vh] w-full max-w-[548px] -translate-x-1/2 -translate-y-1/2 flex-col rounded-[var(--radius-xl)] bg-[var(--color-surface)] [box-shadow:var(--shadow-modal)] focus:outline-none data-[state=open]:[animation:dialog-in_var(--motion-base)_var(--ease-emphasized)] data-[state=closed]:[animation:dialog-out_var(--motion-fast)_var(--ease-standard)]">
         <div class="flex shrink-0 items-start justify-between border-b border-[var(--color-border-row)] p-5">
           <div>
