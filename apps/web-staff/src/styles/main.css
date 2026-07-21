@@ -4,5 +4,6 @@
 @import "@fontsource/inter/latin-700.css";
 @import "tailwindcss";
 @import "@coralyn/ui-kit/styles/theme.css";
+@import './map-scene.css';
 /* Tailwind v4 deve scansionare anche i componenti del ui-kit per le classi usate */
 @source "../../../../packages/ui-kit/src";

@@ -247,53 +247,58 @@ const freeSlotOptions = computed(() =>
     <p v-if="isLoading" class="px-[26px] py-10 text-[var(--color-text-muted)]">Caricamento…</p>
 
     <div v-else class="flex flex-1 flex-col px-[26px] pb-[26px] pt-4">
-      <div class="relative min-w-0 flex-1 overflow-auto rounded-[var(--radius-xl)] border border-[var(--color-warm-border-stage)] p-5 [box-shadow:var(--shadow-card)]"
-        style="background:linear-gradient(168deg,var(--color-warm-075) 0%,var(--color-warm-150) 100%);">
-        <div class="mb-3 flex items-baseline justify-between">
-          <span class="text-[13.5px] font-semibold text-[var(--color-stage-1)]">Spiaggia · Settore {{ currentSector?.name }}</span>
-          <span class="text-[10px] font-semibold uppercase tracking-[.09em] text-[var(--color-stage-2)]">{{ spotCount }} postazioni</span>
+      <div class="map-stage relative min-w-0 flex-1 overflow-auto [box-shadow:var(--shadow-card)]">
+        <div class="map-sea">
+          <div class="map-sea-veil"></div><div class="map-sea-veil"></div><div class="map-sea-veil"></div>
+          <span class="absolute right-3.5 top-2.5 text-[9px] font-semibold uppercase tracking-[.3em] text-[var(--color-sea-ink)] opacity-75">Mare</span>
         </div>
-        <div class="relative mb-[18px] flex h-9 items-center justify-center gap-2.5 overflow-hidden rounded-[13px]"
-          style="background:linear-gradient(180deg,var(--color-sea-1) 0%,var(--color-sea-2) 55%,var(--color-sea-3) 100%);box-shadow:inset 0 -8px 16px -5px rgba(47,110,132,.24);">
-          <Icon name="waves" :size="16" class="text-[var(--color-sea-ink)] opacity-80" />
-          <span class="text-[10px] font-semibold uppercase tracking-[.26em] text-[var(--color-sea-ink)]">Mare</span>
-        </div>
-        <div v-for="r in currentSector?.rows ?? []" :key="r.id" class="my-3 flex items-center gap-2.5">
-          <span class="w-[46px] flex-none text-right text-[10px] font-semibold text-[var(--color-stage-2)]">{{ r.label }}</span>
-          <div class="flex flex-wrap gap-2.5">
-            <UmbrellaCell v-for="u in r.umbrellas" :key="u.id" :label="u.label"
-              :ariaLabel="ariaLabel(u, currentSector!.name, r.label)" :slot-states="slotStatesFor(u)"
-              :type-icon="typeIcon(u)" :selected="sel?.u.id === u.id"
-              @select="open(u, currentSector!.name, r.label)" />
+        <div class="map-shore"></div>
+        <div class="relative z-[1] p-5">
+          <div class="mb-3 flex items-baseline justify-between">
+            <span class="text-[13.5px] font-semibold text-[var(--color-stage-1)]">Spiaggia · Settore {{ currentSector?.name }}</span>
+            <span class="text-[10px] font-semibold uppercase tracking-[.09em] text-[var(--color-stage-2)]">{{ spotCount }} postazioni</span>
           </div>
-        </div>
-        <div v-if="special" class="mt-[18px] border-t border-dashed border-[var(--color-warm-border-stage)] pt-3.5">
-          <div class="mb-2.5 text-[10px] font-semibold uppercase tracking-[.09em] text-[var(--color-stage-1)]">Settore Speciali · Palme</div>
-          <div v-for="r in special.rows" :key="r.id" class="flex flex-wrap gap-3.5">
-            <UmbrellaCell v-for="u in r.umbrellas" :key="u.id" :label="u.label"
-              :ariaLabel="ariaLabel(u, 'Speciali', r.label)" :slot-states="slotStatesFor(u)"
-              :type-icon="typeIcon(u)" :selected="sel?.u.id === u.id"
-              @select="open(u, 'Speciali', r.label)" />
-          </div>
-        </div>
-        <div class="mt-[22px] flex flex-wrap gap-7 border-t border-[var(--color-warm-border-stage)] pt-4">
-          <div>
-            <div class="mb-2 text-[10px] font-semibold uppercase tracking-[.09em] text-[var(--color-stage-3)]">Stato</div>
-            <div class="flex flex-wrap gap-3.5 text-[11.5px] text-[var(--color-text-2nd)]">
-              <span class="inline-flex items-center gap-1.5"><i class="size-[13px] rounded-full" style="background:var(--color-state-free)"></i>Libero</span>
-              <span class="inline-flex items-center gap-1.5"><i class="size-[13px] rounded-full" style="background:var(--color-state-season)"></i>Abbonato</span>
-              <span class="inline-flex items-center gap-1.5"><i class="size-[13px] rounded-full" style="background:var(--color-state-daily)"></i>Giornaliero</span>
-              <span class="inline-flex items-center gap-1.5"><i class="size-[13px] rounded-full" style="background:var(--color-state-booked)"></i>Prenotato</span>
-              <span class="inline-flex items-center gap-1.5"><i class="size-[13px] rounded-full" style="background:var(--color-state-covered)"></i>Non disponibile</span>
-              <span class="inline-flex items-center gap-1.5"><i class="size-[13px] rounded-full" style="background:conic-gradient(from 0deg,var(--color-state-booked) 0 33.333%,var(--color-state-daily) 33.333% 66.666%,var(--color-state-free) 66.666% 100%)"></i>Stato misto</span>
+          <div v-for="(r, i) in currentSector?.rows ?? []" :key="r.id" class="map-row-in my-3 flex items-center gap-2.5"
+            :style="{ animationDelay: `${i * 70}ms` }">
+            <span class="w-[52px] flex-none text-right">
+              <b class="block text-[10px] font-bold tracking-[.06em] text-[var(--color-stage-1)]">{{ r.label.toUpperCase() }}</b>
+              <span v-if="i === 0" class="text-[9px] text-[var(--color-stage-2)]">prima linea</span>
+            </span>
+            <div class="flex flex-wrap gap-2.5">
+              <UmbrellaCell v-for="u in r.umbrellas" :key="u.id" :label="u.label"
+                :ariaLabel="ariaLabel(u, currentSector!.name, r.label)" :slot-states="slotStatesFor(u)"
+                :type-icon="typeIcon(u)" :selected="sel?.u.id === u.id"
+                @select="open(u, currentSector!.name, r.label)" />
             </div>
           </div>
-          <div>
-            <div class="mb-2 text-[10px] font-semibold uppercase tracking-[.09em] text-[var(--color-stage-3)]">Tipologia</div>
-            <div class="flex flex-wrap gap-3.5 text-[11.5px] text-[var(--color-text-2nd)]">
-              <span class="inline-flex items-center gap-1.5"><i class="size-[13px] rounded-full" style="background:var(--color-state-normal-mark)"></i>Normale</span>
-              <span class="inline-flex items-center gap-1.5"><Icon name="leaf" :size="14" class="text-[var(--color-accent)]" />Mini-palma</span>
-              <span class="inline-flex items-center gap-1.5"><Icon name="palmtree" :size="14" class="text-[var(--color-accent)]" />Palma</span>
+          <div v-if="special" class="mt-[18px] border-t border-dashed border-[var(--color-warm-border-stage)] pt-3.5">
+            <div class="mb-2.5 text-[10px] font-semibold uppercase tracking-[.09em] text-[var(--color-stage-1)]">Settore Speciali · Palme</div>
+            <div v-for="r in special.rows" :key="r.id" class="flex flex-wrap gap-3.5">
+              <UmbrellaCell v-for="u in r.umbrellas" :key="u.id" :label="u.label"
+                :ariaLabel="ariaLabel(u, 'Speciali', r.label)" :slot-states="slotStatesFor(u)"
+                :type-icon="typeIcon(u)" :selected="sel?.u.id === u.id"
+                @select="open(u, 'Speciali', r.label)" />
+            </div>
+          </div>
+          <div class="mt-[22px] flex flex-wrap gap-7 border-t border-[var(--color-warm-border-stage)] pt-4">
+            <div>
+              <div class="mb-2 text-[10px] font-semibold uppercase tracking-[.09em] text-[var(--color-stage-3)]">Stato</div>
+              <div class="flex flex-wrap gap-3.5 text-[11.5px] text-[var(--color-text-2nd)]">
+                <span class="inline-flex items-center gap-1.5"><i class="size-[13px] rounded-full" style="background:var(--color-state-free)"></i>Libero</span>
+                <span class="inline-flex items-center gap-1.5"><i class="size-[13px] rounded-full" style="background:var(--color-state-season)"></i>Abbonato</span>
+                <span class="inline-flex items-center gap-1.5"><i class="size-[13px] rounded-full" style="background:var(--color-state-daily)"></i>Giornaliero</span>
+                <span class="inline-flex items-center gap-1.5"><i class="size-[13px] rounded-full" style="background:var(--color-state-booked)"></i>Prenotato</span>
+                <span class="inline-flex items-center gap-1.5"><i class="size-[13px] rounded-full" style="background:var(--color-state-covered)"></i>Non disponibile</span>
+                <span class="inline-flex items-center gap-1.5"><i class="size-[13px] rounded-full" style="background:conic-gradient(from 0deg,var(--color-state-booked) 0 33.333%,var(--color-state-daily) 33.333% 66.666%,var(--color-state-free) 66.666% 100%)"></i>Stato misto</span>
+              </div>
+            </div>
+            <div>
+              <div class="mb-2 text-[10px] font-semibold uppercase tracking-[.09em] text-[var(--color-stage-3)]">Tipologia</div>
+              <div class="flex flex-wrap gap-3.5 text-[11.5px] text-[var(--color-text-2nd)]">
+                <span class="inline-flex items-center gap-1.5"><i class="size-[13px] rounded-full" style="background:var(--color-state-normal-mark)"></i>Normale</span>
+                <span class="inline-flex items-center gap-1.5"><Icon name="leaf" :size="14" class="text-[var(--color-accent)]" />Mini-palma</span>
+                <span class="inline-flex items-center gap-1.5"><Icon name="palmtree" :size="14" class="text-[var(--color-accent)]" />Palma</span>
+              </div>
             </div>
           </div>
         </div>

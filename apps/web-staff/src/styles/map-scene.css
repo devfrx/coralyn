@@ -1,0 +1,43 @@
+/* Scena «Riva» della Mappa (spec 2026-07-21-map-redesign-riva §3).
+   Feature-scoped: solo MapView la usa. Token Coralyn, nessun hex nuovo qui
+   (unica eccezione: la sabbia bagnata del bagnasciuga, tonalità di transizione). */
+
+.map-stage {
+  position: relative;
+  border-radius: var(--radius-xl);
+  border: 1px solid var(--color-warm-border-stage);
+  overflow: hidden;
+  background: linear-gradient(172deg, var(--color-warm-075) 0%, var(--color-warm-150) 100%);
+}
+/* grana di sabbia: feTurbulence inline, impercettibile */
+.map-stage::after {
+  content: "";
+  position: absolute; inset: 0; pointer-events: none;
+  opacity: .05; mix-blend-mode: multiply;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* mare a orizzonte: gradiente profondo→chiaro + 3 velature in drift lento */
+.map-sea {
+  position: relative; height: 64px; overflow: hidden;
+  background: linear-gradient(180deg, var(--color-sea-deep) 0%, var(--color-sea-3) 34%, var(--color-sea-2) 66%, var(--color-sea-1) 100%);
+}
+.map-sea-veil {
+  position: absolute; left: -50%; width: 200%; height: 200%;
+  border-radius: 46%; background: rgba(255, 255, 255, .16);
+}
+.map-sea-veil:nth-child(1) { top: 52%; animation: map-sea-drift 26s linear infinite; }
+.map-sea-veil:nth-child(2) { top: 66%; background: rgba(255, 255, 255, .22); animation: map-sea-drift 19s linear infinite reverse; }
+.map-sea-veil:nth-child(3) { top: 80%; background: color-mix(in srgb, var(--color-sea-1) 50%, transparent); animation: map-sea-drift 33s linear infinite; }
+@keyframes map-sea-drift { from { transform: translateX(-3.5%); } to { transform: translateX(3.5%); } }
+
+/* bagnasciuga: il mare bagna la sabbia (sabbia bagnata di transizione) */
+.map-shore { height: 16px; background: linear-gradient(180deg, var(--color-sea-1) 0%, #EDE6D2 46%, var(--color-warm-075) 100%); }
+
+/* reveal scaglionato per fila (design-system §8) */
+.map-row-in { animation: map-row-in .5s var(--ease-emphasized) both; }
+@keyframes map-row-in { from { opacity: 0; transform: translateY(7px); } to { opacity: 1; transform: none; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .map-sea-veil, .map-row-in { animation: none !important; }
+}
