@@ -33,3 +33,13 @@ describe('ModalFooter', () => {
     expect(w.findAll('button')[1].attributes('disabled')).toBeDefined();
   });
 });
+
+describe('ModalFooter — submitLoading', () => {
+  it('il bottone di conferma mostra spinner, aria-busy ed è disabilitato', () => {
+    const w = mount(ModalFooter, { props: { submitLabel: 'Salva', submitLoading: true } });
+    const submit = w.findAll('button')[1];
+    expect(submit.attributes('aria-busy')).toBe('true');
+    expect(submit.attributes('disabled')).toBeDefined();
+    expect(submit.find('svg').exists()).toBe(true);
+  });
+});

@@ -7,8 +7,9 @@ withDefaults(
     submitLabel: string;
     submitDisabled?: boolean;
     submitVariant?: 'primary' | 'danger';
+    submitLoading?: boolean;
   }>(),
-  { cancelLabel: 'Annulla', submitDisabled: false, submitVariant: 'primary' },
+  { cancelLabel: 'Annulla', submitDisabled: false, submitVariant: 'primary', submitLoading: false },
 );
 defineEmits<{ cancel: []; submit: [] }>();
 </script>
@@ -16,6 +17,6 @@ defineEmits<{ cancel: []; submit: [] }>();
   <div class="flex justify-end gap-2.5 pt-1">
     <slot name="extra" />
     <Button type="button" variant="secondary" @click="$emit('cancel')">{{ cancelLabel }}</Button>
-    <Button type="button" :variant="submitVariant" :disabled="submitDisabled" @click="$emit('submit')">{{ submitLabel }}</Button>
+    <Button type="button" :variant="submitVariant" :disabled="submitDisabled || submitLoading" :loading="submitLoading" @click="$emit('submit')">{{ submitLabel }}</Button>
   </div>
 </template>
