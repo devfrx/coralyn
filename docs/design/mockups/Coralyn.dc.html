@@ -511,6 +511,12 @@
       </sc-if>
 
       <!-- ===== SCHEDA CLIENTE (dettaglio) ===== -->
+      <!-- NOTA (2026-07-21): questa schermata è REALIZZATA nell'app (web-staff CustomerDetailView):
+           layout full-width a 2 colonne, card «Abbonamento e anzianità» a 3 zone (header+tessera anzianità,
+           toolbar azioni, timeline stati), storico, tabella pagamenti, accesso cliente, il tutto responsive
+           (nav a drawer + griglie collassabili sotto lg). Gli stub «In arrivo» qui sotto sono STORICI:
+           per lo stato reale fa fede l'app / docs/superpowers/specs. Non ri-mockata di proposito (il mockup
+           resta artefatto di esplorazione pre-build, non copia parallela della UI shippata). -->
       <sc-if value="{{ isClienteDettaglio }}">
       <section data-screen-label="Scheda cliente" style="padding:18px 26px 30px;max-width:940px;">
         <button onClick="{{ backToClienti }}" style="display:inline-flex;align-items:center;gap:6px;border:0;background:transparent;color:#2F7281;font-size:13px;font-weight:600;cursor:pointer;padding:4px 0;margin-bottom:12px;"><svg style="width:17px;height:17px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;"><use href="#i-cl"/></svg>Clienti</button>
