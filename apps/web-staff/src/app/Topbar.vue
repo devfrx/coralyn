@@ -27,7 +27,7 @@ function onPickDate(e: Event): void {
 </script>
 <template>
   <header class="flex flex-none items-center gap-3 sm:gap-[18px] border-b border-[var(--color-border)] bg-[var(--color-raised)] px-[26px] py-4">
-    <button aria-label="Apri menu" class="grid size-9 flex-none place-items-center rounded-[10px] text-[var(--color-text-2nd)] hover:bg-[var(--color-raised)] focus-visible:outline-none focus-visible:[box-shadow:var(--ring-focus)] lg:hidden" @click="emit('open-nav')">
+    <button aria-label="Apri menu" class="grid size-9 flex-none place-items-center rounded-[10px] text-[var(--color-text-2nd)] hover:bg-[var(--color-surface)] focus-visible:outline-none focus-visible:[box-shadow:var(--ring-focus)] lg:hidden" @click="emit('open-nav')">
       <Icon name="menu" :size="20" />
     </button>
     <div class="min-w-0">
