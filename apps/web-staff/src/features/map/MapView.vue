@@ -246,7 +246,7 @@ const freeSlotOptions = computed(() =>
 
     <p v-if="isLoading" class="px-[26px] py-10 text-[var(--color-text-muted)]">Caricamento…</p>
 
-    <div v-else class="flex flex-1 items-stretch gap-[18px] px-[26px] pb-[26px] pt-4">
+    <div v-else class="flex flex-1 flex-col items-stretch gap-[18px] px-[26px] pb-[26px] pt-4 lg:flex-row">
       <div class="relative min-w-0 flex-1 overflow-auto rounded-[var(--radius-xl)] border border-[var(--color-warm-border-stage)] p-5 [box-shadow:var(--shadow-card)]"
         style="background:linear-gradient(168deg,var(--color-warm-075) 0%,var(--color-warm-150) 100%);">
         <div class="mb-3 flex items-baseline justify-between">
@@ -299,7 +299,7 @@ const freeSlotOptions = computed(() =>
         </div>
       </div>
 
-      <aside v-if="sel" class="flex w-[380px] flex-none flex-col rounded-[var(--radius-xl)] border border-[var(--color-border)] bg-[var(--color-surface)] p-5 [box-shadow:var(--shadow-drawer)]">
+      <aside v-if="sel" class="flex w-full flex-none flex-col rounded-[var(--radius-xl)] border border-[var(--color-border)] bg-[var(--color-surface)] p-5 [box-shadow:var(--shadow-drawer)] lg:w-[380px]">
         <div class="flex items-start justify-between">
           <div>
             <div class="mb-1 text-[11px] font-semibold uppercase tracking-[.06em] text-[var(--color-text-muted)]">Ombrellone</div>
