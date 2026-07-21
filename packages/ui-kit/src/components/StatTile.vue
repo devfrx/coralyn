@@ -12,7 +12,7 @@ withDefaults(
 <template>
   <div class="rounded-[var(--radius-md)] bg-[var(--color-raised)] px-3.5 py-3">
     <template v-if="layout === 'label-first'">
-      <div class="text-[11px] font-semibold uppercase tracking-[.05em] text-[var(--color-text-muted)]">{{ label }}</div>
+      <div class="text-[11px] font-semibold uppercase tracking-caps text-[var(--color-text-muted)]">{{ label }}</div>
       <div class="mt-1 text-2xl font-bold tabular-nums" :class="tone === 'accent' ? 'text-[var(--color-brand-ink)]' : 'text-[var(--color-text)]'">{{ value }}</div>
     </template>
     <template v-else>

@@ -360,7 +360,7 @@ const freeSlotOptions = computed(() =>
           <div v-for="(r, i) in currentSector?.rows ?? []" :key="r.id" class="map-row-in my-3 flex items-center gap-2.5"
             :style="{ animationDelay: `${i * 70}ms` }">
             <span class="w-[52px] flex-none text-right">
-              <b class="block text-[10px] font-bold tracking-[.06em] text-[var(--color-stage-1)]">{{ r.label.toUpperCase() }}</b>
+              <b class="block text-[10px] font-bold tracking-caps text-[var(--color-stage-1)]">{{ r.label.toUpperCase() }}</b>
               <span v-if="i === 0" class="text-[9px] text-[var(--color-stage-2)]">prima linea</span>
             </span>
             <div class="flex flex-wrap gap-2.5">
@@ -432,7 +432,7 @@ const freeSlotOptions = computed(() =>
             :aria-pressed="selectedSlotId === s.id"
             class="min-w-[92px] flex-1 rounded-[11px] p-3 text-left focus-visible:outline-none focus-visible:[box-shadow:var(--ring-focus)]"
             :style="{ background: tintBg(liveStateFor(s.id)), border: `1px solid ${tintBorder(liveStateFor(s.id))}`, boxShadow: selectedSlotId === s.id ? 'inset 0 0 0 2px var(--color-accent)' : undefined }">
-            <span class="mb-1 block text-[9.5px] font-semibold uppercase tracking-[.07em] text-[var(--color-ink-600)]">{{ s.name }}</span>
+            <span class="mb-1 block text-[9.5px] font-semibold uppercase tracking-caps text-[var(--color-ink-600)]">{{ s.name }}</span>
             <span v-if="s.startTime && s.endTime" class="mb-1 block text-[9px] tabular-nums text-[var(--color-text-muted)]">{{ s.startTime }}–{{ s.endTime }}</span>
             <span class="text-[13px] font-semibold" :style="{ color: STATE_COLOR[liveStateFor(s.id)] }">{{ STATE_LABEL[liveStateFor(s.id)] }}</span>
           </button>

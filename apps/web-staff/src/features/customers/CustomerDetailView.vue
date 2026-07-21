@@ -164,11 +164,11 @@ function onConfirmDelete() {
         <div class="flex min-w-0 flex-col gap-3.5">
           <SectionCard v-if="!customer.anonymizedAt" title="Anagrafica e contatti" icon="users">
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-7 gap-y-[18px]">
-              <div><div class="mb-1 text-[11px] font-semibold uppercase tracking-[.05em] text-[var(--color-text-muted)]">Nome</div><div class="text-sm font-medium text-[var(--color-text)]">{{ customer.firstName }}</div></div>
-              <div><div class="mb-1 text-[11px] font-semibold uppercase tracking-[.05em] text-[var(--color-text-muted)]">Cognome</div><div class="text-sm font-medium text-[var(--color-text)]">{{ customer.lastName }}</div></div>
-              <div><div class="mb-1 text-[11px] font-semibold uppercase tracking-[.05em] text-[var(--color-text-muted)]">Telefono</div><div class="text-sm font-medium tabular-nums text-[var(--color-text)]">{{ customer.phone ?? '—' }}</div></div>
-              <div><div class="mb-1 text-[11px] font-semibold uppercase tracking-[.05em] text-[var(--color-text-muted)]">Email</div><div class="text-sm font-medium text-[var(--color-text)]">{{ customer.email ?? '—' }}</div></div>
-              <div class="col-span-2"><div class="mb-1 text-[11px] font-semibold uppercase tracking-[.05em] text-[var(--color-text-muted)]">Note</div><div class="whitespace-pre-wrap text-sm font-medium text-[var(--color-text)]">{{ customer.notes || '—' }}</div></div>
+              <div><div class="mb-1 text-[11px] font-semibold uppercase tracking-caps text-[var(--color-text-muted)]">Nome</div><div class="text-sm font-medium text-[var(--color-text)]">{{ customer.firstName }}</div></div>
+              <div><div class="mb-1 text-[11px] font-semibold uppercase tracking-caps text-[var(--color-text-muted)]">Cognome</div><div class="text-sm font-medium text-[var(--color-text)]">{{ customer.lastName }}</div></div>
+              <div><div class="mb-1 text-[11px] font-semibold uppercase tracking-caps text-[var(--color-text-muted)]">Telefono</div><div class="text-sm font-medium tabular-nums text-[var(--color-text)]">{{ customer.phone ?? '—' }}</div></div>
+              <div><div class="mb-1 text-[11px] font-semibold uppercase tracking-caps text-[var(--color-text-muted)]">Email</div><div class="text-sm font-medium text-[var(--color-text)]">{{ customer.email ?? '—' }}</div></div>
+              <div class="col-span-2"><div class="mb-1 text-[11px] font-semibold uppercase tracking-caps text-[var(--color-text-muted)]">Note</div><div class="whitespace-pre-wrap text-sm font-medium text-[var(--color-text)]">{{ customer.notes || '—' }}</div></div>
             </div>
           </SectionCard>
           <CustomerAccessCard v-if="accessBookingId" :booking-id="accessBookingId" :is-admin="isAdmin" @provisioned="onProvisioned" />

@@ -230,7 +230,8 @@ Bundled offline in `packages/ui-kit` via `@fontsource/inter` (subset latin, pesi
 --fw-semibold:600;
 --fw-bold:    700; /* headings — con letter-spacing negativo (es. -0.02em su --text-xl/2xl) */
 
---tracking-caps: 0.05em; /* micro-label maiuscole (legende, eyebrow, header tabella) */
+--tracking-caps: 0.05em; /* micro-label maiuscole (legende, eyebrow, header tabella) — utility `tracking-caps`.
+                            I caps "display" più larghi (brand sidebar, eyebrow stage mappa, ≥.08em) sono valori propri deliberati. */
 ```
 
 Regole: prezzi, date, quantità, **etichette ombrellone** → `font-variant-numeric: tabular-nums`.
@@ -356,9 +357,9 @@ interattivi: **default / hover / active / focus-visible / disabled**; focus = `-
   nessuno sprite custom. `currentColor`, `stroke-width` 1.75, dimensioni 14/16/20/24.
   **Niente icone fuori dal wrapper.**
 - **DataTable** — componente `ui-kit` skinnato sui token: header `10.5px` maiuscolo,
-  tracking `0.07em` (`tracking-[.07em]` hardcoded — valore proprio, non consuma
-  `--tracking-caps` che vale `0.05em`; drift preesistente, non toccato in questo task)
-  `--color-text-muted`, bg header `--color-raised`, righe `13px`, divisori
+  tracking `--tracking-caps` (utility `tracking-caps` — il token è definito nel `@theme` di
+  `theme.css`; drift `0.07em` chiuso, vedi §3), `--color-text-muted`, bg header
+  `--color-raised`, righe `13px`, divisori
   `--color-border-row`, hover `--color-raised` su ogni riga. Due API, retro-compatibili
   ([ADR-0033](../architecture/decisions/0033-astrazione-componenti-frontend.md)): **a slot** (il
   chiamante scrive `<tr>/<td>` a mano nel body — usata dove servono celle molto particolari o

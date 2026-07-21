@@ -50,7 +50,7 @@ const hasTimeline = (b: CustomerBookingDTO): boolean =>
           </div>
           <div class="shrink-0 rounded-[var(--radius-sm)] bg-[var(--color-brand-tint)] px-3.5 py-2 text-center">
             <div class="text-[26px] font-bold leading-none tabular-nums text-[var(--color-brand-ink)]">{{ b.seniority ?? 1 }}</div>
-            <div class="mt-1 text-[10px] font-semibold uppercase tracking-[.06em] text-[var(--color-brand-ink)] opacity-70">{{ (b.seniority ?? 1) === 1 ? 'STAGIONE' : 'STAGIONI' }}</div>
+            <div class="mt-1 text-[10px] font-semibold uppercase tracking-caps text-[var(--color-brand-ink)] opacity-70">{{ (b.seniority ?? 1) === 1 ? 'STAGIONE' : 'STAGIONI' }}</div>
           </div>
         </div>
         <!-- Toolbar azioni -->
@@ -89,7 +89,7 @@ const hasTimeline = (b: CustomerBookingDTO): boolean =>
       </li>
     </ul>
     <div v-if="(ceded ?? []).length" class="mt-4 border-t border-[var(--color-border)] pt-3">
-      <div class="mb-2 text-[11px] font-semibold uppercase tracking-[.05em] text-[var(--color-text-muted)]">Cessioni effettuate</div>
+      <div class="mb-2 text-[11px] font-semibold uppercase tracking-caps text-[var(--color-text-muted)]">Cessioni effettuate</div>
       <div v-for="c in ceded" :key="c.transferId" class="mb-2 rounded-[var(--radius-sm)] bg-[var(--color-raised)] px-2.5 py-2 text-[12px] text-[var(--color-text-2nd)]">
         Ombrellone {{ c.umbrellaLabel }} ceduto a {{ c.newCustomerName }} il {{ c.effectiveDate.slice(0, 10) }}<span v-if="c.refundToPrevious"> · rimborso {{ formatEuro(c.refundToPrevious) }}</span><span v-if="c.reason"> · {{ c.reason }}</span>
       </div>

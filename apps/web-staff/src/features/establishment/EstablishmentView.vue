@@ -133,9 +133,9 @@ function onConfirmReset() {
         <div class="p-5">
           <span class="text-sm font-bold text-[var(--color-text)]">Informazioni stabilimento</span>
           <div class="mt-4 flex flex-col gap-3.5">
-            <div><div class="mb-1 text-[11px] font-semibold uppercase tracking-[.05em] text-[var(--color-text-muted)]">Nome</div><div class="text-sm font-medium text-[var(--color-text)]">{{ data?.establishment.name ?? '…' }}</div></div>
-            <div><div class="mb-1 text-[11px] font-semibold uppercase tracking-[.05em] text-[var(--color-text-muted)]">Stagione attiva</div><div class="text-sm font-medium tabular-nums text-[var(--color-text)]">{{ seasonLabel }}</div></div>
-            <div><div class="mb-1 text-[11px] font-semibold uppercase tracking-[.05em] text-[var(--color-text-muted)]">Fasce operative</div><div class="text-sm font-medium text-[var(--color-text)]">{{ slotsLabel }}</div></div>
+            <div><div class="mb-1 text-[11px] font-semibold uppercase tracking-caps text-[var(--color-text-muted)]">Nome</div><div class="text-sm font-medium text-[var(--color-text)]">{{ data?.establishment.name ?? '…' }}</div></div>
+            <div><div class="mb-1 text-[11px] font-semibold uppercase tracking-caps text-[var(--color-text-muted)]">Stagione attiva</div><div class="text-sm font-medium tabular-nums text-[var(--color-text)]">{{ seasonLabel }}</div></div>
+            <div><div class="mb-1 text-[11px] font-semibold uppercase tracking-caps text-[var(--color-text-muted)]">Fasce operative</div><div class="text-sm font-medium text-[var(--color-text)]">{{ slotsLabel }}</div></div>
           </div>
         </div>
       </Card>

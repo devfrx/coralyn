@@ -68,9 +68,9 @@ function done(): void {
         dell'amministratore a:
       </p>
       <div class="rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-raised)] p-4">
-        <div class="mb-1 text-[11px] font-semibold uppercase tracking-[.05em] text-[var(--color-text-muted)]">Email amministratore</div>
+        <div class="mb-1 text-[11px] font-semibold uppercase tracking-caps text-[var(--color-text-muted)]">Email amministratore</div>
         <div data-testid="invite-email" class="text-sm font-semibold text-[var(--color-text)]">{{ result?.adminEmail }}</div>
-        <div class="mb-1 mt-3 text-[11px] font-semibold uppercase tracking-[.05em] text-[var(--color-text-muted)]">Il link scade il</div>
+        <div class="mb-1 mt-3 text-[11px] font-semibold uppercase tracking-caps text-[var(--color-text-muted)]">Il link scade il</div>
         <div data-testid="invite-expires" class="text-sm font-semibold tabular-nums text-[var(--color-text)]">{{ fmtExpires(result?.expiresAt) }}</div>
       </div>
       <p class="text-xs text-[var(--color-text-muted)]">L'amministratore dovrà impostare la password seguendo il link ricevuto via email prima della scadenza.</p>

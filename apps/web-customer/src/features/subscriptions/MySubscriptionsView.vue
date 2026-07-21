@@ -74,7 +74,7 @@ function releasesFor(sub: CustomerBookingDTO): AbsenceReleaseDTO[] {
         >Segnala assenza</Button>
 
         <div v-if="releasesFor(sub).length > 0" class="mt-4 flex flex-col gap-2">
-          <p class="text-[11px] font-semibold uppercase tracking-[.06em] text-[var(--color-text-muted)]">
+          <p class="text-[11px] font-semibold uppercase tracking-caps text-[var(--color-text-muted)]">
             Assenze comunicate
           </p>
           <div

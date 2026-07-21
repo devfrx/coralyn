@@ -108,7 +108,7 @@ function rowClasses(row: Row): string {
               :key="c.key"
               :aria-sort="ariaSort(c)"
               :class="[
-                'border-b border-[var(--color-border)] px-[18px] py-3 text-[10.5px] font-semibold uppercase tracking-[.07em] text-[var(--color-text-muted)]',
+                'border-b border-[var(--color-border)] px-[18px] py-3 text-[10.5px] font-semibold uppercase tracking-caps text-[var(--color-text-muted)]',
                 c.align === 'right' ? 'text-right' : 'text-left',
                 c.hideBelow ? HIDE[c.hideBelow] : '',
                 maxHeight ? 'sticky top-0 z-[1] bg-[var(--color-raised)]' : '',
