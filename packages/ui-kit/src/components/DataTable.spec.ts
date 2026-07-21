@@ -27,6 +27,15 @@ describe('DataTable — retro-compatibilità (API a slot esistente)', () => {
     expect(ths[0].classes()).toEqual(expect.arrayContaining(['text-left']));
     expect(ths[1].classes()).toEqual(expect.arrayContaining(['text-right']));
   });
+
+  it('avvolge la tabella in una regione con scroll orizzontale, preservando il radius sul contenitore', () => {
+    const w = mount(DataTable, { props: { columns } });
+    const scroll = w.find('div.overflow-x-auto');
+    expect(scroll.exists()).toBe(true);
+    expect(scroll.find('table').exists()).toBe(true);
+    // il contenitore esterno mantiene radius + clip degli angoli
+    expect(w.find('div.overflow-hidden').exists()).toBe(true);
+  });
 });
 
 describe('DataTable — modalità data-driven (rows/rowKey)', () => {
