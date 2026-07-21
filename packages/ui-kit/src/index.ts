@@ -34,3 +34,4 @@ export { default as StatTile } from './components/StatTile.vue';
 export { default as Skeleton } from './components/Skeleton.vue';
 export { default as SkeletonText } from './components/SkeletonText.vue';
 export { formatEuro, initials, dateRange } from './format';
+export { useDelayedLoading } from './useDelayedLoading';
