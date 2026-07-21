@@ -168,6 +168,10 @@ Ruoli consumati dai componenti. Ogni colore "di sfondo" ha il suo `-ink` (testo 
 --color-scrim:        color-mix(in srgb, var(--color-teal-900) 30%, transparent); /* NavDrawer/Drawer */
 --color-scrim-strong: color-mix(in srgb, var(--color-teal-900) 46%, transparent); /* Modal/ConfirmDialog */
 
+/* Skeleton di caricamento */
+--color-skeleton:        var(--color-warm-150); /* base skeleton di caricamento */
+--color-skeleton-sheen:  var(--color-warm-050); /* sheen dello shimmer (sweep 1.6s, statico con reduced-motion) */
+
 /* Feedback */
 --color-success: #3F9D5B; --color-success-bg: #E7F1E9; --color-success-ink: #3E7A53;
 --color-warning: #E8A93C; --color-warning-bg: #FBF1DA; --color-warning-ink: #9A7322;
@@ -389,6 +393,9 @@ interattivi: **default / hover / active / focus-visible / disabled**; focus = `-
     densi (es. tabella pagamenti nel dettaglio cliente).
   - **`emptyMessage`**: con 0 righe rende `EmptyState` dentro la card stessa (solo API
     data-driven).
+  - **`loading`**: skeleton in-card (`skeletonRows`, default 5) con gate anti-flicker interno —
+    il chiamante passa `isLoading` grezzo. Solo con 0 righe; `emptyMessage` e footer soppressi
+    durante lo skeleton; `aria-busy` sul contenitore. Solo API data-driven.
   - **`maxHeight`**: scroll verticale interno alla card + `thead` sticky. Le due prop sono
     vincolate insieme: dentro una card con `overflow-hidden`/`overflow-x-auto`, `position:
     sticky` rispetto allo scroll di pagina non funziona (antenato con overflow) — sticky regge
@@ -408,10 +415,32 @@ interattivi: **default / hover / active / focus-visible / disabled**; focus = `-
 - **Select** — `<select>` stilizzato gemello di `Input.vue` (stesso raggio/bordo/focus),
   usabile dentro `Field`. `v-model` + `props.options` **o** slot `#default` per `<option>`
   custom (gruppi, opzioni disabilitate). Passthrough attributi nativi.
+- **Skeleton / SkeletonText** — placeholder di caricamento: `variant: line | block | circle`
+  (default `line`), `width`/`height` (default per variante: line `100%`×`0.75em`, block
+  `100%`×`64px`, circle `32px`×`32px`); shimmer `skeleton-sheen` sui token
+  `--color-skeleton`/`--color-skeleton-sheen` (sweep 1.6s, statico con reduced-motion); sempre
+  `aria-hidden` (lo stato lo annuncia il contenitore con `aria-busy`). `SkeletonText :lines`
+  (default 3) = righe a larghezze deterministiche per indice (mai random), ultima al 60%.
+  Anti-flicker centralizzato in `useDelayedLoading(source, { delay: 150, minVisible: 300 })`:
+  visibile solo oltre 150ms di attesa, poi per almeno 300ms. Regola: lo skeleton non sostituisce
+  MAI dati reali (refetch con dati stantii = silenzioso) — nelle viste dettaglio il ramo
+  contenuto dopo lo skeleton è sempre `v-else-if="<dato>"`, mai un `v-else` nudo (il dato assente
+  ha comunque un ramo esplicito, es. errore/not-found). Spec:
+  [loading-states](../superpowers/specs/2026-07-21-loading-states-design.md).
+- **StatTile** — tessera metrica (`--color-raised`, valore `text-2xl font-bold tabular-nums`,
+  label `--color-text-muted`); `layout: value-first` (default) o `label-first`, `tone: default |
+  accent` (accent → `--color-brand-ink`). Prop `value` ora **opzionale** (default `''`): con
+  `loading` true lo skeleton (56×20px) sostituisce solo il valore, la label resta reale e
+  visibile — un chiamante può montare la tessera col solo `label` in attesa del dato. Gate
+  anti-flicker interno (`useDelayedLoading`, come Skeleton/DataTable sopra); `aria-busy` sul
+  contenitore.
 - **ModalFooter** — coppia bottoni Annulla (secondary) / Conferma (`submitVariant`, default
   primary) in fondo ai modali. Prop `submitLabel` (obbligatoria), `cancelLabel`/
-  `submitDisabled`/`submitVariant` opzionali, slot `#extra`; emit `cancel`/`submit`. La classe
-  `pt-1` di default è sovrascrivibile dal chiamante (`class="pt-2"`) dove serve.
+  `submitDisabled`/`submitVariant`/`submitLoading` opzionali, slot `#extra`; emit
+  `cancel`/`submit`. `submitLoading` mostra lo spinner sul bottone di conferma **e** lo
+  disabilita insieme a `submitDisabled` (`:disabled="submitDisabled || submitLoading"` —
+  necessario per il fallthrough attributi di Vue). La classe `pt-1` di default è sovrascrivibile
+  dal chiamante (`class="pt-2"`) dove serve.
 - **PageToolbar** — header di lista: slot `#left` + spacer `flex-1` + slot `#right`/`#actions`.
   Wrapper `mb-4 flex flex-wrap items-center gap-3`. Per Prenotazioni/Clienti (non adottato dove
   il contenitore ha classi di padding incompatibili, es. Mappa).
