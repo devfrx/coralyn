@@ -364,11 +364,10 @@ interattivi: **default / hover / active / focus-visible / disabled**; focus = `-
   chiamante scrive `<tr>/<td>` a mano nel body — usata dove servono celle molto particolari o
   comportamenti custom) e **data-driven** (prop `rows`/`rowKey`, colonne tipizzate
   `DataTableColumn[]`, slot `#cell-<key>` per celle ricche). L'API a slot resta **congelata**
-  (retro-compatibilità, nessuna feature nuova): tutte le viste correnti sono migrate alla
-  data-driven, che è dove vive ogni evoluzione futura. Le costanti `TD`/`TD_FIRST`/`TD_RIGHT`/
-  `TD_NUM` (`packages/ui-kit/src/styles/table.ts`) sono ora deprecate — nessun chiamante in
-  `web-staff` le usa più — e restano solo come export pubblico `ui-kit` in attesa di rimozione
-  (task separato).
+  (retro-compatibilità, nessuna feature nuova): tutte le viste correnti del monorepo (incluso
+  `web-platform`) sono migrate alla data-driven, che è dove vive ogni evoluzione futura. Le
+  costanti `TD`/`TD_FIRST`/`TD_RIGHT`/`TD_NUM` (ex `styles/table.ts`, ADR-0033 §3.6) sono state
+  **rimosse**: le classi cella vivono solo nel builder interno del componente.
   - **Colonne**: `numeric` → `tabular-nums` + `whitespace-nowrap`, allineato a destra via
     `align: 'right'`; `wrap: 'truncate'` + `maxWidth` per celle lunghe (title nativo col valore
     intero, solo se la colonna non usa uno slot custom); `hideBelow: 'sm' | 'md' | 'lg'` nasconde

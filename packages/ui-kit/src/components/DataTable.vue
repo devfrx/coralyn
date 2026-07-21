@@ -65,9 +65,8 @@ const HIDE = { sm: 'max-sm:hidden', md: 'max-md:hidden', lg: 'max-lg:hidden' } a
 function key(row: Row, idx: number): string {
   return props.rowKey ? props.rowKey(row) : String(idx);
 }
-// Riproduce l'output di TD/TD_FIRST/TD_RIGHT/TD_NUM (styles/table.ts) nei casi default;
-// numeric aggiunge whitespace-nowrap (spec §3.1). Le costanti restano per i chiamanti
-// a slot fino a fine migrazione (ADR-0033 §3.6).
+// Unica fonte delle classi cella standard (ex costanti TD* di ADR-0033 §3.6, rimosse
+// a migrazione completata); numeric aggiunge whitespace-nowrap (spec §3.1).
 function cellClass(col: DataTableColumn, isFirst: boolean): string {
   const parts = [
     'border-b border-[var(--color-border-row)]',

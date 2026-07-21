@@ -48,7 +48,7 @@ describe('DataTable — modalità data-driven (rows/rowKey)', () => {
     expect(trs[1].text()).toContain('Anna');
   });
 
-  it('cella default: usa row[column.key], classi TD_FIRST sulla prima colonna, TD_NUM se column.numeric', () => {
+  it('cella default: usa row[column.key], px-[18px] sulla prima colonna, tabular-nums se column.numeric', () => {
     const w = mount(DataTable, { props: { columns, rows, rowKey: (r: Record<string, unknown>) => r.id as string } });
     const firstRowCells = w.findAll('tbody tr')[0].findAll('td');
     expect(firstRowCells[0].classes()).toEqual(expect.arrayContaining(['px-[18px]']));

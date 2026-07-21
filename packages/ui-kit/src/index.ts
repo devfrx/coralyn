@@ -32,4 +32,3 @@ export { default as ChartBar } from './components/ChartBar.vue';
 export { default as ChartDonut } from './components/ChartDonut.vue';
 export { default as StatTile } from './components/StatTile.vue';
 export { formatEuro, initials, dateRange } from './format';
-export { TD, TD_FIRST, TD_RIGHT, TD_NUM } from './styles/table';
