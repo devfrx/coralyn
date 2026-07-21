@@ -133,7 +133,9 @@ function onConfirmReset() {
       <Card>
         <div class="p-5">
           <span class="text-sm font-bold text-[var(--color-text)]">Informazioni stabilimento</span>
-          <SkeletonText v-if="skeletonVisible" :lines="3" class="mt-4" aria-busy="true" />
+          <div v-if="skeletonVisible" aria-busy="true" class="mt-4">
+            <SkeletonText :lines="3" />
+          </div>
           <div v-else class="mt-4 flex flex-col gap-3.5">
             <div><div class="mb-1 text-[11px] font-semibold uppercase tracking-caps text-[var(--color-text-muted)]">Nome</div><div class="text-sm font-medium text-[var(--color-text)]">{{ data?.establishment.name ?? '…' }}</div></div>
             <div><div class="mb-1 text-[11px] font-semibold uppercase tracking-caps text-[var(--color-text-muted)]">Stagione attiva</div><div class="text-sm font-medium tabular-nums text-[var(--color-text)]">{{ seasonLabel }}</div></div>
@@ -164,7 +166,9 @@ function onConfirmReset() {
         </div>
         <p class="mb-3 text-xs leading-relaxed text-[var(--color-text-muted)]">Il team dello stabilimento ha ruoli <strong class="text-[var(--color-text-2nd)]">Amministratore</strong> e <strong class="text-[var(--color-text-2nd)]">Staff</strong>. Il ruolo <strong class="text-[var(--color-text-2nd)]">Superuser</strong> è di piattaforma (console cross-stabilimento) e non appartiene al team del lido.</p>
         <p v-if="!isPending && team.length === 0" class="py-3 text-sm text-[var(--color-text-muted)]">Nessun utente nel team.</p>
-        <SkeletonText v-if="skeletonVisible" :lines="3" aria-busy="true" />
+        <div v-if="skeletonVisible" aria-busy="true">
+          <SkeletonText :lines="3" />
+        </div>
         <div v-else class="flex flex-col">
           <div v-for="u in team" :key="u.id" data-testid="team-row" class="flex items-center gap-3 border-b border-[var(--color-border-row)] py-3 last:border-0" :class="u.disabled && 'opacity-55'">
             <Avatar :initials="u.ini" size="md" :tone="u.tone === 'brand' ? 'brand' : 'accent'" />
