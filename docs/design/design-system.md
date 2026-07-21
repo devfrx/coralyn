@@ -470,8 +470,7 @@ un settore dedicato in coda, stessa scena.
 Forma: **Tessera** — quadrato arrotondato (`border-radius: 12px`), `--cell-size` (**40px**,
 esteso) / `--cell-size-touch` (**44px**, compatto/touch — coincide con la soglia `lg` del
 breakpoint, §9), `--shadow-sun` (ombra "da sole" portata in basso) + riflesso `--color-cell-glare`
-(velo chiaro sul 35% superiore). Hover: lift `-2px` (`translateY`, solo `transform`) con
-`--shadow-sun` che cresce; active: `scale(.97)`. È un **`<button>`** (vedi §13.5). Sostituisce il
+(velo chiaro sul 35% superiore). Hover: lift −2px (`translateY`, solo `transform`); active: `scale(.97)`. È un **`<button>`** (vedi §13.5). Sostituisce il
 precedente cerchio a spicchi conici ([spec rework Riva](../superpowers/specs/2026-07-21-map-redesign-riva-design.md)
 §4) — i 4 assi restano quelli di ADR-0020 invariati (nessun emendamento: la forma è dettaglio del
 living doc, non dell'ADR).
@@ -549,12 +548,10 @@ bundled/offline** dal `<Icon>`. **Fallback** finché manca `icona`: chiave di de
   overlay), chiudendo una divergenza storica; la mappa resta sempre a piena larghezza.
 - Titolo **"Ombrellone «etichetta»"**, chip **tipologia**, crumb **Settore · Fila**, blocco
   **stato per fascia** (Mattina/Pomeriggio, fasce cliccabili), dettaglio prenotazione (cliente,
-  pacchetto, periodo — `tabular-nums`), **stato pagamento**
-  (Saldato/Parziale/Non pagato · importo · metodo, [ADR-0011](../architecture/decisions/0011-incasso-base-nel-core.md)),
+  importo, stato pagamento badge — Saldato/Parziale/Da incassare, [ADR-0011](../architecture/decisions/0011-incasso-base-nel-core.md)),
   e le azioni in footer: **Nuova prenotazione**, **Abbonamento** (più, quando c'è una
   prenotazione, Registra incasso / Annulla / Gestisci abbonamento).
-- Sotto `lg`: stesso drawer, `max-w-[86vw]` (come `NavDrawer`), coerente con
-  [ADR-0051](../architecture/decisions/0051-responsive-drawer-e-telefono-graceful.md).
+- Su viewport strette lo stesso drawer non sfora: `max-w-[calc(100vw-24px)]` (uniforme, senza breakpoint).
 - La selezione cella (anello coral) resta visibile sotto lo scrim leggero (`--color-scrim`):
   l'operatore non perde il riferimento spaziale mentre il drawer è aperto.
 
