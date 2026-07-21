@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, watch, nextTick, onUnmounted } from 'vue';
 import { useRouter } from 'vue-router';
-import { UmbrellaCell, SegmentedControl, Badge, Button, Drawer, ActionBar, Modal, Icon, Select, ModalFooter, formatEuro, HoverCard, Popover } from '@coralyn/ui-kit';
+import { UmbrellaCell, SegmentedControl, Badge, Button, Drawer, ActionBar, Modal, Icon, Select, ModalFooter, formatEuro, HoverCard, Popover, Skeleton, useDelayedLoading } from '@coralyn/ui-kit';
 import type { UmbrellaDTO, SlotState, BookingDTO, BookingType } from '@coralyn/contracts';
 import { PAY_LABEL, PAY_TONE } from '@/lib/statusMaps';
 import { useMediaQuery } from '@/lib/useMediaQuery';
@@ -16,6 +16,7 @@ import { useSessionStore } from '@/stores/session';
 import { storeToRefs } from 'pinia';
 
 const { data: map, isLoading } = useDayMap();
+const skeletonVisible = useDelayedLoading(() => isLoading.value);
 
 const router = useRouter();
 
@@ -296,9 +297,11 @@ const freeSlotOptions = computed(() =>
 
 <template>
   <section class="flex h-full min-h-[560px] flex-col">
-    <p v-if="isLoading" class="px-[26px] py-10 text-[var(--color-text-muted)]">Caricamento…</p>
+    <div v-if="skeletonVisible" aria-busy="true" class="min-w-0 flex-1 px-[26px] py-6">
+      <Skeleton variant="block" height="420px" />
+    </div>
 
-    <div v-else class="map-stage min-w-0 flex-1">
+    <div v-else-if="!isLoading" class="map-stage min-w-0 flex-1">
       <div class="map-scroll">
         <div class="map-sea">
           <div class="map-sea-veil"></div><div class="map-sea-veil"></div><div class="map-sea-veil"></div>
@@ -521,7 +524,7 @@ const freeSlotOptions = computed(() =>
       </div>
 
       <template #footer>
-        <ModalFooter submit-label="Conferma prenotazione" :submit-disabled="quoteError || quoteLoading" @cancel="modalBooking = false" @submit="confirmBooking" />
+        <ModalFooter submit-label="Conferma prenotazione" :submit-disabled="quoteError || quoteLoading" :submit-loading="createBooking.isPending.value" @cancel="modalBooking = false" @submit="confirmBooking" />
       </template>
     </Modal>
 
