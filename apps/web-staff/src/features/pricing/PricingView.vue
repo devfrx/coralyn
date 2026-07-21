@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, watchEffect } from 'vue';
 import { Button, Card, DataTable, EmptyState, Modal, ConfirmDialog, Field, Input, Select, Icon, IconButton, ActionBar, formatEuro } from '@coralyn/ui-kit';
+import type { DataTableColumn } from '@coralyn/ui-kit';
 import type { BookingType, PackageEquipmentDTO, RateDTO, TimeSlotDTO } from '@coralyn/contracts';
 import { useSeasons, useCreateSeason, useDeleteSeason } from './useSeasons';
 import { useRates, useCreateRate, useUpdateRate, useDeleteRate } from './useRates';
@@ -381,13 +382,13 @@ function typeLabel(t?: BookingType): string {
 function priceHint(r: RateDTO): string {
   return r.type === 'subscription' ? 'forfait/stagione' : '/giorno';
 }
-const rateCols = [
+const rateCols: DataTableColumn[] = [
   { key: 'position', label: 'Posizione' },
   { key: 'package', label: 'Pacchetto' },
   { key: 'slot', label: 'Fascia' },
   { key: 'type', label: 'Tipo' },
-  { key: 'price', label: 'Prezzo', align: 'right' as const },
-  { key: 'actions', label: '' },
+  { key: 'price', label: 'Prezzo', align: 'right' },
+  { key: 'actions', label: '', align: 'right' },
 ];
 </script>
 
@@ -536,25 +537,23 @@ const rateCols = [
     <p class="mb-2 text-[12px] text-[var(--color-text-muted)]">
       Quando più tariffe si applicano, vince la più specifica: periodo › fila › settore › pacchetto › fascia › tipo.
     </p>
-    <DataTable :columns="rateCols">
-      <tr v-for="r in sortedRates" :key="r.id" class="hover:bg-[var(--color-raised)]">
-        <td class="border-b border-[var(--color-border-row)] px-[18px] py-3.5 font-semibold text-[var(--color-text)]">{{ positionLabel(r) }}</td>
-        <td class="border-b border-[var(--color-border-row)] px-3.5 py-3.5 text-[var(--color-text-2nd)]">{{ pkgName(r.packageId) }}</td>
-        <td class="border-b border-[var(--color-border-row)] px-3.5 py-3.5 text-[var(--color-text-2nd)]">{{ slotName(r.timeSlotId) }}</td>
-        <td class="border-b border-[var(--color-border-row)] px-3.5 py-3.5 text-[var(--color-text-2nd)]">{{ typeLabel(r.type) }}</td>
-        <td class="border-b border-[var(--color-border-row)] px-3.5 py-3.5 text-right">
-          <span class="font-bold tabular-nums text-[var(--color-text)]">{{ formatEuro(r.price) }}</span>
-          <span class="ml-1 text-[11px] text-[var(--color-text-muted)]">{{ priceHint(r) }}</span>
-        </td>
-        <td class="border-b border-[var(--color-border-row)] px-[18px] py-3.5 text-right">
-          <ActionBar gap="sm">
-            <IconButton icon="edit" label="Modifica" variant="ghost" size="sm"
-              :data-test="`edit-rate-${r.id}`" @click="openEditRate(r)" />
-            <IconButton icon="trash-2" label="Elimina" variant="danger" size="sm"
-              :data-test="`del-rate-${r.id}`" @click="askDeleteRate(r.id)" />
-          </ActionBar>
-        </td>
-      </tr>
+    <DataTable :columns="rateCols" :rows="(sortedRates as unknown as Record<string, unknown>[])" :row-key="(r) => (r as unknown as RateDTO).id">
+      <template #cell-position="{ row }"><span class="font-semibold text-[var(--color-text)]">{{ positionLabel(row as unknown as RateDTO) }}</span></template>
+      <template #cell-package="{ row }"><span class="text-[var(--color-text-2nd)]">{{ pkgName((row as unknown as RateDTO).packageId) }}</span></template>
+      <template #cell-slot="{ row }"><span class="text-[var(--color-text-2nd)]">{{ slotName((row as unknown as RateDTO).timeSlotId) }}</span></template>
+      <template #cell-type="{ row }"><span class="text-[var(--color-text-2nd)]">{{ typeLabel((row as unknown as RateDTO).type) }}</span></template>
+      <template #cell-price="{ row }">
+        <span class="font-bold tabular-nums text-[var(--color-text)]">{{ formatEuro((row as unknown as RateDTO).price) }}</span>
+        <span class="ml-1 text-[11px] text-[var(--color-text-muted)]">{{ priceHint(row as unknown as RateDTO) }}</span>
+      </template>
+      <template #cell-actions="{ row }">
+        <ActionBar gap="sm">
+          <IconButton icon="edit" label="Modifica" variant="ghost" size="sm"
+            :data-test="`edit-rate-${(row as unknown as RateDTO).id}`" @click="openEditRate(row as unknown as RateDTO)" />
+          <IconButton icon="trash-2" label="Elimina" variant="danger" size="sm"
+            :data-test="`del-rate-${(row as unknown as RateDTO).id}`" @click="askDeleteRate((row as unknown as RateDTO).id)" />
+        </ActionBar>
+      </template>
     </DataTable>
     <EmptyState v-if="activeSeasonId && (rates?.length ?? 0) === 0" class="mt-3" message="Nessuna tariffa per questa stagione. Aggiungine una con «Nuova tariffa»." />
 
