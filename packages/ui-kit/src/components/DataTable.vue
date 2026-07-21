@@ -33,6 +33,7 @@ const hasRowClick = !!getCurrentInstance()?.vnode.props?.['onRow-click'] || !!ge
 const sortKey = ref<string | null>(null);
 const sortDir = ref<SortDir>('asc');
 function toggleSort(col: DataTableColumn): void {
+  page.value = 1;
   if (sortKey.value !== col.key) { sortKey.value = col.key; sortDir.value = 'asc'; return; }
   if (sortDir.value === 'asc') { sortDir.value = 'desc'; return; }
   sortKey.value = null; sortDir.value = 'asc';
@@ -64,8 +65,9 @@ const HIDE = { sm: 'max-sm:hidden', md: 'max-md:hidden', lg: 'max-lg:hidden' } a
 function key(row: Row, idx: number): string {
   return props.rowKey ? props.rowKey(row) : String(idx);
 }
-// Riproduce esattamente TD/TD_FIRST/TD_RIGHT/TD_NUM (styles/table.ts) nei casi default;
-// le costanti restano per i chiamanti a slot fino a fine migrazione (ADR-0033 §3.6).
+// Riproduce l'output di TD/TD_FIRST/TD_RIGHT/TD_NUM (styles/table.ts) nei casi default;
+// numeric aggiunge whitespace-nowrap (spec §3.1). Le costanti restano per i chiamanti
+// a slot fino a fine migrazione (ADR-0033 §3.6).
 function cellClass(col: DataTableColumn, isFirst: boolean): string {
   const parts = [
     'border-b border-[var(--color-border-row)]',
@@ -116,7 +118,10 @@ function rowClasses(row: Row): string {
               <button
                 v-if="c.sortable"
                 type="button"
-                class="group inline-flex items-center gap-1 rounded uppercase transition-colors [transition-duration:var(--motion-fast)] [transition-timing-function:var(--ease-standard)] hover:text-[var(--color-text)] focus-visible:outline-none focus-visible:[box-shadow:var(--ring-focus)]"
+                :class="[
+                  'group flex w-full items-center gap-1 rounded uppercase transition-colors [transition-duration:var(--motion-fast)] [transition-timing-function:var(--ease-standard)] hover:text-[var(--color-text)] focus-visible:outline-none focus-visible:[box-shadow:var(--ring-focus)]',
+                  c.align === 'right' ? 'justify-end' : 'justify-start',
+                ]"
                 @click="toggleSort(c)"
               >
                 {{ c.label }}

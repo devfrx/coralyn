@@ -66,7 +66,7 @@ function openSettle(b: BookingDTO): void {
       </template>
       <template #cell-ombrellone="{ row }"><span class="text-[var(--color-text-2nd)]">{{ umbrellaLabel.get((row as unknown as BookingDTO).umbrellaId) ?? '—' }}</span></template>
       <template #cell-tipo="{ row }"><span class="text-[var(--color-text-2nd)]">{{ TYPE_LABEL[(row as unknown as BookingDTO).type] }}</span></template>
-      <template #cell-pacchetto="{ row }"><span class="text-[var(--color-text-2nd)]">{{ (row as unknown as BookingDTO).packageId ? (packageName.get((row as unknown as BookingDTO).packageId!) ?? '—') : '—' }}</span></template>
+      <template #cell-pacchetto="{ row }"><span class="text-[var(--color-text-2nd)]" :title="(row as unknown as BookingDTO).packageId ? (packageName.get((row as unknown as BookingDTO).packageId!) ?? '') : ''">{{ (row as unknown as BookingDTO).packageId ? (packageName.get((row as unknown as BookingDTO).packageId!) ?? '—') : '—' }}</span></template>
       <template #cell-periodo="{ row }"><span class="text-[var(--color-text-2nd)]">{{ periodLabel(row as unknown as BookingDTO) }}</span></template>
       <template #cell-stato="{ row }"><Badge :tone="PAY_TONE[(row as unknown as BookingDTO).paymentStatus]">{{ PAY_LABEL[(row as unknown as BookingDTO).paymentStatus] }}</Badge></template>
       <template #cell-incasso="{ row }">

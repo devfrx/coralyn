@@ -180,6 +180,16 @@ describe('DataTable — paginazione e footer', () => {
     expect(w.get('[data-test="table-count"]').text()).toBe('1–5 di 5');
   });
 
+  it('cambio sort a pagina >1 → reset a pagina 1', async () => {
+    const sortableCols = [{ key: 'n', label: 'N', sortable: true }];
+    const w = mount(DataTable, { props: { columns: sortableCols, rows: rows30, rowKey: rk, pageSize: 20 } });
+    await w.get('[data-test="page-next"]').trigger('click');
+    expect(w.get('[data-test="page-indicator"]').text()).toBe('2 / 2');
+    await w.get('th button').trigger('click');
+    expect(w.get('[data-test="table-count"]').text()).toBe('1–20 di 30');
+    expect(w.get('[data-test="page-indicator"]').text()).toBe('1 / 2');
+  });
+
   it('showCount senza pageSize: solo conteggio, niente pager', () => {
     const w = mount(DataTable, { props: { columns: cols1, rows: rows30.slice(0, 3), rowKey: rk, showCount: true } });
     expect(w.get('[data-test="table-count"]').text()).toBe('3 righe');
