@@ -203,14 +203,14 @@ function onConfirmDelete() {
     <h2 class="text-[23px] font-bold tracking-[-.015em] text-[var(--color-text)]">Struttura della spiaggia</h2>
     <p class="mb-4 text-[13px] text-[var(--color-text-muted)]">Settori, file, ombrelloni e tipologie · setup guidato</p>
 
-    <div class="mb-4 grid grid-cols-4 gap-4">
+    <div class="mb-4 grid grid-cols-2 lg:grid-cols-4 gap-4">
       <Card><div class="p-4"><div class="text-[22px] font-bold tabular-nums text-[var(--color-text)]">{{ counts.sectors }}</div><div class="text-xs text-[var(--color-text-muted)]">Settori</div></div></Card>
       <Card><div class="p-4"><div class="text-[22px] font-bold tabular-nums text-[var(--color-text)]">{{ counts.rows }}</div><div class="text-xs text-[var(--color-text-muted)]">File</div></div></Card>
       <Card><div class="p-4"><div class="text-[22px] font-bold tabular-nums text-[var(--color-text)]">{{ counts.umbrellas }}</div><div class="text-xs text-[var(--color-text-muted)]">Ombrelloni</div></div></Card>
       <Card><div class="p-4"><div class="text-[22px] font-bold tabular-nums text-[var(--color-text)]">{{ counts.types }}</div><div class="text-xs text-[var(--color-text-muted)]">Tipologie</div></div></Card>
     </div>
 
-    <div class="grid grid-cols-[300px_1fr] gap-4">
+    <div class="grid grid-cols-1 lg:grid-cols-[300px_1fr] gap-4">
       <div class="flex flex-col gap-4">
         <Card>
           <div class="p-4">
@@ -326,7 +326,7 @@ function onConfirmDelete() {
       <form id="form-row" class="flex flex-col gap-4" @submit.prevent="submitRow">
         <Field label="Etichetta"><Input name="row-label" data-testid="row-label" v-model="rowLabel" placeholder="es. Fila 1" /></Field>
         <template v-if="!editingRowId">
-          <div class="grid grid-cols-3 gap-3">
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
             <Field label="Prefisso"><Input name="gen-prefix" data-testid="gen-prefix" v-model="genPrefix" placeholder="es. A" /></Field>
             <Field label="Da numero"><Input name="gen-start" data-testid="gen-start" v-model.number="genStart" type="number" step="1" min="0" /></Field>
             <Field label="Quantità"><Input name="gen-count" data-testid="gen-count" v-model.number="genCount" type="number" step="1" min="1" /></Field>
@@ -350,7 +350,7 @@ function onConfirmDelete() {
 
     <Modal v-model:open="genModalOpen" title="Genera ombrelloni" eyebrow="File">
       <form id="form-generate" class="flex flex-col gap-4" @submit.prevent="submitGenerate">
-        <div class="grid grid-cols-3 gap-3">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
           <Field label="Prefisso"><Input name="gen-prefix" data-testid="gen-prefix" v-model="genPrefix" placeholder="es. A" /></Field>
           <Field label="Da numero"><Input name="gen-start" data-testid="gen-start" v-model.number="genStart" type="number" step="1" min="0" /></Field>
           <Field label="Quantità"><Input name="gen-count" data-testid="gen-count" v-model.number="genCount" type="number" step="1" min="1" /></Field>

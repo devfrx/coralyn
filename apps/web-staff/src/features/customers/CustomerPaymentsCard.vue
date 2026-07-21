@@ -34,7 +34,7 @@ const cols = [
   <SectionCard title="Pagamenti e saldo" icon="euro">
     <p v-if="bookings.length === 0" class="text-sm text-[var(--color-text-muted)]">Nessuna prenotazione.</p>
     <template v-else>
-      <div class="mb-4 grid grid-cols-2 gap-2.5">
+      <div class="mb-4 grid grid-cols-1 sm:grid-cols-2 gap-2.5">
         <StatTile layout="label-first" tone="accent" label="Saldo aperto" :value="formatEuro(balance)" />
         <StatTile layout="label-first" label="Incassato stagione" :value="formatEuro(collected)" />
       </div>

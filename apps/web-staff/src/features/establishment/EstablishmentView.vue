@@ -128,7 +128,7 @@ function onConfirmReset() {
 
     <p v-if="isError" class="mb-4 text-sm text-[var(--color-danger)]">Impossibile caricare i dati dello stabilimento.</p>
 
-    <div class="mb-4 grid grid-cols-2 gap-4">
+    <div class="mb-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
       <Card>
         <div class="p-5">
           <span class="text-sm font-bold text-[var(--color-text)]">Informazioni stabilimento</span>
@@ -146,7 +146,7 @@ function onConfirmReset() {
             <Button v-if="isAdmin" data-testid="configure-structure" variant="secondary" size="sm" @click="$router.push('/establishment/structure')"><Icon name="settings" :size="13" />Configura</Button>
             <Badge v-else tone="soon">Configura · in arrivo</Badge>
           </div>
-          <div class="grid grid-cols-2 gap-3.5">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
             <StatTile v-for="s in structureTiles" :key="s.label" :value="s.value" :label="s.label" />
           </div>
         </div>

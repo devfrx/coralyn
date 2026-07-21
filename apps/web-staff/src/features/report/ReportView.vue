@@ -29,14 +29,14 @@ const mixSegments = computed(() =>
       <SegmentedControl v-model="period" :options="periodOptions" />
     </div>
 
-    <div class="mb-[18px] grid grid-cols-4 gap-3.5">
+    <div class="mb-[18px] grid grid-cols-2 lg:grid-cols-4 gap-3.5">
       <KpiCard icon="euro" iconBg="var(--color-accent-tint)" iconInk="var(--color-accent)" label="Incasso" :value="formatEuro(data?.kpis.revenue ?? 0)" />
       <KpiCard icon="clock" iconBg="var(--color-warning-bg)" iconInk="var(--color-warning-ink)" :label="`Da incassare${snapshotSuffix}`" :value="formatEuro(data?.kpis.outstanding ?? 0)" />
       <KpiCard icon="chart" iconBg="var(--color-brand-tint)" iconInk="var(--color-brand-ink)" :label="`Occupazione${snapshotSuffix}`" :value="`${data?.kpis.occupancyPct ?? 0}%`" />
       <KpiCard icon="star" iconBg="var(--color-success-bg)" iconInk="var(--color-success-ink)" :label="`Abbonamenti${snapshotSuffix}`" :value="String(data?.kpis.activeSubscriptions ?? 0)" />
     </div>
 
-    <div class="mb-3.5 grid grid-cols-[1.6fr_1fr] gap-3.5">
+    <div class="mb-3.5 grid grid-cols-1 lg:grid-cols-[1.6fr_1fr] gap-3.5">
       <Card><div class="p-5">
         <span class="text-sm font-bold text-[var(--color-text)]">Incassi</span>
         <div class="mt-[18px]"><ChartBar :data="revenueBars" :color="accentColor()" ariaLabel="Incassi per periodo" /></div>

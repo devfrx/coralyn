@@ -201,7 +201,7 @@ function onConfirmDelete() {
 
     <!-- Card articoli attivi -->
     <EmptyState v-if="activeItems.length === 0" class="mb-4" message="Nessun articolo. Creane uno con «Nuovo articolo»." />
-    <div v-else class="mb-4 grid grid-cols-4 gap-3">
+    <div v-else class="mb-4 grid grid-cols-2 lg:grid-cols-4 gap-3">
       <Card
         v-for="it in activeItems"
         :key="it.id"
@@ -232,7 +232,7 @@ function onConfirmDelete() {
         <Icon :name="archivedItemsOpen ? 'chevron-down' : 'chevron-right'" :size="15" />
         Archiviati ({{ archivedItems.length }})
       </button>
-      <div v-if="archivedItemsOpen" class="grid grid-cols-4 gap-3">
+      <div v-if="archivedItemsOpen" class="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <Card v-for="it in archivedItems" :key="it.id" class="opacity-60">
           <div class="flex flex-col gap-1.5 p-3.5">
             <div class="flex items-center justify-between gap-2">

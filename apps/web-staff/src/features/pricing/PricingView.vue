@@ -423,7 +423,7 @@ const rateCols = [
 
     <!-- Catalogo tipi di dotazione -->
     <EmptyState v-if="activeEquipmentTypes.length === 0" class="mb-4" message="Nessun tipo di dotazione. Creane uno con «Tipo di dotazione»." />
-    <div v-else class="mb-4 grid grid-cols-4 gap-3">
+    <div v-else class="mb-4 grid grid-cols-2 lg:grid-cols-4 gap-3">
       <Card v-for="t in activeEquipmentTypes" :key="t.id">
         <div class="flex items-center justify-between gap-2 p-3.5">
           <span class="text-[13.5px] font-semibold text-[var(--color-text)]">{{ t.name }}</span>
@@ -445,7 +445,7 @@ const rateCols = [
         <Icon :name="archivedEqtOpen ? 'chevron-down' : 'chevron-right'" :size="15" />
         Archiviati ({{ archivedEquipmentTypes.length }})
       </button>
-      <div v-if="archivedEqtOpen" class="grid grid-cols-4 gap-3">
+      <div v-if="archivedEqtOpen" class="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <Card v-for="t in archivedEquipmentTypes" :key="t.id" class="opacity-60">
           <div class="flex items-center justify-between gap-2 p-3.5">
             <span class="text-[13.5px] font-semibold text-[var(--color-text)]">{{ t.name }}</span>
@@ -462,7 +462,7 @@ const rateCols = [
 
     <!-- Card pacchetti -->
     <EmptyState v-if="activePackages.length === 0" class="mb-4" message="Nessun pacchetto. Creane uno con «Pacchetto»." />
-    <div v-else class="mb-4 grid grid-cols-3 gap-3.5">
+    <div v-else class="mb-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5">
       <Card v-for="p in activePackages" :key="p.id">
         <div class="flex h-full flex-col p-[18px]">
           <div class="mb-2 flex items-start justify-between gap-2">
@@ -491,7 +491,7 @@ const rateCols = [
         <Icon :name="archivedOpen ? 'chevron-down' : 'chevron-right'" :size="15" />
         Archiviati ({{ archivedPackages.length }})
       </button>
-      <div v-if="archivedOpen" class="grid grid-cols-3 gap-3.5">
+      <div v-if="archivedOpen" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5">
         <Card v-for="p in archivedPackages" :key="p.id" class="opacity-60">
           <div class="flex h-full flex-col p-[18px]">
             <div class="mb-2 flex items-start justify-between gap-2">
