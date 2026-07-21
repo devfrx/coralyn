@@ -57,13 +57,12 @@ function ini(c: { firstName: string; lastName: string }) { return ((c.firstName[
       </template>
     </PageToolbar>
 
-    <p v-if="isLoading" class="text-[var(--color-text-muted)]">Caricamento…</p>
     <DataTable
-      v-else
       :columns="cols"
       :rows="(filtered as unknown as Record<string, unknown>[])"
       :row-key="(r) => (r as unknown as CustomerDTO).id"
       :page-size="25"
+      :loading="isLoading"
       empty-message="Nessun cliente trovato"
       @row-click="(r) => router.push({ name: 'customer-detail', params: { id: (r as unknown as CustomerDTO).id } })"
     >

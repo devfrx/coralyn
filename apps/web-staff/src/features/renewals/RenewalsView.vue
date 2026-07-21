@@ -26,8 +26,8 @@ watchEffect(() => {
   }
 });
 
-const { data: subs } = useSubscriptions(originSeasonId);
-const { data: campaign } = useRenewalCampaign(destinationSeasonId);
+const { data: subs, isLoading: subsLoading } = useSubscriptions(originSeasonId);
+const { data: campaign, isLoading: campaignLoading } = useRenewalCampaign(destinationSeasonId);
 const renew = useRenewBooking();
 const openCampaign = useOpenCampaign();
 const closeCampaign = useCloseCampaign();
@@ -120,7 +120,7 @@ function stateBadge(s: RenewalWindowState): { tone: 'success' | 'warning' | 'neu
       <span class="inline-flex items-center gap-1.5"><Badge tone="warning">Scaduta</Badge> finestra chiusa</span>
     </div>
 
-    <DataTable v-if="campaign" :columns="cols" :rows="(windowRows as unknown as Record<string, unknown>[])" :row-key="(r) => (r as unknown as RenewalWindowItemDTO).sourceBookingId" empty-message="Nessuna finestra di prelazione per questa campagna.">
+    <DataTable v-if="campaign" :columns="cols" :rows="(windowRows as unknown as Record<string, unknown>[])" :row-key="(r) => (r as unknown as RenewalWindowItemDTO).sourceBookingId" :loading="campaignLoading" empty-message="Nessuna finestra di prelazione per questa campagna.">
       <template #cell-cliente="{ row }">
         <div class="flex items-center gap-2.5">
           <Avatar :initials="initials(customerName((row as unknown as RenewalWindowItemDTO).customerId))" size="sm" />
@@ -133,14 +133,16 @@ function stateBadge(s: RenewalWindowState): { tone: 'success' | 'warning' | 'neu
         <Badge :tone="stateBadge((row as unknown as RenewalWindowItemDTO).state).tone">{{ stateBadge((row as unknown as RenewalWindowItemDTO).state).label }}</Badge>
       </template>
       <template #cell-azione="{ row }">
-        <Button size="sm" :disabled="(row as unknown as RenewalWindowItemDTO).state === 'exercised' || !destinationSeasonId" @click="doRenew((row as unknown as RenewalWindowItemDTO).sourceBookingId)">Rinnova</Button>
+        <Button size="sm" :disabled="(row as unknown as RenewalWindowItemDTO).state === 'exercised' || !destinationSeasonId"
+          :loading="renew.isPending.value && renew.variables.value?.id === (row as unknown as RenewalWindowItemDTO).sourceBookingId"
+          @click="doRenew((row as unknown as RenewalWindowItemDTO).sourceBookingId)">Rinnova</Button>
       </template>
     </DataTable>
 
     <template v-else>
       <EmptyState v-if="!destinationSeasonId" message="Scegli una stagione di destinazione per gestire i rinnovi." />
       <template v-else>
-        <DataTable :columns="cols" :rows="(rows as unknown as Record<string, unknown>[])" :row-key="(r) => (r as unknown as SubscriptionListItemDTO).id" empty-message="Nessun abbonato nella stagione di origine.">
+        <DataTable :columns="cols" :rows="(rows as unknown as Record<string, unknown>[])" :row-key="(r) => (r as unknown as SubscriptionListItemDTO).id" :loading="subsLoading" empty-message="Nessun abbonato nella stagione di origine.">
           <template #cell-cliente="{ row }">
             <div class="flex items-center gap-2.5">
               <Avatar :initials="initials(customerName((row as unknown as SubscriptionListItemDTO).customerId))" size="sm" />
@@ -153,7 +155,9 @@ function stateBadge(s: RenewalWindowState): { tone: 'success' | 'warning' | 'neu
             <Badge :tone="(row as unknown as SubscriptionListItemDTO).renewed ? 'success' : 'neutral'">{{ (row as unknown as SubscriptionListItemDTO).renewed ? 'Rinnovato' : 'Da rinnovare' }}</Badge>
           </template>
           <template #cell-azione="{ row }">
-            <Button size="sm" :disabled="(row as unknown as SubscriptionListItemDTO).renewed" @click="doRenew((row as unknown as SubscriptionListItemDTO).id)">Rinnova</Button>
+            <Button size="sm" :disabled="(row as unknown as SubscriptionListItemDTO).renewed"
+              :loading="renew.isPending.value && renew.variables.value?.id === (row as unknown as SubscriptionListItemDTO).id"
+              @click="doRenew((row as unknown as SubscriptionListItemDTO).id)">Rinnova</Button>
           </template>
         </DataTable>
       </template>

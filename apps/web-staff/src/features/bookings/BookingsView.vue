@@ -14,7 +14,7 @@ import SettlePaymentModal from './SettlePaymentModal.vue';
 const router = useRouter();
 const session = useSessionStore();
 const { activeDate } = storeToRefs(session);
-const { data: bookings } = useDayBookings(activeDate);
+const { data: bookings, isLoading: bookingsLoading } = useDayBookings(activeDate);
 
 const filtro = ref<'all' | PaymentStatus>('all');
 const filtri = [
@@ -57,7 +57,7 @@ function openSettle(b: BookingDTO): void {
       <template #right><Button @click="router.push('/map')"><Icon name="plus" :size="16" />Nuova prenotazione</Button></template>
     </PageToolbar>
 
-    <DataTable :columns="cols" :rows="(rows as unknown as Record<string, unknown>[])" :row-key="(r) => (r as unknown as BookingDTO).id" empty-message="Nessuna prenotazione per questa data.">
+    <DataTable :columns="cols" :rows="(rows as unknown as Record<string, unknown>[])" :row-key="(r) => (r as unknown as BookingDTO).id" :loading="bookingsLoading" empty-message="Nessuna prenotazione per questa data.">
       <template #cell-cliente="{ row }">
         <div class="flex items-center gap-2.5">
           <Avatar :initials="initials(customerName((row as unknown as BookingDTO).customerId))" size="sm" />
