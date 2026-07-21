@@ -1,7 +1,10 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
+import { http, HttpResponse } from 'msw';
 import { flushPromises } from '@vue/test-utils';
 import { mountApp } from '@/test/utils';
+import { server } from '@/mocks/server';
 import { useToasts } from '@/lib/toasts';
+import { todayIso, addDays } from '@/lib/dates';
 import RentalsView from './RentalsView.vue';
 
 const settle = async () => {
@@ -43,6 +46,20 @@ async function checkoutSup(w: ReturnType<typeof mountApp>, units = 1) {
 }
 
 describe('RentalsView', () => {
+  // La tariffa di test rt-1 (seed MSW) è agganciata alla stagione se-1: RentalsView seleziona la
+  // stagione attiva confrontando activeDate con le date di seasons. Il seed condiviso ha date fisse
+  // ("Estate 2026") che non coprono più "oggi" con il passare del tempo reale — qui si sovrascrive
+  // /api/seasons con una stagione se-1 dai bordi larghi e relativi a todayIso(), così la tariffa resta
+  // selezionabile indipendentemente da quando gira il test (senza toccare il seed globale, usato
+  // com'è da altri spec che verificano il fixture "Estate 2026" come dato statico).
+  beforeEach(() => {
+    server.use(
+      http.get('/api/seasons', () =>
+        HttpResponse.json([{ id: 'se-1', name: 'Estate 2026', startDate: addDays(todayIso(), -60), endDate: addDays(todayIso(), 60) }]),
+      ),
+    );
+  });
+
   it('mostra empty-state quando non ci sono noleggi', async () => {
     const w = mountApp(RentalsView, { attachTo: document.body });
     await settle();
