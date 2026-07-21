@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, watchEffect } from 'vue';
 import { Button, Card, DataTable, EmptyState, Modal, ConfirmDialog, Field, Input, Select, Icon, IconButton, ActionBar, formatEuro } from '@coralyn/ui-kit';
+import type { DataTableColumn } from '@coralyn/ui-kit';
 import type { RentalItemDTO, RentalTariffDTO } from '@coralyn/contracts';
 import { useSeasons } from '@/features/pricing/useSeasons';
 import {
@@ -102,11 +103,11 @@ function durationLabel(minutes: number | null): string {
   return minutes == null ? '—' : `${minutes} min`;
 }
 
-const tariffCols = [
+const tariffCols: DataTableColumn[] = [
   { key: 'label', label: 'Tariffa' },
   { key: 'duration', label: 'Durata' },
-  { key: 'price', label: 'Prezzo', align: 'right' as const },
-  { key: 'actions', label: '' },
+  { key: 'price', label: 'Prezzo', align: 'right' },
+  { key: 'actions', label: '', align: 'right' },
 ];
 
 // --- Modale tariffa: crea/modifica ---
@@ -264,20 +265,18 @@ function onConfirmDelete() {
         </Button>
       </div>
 
-      <DataTable :columns="tariffCols">
-        <tr v-for="t in activeTariffs" :key="t.id" class="hover:bg-[var(--color-raised)]">
-          <td class="border-b border-[var(--color-border-row)] px-[18px] py-3.5 font-semibold text-[var(--color-text)]">{{ t.label }}</td>
-          <td class="border-b border-[var(--color-border-row)] px-3.5 py-3.5 text-[var(--color-text-2nd)]">{{ durationLabel(t.durationMinutes) }}</td>
-          <td class="border-b border-[var(--color-border-row)] px-3.5 py-3.5 text-right font-bold tabular-nums text-[var(--color-text)]">{{ formatEuro(t.price) }}</td>
-          <td class="border-b border-[var(--color-border-row)] px-[18px] py-3.5 text-right">
-            <ActionBar gap="sm">
-              <IconButton icon="edit" label="Modifica" variant="ghost" size="sm"
-                :data-test="`edit-tariff-${t.id}`" @click="openEditTariff(t)" />
-              <IconButton icon="archive" label="Archivia" variant="ghost" size="sm"
-                :data-test="`archive-tariff-${t.id}`" @click="archiveTariff.mutate(t.id)" />
-            </ActionBar>
-          </td>
-        </tr>
+      <DataTable :columns="tariffCols" :rows="(activeTariffs as unknown as Record<string, unknown>[])" :row-key="(r) => (r as unknown as RentalTariffDTO).id">
+        <template #cell-label="{ row }"><span class="font-semibold text-[var(--color-text)]">{{ (row as unknown as RentalTariffDTO).label }}</span></template>
+        <template #cell-duration="{ row }"><span class="text-[var(--color-text-2nd)]">{{ durationLabel((row as unknown as RentalTariffDTO).durationMinutes) }}</span></template>
+        <template #cell-price="{ row }"><span class="font-bold tabular-nums text-[var(--color-text)]">{{ formatEuro((row as unknown as RentalTariffDTO).price) }}</span></template>
+        <template #cell-actions="{ row }">
+          <ActionBar gap="sm">
+            <IconButton icon="edit" label="Modifica" variant="ghost" size="sm"
+              :data-test="`edit-tariff-${(row as unknown as RentalTariffDTO).id}`" @click="openEditTariff(row as unknown as RentalTariffDTO)" />
+            <IconButton icon="archive" label="Archivia" variant="ghost" size="sm"
+              :data-test="`archive-tariff-${(row as unknown as RentalTariffDTO).id}`" @click="archiveTariff.mutate((row as unknown as RentalTariffDTO).id)" />
+          </ActionBar>
+        </template>
       </DataTable>
       <EmptyState v-if="activeSeasonId && activeTariffs.length === 0" class="mt-3" message="Nessuna tariffa per questa stagione. Aggiungine una con «Nuova tariffa»." />
 
@@ -289,20 +288,24 @@ function onConfirmDelete() {
           <Icon :name="archivedTariffsOpen ? 'chevron-down' : 'chevron-right'" :size="15" />
           Archiviati ({{ archivedTariffs.length }})
         </button>
-        <DataTable v-if="archivedTariffsOpen" :columns="tariffCols">
-          <tr v-for="t in archivedTariffs" :key="t.id" class="opacity-60">
-            <td class="border-b border-[var(--color-border-row)] px-[18px] py-3.5 font-semibold text-[var(--color-text)]">{{ t.label }}</td>
-            <td class="border-b border-[var(--color-border-row)] px-3.5 py-3.5 text-[var(--color-text-2nd)]">{{ durationLabel(t.durationMinutes) }}</td>
-            <td class="border-b border-[var(--color-border-row)] px-3.5 py-3.5 text-right font-bold tabular-nums text-[var(--color-text)]">{{ formatEuro(t.price) }}</td>
-            <td class="border-b border-[var(--color-border-row)] px-[18px] py-3.5 text-right">
-              <ActionBar gap="sm">
-                <IconButton icon="renew" label="Ripristina" variant="ghost" size="sm"
-                  :data-test="`restore-tariff-${t.id}`" @click="restoreTariff.mutate(t.id)" />
-                <IconButton icon="trash-2" label="Elimina definitivamente" variant="danger" size="sm"
-                  :data-test="`del-tariff-${t.id}`" @click="askDeleteTariff(t)" />
-              </ActionBar>
-            </td>
-          </tr>
+        <DataTable
+          v-if="archivedTariffsOpen"
+          :columns="tariffCols"
+          :rows="(archivedTariffs as unknown as Record<string, unknown>[])"
+          :row-key="(r) => (r as unknown as RentalTariffDTO).id"
+          :row-class="() => 'opacity-60'"
+        >
+          <template #cell-label="{ row }"><span class="font-semibold text-[var(--color-text)]">{{ (row as unknown as RentalTariffDTO).label }}</span></template>
+          <template #cell-duration="{ row }"><span class="text-[var(--color-text-2nd)]">{{ durationLabel((row as unknown as RentalTariffDTO).durationMinutes) }}</span></template>
+          <template #cell-price="{ row }"><span class="font-bold tabular-nums text-[var(--color-text)]">{{ formatEuro((row as unknown as RentalTariffDTO).price) }}</span></template>
+          <template #cell-actions="{ row }">
+            <ActionBar gap="sm">
+              <IconButton icon="renew" label="Ripristina" variant="ghost" size="sm"
+                :data-test="`restore-tariff-${(row as unknown as RentalTariffDTO).id}`" @click="restoreTariff.mutate((row as unknown as RentalTariffDTO).id)" />
+              <IconButton icon="trash-2" label="Elimina definitivamente" variant="danger" size="sm"
+                :data-test="`del-tariff-${(row as unknown as RentalTariffDTO).id}`" @click="askDeleteTariff(row as unknown as RentalTariffDTO)" />
+            </ActionBar>
+          </template>
         </DataTable>
       </div>
     </template>
