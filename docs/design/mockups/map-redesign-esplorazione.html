@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Coralyn — Rework Mappa · esplorazione «Riva» (mockup)</title>
+<style>
+  /* Mockup self-contained (ADR-0009): nessun asset esterno, nessun build.
+     Palette Coralyn (theme.css ui-kit) — i valori hex sono quelli REALI dei token primitivi.
+     Direzione approvata in brainstorming 2026-07-21: «Riva» (minimalismo editoriale)
+     + ombra "da sole" sulle celle + righello occupazione a fine fila. */
+  :root{
+    /* neutri caldi */
+    --sand-canvas:#ECE3D5; --sand-stage-a:#FBF4E6; --sand-stage-b:#F6EAD3;
+    --panel:#FBF6EE; --surface:#FFFFFF; --border:#E7DCCB; --border-stage:#ECDFC8;
+    --ink:#22303A; --ink-2:#5E5648; --muted:#978C7B; --placeholder:#B3A998;
+    --stage-1:#8A6E3F; --stage-2:#B79A63; --stage-3:#9A8460;
+    /* brand & accento */
+    --coral:#E0795A; --coral-tint:#FBE8DF; --accent:#2F7281; --accent-tint:#E6EFEC;
+    --teal-900:#0B3543;
+    /* stati mappa (+ ink AA) */
+    --st-free:#8FBF9E;   --st-free-ink:#1E3A16;
+    --st-season:#5E9AA6; --st-season-ink:#102945;
+    --st-daily:#E89270;  --st-daily-ink:#3A1E08;
+    --st-booked:#F1C879; --st-booked-ink:#4A3711;
+    --st-covered:#BEB6A8;--st-covered-ink:#4A463E;
+    /* mare */
+    --sea-1:#E0EFF3; --sea-2:#BEDDE8; --sea-3:#A8D0DE; --sea-deep:#8FC2D4; --sea-ink:#2E6B81;
+    --radius:14px;
+    /* ombra "da sole alto" (innesto dalla direzione C): calda, portata in basso */
+    --sun-shadow:0 5px 9px -3px rgba(138,110,63,.30), 0 1px 2px rgba(138,110,63,.12);
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    font-family:'Inter',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+    background:var(--sand-canvas); color:var(--ink);
+    -webkit-font-smoothing:antialiased; padding:28px 20px 70px;
+  }
+  .doc{max-width:1180px;margin:0 auto;}
+  .doc-head{margin-bottom:26px;}
+  .doc-head h1{font-size:21px;font-weight:700;letter-spacing:-.01em;margin:0 0 6px;}
+  .doc-head p{margin:0;color:var(--muted);font-size:13px;line-height:1.55;max-width:86ch;}
+  .badge-design{display:inline-block;font-size:10px;font-weight:600;letter-spacing:.08em;
+    text-transform:uppercase;color:var(--stage-1);border:1px solid var(--border);
+    border-radius:99px;padding:3px 10px;margin-bottom:10px;background:var(--panel);}
+  h2.sec{font-size:15px;font-weight:700;letter-spacing:-.01em;margin:44px 0 6px;}
+  p.sec-note{margin:0 0 14px;color:var(--muted);font-size:12.5px;line-height:1.55;max-width:88ch;}
+  .frame{background:var(--panel);border:1px solid var(--border);border-radius:18px;padding:22px;box-shadow:0 1px 3px rgba(15,60,73,.05);}
+
+  /* ============================== 1 · LA SCENA «RIVA» ============================== */
+  .stage{
+    position:relative;border-radius:16px;border:1px solid var(--border-stage);overflow:hidden;
+    background:linear-gradient(172deg,var(--sand-stage-a) 0%,var(--sand-stage-b) 100%);
+  }
+  /* grana di sabbia: feTurbulence inline, impercettibile */
+  .stage::after{
+    content:"";position:absolute;inset:0;pointer-events:none;opacity:.05;mix-blend-mode:multiply;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+  /* ---- mare: orizzonte a velature, non una barretta ---- */
+  .sea{position:relative;height:64px;overflow:hidden;
+    background:linear-gradient(180deg,var(--sea-deep) 0%,var(--sea-3) 34%,var(--sea-2) 66%,var(--sea-1) 100%);}
+  .sea .veil{position:absolute;left:-50%;width:200%;height:200%;border-radius:46%;
+    background:rgba(255,255,255,.16);}
+  .sea .veil.v1{top:52%;animation:drift 26s linear infinite;}
+  .sea .veil.v2{top:66%;background:rgba(255,255,255,.22);animation:drift 19s linear infinite reverse;}
+  .sea .veil.v3{top:80%;background:rgba(224,239,243,.5);animation:drift 33s linear infinite;}
+  @keyframes drift{from{transform:translateX(-3.5%) }to{transform:translateX(3.5%)}}
+  .sea .lbl{position:absolute;right:14px;top:10px;font-size:9px;font-weight:600;letter-spacing:.3em;
+    text-transform:uppercase;color:var(--sea-ink);opacity:.75;}
+  /* bagnasciuga: il mare non "finisce", bagna la sabbia */
+  .shore{height:16px;background:
+    linear-gradient(180deg,var(--sea-1) 0%,#EDE6D2 46%,var(--sand-stage-a) 100%);}
+  .shore-sheen{height:3px;margin-top:-11px;position:relative;opacity:.5;
+    background:linear-gradient(90deg,transparent,rgba(255,255,255,.85) 30%,transparent 62%);}
+
+  .stage-body{position:relative;padding:16px 22px 20px;z-index:1;}
+  .stage-top{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:14px;}
+  .stage-title{font-size:13.5px;font-weight:600;color:var(--stage-1);}
+  .stage-count{font-size:10px;font-weight:600;letter-spacing:.09em;text-transform:uppercase;color:var(--stage-2);}
+  .spacer{flex:1;}
+  /* ricerca / salto rapido */
+  .find{display:flex;align-items:center;gap:7px;background:var(--surface);border:1.5px solid var(--border);
+    border-radius:99px;padding:7px 13px;min-width:230px;}
+  .find svg{width:13px;height:13px;stroke:var(--muted);fill:none;stroke-width:2;stroke-linecap:round;}
+  .find input{border:0;outline:0;background:transparent;font:inherit;font-size:12.5px;color:var(--ink);width:100%;}
+  .find input::placeholder{color:var(--placeholder);}
+
+  /* tab settori con occupazione */
+  .sectors{display:inline-flex;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:3px;gap:2px;}
+  .sectors button{border:0;background:transparent;font:inherit;font-size:12px;font-weight:600;color:var(--ink-2);
+    padding:6px 12px;border-radius:9px;cursor:pointer;display:flex;align-items:center;gap:7px;}
+  .sectors button.on{background:var(--accent-tint);color:var(--accent);}
+  .sectors .occ{font-size:10px;font-weight:700;color:var(--stage-2);font-variant-numeric:tabular-nums;}
+  .sectors button.on .occ{color:var(--accent);}
+
+  /* file: marcatore + celle + righello occupazione */
+  .row{display:flex;align-items:center;gap:14px;margin:13px 0;}
+  .row-tag{flex:none;width:52px;text-align:right;}
+  .row-tag b{display:block;font-size:10px;font-weight:700;letter-spacing:.06em;color:var(--stage-1);}
+  .row-tag span{font-size:9px;color:var(--stage-2);}
+  .row-cells{display:flex;flex-wrap:wrap;gap:11px;flex:1;}
+  .row-ruler{flex:none;width:74px;}
+  .row-ruler .track{height:4px;border-radius:99px;background:#E4D7BF;overflow:hidden;}
+  .row-ruler .fill{height:100%;border-radius:99px;background:var(--accent);opacity:.75;}
+  .row-ruler .num{margin-top:3px;font-size:9px;font-weight:600;color:var(--stage-2);text-align:right;font-variant-numeric:tabular-nums;}
+
+  /* reveal scaglionato per fila (design-system §8) */
+  .row{animation:rowin .5s cubic-bezier(.2,0,0,1) both;}
+  .row:nth-child(1){animation-delay:.05s}.row:nth-child(2){animation-delay:.12s}
+  .row:nth-child(3){animation-delay:.19s}.row:nth-child(4){animation-delay:.26s}
+  @keyframes rowin{from{opacity:0;transform:translateY(7px)}to{opacity:1;transform:none}}
+
+  /* ---- cella base della scena (cerchio raffinato) ---- */
+  .cellwrap{position:relative;display:inline-flex;}
+  .cell{
+    width:38px;height:38px;border-radius:99px;border:0;cursor:pointer;position:relative;
+    display:grid;place-items:center;font:inherit;font-size:12.5px;font-weight:600;
+    font-variant-numeric:tabular-nums;
+    box-shadow:var(--sun-shadow), inset 0 1px 0 rgba(255,255,255,.35);
+    transition:transform .16s cubic-bezier(.2,0,.2,1), box-shadow .16s, opacity .25s, filter .25s;
+  }
+  .cell:hover{transform:translateY(-2px);
+    box-shadow:0 9px 14px -4px rgba(138,110,63,.34),0 2px 3px rgba(138,110,63,.14), inset 0 1px 0 rgba(255,255,255,.35);}
+  .cell:active{transform:translateY(0) scale(.97);}
+  .cell.sel{outline:2px solid var(--coral);outline-offset:2px;
+    box-shadow:0 0 0 5px var(--coral-tint), var(--sun-shadow);}
+  .typebadge{position:absolute;right:-4px;top:-4px;z-index:2;width:15px;height:15px;border-radius:99px;
+    background:var(--surface);display:grid;place-items:center;box-shadow:0 1px 2px rgba(15,60,73,.18);}
+  .typebadge svg{width:9px;height:9px;stroke:var(--accent);fill:none;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round;}
+  /* filtro legenda: le non corrispondenti si attenuano, non spariscono */
+  .cellwrap.dim .cell{opacity:.22;filter:saturate(.4);}
+  .cellwrap.dim .typebadge{opacity:.22;}
+  /* salto rapido: impulso */
+  .cellwrap.found .cell{animation:foundpulse 1.15s cubic-bezier(.2,0,.2,1) 2;}
+  @keyframes foundpulse{0%,100%{box-shadow:0 0 0 0 rgba(224,121,90,.0), var(--sun-shadow);}
+    45%{box-shadow:0 0 0 9px rgba(224,121,90,.28), var(--sun-shadow);}}
+
+  /* ---- hovercard (desktop) ---- */
+  .hovercard{
+    position:absolute;bottom:calc(100% + 9px);left:50%;transform:translateX(-50%) translateY(3px);
+    min-width:198px;background:var(--surface);border:1px solid var(--border);border-radius:12px;
+    box-shadow:0 12px 30px rgba(15,60,73,.14);padding:11px 12px;z-index:30;
+    opacity:0;pointer-events:none;transition:opacity .15s ease .32s, transform .15s ease .32s;
+  }
+  .hovercard::after{content:"";position:absolute;top:100%;left:50%;margin-left:-5px;
+    border:5px solid transparent;border-top-color:var(--surface);}
+  .cellwrap:hover .hovercard{opacity:1;transform:translateX(-50%) translateY(0);}
+  .hc-head{display:flex;align-items:baseline;gap:7px;margin-bottom:7px;}
+  .hc-head b{font-size:13px;letter-spacing:-.01em;}
+  .hc-head span{font-size:10.5px;color:var(--muted);}
+  .hc-slot{display:flex;align-items:center;gap:7px;font-size:11.5px;padding:3.5px 0;color:var(--ink-2);}
+  .hc-slot i{width:9px;height:9px;border-radius:99px;flex:none;}
+  .hc-slot b{font-weight:600;color:var(--ink);}
+  .hc-slot .who{margin-left:auto;color:var(--muted);font-size:10.5px;}
+  .hc-foot{margin-top:7px;padding-top:7px;border-top:1px dashed var(--border);
+    font-size:10px;color:var(--placeholder);}
+
+  /* ---- legenda operativa ---- */
+  .legend{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:18px;padding-top:14px;
+    border-top:1px solid var(--border-stage);}
+  .legend .cap{font-size:10px;font-weight:600;letter-spacing:.09em;text-transform:uppercase;color:var(--stage-3);margin-right:4px;}
+  .lchip{display:inline-flex;align-items:center;gap:7px;border:1.5px solid var(--border);background:var(--surface);
+    border-radius:99px;padding:5px 11px;font:inherit;font-size:11.5px;font-weight:500;color:var(--ink-2);cursor:pointer;
+    transition:border-color .15s, box-shadow .15s;}
+  .lchip i{width:11px;height:11px;border-radius:99px;}
+  .lchip:hover{border-color:#D8CBB6;}
+  .lchip.on{border-color:var(--accent);color:var(--accent);box-shadow:0 0 0 3px var(--accent-tint);font-weight:600;}
+  .legend .hint{font-size:10.5px;color:var(--placeholder);margin-left:auto;}
+
+  /* ============================== 2 · ANATOMIE DI CELLA ============================== */
+  .variants{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:16px;}
+  .vcard{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:18px;}
+  .vcard h3{margin:0 0 3px;font-size:13.5px;letter-spacing:-.01em;}
+  .vcard .sub{font-size:11.5px;color:var(--muted);line-height:1.5;margin-bottom:14px;}
+  .vrow{display:flex;flex-wrap:wrap;gap:13px;align-items:flex-end;background:linear-gradient(172deg,var(--sand-stage-a),var(--sand-stage-b));
+    border:1px solid var(--border-stage);border-radius:12px;padding:16px 14px 14px;}
+  .vlab{display:block;text-align:center;font-size:8.5px;color:var(--stage-2);margin-top:6px;max-width:46px;line-height:1.25;}
+  .vitem{display:flex;flex-direction:column;align-items:center;}
+  .pros{margin:12px 0 0;padding:0;list-style:none;font-size:11.5px;line-height:1.55;color:var(--ink-2);}
+  .pros li{padding-left:16px;position:relative;}
+  .pros li.p::before{content:"+";position:absolute;left:2px;color:#3F9D5B;font-weight:700;}
+  .pros li.c::before{content:"−";position:absolute;left:2px;color:#C8503E;font-weight:700;}
+
+  /* — variante B: tessera — */
+  .tile{width:40px;height:40px;border-radius:12px;border:0;cursor:pointer;position:relative;display:grid;place-items:center;
+    font:inherit;font-size:12.5px;font-weight:600;font-variant-numeric:tabular-nums;overflow:hidden;
+    box-shadow:var(--sun-shadow), inset 0 1px 0 rgba(255,255,255,.4);
+    transition:transform .16s,box-shadow .16s;}
+  .tile:hover{transform:translateY(-2px);}
+  .tile.sel{outline:2px solid var(--coral);outline-offset:2px;box-shadow:0 0 0 5px var(--coral-tint), var(--sun-shadow);}
+  .tile .num{position:relative;z-index:1;}
+  .tile .half{position:absolute;top:0;bottom:0;width:50%;}
+  .tile .half.l{left:0;}.tile .half.r{right:0;}
+  .tile .split-line{position:absolute;top:0;bottom:0;left:50%;width:1px;background:rgba(255,255,255,.55);z-index:1;}
+
+  /* — variante C: ombrellone figurativo — */
+  .umb{width:44px;height:44px;border:0;background:transparent;cursor:pointer;position:relative;padding:0;
+    transition:transform .16s;}
+  .umb:hover{transform:translateY(-2px);}
+  .umb .canopy{display:block;width:44px;height:44px;border-radius:99px;position:relative;overflow:hidden;
+    box-shadow:var(--sun-shadow);}
+  .umb .spokes{position:absolute;inset:0;border-radius:99px;
+    background:repeating-conic-gradient(from 0deg, rgba(255,255,255,.34) 0deg 1.6deg, transparent 1.6deg 45deg);}
+  .umb .pole{position:absolute;left:50%;top:50%;width:7px;height:7px;margin:-3.5px;
+    border-radius:99px;background:var(--surface);box-shadow:0 0 0 1.5px rgba(255,255,255,.5);z-index:1;}
+  .umb .tag{position:absolute;left:50%;bottom:-5px;transform:translateX(-50%);z-index:2;
+    background:var(--surface);border:1px solid var(--border);border-radius:99px;padding:1px 6px;
+    font-size:9.5px;font-weight:700;font-variant-numeric:tabular-nums;color:var(--ink);box-shadow:0 1px 2px rgba(15,60,73,.14);}
+  .umb.sel .canopy{outline:2px solid var(--coral);outline-offset:2px;box-shadow:0 0 0 5px var(--coral-tint), var(--sun-shadow);}
+
+  /* ============================== 3 · DRAWER OVERLAY (accenno) ============================== */
+  .drawer-demo{position:relative;height:210px;border-radius:14px;overflow:hidden;border:1px solid var(--border-stage);
+    background:linear-gradient(172deg,var(--sand-stage-a),var(--sand-stage-b));}
+  .drawer-demo .mini-sea{height:26px;background:linear-gradient(180deg,var(--sea-3),var(--sea-1));}
+  .drawer-demo .dots{padding:16px;display:grid;grid-template-columns:repeat(12,22px);gap:9px;}
+  .drawer-demo .dots i{width:22px;height:22px;border-radius:99px;box-shadow:0 3px 5px -2px rgba(138,110,63,.3);}
+  .drawer-demo .panel{position:absolute;top:10px;right:10px;bottom:10px;width:270px;background:var(--surface);
+    border:1px solid var(--border);border-radius:14px;box-shadow:0 12px 40px rgba(15,60,73,.16);padding:14px;}
+  .drawer-demo .panel .eyebrow{font-size:9px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);}
+  .drawer-demo .panel h4{margin:2px 0 8px;font-size:19px;letter-spacing:-.02em;font-variant-numeric:tabular-nums;}
+  .drawer-demo .panel .line{height:9px;border-radius:5px;background:var(--panel);margin:7px 0;}
+  .drawer-demo .scrim{position:absolute;inset:0;background:color-mix(in srgb, #0B3543 12%, transparent);}
+  .note{font-size:11px;color:var(--muted);line-height:1.55;margin-top:10px;}
+  code{background:var(--panel);border:1px solid var(--border);border-radius:5px;padding:1px 5px;font-size:11px;}
+
+  @media (prefers-reduced-motion: reduce){
+    .sea .veil,.row,.cellwrap.found .cell{animation:none !important;}
+    .cell,.tile,.umb{transition:none;}
+  }
+</style>
+</head>
+<body>
+<div class="doc">
+
+  <div class="doc-head">
+    <span class="badge-design">Mockup di esplorazione · 2026-07-21</span>
+    <h1>Rework Mappa — direzione «Riva»</h1>
+    <p>Minimalismo editoriale: il mare torna orizzonte (velature in movimento lento, bagnasciuga),
+       la sabbia è carta calda con grana impercettibile, i dati comandano (occupazione per settore e fila,
+       legenda operativa, ricerca). Innesti approvati: ombra «da sole» sulle celle, righello occupazione a fine fila.
+       Le sezioni 2–3 confrontano le anatomie di cella e il drawer. Tutto su token Coralyn reali.</p>
+  </div>
+
+  <!-- ============ 1 · SCENA ============ -->
+  <h2 class="sec">1 · La scena (interattiva: hover sulle celle, legenda, ricerca)</h2>
+  <p class="sec-note">Il mare non è più un rettangolo con l'icona: è una fascia d'orizzonte con velature che
+     derivano lentamente e un bagnasciuga che sfuma nella sabbia. Le file «guardano il mare» come oggi
+     (modello logico invariato). Prova: passa il mouse su un ombrellone (hovercard), clicca «Libero» in
+     legenda (evidenziazione), digita «14» o «Rossi» nella ricerca.</p>
+
+  <div class="frame">
+    <div class="stage">
+      <div class="sea">
+        <div class="veil v1"></div><div class="veil v2"></div><div class="veil v3"></div>
+        <span class="lbl">Mare</span>
+      </div>
+      <div class="shore"></div><div class="shore-sheen"></div>
+
+      <div class="stage-body">
+        <div class="stage-top">
+          <div class="sectors">
+            <button class="on">Centro <span class="occ">82%</span></button>
+            <button>Ponente <span class="occ">54%</span></button>
+            <button>Levante <span class="occ">37%</span></button>
+          </div>
+          <span class="stage-count">36 postazioni</span>
+          <div class="spacer"></div>
+          <label class="find">
+            <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+            <input id="find" type="text" placeholder="Trova ombrellone o cliente…" aria-label="Trova ombrellone o cliente">
+          </label>
+        </div>
+
+        <div id="rows">
+          <!-- Fila 1 -->
+          <div class="row">
+            <div class="row-tag"><b>FILA 1</b><span>prima linea</span></div>
+            <div class="row-cells" data-row="Fila 1"></div>
+            <div class="row-ruler"><div class="track"><div class="fill" style="width:92%"></div></div><div class="num">11/12</div></div>
+          </div>
+          <!-- Fila 2 -->
+          <div class="row">
+            <div class="row-tag"><b>FILA 2</b></div>
+            <div class="row-cells" data-row="Fila 2"></div>
+            <div class="row-ruler"><div class="track"><div class="fill" style="width:75%"></div></div><div class="num">9/12</div></div>
+          </div>
+          <!-- Fila 3 -->
+          <div class="row">
+            <div class="row-tag"><b>FILA 3</b></div>
+            <div class="row-cells" data-row="Fila 3"></div>
+            <div class="row-ruler"><div class="track"><div class="fill" style="width:33%"></div></div><div class="num">4/12</div></div>
+          </div>
+        </div>
+
+        <div class="legend" id="legend">
+          <span class="cap">Evidenzia</span>
+          <button class="lchip" data-st="free"><i style="background:var(--st-free)"></i>Libero</button>
+          <button class="lchip" data-st="season"><i style="background:var(--st-season)"></i>Abbonato</button>
+          <button class="lchip" data-st="daily"><i style="background:var(--st-daily)"></i>Giornaliero</button>
+          <button class="lchip" data-st="booked"><i style="background:var(--st-booked)"></i>Prenotato</button>
+          <button class="lchip" data-st="covered"><i style="background:var(--st-covered)"></i>Non disponibile</button>
+          <span class="hint">clic per filtrare · di nuovo per tutto</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ 2 · ANATOMIE ============ -->
+  <h2 class="sec">2 · Anatomia della cella — tre proposte a confronto</h2>
+  <p class="sec-note">Stessi dati per tutte: stati pieni, misto per fascia (Mattina/Pomeriggio), selezione,
+     marcatore tipologia. L'ombra «da sole» è comune. Da scegliere una.</p>
+
+  <div class="variants">
+
+    <!-- A · cerchio raffinato -->
+    <div class="vcard">
+      <h3>A · Cerchio raffinato</h3>
+      <div class="sub">L'evoluzione dell'attuale: 38px, luce dall'alto, spicchi con divisore netto,
+        micro-lift su hover. Zero re-training per lo staff.</div>
+      <div class="vrow" id="va"></div>
+      <ul class="pros">
+        <li class="p">continuità totale; numero grande e leggibile (AA su tutti gli stati)</li>
+        <li class="p">split a spicchi già rodato per N fasce</li>
+        <li class="c">la novità si sente meno: il salto è nella scena, non nella cella</li>
+      </ul>
+    </div>
+
+    <!-- B · tessera -->
+    <div class="vcard">
+      <h3>B · Tessera</h3>
+      <div class="sub">Quadrato arrotondato 40px: lo split diventa metà verticali (Mattina a sinistra /
+        Pomeriggio a destra — mappa mentale del giorno), griglia più compatta e ordinata.</div>
+      <div class="vrow" id="vb"></div>
+      <ul class="pros">
+        <li class="p">lo split M/P si legge meglio degli spicchi; più denso su file lunghe</li>
+        <li class="p">aspetto da «pianta» professionale, molto ordinato</li>
+        <li class="c">perde la metafora tonda dell'ombrellone; con 3+ fasce le colonne si stringono</li>
+      </ul>
+    </div>
+
+    <!-- C · ombrellone figurativo -->
+    <div class="vcard">
+      <h3>C · Ombrellone figurativo</h3>
+      <div class="sub">Telo visto dall'alto: raggiera sottile sul colore di stato, puntale centrale,
+        numero in targhetta sotto il bordo. La mappa «è» la spiaggia.</div>
+      <div class="vrow" id="vc"></div>
+      <ul class="pros">
+        <li class="p">memorabile, immediatamente «lido»; bellissimo con l'ombra da sole</li>
+        <li class="c">numero più piccolo (targhetta) → leggibilità sotto sforzo da verificare</li>
+        <li class="c">più DOM/complessità per cella; split per fascia meno naturale sulla raggiera</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- ============ 3 · DRAWER ============ -->
+  <h2 class="sec">3 · Dettaglio in drawer overlay (riallinea ADR-0019)</h2>
+  <p class="sec-note">La mappa resta a piena larghezza; il dettaglio scivola sopra da destra
+     (primitivo <code>Drawer</code> ui-kit già esistente, scrim <code>--color-scrim</code>).
+     La hovercard copre la consultazione rapida; il drawer si apre solo per operare.</p>
+  <div class="drawer-demo">
+    <div class="mini-sea"></div>
+    <div class="dots" id="dots"></div>
+    <div class="scrim"></div>
+    <aside class="panel">
+      <span class="eyebrow">Ombrellone · Centro · Fila 2</span>
+      <h4>14</h4>
+      <div class="line" style="width:82%"></div>
+      <div class="line" style="width:64%"></div>
+      <div class="line" style="width:74%"></div>
+      <div class="line" style="width:40%;margin-top:16px"></div>
+      <div class="line" style="width:52%"></div>
+    </aside>
+  </div>
+  <p class="note">Su tablet/telefono (layout compatto, ADR-0051) lo stesso drawer occupa quasi tutta la
+     larghezza; la hovercard non esiste su touch — il tap apre direttamente il drawer.</p>
+
+<script>
+/* ------- dati finti della scena (12 celle × 3 file) ------- */
+const CUSTOMERS = ['M. Rossi','L. Bianchi','G. Costa','A. Greco','S. Marino','P. Ferri'];
+const ST = {
+  free:   {c:'var(--st-free)',   ink:'var(--st-free-ink)',   l:'Libero'},
+  season: {c:'var(--st-season)', ink:'var(--st-season-ink)', l:'Abbonato'},
+  daily:  {c:'var(--st-daily)',  ink:'var(--st-daily-ink)',  l:'Giornaliero'},
+  booked: {c:'var(--st-booked)', ink:'var(--st-booked-ink)', l:'Prenotato'},
+  covered:{c:'var(--st-covered)',ink:'var(--st-covered-ink)',l:'Non disponibile'},
+};
+/* pattern deterministico di stati (mockup: nessun random) */
+const P = ['season','season','daily','booked','free','season','daily','free','booked','season','covered','free'];
+const SPLITS = {4:['booked','free'], 7:['free','daily'], 11:['season','free']}; /* idx → [mattina,pomeriggio] */
+
+function cellBg(states){
+  if(states.length===1) return ST[states[0]].c;
+  const n=states.length;
+  const stops=states.map((s,i)=>`${ST[s].c} ${(i/n*100).toFixed(2)}% ${((i+1)/n*100).toFixed(2)}%`).join(', ');
+  return `conic-gradient(from 0deg, ${stops})`;
+}
+function hovercard(label,row,states,who){
+  const rows=states.map((s,i)=>{
+    const slot=i===0?'Mattina':'Pomeriggio';
+    const name=(s==='free'||s==='covered')?'':`<span class="who">${who}</span>`;
+    return `<div class="hc-slot"><i style="background:${ST[s].c}"></i>${slot} · <b>${ST[s].l}</b>${name}</div>`;
+  }).join('');
+  return `<div class="hovercard" role="presentation">
+    <div class="hc-head"><b>Ombrellone ${label}</b><span>Centro · ${row}</span></div>${rows}
+    <div class="hc-foot">Clic per aprire il dettaglio</div></div>`;
+}
+document.querySelectorAll('.row-cells').forEach((wrap,r)=>{
+  for(let i=0;i<12;i++){
+    const label=r*12+i+1;
+    const split=SPLITS[i] && r===1 ? SPLITS[i] : null;
+    const states = split ?? [P[(i+r*3)%12]];
+    const who=CUSTOMERS[(i+r)%CUSTOMERS.length];
+    const w=document.createElement('span');
+    w.className='cellwrap';
+    w.dataset.states=states.join(' ');
+    w.dataset.label=String(label);
+    w.dataset.who=states.some(s=>s!=='free'&&s!=='covered')?who:'';
+    const ink = states.length===1 ? ST[states[0]].ink : 'var(--ink)';
+    const badge = (r===0&&i===11)||(r===2&&i===0)
+      ? `<span class="typebadge"><svg viewBox="0 0 24 24"><path d="M12 3v18M12 3c-4 0-7 3-8 6 3-1 5-1 8 0 3-1 5-1 8 0-1-3-4-6-8-6z"/></svg></span>` : '';
+    w.innerHTML=`<button class="cell" style="background:${cellBg(states)};color:${ink}"
+      aria-label="Ombrellone ${label}">${label}</button>${badge}${hovercard(label,wrap.dataset.row,states,who)}`;
+    wrap.appendChild(w);
+  }
+});
+
+/* ------- legenda operativa: filtro/evidenziazione ------- */
+const active=new Set();
+document.querySelectorAll('.lchip').forEach(ch=>{
+  ch.addEventListener('click',()=>{
+    const st=ch.dataset.st;
+    active.has(st)?active.delete(st):active.add(st);
+    ch.classList.toggle('on',active.has(st));
+    document.querySelectorAll('.cellwrap').forEach(w=>{
+      const states=w.dataset.states.split(' ');
+      w.classList.toggle('dim', active.size>0 && !states.some(s=>active.has(s)));
+    });
+  });
+});
+
+/* ------- ricerca / salto rapido ------- */
+document.getElementById('find').addEventListener('input',e=>{
+  const q=e.target.value.trim().toLowerCase();
+  document.querySelectorAll('.cellwrap').forEach(w=>w.classList.remove('found'));
+  if(!q) return;
+  document.querySelectorAll('.cellwrap').forEach(w=>{
+    const hit = w.dataset.label===q || (w.dataset.who && w.dataset.who.toLowerCase().includes(q));
+    if(hit) w.classList.add('found');
+  });
+});
+
+/* ------- varianti di cella (sezione 2) ------- */
+const SAMPLE=[['free'],['season'],['daily'],['booked'],['covered'],['booked','free']];
+const SLAB=['Libero','Abbonato','Giornaliero','Prenotato','Non disp.','Misto M/P'];
+const palmSvg=`<svg viewBox="0 0 24 24"><path d="M12 3v18M12 3c-4 0-7 3-8 6 3-1 5-1 8 0 3-1 5-1 8 0-1-3-4-6-8-6z"/></svg>`;
+
+const va=document.getElementById('va');
+SAMPLE.forEach((s,i)=>{
+  const d=document.createElement('span');d.className='vitem';
+  const ink=s.length===1?ST[s[0]].ink:'var(--ink)';
+  d.innerHTML=`<span class="cellwrap"><button class="cell" style="background:${cellBg(s)};color:${ink}">${14+i}</button></span><span class="vlab">${SLAB[i]}</span>`;
+  va.appendChild(d);
+});
+va.insertAdjacentHTML('beforeend',
+  `<span class="vitem"><span class="cellwrap"><button class="cell sel" style="background:${ST.free.c};color:${ST.free.ink}">21</button></span><span class="vlab">Selezionato</span></span>
+   <span class="vitem"><span class="cellwrap"><button class="cell" style="background:${ST.season.c};color:${ST.season.ink}">22</button><span class="typebadge">${palmSvg}</span></span><span class="vlab">Tipologia</span></span>`);
+
+const vb=document.getElementById('vb');
+SAMPLE.forEach((s,i)=>{
+  const d=document.createElement('span');d.className='vitem';
+  let inner;
+  if(s.length===1){
+    inner=`<button class="tile" style="background:${ST[s[0]].c};color:${ST[s[0]].ink}"><span class="num">${14+i}</span></button>`;
+  }else{
+    inner=`<button class="tile" style="color:var(--ink)">
+      <span class="half l" style="background:${ST[s[0]].c}"></span>
+      <span class="half r" style="background:${ST[s[1]].c}"></span>
+      <span class="split-line"></span><span class="num">${14+i}</span></button>`;
+  }
+  d.innerHTML=`${inner}<span class="vlab">${SLAB[i]}</span>`;
+  vb.appendChild(d);
+});
+vb.insertAdjacentHTML('beforeend',
+  `<span class="vitem"><button class="tile sel" style="background:${ST.free.c};color:${ST.free.ink}"><span class="num">21</span></button><span class="vlab">Selezionato</span></span>
+   <span class="vitem"><span style="position:relative;display:inline-flex"><button class="tile" style="background:${ST.season.c};color:${ST.season.ink}"><span class="num">22</span></button><span class="typebadge">${palmSvg}</span></span><span class="vlab">Tipologia</span></span>`);
+
+const vc=document.getElementById('vc');
+SAMPLE.forEach((s,i)=>{
+  const d=document.createElement('span');d.className='vitem';
+  const bg = s.length===1 ? ST[s[0]].c
+    : `linear-gradient(90deg, ${ST[s[0]].c} 0 50%, ${ST[s[1]].c} 50% 100%)`;
+  d.innerHTML=`<button class="umb"><span class="canopy" style="background:${bg}"><span class="spokes"></span></span>
+    <span class="pole"></span><span class="tag">${14+i}</span></button><span class="vlab">${SLAB[i]}</span>`;
+  vc.appendChild(d);
+});
+vc.insertAdjacentHTML('beforeend',
+  `<span class="vitem"><button class="umb sel"><span class="canopy" style="background:${ST.free.c}"><span class="spokes"></span></span><span class="pole"></span><span class="tag">21</span></button><span class="vlab">Selezionato</span></span>
+   <span class="vitem"><button class="umb"><span class="canopy" style="background:${ST.season.c}"><span class="spokes"></span></span><span class="pole"></span><span class="tag">22</span></button><span class="vlab">Tipologia</span></span>`);
+
+/* ------- drawer demo dots ------- */
+const dots=document.getElementById('dots');
+const seq=['season','daily','free','booked','season','free','daily','season','booked','free','season','daily'];
+for(let i=0;i<36;i++){
+  const s=seq[i%12];const el=document.createElement('i');
+  el.style.background=ST[s].c;dots.appendChild(el);
+}
+</script>
+</div>
+</body>
+</html>
