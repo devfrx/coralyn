@@ -7,6 +7,22 @@ import { useToasts } from '@/lib/toasts';
 import { mapSeed3 } from '@/mocks/data/seed';
 import MapView from './MapView.vue';
 
+/**
+ * Il dettaglio ombrellone vive ora nel Drawer (ui-kit), portato fuori dal DOM del
+ * wrapper via reka-ui DialogPortal — stesso motivo per cui i test del Modal in questo
+ * file leggono da `document.body` invece che dal wrapper VTU. `data-test="drawer-body"`
+ * è univoco al Drawer (il Modal usa "modal-body"), quindi risalendo al suo antenato
+ * `[role="dialog"]` otteniamo l'elemento giusto anche quando Drawer e Modal sono aperti
+ * insieme. Quando il Drawer è chiuso, reka-ui non monta affatto il contenuto: torna null.
+ */
+function drawerEl(): HTMLElement | null {
+  const body = document.body.querySelector('[data-test="drawer-body"]');
+  return (body?.closest('[role="dialog"]') as HTMLElement | null) ?? null;
+}
+function drawerButtons(): HTMLButtonElement[] {
+  return Array.from(drawerEl()?.querySelectorAll('button') ?? []);
+}
+
 describe('MapView', () => {
   it('rende settori e ombrelloni dal mock MSW', async () => {
     const w = mountApp(MapView);
@@ -33,11 +49,11 @@ describe('MapView', () => {
     await flushPromises();
     await w.findComponent({ name: 'UmbrellaCell' }).find('button').trigger('click');
     await flushPromises();
-    const aside = w.find('aside');
-    expect(aside.exists()).toBe(true);
-    expect(aside.text()).toContain('Registra incasso');
-    expect(aside.text()).not.toContain('Annulla prenotazione');
-    expect(aside.text()).toContain('Gestisci abbonamento');
+    const drawer = drawerEl();
+    expect(drawer).not.toBeNull();
+    expect(drawer!.textContent).toContain('Registra incasso');
+    expect(drawer!.textContent).not.toContain('Annulla prenotazione');
+    expect(drawer!.textContent).toContain('Gestisci abbonamento');
   });
 
   it('su una prenotazione giornaliera offre «Annulla prenotazione»', async () => {
@@ -54,8 +70,8 @@ describe('MapView', () => {
     await flushPromises();
     await w.findComponent({ name: 'UmbrellaCell' }).find('button').trigger('click');
     await flushPromises();
-    const aside = w.find('aside');
-    expect(aside.text()).toContain('Annulla prenotazione');
+    const drawer = drawerEl();
+    expect(drawer!.textContent).toContain('Annulla prenotazione');
   });
 
   it('apre il drawer selezionando un ombrellone e mostra il modale con "Nuova prenotazione"', async () => {
@@ -65,7 +81,7 @@ describe('MapView', () => {
     await flushPromises();
 
     // Il drawer non è ancora visibile
-    expect(w.find('aside').exists()).toBe(false);
+    expect(drawerEl()).toBeNull();
 
     // Clicca sul primo UmbrellaCell (il button interno emette 'select' → open())
     const firstCell = w.findComponent({ name: 'UmbrellaCell' });
@@ -73,13 +89,13 @@ describe('MapView', () => {
     await firstCell.find('button').trigger('click');
     await flushPromises();
 
-    // Ora il drawer è visibile
-    expect(w.find('aside').exists()).toBe(true);
+    // Ora il drawer è visibile (portato in document.body dal DialogPortal)
+    expect(drawerEl()).not.toBeNull();
 
-    // Clicca il pulsante "Nuova prenotazione"
-    const btn = w.findAll('button').find((b) => b.text().includes('Nuova prenotazione'));
+    // Clicca il pulsante "Nuova prenotazione" (nel footer del Drawer, anch'esso in portal)
+    const btn = drawerButtons().find((b) => b.textContent?.includes('Nuova prenotazione'));
     expect(btn).toBeTruthy();
-    await btn!.trigger('click');
+    btn!.click();
     await flushPromises();
 
     // Il modale è portato fuori dal wrapper (DialogPortal), leggiamo da document.body
@@ -129,7 +145,7 @@ describe('MapView', () => {
     // Apri drawer sul primo ombrellone libero + modale "Nuova prenotazione" (stessi passi del test sopra).
     await w.findComponent({ name: 'UmbrellaCell' }).find('button').trigger('click');
     await flushPromises();
-    await w.findAll('button').find((b) => b.text().includes('Nuova prenotazione'))!.trigger('click');
+    drawerButtons().find((b) => b.textContent?.includes('Nuova prenotazione'))!.click();
     await flushPromises();
     await new Promise((r) => setTimeout(r, 0));
     await flushPromises();
@@ -158,7 +174,7 @@ describe('MapView', () => {
     // Apri drawer sul primo ombrellone libero + modale "Nuova prenotazione" (stessi passi del test sopra).
     await w.findComponent({ name: 'UmbrellaCell' }).find('button').trigger('click');
     await flushPromises();
-    await w.findAll('button').find((b) => b.text().includes('Nuova prenotazione'))!.trigger('click');
+    drawerButtons().find((b) => b.textContent?.includes('Nuova prenotazione'))!.click();
     await flushPromises();
     await new Promise((r) => setTimeout(r, 0));
     await flushPromises();
@@ -191,7 +207,7 @@ describe('MapView', () => {
     // Apri drawer sul primo ombrellone libero + modale "Nuova prenotazione" (stessi passi del test sopra).
     await w.findComponent({ name: 'UmbrellaCell' }).find('button').trigger('click');
     await flushPromises();
-    await w.findAll('button').find((b) => b.text().includes('Nuova prenotazione'))!.trigger('click');
+    drawerButtons().find((b) => b.textContent?.includes('Nuova prenotazione'))!.click();
     await flushPromises();
     await new Promise((r) => setTimeout(r, 0));
     await flushPromises();
@@ -223,7 +239,7 @@ describe('MapView', () => {
 
     await w.findComponent({ name: 'UmbrellaCell' }).find('button').trigger('click');
     await flushPromises();
-    await w.findAll('button').find((b) => b.text().includes('Nuova prenotazione'))!.trigger('click');
+    drawerButtons().find((b) => b.textContent?.includes('Nuova prenotazione'))!.click();
     await flushPromises();
 
     // Scegli un cliente (necessario perché confirmBooking esce se customerId è vuoto).
@@ -298,19 +314,19 @@ describe('MapView', () => {
     await w.findComponent({ name: 'UmbrellaCell' }).find('button').trigger('click');
     await flushPromises();
 
-    const aside = w.find('aside');
-    expect(aside.exists()).toBe(true);
+    const drawer = drawerEl();
+    expect(drawer).not.toBeNull();
     // Nomi reali, NON "Mattina"/"Pomeriggio" hardcoded
-    expect(aside.text()).toContain('Alba');
-    expect(aside.text()).toContain('Pieno giorno');
-    expect(aside.text()).toContain('Tramonto');
+    expect(drawer!.textContent).toContain('Alba');
+    expect(drawer!.textContent).toContain('Pieno giorno');
+    expect(drawer!.textContent).toContain('Tramonto');
 
     // La fascia centrale è selezionabile: clic sul box "Pieno giorno" → aria-pressed=true
-    const midBox = aside.findAll('button').find((b) => b.text().includes('Pieno giorno'));
+    const midBox = drawerButtons().find((b) => b.textContent?.includes('Pieno giorno'));
     expect(midBox).toBeTruthy();
-    await midBox!.trigger('click');
+    midBox!.click();
     await flushPromises();
-    expect(midBox!.attributes('aria-pressed')).toBe('true');
+    expect(midBox!.getAttribute('aria-pressed')).toBe('true');
 
     w.unmount();
   });
@@ -327,11 +343,11 @@ describe('MapView', () => {
     await w.findComponent({ name: 'UmbrellaCell' }).find('button').trigger('click');
     await flushPromises();
 
-    const aside = w.find('aside');
-    expect(aside.text()).toContain('Libera nelle fasce:');
-    expect(aside.text()).toContain('Alba');
-    expect(aside.text()).toContain('Tramonto');
-    expect(aside.text()).not.toContain("l'intera giornata");
+    const drawer = drawerEl();
+    expect(drawer!.textContent).toContain('Libera nelle fasce:');
+    expect(drawer!.textContent).toContain('Alba');
+    expect(drawer!.textContent).toContain('Tramonto');
+    expect(drawer!.textContent).not.toContain("l'intera giornata");
 
     w.unmount();
   });
@@ -349,8 +365,8 @@ describe('MapView', () => {
     await cells[1].find('button').trigger('click');
     await flushPromises();
 
-    const aside = w.find('aside');
-    expect(aside.text()).toContain('Postazione libera tutto il giorno');
+    const drawer = drawerEl();
+    expect(drawer!.textContent).toContain('Postazione libera tutto il giorno');
 
     w.unmount();
   });
@@ -362,7 +378,7 @@ describe('MapView', () => {
     await flushPromises();
     await w.findComponent({ name: 'UmbrellaCell' }).find('button').trigger('click');
     await flushPromises();
-    await w.findAll('button').find((b) => b.text().includes('Nuova prenotazione'))!.trigger('click');
+    drawerButtons().find((b) => b.textContent?.includes('Nuova prenotazione'))!.click();
     await flushPromises();
 
     // Il modale è teleportato (DialogPortal): il primo <select> in document.body è il Tipo.
@@ -396,7 +412,7 @@ describe('MapView', () => {
     await flushPromises();
     await w.findComponent({ name: 'UmbrellaCell' }).find('button').trigger('click');
     await flushPromises();
-    await w.findAll('button').find((b) => b.text().includes('Nuova prenotazione'))!.trigger('click');
+    drawerButtons().find((b) => b.textContent?.includes('Nuova prenotazione'))!.click();
     await flushPromises();
     const typeSelect = document.body.querySelectorAll('select')[0] as HTMLSelectElement;
     typeSelect.value = 'subscription';
@@ -444,13 +460,13 @@ describe('MapView', () => {
     await new Promise((r) => setTimeout(r, 0));
     await flushPromises();
 
-    const aside = w.find('aside');
-    expect(aside.exists()).toBe(true);
+    const drawer = drawerEl();
+    expect(drawer).not.toBeNull();
     // Bug: selectedSlotId parte su Mattina, la prenotazione è su Pomeriggio → "Postazione disponibile".
     // Atteso: la fascia CON prenotazione è auto-selezionata → dettaglio + azioni incasso/annulla.
-    expect(aside.text()).toContain('Registra incasso');
-    expect(aside.text()).toContain('Annulla prenotazione');
-    expect(aside.text()).not.toContain('Postazione disponibile');
+    expect(drawer!.textContent).toContain('Registra incasso');
+    expect(drawer!.textContent).toContain('Annulla prenotazione');
+    expect(drawer!.textContent).not.toContain('Postazione disponibile');
 
     w.unmount();
   });
@@ -494,23 +510,23 @@ describe('MapView', () => {
     await new Promise((r) => setTimeout(r, 0));
     await flushPromises();
 
-    const aside = w.find('aside');
+    const drawer = drawerEl()!;
     // Default: la prima fascia con prenotazione (Mattina) → €30.
-    expect(aside.text()).toContain('30');
+    expect(drawer.textContent).toContain('30');
 
     // Clic sul box "Pomeriggio" → mostra la prenotazione pomeridiana (€55).
-    const pomBox = aside.findAll('button').find((b) => b.text().includes('Pomeriggio'));
+    const pomBox = drawerButtons().find((b) => b.textContent?.includes('Pomeriggio'));
     expect(pomBox).toBeTruthy();
-    await pomBox!.trigger('click');
+    pomBox!.click();
     await flushPromises();
-    expect(aside.text()).toContain('55');
+    expect(drawer.textContent).toContain('55');
 
     // Clic sul box "Mattina" → torna alla prenotazione mattutina (€30).
-    const matBox = aside.findAll('button').find((b) => b.text().includes('Mattina'));
+    const matBox = drawerButtons().find((b) => b.textContent?.includes('Mattina'));
     expect(matBox).toBeTruthy();
-    await matBox!.trigger('click');
+    matBox!.click();
     await flushPromises();
-    expect(aside.text()).toContain('30');
+    expect(drawer.textContent).toContain('30');
 
     w.unmount();
   });
@@ -526,9 +542,9 @@ describe('MapView', () => {
     await flushPromises();
 
     // Clic sul bottone «Abbonamento» del drawer (oggi morto → il modale non si apre).
-    const abbBtn = w.findAll('button').find((b) => b.text().includes('Abbonamento'));
+    const abbBtn = drawerButtons().find((b) => b.textContent?.includes('Abbonamento'));
     expect(abbBtn).toBeTruthy();
-    await abbBtn!.trigger('click');
+    abbBtn!.click();
     await flushPromises();
     await new Promise((r) => setTimeout(r, 0));
     await flushPromises();
@@ -551,9 +567,9 @@ describe('MapView', () => {
     await w.findComponent({ name: 'UmbrellaCell' }).find('button').trigger('click');
     await flushPromises();
 
-    const aside = w.find('aside');
-    expect(aside.exists()).toBe(true);
-    expect(aside.findAll('button').some((b) => b.text().includes('Presenza'))).toBe(false);
+    const drawer = drawerEl();
+    expect(drawer).not.toBeNull();
+    expect(drawerButtons().some((b) => b.textContent?.includes('Presenza'))).toBe(false);
 
     w.unmount();
   });
@@ -588,22 +604,22 @@ describe('MapView', () => {
 
     await w.findComponent({ name: 'UmbrellaCell' }).find('button').trigger('click');
     await flushPromises();
-    const aside = w.find('aside');
+    const drawer = drawerEl()!;
 
     // Il box "Giornata int." mostra "Non disponibile"
-    const fullBox = aside.findAll('button').find((b) => b.text().includes('Giornata int.'));
+    const fullBox = drawerButtons().find((b) => b.textContent?.includes('Giornata int.'));
     expect(fullBox).toBeTruthy();
-    expect(fullBox!.text()).toContain('Non disponibile');
+    expect(fullBox!.textContent).toContain('Non disponibile');
 
     // Selezionandolo → dettaglio copertura: fasce copritrici + clienti + importi; nessuna azione di booking
-    await fullBox!.trigger('click');
+    fullBox!.click();
     await flushPromises();
-    expect(aside.text()).toContain('coperta da');
-    expect(aside.text()).toContain('Mattina');
-    expect(aside.text()).toContain('Pomeriggio');
-    expect(aside.text()).toContain('30');
-    expect(aside.text()).toContain('55');
-    expect(aside.text()).not.toContain('Registra incasso');
+    expect(drawer.textContent).toContain('coperta da');
+    expect(drawer.textContent).toContain('Mattina');
+    expect(drawer.textContent).toContain('Pomeriggio');
+    expect(drawer.textContent).toContain('30');
+    expect(drawer.textContent).toContain('55');
+    expect(drawer.textContent).not.toContain('Registra incasso');
 
     w.unmount();
   });
@@ -637,16 +653,16 @@ describe('MapView', () => {
 
     await w.findComponent({ name: 'UmbrellaCell' }).find('button').trigger('click');
     await flushPromises();
-    const aside = w.find('aside');
+    const drawer = drawerEl()!;
 
     // Seleziona la fascia "Mattina" (coperta dalla full-day)
-    const matBox = aside.findAll('button').find((b) => b.text().includes('Mattina'));
+    const matBox = drawerButtons().find((b) => b.textContent?.includes('Mattina'));
     expect(matBox).toBeTruthy();
-    await matBox!.trigger('click');
+    matBox!.click();
     await flushPromises();
-    expect(aside.text()).toContain('coperta da');
-    expect(aside.text()).toContain('Giornata int.');
-    expect(aside.text()).toContain('800');
+    expect(drawer.textContent).toContain('coperta da');
+    expect(drawer.textContent).toContain('Giornata int.');
+    expect(drawer.textContent).toContain('800');
 
     w.unmount();
   });

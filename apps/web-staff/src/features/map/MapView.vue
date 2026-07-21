@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue';
 import { useRouter } from 'vue-router';
-import { UmbrellaCell, SegmentedControl, Badge, Button, IconButton, ActionBar, Modal, Icon, Select, ModalFooter, formatEuro } from '@coralyn/ui-kit';
+import { UmbrellaCell, SegmentedControl, Badge, Button, Drawer, ActionBar, Modal, Icon, Select, ModalFooter, formatEuro } from '@coralyn/ui-kit';
 import type { UmbrellaDTO, SlotState, BookingDTO, BookingType } from '@coralyn/contracts';
 import { PAY_LABEL, PAY_TONE } from '@/lib/statusMaps';
 import { useDayMap } from './useDayMap';
@@ -246,7 +246,7 @@ const freeSlotOptions = computed(() =>
 
     <p v-if="isLoading" class="px-[26px] py-10 text-[var(--color-text-muted)]">Caricamento…</p>
 
-    <div v-else class="flex flex-1 flex-col items-stretch gap-[18px] px-[26px] pb-[26px] pt-4 lg:flex-row">
+    <div v-else class="flex flex-1 flex-col px-[26px] pb-[26px] pt-4">
       <div class="relative min-w-0 flex-1 overflow-auto rounded-[var(--radius-xl)] border border-[var(--color-warm-border-stage)] p-5 [box-shadow:var(--shadow-card)]"
         style="background:linear-gradient(168deg,var(--color-warm-075) 0%,var(--color-warm-150) 100%);">
         <div class="mb-3 flex items-baseline justify-between">
@@ -299,15 +299,12 @@ const freeSlotOptions = computed(() =>
         </div>
       </div>
 
-      <aside v-if="sel" class="flex w-full flex-none flex-col rounded-[var(--radius-xl)] border border-[var(--color-border)] bg-[var(--color-surface)] p-5 [box-shadow:var(--shadow-drawer)] lg:w-[380px]">
-        <div class="flex items-start justify-between">
-          <div>
-            <div class="mb-1 text-[11px] font-semibold uppercase tracking-[.06em] text-[var(--color-text-muted)]">Ombrellone</div>
-            <h3 class="text-2xl font-bold tracking-[-.02em] tabular-nums text-[var(--color-text)]">{{ sel.u.label }}</h3>
-          </div>
-          <IconButton icon="x" label="Chiudi" variant="subtle" @click="close" />
-        </div>
-        <div class="my-2.5 flex items-center gap-2">
+    </div>
+
+    <Drawer :open="sel !== null" @update:open="(v: boolean) => { if (!v) close(); }"
+      :title="sel ? `Ombrellone «${sel.u.label}»` : ''">
+      <template v-if="sel">
+        <div class="flex items-center gap-2">
           <Badge tone="accent"><Icon :name="typeIcon(sel.u) ?? 'umbrella'" :size="12" />{{ typeName(sel.u) }}</Badge>
           <span class="text-xs text-[var(--color-text-muted)]">Settore {{ sel.sector }} · {{ sel.row }}</span>
         </div>
@@ -348,12 +345,14 @@ const freeSlotOptions = computed(() =>
           </template>
           <div v-else class="text-center">{{ availabilityMessage }}</div>
         </div>
-        <div class="mt-auto flex flex-col gap-2 pt-4">
+      </template>
+      <template #footer>
+        <div class="flex flex-col gap-2">
           <Button @click="openModal()"><Icon name="plus" :size="17" />Nuova prenotazione</Button>
           <Button variant="secondary" @click="openModal('subscription')"><Icon name="star" :size="15" />Abbonamento</Button>
         </div>
-      </aside>
-    </div>
+      </template>
+    </Drawer>
 
     <Modal v-model:open="modalBooking" title="Nuova prenotazione" :eyebrow="`Settore ${sel?.sector ?? ''} · Ombrellone ${sel?.u.label ?? ''}`">
       <div class="flex flex-col gap-[18px]">
