@@ -1,6 +1,11 @@
 # ADR-0019: App-shell e pattern UX — sezioni, drawer contestuale, responsive
 
 - **Status:** Accepted
+- **Aggiornamento (2026-07-21):** la sezione **Responsive desktop ↔ tablet** (rail di icone +
+  bottom-sheet) è **emendata da [ADR-0051](0051-responsive-drawer-e-telefono-graceful.md)**: sotto
+  `lg` la nav è un **drawer off-canvas** (hamburger) e il telefono è target *graceful*; il pannello
+  mappa resta **impilato** (bottom-sheet deferito, [D-054](../deferred.md)). L'impianto dell'app-shell
+  (sezioni, card, drawer contestuale della mappa, routing) resta invariato.
 - **Data:** 2026-06-28
 - **Decisori:** Team di progetto
 - **ADR correlati:** [ADR-0004](0004-form-factor-e-delivery.md) (web+PWA, desktop+tablet), [ADR-0005](0005-modello-mappa.md)/[ADR-0014](0014-setup-mappa-strutturato.md) (Mappa come home), [ADR-0015](0015-osservabilita-e-console-superuser.md) (console superuser), [ADR-0017](0017-design-system-frontend.md) (design system), [ADR-0020](0020-resa-mappa.md) (resa mappa)

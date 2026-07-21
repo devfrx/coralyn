@@ -113,4 +113,22 @@ componenti) è la spec d'implementazione di `ui-kit` ([ADR-0017](decisions/0017-
 - [ADR-0030](decisions/0030-codice-e-db-in-inglese.md) — Codice e DB interamente in inglese (supera ADR-0003)
 - [ADR-0031](decisions/0031-fuso-orario-e-date-operative.md) — Fuso orario e date operative (calendario nel fuso dello Stabilimento)
 - [ADR-0032](decisions/0032-pricing-engine-precedenza.md) — Pricing engine — dimensioni e precedenza esplicita
+- [ADR-0033](decisions/0033-astrazione-componenti-frontend.md) — Astrazione dei componenti frontend e fedeltà ai mock
 - [ADR-0034](decisions/0034-prelazione-finestre-lazy.md) — Prelazione: finestre derivate a valutazione lazy
+- [ADR-0035](decisions/0035-pricing-tipo-partiziona-la-formula.md) — Il tipo prenotazione partiziona la formula di prezzo
+- [ADR-0036](decisions/0036-equipment-catalogo-e-composizione.md) — Dotazione: catalogo di tipi + composizione normalizzata
+- [ADR-0037](decisions/0037-anti-overlap-exclusion-constraint.md) — Anti-overlap garantito a livello DB (EXCLUDE constraint)
+- [ADR-0038](decisions/0038-libreria-grafici-echarts.md) — Libreria grafici: Apache ECharts (SVG)
+- [ADR-0039](decisions/0039-rbac-role-guard.md) — RBAC: role-guard applicativo (`@Roles`/`RolesGuard`)
+- [ADR-0040](decisions/0040-lettura-aggregata-cross-tenant.md) — Lettura aggregata cross-tenant via loop `forTenant`
+- [ADR-0041](decisions/0041-app-frontend-dedicata-platform.md) — App frontend dedicata `web-platform` (Console distributore)
+- [ADR-0042](decisions/0042-trasporto-email-e-consegna-credenziali.md) — Trasporto email e consegna credenziali (link set-password)
+- [ADR-0043](decisions/0043-erasure-e-retention-cliente-gdpr.md) — Erasure e retention del Cliente (GDPR)
+- [ADR-0044](decisions/0044-iconbutton-variante-danger.md) — Variante `danger` per `IconButton`
+- [ADR-0045](decisions/0045-rubrica-cta-contestuale-e-actionbar.md) — Rubrica CTA contestuale e primitiva `ActionBar`
+- [ADR-0046](decisions/0046-occupazione-a-intervalli-coverage.md) — Occupazione fisica a intervalli — `BookingCoverage`
+- [ADR-0047](decisions/0047-cessione-subentro-titolarita-incasso.md) — Cessione/subentro — titolarità e riconciliazione incasso
+- [ADR-0048](decisions/0048-assenze-comunicate-release-occupazione.md) — Assenze comunicate — release senza compensazione
+- [ADR-0049](decisions/0049-auth-cliente-provisioned-tenant-pubblico.md) — Auth canale cliente — provisioned, tenant dal token
+- [ADR-0050](decisions/0050-noleggio-mezzi-servizi.md) — Noleggio mezzi/servizi come bounded context
+- [ADR-0051](decisions/0051-responsive-drawer-e-telefono-graceful.md) — Responsive `web-staff`: drawer sotto `lg`, telefono graceful (emenda 0019/0004)

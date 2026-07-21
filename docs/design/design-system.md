@@ -284,17 +284,17 @@ Ombre **soft, tinte di teal navy** (rgb 15,60,73), elevazione contenuta; brand s
 ```
 
 Uso: hover cella (translateY -1px + `--shadow-soft`, `--motion-fast`); apertura drawer (slide-in da
-destra su desktop, slide-up come bottom-sheet su tablet, `--motion-slow`/`--ease-emphasized`);
-load della mappa con reveal **scaglionato per fila** (`animation-delay` crescente, sobrio).
+destra per il drawer contestuale, da sinistra per il `NavDrawer` in layout compatto,
+`--motion-slow`/`--ease-emphasized`); load della mappa con reveal **scaglionato per fila**
+(`animation-delay` crescente, sobrio).
 
 ## 9. Token — Layout, z-index, breakpoint
 
 ```css
 :root {
   --shell-gutter: var(--space-3);     /* spazio tra le card della shell */
-  --sidebar-width: 220px;             /* desktop: sidebar piena */
-  --sidebar-rail: 64px;               /* tablet: rail di icone */
-  --drawer-width: 380px;              /* desktop: drawer laterale */
+  --sidebar-width: 220px;             /* esteso: sidebar piena */
+  --drawer-width: 380px;              /* esteso: drawer laterale */
   --topbar-height: 56px;
   --cell-size: 34px;                  /* desktop */
   --cell-size-touch: 44px;            /* tablet: target tocco ≥44px */
@@ -307,14 +307,14 @@ load della mappa con reveal **scaglionato per fila** (`animation-delay` crescent
 }
 ```
 
-Breakpoint ([ADR-0019](../architecture/decisions/0019-app-shell-e-ux.md)/[ADR-0004](../architecture/decisions/0004-form-factor-e-delivery.md)):
+Breakpoint ([ADR-0051](../architecture/decisions/0051-responsive-drawer-e-telefono-graceful.md), che emenda [ADR-0019](../architecture/decisions/0019-app-shell-e-ux.md)/[ADR-0004](../architecture/decisions/0004-form-factor-e-delivery.md)) — due stati, soglia `lg` (default Tailwind, 1024px):
 
 | Nome | Range | App-shell |
 |---|---|---|
-| **tablet** | 768–1023px | sidebar → **rail di icone**; drawer → **bottom-sheet**; celle a `--cell-size-touch` |
-| **desktop** | ≥ 1024px | sidebar **piena**; drawer **laterale** in overlay; celle a `--cell-size` |
+| **compatto** | < 1024px (`< lg`) | sidebar nascosta → nav in **drawer off-canvas** (`NavDrawer`, hamburger in topbar); pannello mappa **impilato** (bottom-sheet: [D-054](../architecture/deferred.md)); celle a `--cell-size-touch` |
+| **esteso** | ≥ 1024px (`≥ lg`) | sidebar **piena**; drawer **laterale** in overlay; celle a `--cell-size` |
 
-> Sotto 768px (telefono) è **fuori MVP** ([ADR-0004](../architecture/decisions/0004-form-factor-e-delivery.md)): il layout tablet degrada in modo accettabile, non è un target di design.
+> Sotto 768px (telefono) vale lo stesso layout compatto: **target graceful** ([ADR-0051](../architecture/decisions/0051-responsive-drawer-e-telefono-graceful.md)) — deve funzionare senza debiti, ma densità e flussi restano tarati su desktop + tablet.
 
 ## 10. Componenti base (linguaggio)
 
@@ -415,8 +415,10 @@ Layout **a card su tela neutra** (`--color-canvas`), gutter `--shell-gutter`.
   ([ADR-0015](../architecture/decisions/0015-osservabilita-e-console-superuser.md)).
 - **Area contenuto** (`card`, `--color-surface`/`--color-bg`): ospita la sezione attiva; il
   **drawer** appare **in overlay** qui, non come colonna fissa.
-- **Responsive**: desktop = sidebar piena + drawer laterale; tablet = **rail di icone** (tooltip
-  sul nome) + **bottom-sheet** trascinabile. Vedi §9.
+- **Responsive** ([ADR-0051](../architecture/decisions/0051-responsive-drawer-e-telefono-graceful.md)):
+  esteso (`≥ lg`) = sidebar piena + drawer laterale; compatto (`< lg`) = sidebar nascosta, nav in
+  **drawer off-canvas** (`NavDrawer` ui-kit) aperto dall'hamburger in topbar e chiuso su cambio
+  route o al ritorno `≥ lg`; pannello mappa **impilato**. Vedi §9.
 - **PWA** ([ADR-0004](../architecture/decisions/0004-form-factor-e-delivery.md)): installabile,
   **shell in cache** (offline-light); sync dati rimandato ([D-008](../architecture/deferred.md)).
 

@@ -1,6 +1,11 @@
 # ADR-0004: Form factor e modello di distribuzione
 
 - **Status:** Accepted
+- **Aggiornamento (2026-07-21):** la posizione sullo smartphone («resta per consultazioni rapide»)
+  è **emendata da [ADR-0051](0051-responsive-drawer-e-telefono-graceful.md)**: il telefono è ora un
+  **target graceful** — il layout compatto (`< lg`) funziona anche sotto 768px, senza debiti —
+  mentre desktop e tablet restano i contesti primari. Il resto della decisione (web + PWA,
+  Electron rimandato) è invariato.
 - **Data:** 2026-06-27
 - **Decisori:** Team di progetto
 - **ADR correlati:** [ADR-0007](0007-stile-architetturale.md), [ADR-0008](0008-stack-e-layout.md)
