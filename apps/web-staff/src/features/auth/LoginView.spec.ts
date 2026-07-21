@@ -39,6 +39,28 @@ describe('LoginView', () => {
     expect(push).toHaveBeenCalledWith({ name: 'map' });
   });
 
+  it('dopo il login torna alla rotta in ?redirect quando è un path interno sicuro (D-037)', async () => {
+    routeMock.query = { redirect: '/customers/c-1' };
+    const w = mountLogin();
+    await w.find('input[type="email"]').setValue('admin@coralyn.dev');
+    await w.find('input[type="password"]').setValue('coralyn-admin');
+    await w.find('form').trigger('submit.prevent');
+    await flushPromises();
+
+    expect(push).toHaveBeenCalledWith('/customers/c-1');
+  });
+
+  it('ignora un ?redirect non sicuro (open-redirect) e va alla mappa (D-037)', async () => {
+    routeMock.query = { redirect: '//evil.example' };
+    const w = mountLogin();
+    await w.find('input[type="email"]').setValue('admin@coralyn.dev');
+    await w.find('input[type="password"]').setValue('coralyn-admin');
+    await w.find('form').trigger('submit.prevent');
+    await flushPromises();
+
+    expect(push).toHaveBeenCalledWith({ name: 'map' });
+  });
+
   it('credenziali errate mostrano un errore e non navigano', async () => {
     const w = mountLogin();
     await w.find('input[type="email"]').setValue('admin@coralyn.dev');

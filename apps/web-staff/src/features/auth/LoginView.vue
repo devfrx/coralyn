@@ -14,12 +14,19 @@ const loading = ref(false);
 // Conferma di ritorno dalla pagina pubblica set-password (/imposta-password → /login?setPassword=1):
 // l'utente ha appena impostato/reimpostato la password, invitiamolo ad accedere con quella.
 const justSetPassword = computed(() => route.query.setPassword === '1');
+// D-037: dopo un logout forzato da 401, l'handler globale rimanda qui con ?redirect=<rotta>.
+// Onoriamo SOLO path interni (inizio con un singolo '/'): '//host' o URL assoluti sono scartati
+// per non trasformare il parametro in un open-redirect.
+function safeRedirect(q: unknown): string | null {
+  return typeof q === 'string' && q.startsWith('/') && !q.startsWith('//') ? q : null;
+}
 async function accedi() {
   errore.value = null;
   loading.value = true;
   try {
     await session.login(email.value, password.value);
-    router.push({ name: 'map' });
+    const target = safeRedirect(route.query.redirect);
+    router.push(target ?? { name: 'map' });
   } catch {
     errore.value = 'Email o password non corretti';
   } finally {
