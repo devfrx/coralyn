@@ -80,13 +80,11 @@ const cols: DataTableColumn[] = [
       </template>
     </PageToolbar>
 
-    <p v-if="isLoading" class="py-10 text-center text-sm text-[var(--color-text-muted)]">Caricamento…</p>
-
     <DataTable
-      v-else
       :columns="cols"
       :rows="(establishments as unknown as Record<string, unknown>[])"
       :row-key="(r) => (r as unknown as PlatformEstablishmentDTO).id"
+      :loading="isLoading"
       empty-message="Nessun lido registrato."
     >
       <template #cell-name="{ row }">
@@ -109,7 +107,7 @@ const cols: DataTableColumn[] = [
             :data-testid="`suspend-${(row as unknown as PlatformEstablishmentDTO).id}`"
             variant="secondary"
             size="sm"
-            :disabled="isSuspending((row as unknown as PlatformEstablishmentDTO).id)"
+            :loading="isSuspending((row as unknown as PlatformEstablishmentDTO).id)"
             @click="askSuspend(row as unknown as PlatformEstablishmentDTO)"
           >Sospendi</Button>
           <Button
@@ -117,7 +115,7 @@ const cols: DataTableColumn[] = [
             :data-testid="`reactivate-${(row as unknown as PlatformEstablishmentDTO).id}`"
             variant="secondary"
             size="sm"
-            :disabled="isReactivating((row as unknown as PlatformEstablishmentDTO).id)"
+            :loading="isReactivating((row as unknown as PlatformEstablishmentDTO).id)"
             @click="askReactivate(row as unknown as PlatformEstablishmentDTO)"
           >Riattiva</Button>
         </ActionBar>

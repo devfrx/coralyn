@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
 import { useRoute } from 'vue-router';
-import { ActionBar, Badge, Button, ConfirmDialog, EmptyState, StatTile, formatEuro } from '@coralyn/ui-kit';
+import { ActionBar, Badge, Button, ConfirmDialog, EmptyState, Skeleton, StatTile, formatEuro, useDelayedLoading } from '@coralyn/ui-kit';
 import { useEstablishmentDetail, useSuspendEstablishment, useReactivateEstablishment, useResetAdminPassword } from './usePlatformEstablishments';
 import { pushToast } from '@/lib/toasts';
 
@@ -9,6 +9,8 @@ const route = useRoute();
 const id = () => String(route.params.id);
 
 const { data, isLoading, isError, refetch } = useEstablishmentDetail(id);
+const skeletonVisible = useDelayedLoading(() => isLoading.value);
+const METRIC_LABELS = ['Ombrelloni', 'Settori', 'File', 'Staff attivi', 'Incasso stagione', 'Abbonamenti attivi', 'Prenotazioni stagione', 'Occ. oggi', 'Ultima attività', 'Creato'] as const;
 
 const DATE_FMT = new Intl.DateTimeFormat('it-IT', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' });
 function fmtDate(iso: string | null | undefined): string {
@@ -63,11 +65,16 @@ async function onConfirmReset(): Promise<void> {
       ← Lidi
     </RouterLink>
 
-    <p v-if="isLoading" class="py-10 text-center text-sm text-[var(--color-text-muted)]">Caricamento…</p>
+    <div v-if="skeletonVisible" aria-busy="true">
+      <div class="mb-5 flex items-center gap-3"><Skeleton width="220px" height="28px" /></div>
+      <div class="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+        <StatTile v-for="l in METRIC_LABELS" :key="l" :label="l" loading />
+      </div>
+    </div>
 
-    <EmptyState v-else-if="isError || !data" message="Lido non trovato." />
+    <EmptyState v-else-if="!isLoading && (isError || !data)" message="Lido non trovato." />
 
-    <template v-else>
+    <template v-else-if="data">
       <div class="mb-5 flex items-center justify-between gap-3">
         <div class="flex items-center gap-3">
           <h2 data-testid="detail-name" class="text-[23px] font-bold tracking-[-.015em] text-[var(--color-text)]">{{ data.name }}</h2>
@@ -78,14 +85,14 @@ async function onConfirmReset(): Promise<void> {
             data-testid="toggle-suspend"
             variant="secondary"
             size="sm"
-            :disabled="suspend.isPending.value || reactivate.isPending.value"
+            :loading="suspend.isPending.value || reactivate.isPending.value"
             @click="askAction"
           >{{ data.suspendedAt ? 'Riattiva' : 'Sospendi' }}</Button>
           <Button
             data-testid="reset-admin"
             variant="secondary"
             size="sm"
-            :disabled="resetPw.isPending.value"
+            :loading="resetPw.isPending.value"
             @click="askReset"
           >Reset password admin</Button>
         </ActionBar>
