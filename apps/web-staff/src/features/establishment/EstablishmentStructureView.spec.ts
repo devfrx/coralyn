@@ -539,4 +539,59 @@ describe('EstablishmentStructureView — shell Cantiere', () => {
     await w.findAll('[data-testid="scene-cell"] button')[1].trigger('click', { shiftKey: true });
     expect(w.find('[data-testid="inspector"] [data-testid="multi-assign"]').attributes('disabled')).toBeDefined();
   });
+
+  it('D-055: sezione Ritirati con etichetta, posizione e data; assente se lista vuota', async () => {
+    useFixture();
+    const w1 = mountApp(EstablishmentStructureView);
+    await settle(); // MSW default GET retired → []
+    expect(w1.find('[data-testid="retired-section"]').exists()).toBe(false);
+    w1.unmount();
+
+    server.use(http.get('/api/establishment/umbrellas/retired', () => HttpResponse.json([
+      { id: 'u-r', label: '12', umbrellaTypeId: null, retiredAt: '2026-06-20T09:00:00.000Z', retiredFrom: 'Centro · Fila 1' },
+    ])));
+    const w2 = mountApp(EstablishmentStructureView);
+    await settle();
+    const row = w2.find('[data-testid="retired-row"]');
+    expect(row.exists()).toBe(true);
+    expect(row.text()).toContain('12');
+    expect(row.text()).toContain('Centro · Fila 1');
+  });
+
+  it('D-055: Ripristina chiama la mutation con la fila scelta e mostra il toast', async () => {
+    useFixture();
+    server.use(http.get('/api/establishment/umbrellas/retired', () => HttpResponse.json([
+      { id: 'u-r', label: '12', umbrellaTypeId: null, retiredAt: '2026-06-20T09:00:00.000Z', retiredFrom: 'Centro · Fila 1' },
+    ])));
+    let restoredId: string | null = null;
+    let restoredBody: unknown = null;
+    server.use(http.post('/api/establishment/umbrellas/:id/restore', async ({ params, request }) => {
+      restoredId = params.id as string;
+      restoredBody = await request.json();
+      return HttpResponse.json({ id: params.id as string, label: '12', umbrellaTypeId: null }, { status: 201 });
+    }));
+    const w = mountApp(EstablishmentStructureView);
+    const session = useSessionStore();
+    session.user = { id: 'u-1', email: 'admin@coralyn.dev', role: Role.Admin, establishmentId: 'e-1', establishmentName: 'Lido Maestrale' };
+    await settle();
+    await w.find('[data-testid="retired-restore-row"]').setValue('r-1');
+    await w.find('[data-testid="retired-restore"]').trigger('click');
+    await settle();
+    expect(restoredId).toBe('u-r');
+    expect(restoredBody).toEqual({ rowId: 'r-1' });
+    const { useToasts } = await import('@/lib/toasts');
+    expect(useToasts().items.some((t) => t.message.includes('Ombrellone ripristinato'))).toBe(true);
+  });
+
+  it('D-055: staff non vede le azioni di ripristino', async () => {
+    useFixture();
+    server.use(http.get('/api/establishment/umbrellas/retired', () => HttpResponse.json([
+      { id: 'u-r', label: '12', umbrellaTypeId: null, retiredAt: '2026-06-20T09:00:00.000Z', retiredFrom: 'Centro · Fila 1' },
+    ])));
+    const w = mountApp(EstablishmentStructureView);
+    await settle(); // nessuna sessione → ruolo Staff di default
+    expect(w.find('[data-testid="retired-row"]').exists()).toBe(true);
+    expect(w.find('[data-testid="retired-restore-row"]').exists()).toBe(false);
+    expect(w.find('[data-testid="retired-restore"]').exists()).toBe(false);
+  });
 });

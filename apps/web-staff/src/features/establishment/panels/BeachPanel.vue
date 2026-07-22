@@ -3,7 +3,7 @@ import { computed, ref } from 'vue';
 import { Button, IconButton, Icon, Field, Input, Select, ConfirmDialog } from '@coralyn/ui-kit';
 import type { EstablishmentStructureDTO, UmbrellaTypeDTO } from '@coralyn/contracts';
 import { pushToast } from '@/lib/toasts';
-import { useCreateUmbrellaType, useUpdateUmbrellaType, useDeleteUmbrellaType } from '../useEstablishmentStructure';
+import { useCreateUmbrellaType, useUpdateUmbrellaType, useDeleteUmbrellaType, useRetiredUmbrellas, useRestoreUmbrella } from '../useEstablishmentStructure';
 
 const props = defineProps<{ data: EstablishmentStructureDTO; isAdmin: boolean }>();
 
@@ -36,6 +36,20 @@ function confirmDelete() {
   if (!deleting.value) return;
   removeType.mutate(deleting.value.id, { onSuccess: () => pushToast('Tipologia eliminata.') });
   deleting.value = null;
+}
+
+// Ombrelloni ritirati (D-055): archivio consultabile con ripristino in una fila scelta.
+const RETIRED_FMT = new Intl.DateTimeFormat('it-IT', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'Europe/Rome' });
+function formatDate(iso: string) { return RETIRED_FMT.format(new Date(iso)); }
+const retired = useRetiredUmbrellas();
+const restore = useRestoreUmbrella();
+const restoreRowByUmbrella = ref<Record<string, string>>({});
+const allRows = computed(() =>
+  props.data.sectors.flatMap((s) => s.rows.map((r) => ({ id: r.id, label: r.label, sectorName: s.name }))));
+function onRestore(id: string) {
+  const rowId = restoreRowByUmbrella.value[id];
+  if (!rowId) return;
+  restore.mutate({ id, rowId }, { onSuccess: () => pushToast('Ombrellone ripristinato.') });
 }
 </script>
 
@@ -84,6 +98,27 @@ function confirmDelete() {
         </div>
         <p class="mt-2 text-[11.5px] leading-relaxed text-[var(--color-text-muted)]">Classificano l'ombrellone (icona sulla Mappa), non ne fissano il prezzo. «Normale» è la predefinita.</p>
       </div>
+      <template v-if="retired.data.value?.length">
+        <hr class="border-0 border-t border-[var(--color-border-row)]">
+        <div data-testid="retired-section">
+          <div class="mb-1.5 text-[10px] font-extrabold uppercase tracking-[.09em] text-[var(--color-text-muted)]">Ritirati ({{ retired.data.value.length }})</div>
+          <div v-for="u in retired.data.value" :key="u.id" data-testid="retired-row" class="border-b border-[var(--color-border-row)] py-2 last:border-0">
+            <div class="flex items-baseline gap-2">
+              <span class="text-[12.5px] font-bold">{{ u.label }}</span>
+              <span class="text-[11px] text-[var(--color-text-muted)]">{{ u.retiredFrom ?? 'posizione sconosciuta' }} · ritirato il {{ formatDate(u.retiredAt) }}</span>
+            </div>
+            <div v-if="isAdmin" class="mt-1.5 flex items-center gap-2">
+              <Select v-model="restoreRowByUmbrella[u.id]" data-testid="retired-restore-row" class="flex-1">
+                <option value="" disabled>Fila di destinazione…</option>
+                <option v-for="r in allRows" :key="r.id" :value="r.id">{{ r.sectorName }} · {{ r.label }}</option>
+              </Select>
+              <Button size="sm" data-testid="retired-restore" :disabled="!restoreRowByUmbrella[u.id] || restore.isPending.value"
+                :loading="restore.isPending.value" @click="onRestore(u.id)">Ripristina</Button>
+            </div>
+          </div>
+          <p class="mt-2 text-[11.5px] leading-relaxed text-[var(--color-text-muted)]">Un ritirato non è in spiaggia né prenotabile; lo storico resta. Ripristinandolo torna in coda alla fila scelta.</p>
+        </div>
+      </template>
       <hr class="border-0 border-t border-[var(--color-border-row)]">
       <p class="text-[11.5px] leading-relaxed text-[var(--color-text-muted)]">Clicca un settore, una fila o un ombrellone nella scena per modificarlo. Le forme tratteggiate creano.</p>
     </div>
