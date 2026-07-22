@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, ref, onBeforeUpdate } from 'vue';
 import type { StructureSectorDTO, UmbrellaTypeDTO } from '@coralyn/contracts';
 import StructureGuidedSetup from './StructureGuidedSetup.vue';
 import StructureRow from './StructureRow.vue';
@@ -44,6 +44,26 @@ function handleGuidedAdvance(): void {
   else if (guidedStep.value === 2 && firstSectorId.value) emit('create-row', firstSectorId.value);
   else if (guidedStep.value === 3 && firstRowId.value) emit('select-row', firstRowId.value);
 }
+
+// Roving tabindex APG per i tab settore: un solo tab nel tab-order (il selezionato), frecce con
+// wrap + Home/End spostano fuoco e selezione (attivazione automatica, coerente col click).
+const tabRefs = ref<(HTMLButtonElement | null)[]>([]);
+onBeforeUpdate(() => { tabRefs.value = []; }); // niente ref stantii se i settori cambiano
+function setTabRef(el: unknown, i: number): void {
+  tabRefs.value[i] = el as HTMLButtonElement | null;
+}
+function onTabKeydown(e: KeyboardEvent, i: number) {
+  const n = props.sectors.length;
+  let next: number;
+  if (e.key === 'ArrowRight') next = (i + 1) % n;
+  else if (e.key === 'ArrowLeft') next = (i - 1 + n) % n;
+  else if (e.key === 'Home') next = 0;
+  else if (e.key === 'End') next = n - 1;
+  else return;
+  e.preventDefault();
+  emit('select-sector', props.sectors[next].id);
+  tabRefs.value[next]?.focus();
+}
 </script>
 
 <template>
@@ -53,13 +73,16 @@ function handleGuidedAdvance(): void {
       <span class="absolute right-3.5 top-2 text-[10px] font-bold tracking-[.14em] text-[var(--color-sea-ink)]">MARE</span>
     </div>
     <div class="map-shore" aria-hidden="true"></div>
-    <div class="map-toolbar flex items-center gap-2 px-4 py-2.5" role="tablist" aria-label="Settori">
-      <button v-for="s in sectors" :key="s.id" type="button" role="tab" :aria-selected="current?.id === s.id"
-        class="rounded-full border-[1.5px] px-3.5 py-1.5 text-[12.5px] font-bold focus-visible:outline-none focus-visible:[box-shadow:var(--ring-focus)]"
-        :class="current?.id === s.id ? 'border-[var(--color-border-input)] bg-[var(--color-surface)] text-[var(--color-text)] [box-shadow:var(--shadow-soft)]' : 'border-transparent text-[var(--color-text-2nd)]'"
-        @click="emit('select-sector', s.id)">
-        {{ s.name }} <span class="ml-1 text-[11.5px] font-semibold text-[var(--color-text-muted)] [font-variant-numeric:tabular-nums]">{{ seats(s) }} posti</span>
-      </button>
+    <div class="map-toolbar flex items-center gap-2 px-4 py-2.5">
+      <div class="flex items-center gap-2" role="tablist" aria-label="Settori">
+        <button v-for="(s, i) in sectors" :key="s.id" type="button" role="tab" :aria-selected="current?.id === s.id"
+          :tabindex="current?.id === s.id ? 0 : -1" :ref="(el) => setTabRef(el, i)"
+          class="rounded-full border-[1.5px] px-3.5 py-1.5 text-[12.5px] font-bold focus-visible:outline-none focus-visible:[box-shadow:var(--ring-focus)]"
+          :class="current?.id === s.id ? 'border-[var(--color-border-input)] bg-[var(--color-surface)] text-[var(--color-text)] [box-shadow:var(--shadow-soft)]' : 'border-transparent text-[var(--color-text-2nd)]'"
+          @click="emit('select-sector', s.id)" @keydown="onTabKeydown($event, i)">
+          {{ s.name }} <span class="ml-1 text-[11.5px] font-semibold text-[var(--color-text-muted)] [font-variant-numeric:tabular-nums]">{{ seats(s) }} posti</span>
+        </button>
+      </div>
       <button v-if="isAdmin" type="button" data-testid="ghost-sector"
         class="rounded-full border-[1.5px] border-dashed border-[var(--color-border-input)] px-3.5 py-1.5 text-[12.5px] font-semibold text-[var(--color-text-muted)] hover:border-[var(--color-brand)] hover:bg-[var(--color-coral-050)] hover:text-[var(--color-brand-ink)] focus-visible:outline-none focus-visible:[box-shadow:var(--ring-focus)]"
         @click="emit('create-sector')">+ Settore</button>

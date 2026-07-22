@@ -108,4 +108,27 @@ describe('StructureScene', () => {
     expect(w.text()).toContain('0 file');
     expect(w.find('[data-testid="ghost-row"]').exists()).toBe(true);
   });
+
+  it('tablist APG: contiene solo i tab; roving tabindex sul selezionato', () => {
+    const w = mount(StructureScene, { props: base });
+    const tablist = w.find('[role="tablist"]');
+    expect(tablist.findAll('button')).toHaveLength(2); // solo i 2 settori: ghost e Seleziona fuori
+    const tabs = w.findAll('[role="tab"]');
+    expect(tabs[0].attributes('tabindex')).toBe('0');  // s-1 selezionato
+    expect(tabs[1].attributes('tabindex')).toBe('-1');
+  });
+
+  it('tablist APG: frecce con wrap e Home/End spostano selezione e fuoco', async () => {
+    const w = mount(StructureScene, { props: base, attachTo: document.body });
+    const tabs = w.findAll('[role="tab"]');
+    await tabs[0].trigger('keydown', { key: 'ArrowRight' });
+    expect(w.emitted('select-sector')![0]).toEqual(['s-2']);
+    expect(document.activeElement).toBe(tabs[1].element);
+    await tabs[1].trigger('keydown', { key: 'ArrowRight' }); // wrap → primo
+    expect(w.emitted('select-sector')![1]).toEqual(['s-1']);
+    await tabs[0].trigger('keydown', { key: 'End' });
+    expect(w.emitted('select-sector')![2]).toEqual(['s-2']);
+    expect(document.activeElement).toBe(tabs[1].element);
+    w.unmount();
+  });
 });
