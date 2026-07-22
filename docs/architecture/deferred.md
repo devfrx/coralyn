@@ -94,5 +94,7 @@ addendum, `flows.md` §7 (nota `source='customer'`), 4 mockup `web-customer-*.ht
 
 - **D-056** — **MapView discrimina il settore «Speciali» per nome-stringa** (`s.name.toLowerCase()` ~L52) invece che per `Sector.kind` (che esiste a schema dal 07-04 ed è editabile dal Cantiere): un rename rompe la resa dedicata, e un settore `kind: special` con altro nome non la ottiene. Fix piccolo ma tocca la Mappa (fuori dallo scope del Cantiere). Nota dati correlata: nel seed dev «Speciali» è `kind: grid`.
 
+- **D-057** — **I tab settore del Cantiere non dichiarano un `tabpanel`**: `StructureScene.vue` usa `role="tablist"`/`role="tab"` (pre-esistenti, dal primo Cantiere) senza `aria-controls` né alcun `role="tabpanel"` sulla sabbia — gli screen reader annunciano tab che non controllano nulla. Il polish 2026-07-22 ha aggiunto la metà mancante del pattern APG (tablist puro coi soli tab, roving tabindex, frecce/Home/End ad attivazione automatica) ma non la relazione tab↔pannello, fuori dallo scope del chip. Due vie alla prossima occasione: dare un `id` alla regione sabbia + `aria-controls`/`role="tabpanel"`, **oppure** declassare i ruoli a una toolbar di bottoni se il modello mentale non è davvero «tab». Nota collegata: `StructureScene.spec.ts` monta con `attachTo: document.body` senza `enableAutoUnmount(afterEach)` (rischio basso: la scena non registra listener su `window`) — una riga da aggiungere quando il file si tocca.
+
 > Nota: le voci sopra sono il punto di partenza emerso dal brainstorming iniziale e
 > verranno raffinate man mano.
