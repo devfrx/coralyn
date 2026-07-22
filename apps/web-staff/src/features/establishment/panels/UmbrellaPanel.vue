@@ -3,12 +3,13 @@ import { ref, watch } from 'vue';
 import { Button, Field, Input, Select, ConfirmDialog } from '@coralyn/ui-kit';
 import type { StructureUmbrellaDTO, UmbrellaTypeDTO } from '@coralyn/contracts';
 import { pushToast } from '@/lib/toasts';
-import { useUpdateUmbrella, useDeleteUmbrella } from '../useEstablishmentStructure';
+import { useUpdateUmbrella, useDeleteUmbrella, useRetireUmbrella } from '../useEstablishmentStructure';
 
 const props = defineProps<{ umbrella: StructureUmbrellaDTO; rowLabel: string; sectorName: string; types: UmbrellaTypeDTO[]; isAdmin: boolean }>();
 const emit = defineEmits<{ close: [] }>();
 const update = useUpdateUmbrella();
 const removeUmbrella = useDeleteUmbrella();
+const retire = useRetireUmbrella();
 
 const label = ref(props.umbrella.label);
 const umbrellaTypeId = ref(props.umbrella.umbrellaTypeId ?? '');
@@ -25,6 +26,12 @@ const confirmOpen = ref(false);
 function onDelete() {
   removeUmbrella.mutate(props.umbrella.id, { onSuccess: () => { pushToast('Ombrellone eliminato.'); emit('close'); } });
   confirmOpen.value = false;
+}
+
+const retireOpen = ref(false);
+function onRetire() {
+  retire.mutate(props.umbrella.id, { onSuccess: () => { pushToast('Ombrellone ritirato.'); emit('close'); } });
+  retireOpen.value = false;
 }
 </script>
 
@@ -54,9 +61,13 @@ function onDelete() {
         <p class="mb-1.5 text-[11.5px] font-extrabold text-[var(--color-danger-ink)]">Zona rischiosa</p>
         <p class="mb-2 text-[11.5px] leading-relaxed text-[var(--color-text-muted)]">Se ha prenotazioni non sarà eliminato.</p>
         <Button variant="danger" data-testid="umbrella-delete" class="w-full" :loading="removeUmbrella.isPending.value" @click="confirmOpen = true">Elimina ombrellone</Button>
+        <p class="mb-2 mt-3 text-[11.5px] leading-relaxed text-[var(--color-text-muted)]">Ha storico? Ritiralo: sparisce dalla spiaggia, lo storico resta e puoi ripristinarlo.</p>
+        <Button variant="secondary" data-testid="umbrella-retire" class="w-full" :loading="retire.isPending.value" @click="retireOpen = true">Ritira ombrellone</Button>
       </div>
     </div>
     <ConfirmDialog v-model:open="confirmOpen" title="Eliminare l'ombrellone?"
       description="Se ha prenotazioni non sarà eliminato." confirm-label="Elimina" tone="danger" @confirm="onDelete" />
+    <ConfirmDialog v-model:open="retireOpen" title="Ritirare l'ombrellone?"
+      description="Sparisce da struttura e mappa; lo storico contabile resta e potrai ripristinarlo dai «Ritirati» del pannello Spiaggia." confirm-label="Ritira" tone="danger" @confirm="onRetire" />
   </div>
 </template>

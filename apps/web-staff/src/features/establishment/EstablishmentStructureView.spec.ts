@@ -345,6 +345,39 @@ describe('EstablishmentStructureView — shell Cantiere', () => {
     w.unmount();
   });
 
+  it('D-055: «Ritira» chiede conferma, chiama la mutation e chiude il pannello con toast', async () => {
+    useFixture();
+    let retiredId: string | null = null;
+    server.use(http.post('/api/establishment/umbrellas/:id/retire', ({ params }) => {
+      retiredId = params.id as string;
+      return HttpResponse.json({ id: 'u-1', label: 'A1', umbrellaTypeId: null }, { status: 201 });
+    }));
+    const w = mountApp(EstablishmentStructureView, { attachTo: document.body });
+    const session = useSessionStore();
+    session.user = { id: 'u-1', email: 'admin@coralyn.dev', role: Role.Admin, establishmentId: 'e-1', establishmentName: 'Lido Maestrale' };
+    await settle();
+    await w.findAll('[data-testid="scene-cell"] button')[0].trigger('click');
+    await w.find('[data-testid="umbrella-retire"]').trigger('click');
+    await flushPromises();
+    expect(document.body.textContent).toContain("Ritirare l'ombrellone?");
+    Array.from(document.body.querySelectorAll('button')).find((b) => b.textContent?.trim() === 'Ritira')!.click();
+    await settle();
+    expect(retiredId).toBe('u-1');
+    const { useToasts } = await import('@/lib/toasts');
+    expect(useToasts().items.some((t) => t.message.includes('Ombrellone ritirato'))).toBe(true);
+    expect(w.find('[data-testid="inspector"]').text()).toContain('Spiaggia'); // close → beach
+    w.unmount();
+  });
+
+  it('D-055: staff non vede «Ritira»', async () => {
+    useFixture();
+    const w = mountApp(EstablishmentStructureView);
+    await settle(); // nessuna sessione → ruolo Staff di default
+    await w.findAll('[data-testid="scene-cell"] button')[0].trigger('click');
+    const insp = w.find('[data-testid="inspector"]');
+    expect(insp.find('[data-testid="umbrella-retire"]').exists()).toBe(false);
+  });
+
   it('mobile: cella → Drawer con pannello Ombrellone (ramo <lg, non solo l\'aside desktop)', async () => {
     useFixture();
     // Stessa guardia di regressione della fila: senza cablaggio nel ramo Drawer resterebbe il placeholder.
