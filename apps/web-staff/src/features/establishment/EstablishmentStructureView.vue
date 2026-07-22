@@ -113,8 +113,14 @@ function toggleSelectMode() {
 }
 
 // Esc globale: chiude qualunque pannello aperto (utile in particolare per uscire dalla
-// selezione multipla senza dover ri-cliccare il toggle «Seleziona»).
-function onKeydown(e: KeyboardEvent) { if (e.key === 'Escape') reset(); }
+// selezione multipla senza dover ri-cliccare il toggle «Seleziona»). Se un ConfirmDialog (reka-ui,
+// role="dialog"/"alertdialog") è aperto sopra il pannello, Esc deve annullare SOLO la conferma
+// (gestito da reka-ui stesso) e non anche collassare pannello/selezione sottostanti.
+function onKeydown(e: KeyboardEvent) {
+  if (e.key !== 'Escape') return;
+  if (document.querySelector('[role="dialog"], [role="alertdialog"]')) return;
+  reset();
+}
 onMounted(() => window.addEventListener('keydown', onKeydown));
 onUnmounted(() => window.removeEventListener('keydown', onKeydown));
 </script>

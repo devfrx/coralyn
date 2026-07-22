@@ -86,7 +86,7 @@ const confirmCopy = computed(() => confirm.value === 'clear'
         <p class="mb-1.5 text-[11.5px] font-extrabold text-[var(--color-danger-ink)]">Zona rischiosa</p>
         <p class="mb-2 text-[11.5px] leading-relaxed text-[var(--color-text-muted)]">«Svuota» elimina in blocco gli ombrelloni senza prenotazioni; quelli con prenotazioni restano.</p>
         <div class="flex gap-2">
-          <Button variant="danger" class="flex-1" data-testid="row-clear" :disabled="row.umbrellas.length === 0" :loading="bulkDelete.isPending.value" @click="confirm = 'clear'">Svuota fila ({{ row.umbrellas.length }})</Button>
+          <Button variant="danger" class="flex-1" data-testid="row-clear" :disabled="row.umbrellas.length === 0 || bulkDelete.isPending.value" :loading="bulkDelete.isPending.value" @click="confirm = 'clear'">Svuota fila ({{ row.umbrellas.length }})</Button>
           <Button variant="danger" class="flex-1" data-testid="row-delete" :loading="removeRow.isPending.value" @click="confirm = 'delete'">Elimina fila</Button>
         </div>
       </div>

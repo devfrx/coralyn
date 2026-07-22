@@ -44,7 +44,7 @@ function onDelete() {
           <option v-for="t in types" :key="t.id" :value="t.id">{{ t.name }}</option>
         </Select>
       </Field>
-      <Button data-testid="multi-assign" :disabled="umbrellaTypeId === ''" :loading="bulkAssign.isPending.value" @click="assign">
+      <Button data-testid="multi-assign" :disabled="umbrellaTypeId === '' || bulkAssign.isPending.value" :loading="bulkAssign.isPending.value" @click="assign">
         Applica a {{ ids.length }}
       </Button>
       <div class="rounded-[var(--radius-md)] border border-[var(--color-danger-border)] bg-[color-mix(in_srgb,var(--color-danger-bg)_45%,transparent)] p-3">

@@ -32,6 +32,43 @@ beforeEach(() => stubDesktopMatchMedia());
 afterEach(() => vi.unstubAllGlobals());
 
 describe('EstablishmentStructureView — shell Cantiere', () => {
+  // Nota d'ordine: questo test dispatcha un keydown Escape reale su `window`. Va tenuto PRIMA di
+  // qualunque test che apra un ConfirmDialog reka-ui reale (svuota fila, elimina ombrellone, bulk
+  // multi, ecc.): la loro rimozione asincrona del Teleport (Presence) è instabile in questo harness
+  // jsdom e, se già avvenuta, un successivo dispatch di Escape su window risveglia il suo
+  // DismissableLayer residuo e corrompe il DOM di QUALSIASI test che segue (non solo di questo) —
+  // limite noto dell'harness, non del codice applicativo (vedi report task-sc-12).
+  it('Esc con un dialog aperto non resetta la selezione multi sottostante; senza dialog resetta', async () => {
+    // Guardia di regressione: il listener Esc globale della shell era registrato prima di ogni
+    // dialog e collassava pannello+selezione anche quando l'utente voleva solo annullare la
+    // conferma. Il fix guarda document.querySelector('[role="dialog"], [role="alertdialog"]')
+    // prima di fare reset(). Simuliamo qui la presenza di un dialog con un marcatore minimo
+    // (stesso attributo role="dialog" che reka-ui applica davvero al ConfirmDialog — vedi
+    // reka-ui/dist/Dialog/DialogContentImpl.js) per testare il guard della shell in isolamento
+    // (già provato altrove che il ConfirmDialog reale di MultiPanel si apre/chiude correttamente
+    // via bottoni, es. «toggle Seleziona» sotto).
+    useFixture();
+    const w = mountApp(EstablishmentStructureView);
+    const session = useSessionStore();
+    session.user = { id: 'u-1', email: 'admin@coralyn.dev', role: Role.Admin, establishmentId: 'e-1', establishmentName: 'Lido Maestrale' };
+    await settle();
+    await w.findAll('[data-testid="scene-cell"] button')[0].trigger('click');
+    await w.findAll('[data-testid="scene-cell"] button')[1].trigger('click', { shiftKey: true });
+    expect(w.find('[data-testid="inspector"]').text()).toContain('Selezione multipla');
+
+    const fakeDialog = document.createElement('div');
+    fakeDialog.setAttribute('role', 'dialog');
+    document.body.appendChild(fakeDialog);
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+    await settle();
+    expect(w.find('[data-testid="inspector"]').text()).toContain('Selezione multipla'); // NON resettato
+    fakeDialog.remove();
+
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+    await settle();
+    expect(w.find('[data-testid="inspector"]').text()).toContain('Spiaggia'); // senza dialog, Esc resetta
+  });
+
   it('rende scena + ispettore Spiaggia di default (contatori e tipologie)', async () => {
     useFixture();
     const w = mountApp(EstablishmentStructureView);
