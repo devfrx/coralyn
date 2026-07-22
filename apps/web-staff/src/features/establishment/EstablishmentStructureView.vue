@@ -8,6 +8,8 @@ import { useMediaQuery } from '@/lib/useMediaQuery';
 import { useEstablishmentStructure } from './useEstablishmentStructure';
 import StructureScene from './StructureScene.vue';
 import BeachPanel from './panels/BeachPanel.vue';
+import SectorPanel from './panels/SectorPanel.vue';
+import SectorCreatePanel from './panels/SectorCreatePanel.vue';
 import type { Selection } from './structureSelection';
 
 const session = useSessionStore();
@@ -36,6 +38,15 @@ const drawerOpen = computed({
   set: (v: boolean) => { if (!v) selection.value = { kind: 'beach' }; },
 });
 
+// Pannello Settore: risolve il settore selezionato dall'albero via id ad ogni refetch. Se sparisce
+// (es. eliminato da un'altra scheda, o la sua stessa delete invalida la query prima dell'onSuccess
+// locale) il pannello ricade sulla Spiaggia.
+const selectedSector = computed(() => {
+  if (selection.value.kind !== 'sector' || !data.value) return null;
+  return data.value.sectors.find((s) => s.id === (selection.value as { kind: 'sector'; id: string }).id) ?? null;
+});
+watch(selectedSector, (sec) => { if (selection.value.kind === 'sector' && !sec) reset(); });
+
 function onSelectSector(id: string) { selectedSectorId.value = id; selection.value = { kind: 'sector', id }; }
 function onSelectUmbrella(id: string, additive: boolean) {
   if (selectMode.value || additive) {
@@ -51,7 +62,8 @@ function toggleSelectMode() {
   if (!selectMode.value && selection.value.kind === 'multi') selection.value = { kind: 'beach' };
 }
 
-// Stadio 1 (Task 8): i pannelli Settore/Fila/Ombrellone/Multi/Create arrivano nei Task 9-12.
+// Stadio 1 (Task 8-9): Settore ha il suo pannello (SectorPanel/SectorCreatePanel); i pannelli
+// Fila/Ombrellone/Multi/Create-riga/Create-ombrellone arrivano nei Task 10-12.
 // Il placeholder mostra `selection.kind`, tranne per l'ombrellone dove mostra la sua etichetta
 // (crumb «A1»…) — è l'unico caso in cui il vecchio test di navigazione ha un'aspettativa leggibile.
 const placeholderLabel = computed(() => {
@@ -92,12 +104,16 @@ const placeholderLabel = computed(() => {
 
       <aside v-if="isDesktop" data-testid="inspector" class="min-w-0 overflow-auto border-l border-[var(--color-border)] bg-[var(--color-raised)]" aria-label="Ispettore">
         <BeachPanel v-if="selection.kind === 'beach'" :data="data" :is-admin="isAdmin" />
-        <!-- I pannelli Settore/Fila/Ombrellone/Multi/Create arrivano nei Task 9-12 -->
+        <SectorPanel v-else-if="selection.kind === 'sector' && selectedSector" :sector="selectedSector" :is-admin="isAdmin" @close="reset" />
+        <SectorCreatePanel v-else-if="selection.kind === 'create-sector'" @created="(id) => selectedSectorId = id" @close="reset" />
+        <!-- I pannelli Fila/Ombrellone/Multi/Create-riga/Create-ombrellone arrivano nei Task 10-12 -->
         <div v-else class="p-[18px] text-[12.5px] text-[var(--color-text-muted)]" data-testid="panel-placeholder">{{ placeholderLabel }}</div>
       </aside>
       <Drawer v-else v-model:open="drawerOpen" title="Ispettore">
         <div data-testid="inspector">
           <BeachPanel v-if="selection.kind === 'beach'" :data="data" :is-admin="isAdmin" />
+          <SectorPanel v-else-if="selection.kind === 'sector' && selectedSector" :sector="selectedSector" :is-admin="isAdmin" @close="reset" />
+          <SectorCreatePanel v-else-if="selection.kind === 'create-sector'" @created="(id) => selectedSectorId = id" @close="reset" />
           <div v-else class="p-[18px] text-[12.5px] text-[var(--color-text-muted)]" data-testid="panel-placeholder">{{ placeholderLabel }}</div>
         </div>
       </Drawer>

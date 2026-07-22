@@ -73,4 +73,40 @@ describe('EstablishmentStructureView — shell Cantiere', () => {
     await settle();
     expect(posted).toEqual({ name: 'Lettino', icon: 'umbrella' });
   });
+
+  it('tab settore → pannello Settore; rename → PATCH e toast', async () => {
+    useFixture();
+    let patched: unknown = null;
+    server.use(http.patch('/api/establishment/sectors/s-1', async ({ request }) => {
+      patched = await request.json();
+      return HttpResponse.json({ id: 's-1', name: 'Centro Mare', sortOrder: 1, kind: 'grid', rows: [] });
+    }));
+    const w = mountApp(EstablishmentStructureView);
+    // Il form del pannello Settore (rename) è admin-only.
+    const session = useSessionStore();
+    session.user = { id: 'u-1', email: 'admin@coralyn.dev', role: Role.Admin, establishmentId: 'e-1', establishmentName: 'Lido Maestrale' };
+    await settle();
+    await w.findAll('[role="tab"]')[0].trigger('click');
+    expect(w.find('[data-testid="inspector"]').text()).toContain('Settore');
+    await w.find('[data-testid="sector-name"]').setValue('Centro Mare');
+    await w.find('[data-testid="sector-form"]').trigger('submit');
+    await settle();
+    expect(patched).toEqual({ name: 'Centro Mare', kind: 'grid' });
+  });
+
+  it('tab «+ Settore» → pannello di creazione → POST e selezione del nuovo', async () => {
+    useFixture();
+    server.use(http.post('/api/establishment/sectors', () =>
+      HttpResponse.json({ id: 's-3', name: 'Nord', sortOrder: 3, kind: 'grid', rows: [] })));
+    const w = mountApp(EstablishmentStructureView);
+    // Il bottone «+ Settore» è admin-only.
+    const session = useSessionStore();
+    session.user = { id: 'u-1', email: 'admin@coralyn.dev', role: Role.Admin, establishmentId: 'e-1', establishmentName: 'Lido Maestrale' };
+    await settle();
+    await w.find('[data-testid="ghost-sector"]').trigger('click');
+    await w.find('[data-testid="sector-name"]').setValue('Nord');
+    await w.find('[data-testid="sector-form"]').trigger('submit');
+    await settle();
+    expect(w.find('[data-testid="inspector"]').text()).toContain('Spiaggia'); // close → beach
+  });
 });
