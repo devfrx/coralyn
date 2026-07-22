@@ -32,9 +32,8 @@ const rowSelected = (): boolean => props.selection.kind === 'row' && props.selec
 <template>
   <div class="st-row" :class="rowSelected() ? 'st-row-sel' : ''" data-testid="scene-row">
     <div class="pt-[7px]">
-      <div aria-hidden="true" class="text-[9px] font-extrabold tracking-[.14em] text-[var(--color-text-muted)]">FILA</div>
-      <button type="button" class="st-rail-name mt-0.5 focus-visible:outline-none focus-visible:[box-shadow:var(--ring-focus)]"
-        :aria-label="`Fila ${row.label}, settore ${sectorName}`" @click="emit('select-row', row.id)">{{ row.label }}</button>
+      <button type="button" class="st-rail-name focus-visible:outline-none focus-visible:[box-shadow:var(--ring-focus)]"
+        :aria-label="`${row.label}, settore ${sectorName}`" @click="emit('select-row', row.id)">{{ row.label.toUpperCase() }}</button>
       <div class="st-rail-count">{{ row.umbrellas.length }} {{ row.umbrellas.length === 1 ? 'ombrellone' : 'ombrelloni' }}</div>
       <div v-if="isAdmin" class="st-rail-actions">
         <IconButton icon="zap" label="Genera ombrelloni" variant="ghost" size="sm" data-testid="rail-generate" @click="emit('row-generate', row.id)" />
@@ -43,8 +42,8 @@ const rowSelected = (): boolean => props.selection.kind === 'row' && props.selec
     </div>
     <div class="st-cells">
       <span v-for="u in row.umbrellas" :key="u.id" data-testid="scene-cell">
-        <UmbrellaCell :label="u.label" :ariaLabel="`Ombrellone ${u.label}, fila ${row.label}, settore ${sectorName}`"
-          :typeIcon="typeIcon(u.umbrellaTypeId)" :selected="isSelected(u.id)"
+        <UmbrellaCell :label="u.label" :ariaLabel="`Ombrellone ${u.label}, ${row.label}, settore ${sectorName}`"
+          :type-icon="typeIcon(u.umbrellaTypeId)" :selected="isSelected(u.id)"
           @select="emit('select-umbrella', u.id, ($event as MouseEvent | undefined)?.shiftKey ?? false)" />
       </span>
       <button v-if="isAdmin" type="button" class="st-ghost-cell focus-visible:outline-none focus-visible:[box-shadow:var(--ring-focus)]"
