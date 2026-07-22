@@ -86,6 +86,7 @@ export interface SectorDTO {
   id: string;
   name: string;
   sortOrder: number;
+  kind: SectorKind;
   rows: RowDTO[];
 }
 

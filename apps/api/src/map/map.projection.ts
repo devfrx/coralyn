@@ -73,6 +73,7 @@ export function projectDayMap(date: string, source: MapSource): DayMapDTO {
     id: s.id,
     name: s.name,
     sortOrder: s.sortOrder,
+    kind: s.kind,
     rows: s.rows.map((r) => ({
       id: r.id,
       label: r.label,

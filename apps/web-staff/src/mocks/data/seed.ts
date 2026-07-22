@@ -12,7 +12,7 @@ export const mapSeed: DayMapDTO = {
   ],
   sectors: [
     {
-      id: 's-centro', name: 'Centro', sortOrder: 1,
+      id: 's-centro', name: 'Centro', sortOrder: 1, kind: 'grid',
       rows: [
         {
           id: 'row-1', label: 'Fila 1', sortOrder: 1,
@@ -25,7 +25,7 @@ export const mapSeed: DayMapDTO = {
       ],
     },
     {
-      id: 's-speciali', name: 'Speciali', sortOrder: 99,
+      id: 's-speciali', name: 'Speciali', sortOrder: 99, kind: 'special',
       rows: [
         {
           id: 'row-palme', label: 'Palme', sortOrder: 1,
@@ -54,7 +54,7 @@ export const mapSeed3: DayMapDTO = {
   ],
   sectors: [
     {
-      id: 's-centro', name: 'Centro', sortOrder: 1,
+      id: 's-centro', name: 'Centro', sortOrder: 1, kind: 'grid',
       rows: [
         {
           id: 'row-1', label: 'Fila 1', sortOrder: 1,

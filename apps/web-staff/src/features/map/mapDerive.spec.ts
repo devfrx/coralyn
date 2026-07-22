@@ -28,7 +28,7 @@ describe('rowOccupancy / sectorOccupancyPct', () => {
     expect(rowOccupancy(row)).toEqual({ occupied: 2, total: 3 });
   });
   it('percentuale settore arrotondata', () => {
-    const sector: SectorDTO = { id: 's-1', name: 'Centro', sortOrder: 1, rows: [row] };
+    const sector: SectorDTO = { id: 's-1', name: 'Centro', sortOrder: 1, kind: 'grid', rows: [row] };
     expect(sectorOccupancyPct(sector)).toBe(67); // 2/3
   });
   it('settore vuoto → 0 (niente divisione per zero)', () => {

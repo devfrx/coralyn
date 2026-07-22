@@ -42,6 +42,8 @@ describe('projectDayMap', () => {
       { id: 's2', name: 'Pomeriggio', startTime: '13:00', endTime: '19:00', sortOrder: 2 },
     ]);
     expect(dto.sectors[0].rows[0].umbrellas).toHaveLength(2);
+    // D-056: la Mappa discrimina gli Speciali per kind, non per nome → il DTO deve esporlo.
+    expect(dto.sectors[0].kind).toBe('grid');
   });
 
   it('sets every umbrella to `free` for every slot (keys = slot ids)', () => {

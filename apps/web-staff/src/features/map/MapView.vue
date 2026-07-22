@@ -49,9 +49,9 @@ const TYPE_HELP: Record<BookingType, string> = {
 const timeSlots = computed(() => [...(map.value?.timeSlots ?? [])].sort((a, b) => a.sortOrder - b.sortOrder));
 const typesById = computed(() => new Map((map.value?.umbrellaTypes ?? []).map((t) => [t.id, t])));
 const sectors = computed(() => map.value?.sectors ?? []);
-// Convenzione: il settore "Speciali" è reso come blocco palme dedicato in coda, non come tab.
-const normalSectors = computed(() => sectors.value.filter((s) => s.name.toLowerCase() !== 'speciali'));
-const special = computed(() => sectors.value.find((s) => s.name.toLowerCase() === 'speciali') ?? null);
+// Convenzione (§13.6, D-056): i settori kind=special sono resi come blocchi dedicati in coda, non come tab.
+const normalSectors = computed(() => sectors.value.filter((s) => s.kind !== 'special'));
+const specials = computed(() => sectors.value.filter((s) => s.kind === 'special'));
 
 const activeSector = ref('');
 watch(normalSectors, (list) => { if (!activeSector.value && list.length) activeSector.value = list[0].id; }, { immediate: true });
@@ -395,19 +395,19 @@ const freeSlotOptions = computed(() =>
               <span class="mt-0.5 block text-right text-[9px] font-semibold tabular-nums text-[var(--color-stage-2)]">{{ rowOccupancy(r).occupied }}/{{ rowOccupancy(r).total }}</span>
             </span>
           </div>
-          <div v-if="special" class="mt-[18px] border-t border-dashed border-[var(--color-warm-border-stage)] pt-3.5">
-            <div class="mb-2.5 text-[10px] font-semibold uppercase tracking-[.09em] text-[var(--color-stage-1)]">Settore Speciali · Palme</div>
-            <div v-for="r in special.rows" :key="r.id" class="flex flex-wrap gap-3.5">
+          <div v-for="sp in specials" :key="sp.id" data-test="special-block" class="mt-[18px] border-t border-dashed border-[var(--color-warm-border-stage)] pt-3.5">
+            <div class="mb-2.5 text-[10px] font-semibold uppercase tracking-[.09em] text-[var(--color-stage-1)]">Settore {{ sp.name }}</div>
+            <div v-for="r in sp.rows" :key="r.id" class="flex flex-wrap gap-3.5">
               <HoverCard v-for="u in r.umbrellas" :key="u.id" :disabled="!hoverCapable">
                 <template #trigger>
-                  <UmbrellaCell :label="u.label" :ariaLabel="ariaLabel(u, 'Speciali', r.label)"
+                  <UmbrellaCell :label="u.label" :ariaLabel="ariaLabel(u, sp.name, r.label)"
                     :slot-states="slotStatesFor(u)" :type-icon="typeIcon(u)" :selected="sel?.u.id === u.id"
-                    :dimmed="isDimmed(u)" :found="isFound(u)" @select="open(u, 'Speciali', r.label)" />
+                    :dimmed="isDimmed(u)" :found="isFound(u)" @select="open(u, sp.name, r.label)" />
                 </template>
                 <template #content>
                   <div class="mb-1.5 flex items-baseline gap-2">
                     <b class="text-[13px] tracking-[-.01em] text-[var(--color-text)]">Ombrellone {{ u.label }}</b>
-                    <span class="text-[10.5px] text-[var(--color-text-muted)]">Speciali · {{ r.label }}</span>
+                    <span class="text-[10.5px] text-[var(--color-text-muted)]">{{ sp.name }} · {{ r.label }}</span>
                   </div>
                   <div v-for="h in hoverRows(u)" :key="h.slotName" class="flex items-center gap-2 py-0.5 text-[11.5px] text-[var(--color-text-2nd)]">
                     <i class="size-[9px] flex-none rounded-full" :style="{ background: STATE_COLOR[h.state] }"></i>

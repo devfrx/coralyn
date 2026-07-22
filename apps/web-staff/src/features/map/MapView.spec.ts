@@ -52,6 +52,51 @@ describe('MapView', () => {
     expect(w.text()).toContain('P1');
   });
 
+  it('D-056: un settore kind=special è reso come blocco dedicato (non tab) qualunque sia il nome', async () => {
+    const mapKind = {
+      date: '2026-06-27',
+      umbrellaTypes: [{ id: 't1', name: 'Palma', sortOrder: 1, icon: 'palmtree' }],
+      timeSlots: [{ id: 'f-mat', name: 'Mattina', startTime: '08:00', endTime: '13:00', sortOrder: 1 }],
+      sectors: [
+        { id: 's-c', name: 'Centro', sortOrder: 1, kind: 'grid', rows: [{ id: 'r1', label: 'Fila 1', sortOrder: 1, umbrellas: [
+          { id: 'u1', label: '1', umbrellaTypeId: null, rowId: 'r1', stateBySlot: { 'f-mat': 'free' } },
+        ] }] },
+        { id: 's-v', name: 'VIP', sortOrder: 2, kind: 'special', rows: [{ id: 'r2', label: 'Palme', sortOrder: 1, umbrellas: [
+          { id: 'u2', label: 'V1', umbrellaTypeId: 't1', rowId: 'r2', stateBySlot: { 'f-mat': 'free' } },
+        ] }] },
+      ],
+    };
+    server.use(http.get('/api/map', () => HttpResponse.json(mapKind)));
+    const w = await mountMap();
+    const block = w.find('[data-test="special-block"]');
+    expect(block.exists()).toBe(true);
+    expect(block.text()).toContain('VIP');
+    expect(block.text()).toContain('V1');
+    const seg = w.findComponent({ name: 'SegmentedControl' });
+    expect((seg.props('options') as Array<{ label: string }>).map((o) => o.label)).toEqual(['Centro']);
+    w.unmount();
+  });
+
+  it('D-056: un settore chiamato «Speciali» ma kind=grid è un tab normale, senza blocco dedicato', async () => {
+    const mapGrid = {
+      date: '2026-06-27',
+      umbrellaTypes: [],
+      timeSlots: [{ id: 'f-mat', name: 'Mattina', startTime: '08:00', endTime: '13:00', sortOrder: 1 }],
+      sectors: [
+        { id: 's-sp', name: 'Speciali', sortOrder: 1, kind: 'grid', rows: [{ id: 'r1', label: 'Fila 1', sortOrder: 1, umbrellas: [
+          { id: 'u1', label: 'S1', umbrellaTypeId: null, rowId: 'r1', stateBySlot: { 'f-mat': 'free' } },
+        ] }] },
+      ],
+    };
+    server.use(http.get('/api/map', () => HttpResponse.json(mapGrid)));
+    const w = await mountMap();
+    expect(w.find('[data-test="special-block"]').exists()).toBe(false);
+    const seg = w.findComponent({ name: 'SegmentedControl' });
+    expect((seg.props('options') as Array<{ label: string }>).map((o) => o.label)).toEqual(['Speciali']);
+    expect(w.text()).toContain('S1');
+    w.unmount();
+  });
+
   it('su un abbonamento non offre «Annulla prenotazione» ma rimanda alla disdetta', async () => {
     server.use(
       http.get('/api/bookings', () =>
