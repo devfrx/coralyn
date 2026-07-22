@@ -1,7 +1,11 @@
-import { describe, it, expect } from 'vitest';
-import { mount } from '@vue/test-utils';
+import { describe, it, expect, afterEach } from 'vitest';
+import { mount, enableAutoUnmount } from '@vue/test-utils';
 import StructureScene from './StructureScene.vue';
 import type { StructureSectorDTO } from '@coralyn/contracts';
+
+// Idempotente con i test che chiamano già w.unmount() — vedi il commento esteso in
+// EstablishmentStructureView.spec.ts (obbligatorio negli spec che montano con attachTo).
+enableAutoUnmount(afterEach);
 
 const SECTORS: StructureSectorDTO[] = [
   { id: 's-1', name: 'Centro', sortOrder: 1, kind: 'grid', rows: [
@@ -116,6 +120,25 @@ describe('StructureScene', () => {
     const tabs = w.findAll('[role="tab"]');
     expect(tabs[0].attributes('tabindex')).toBe('0');  // s-1 selezionato
     expect(tabs[1].attributes('tabindex')).toBe('-1');
+  });
+
+  it('D-057: i tab controllano la sabbia (aria-controls) e la sabbia è il tabpanel etichettato dal tab attivo', () => {
+    const w = mount(StructureScene, { props: base });
+    const sand = w.find('[data-testid="scene-sand"]');
+    expect(sand.attributes('role')).toBe('tabpanel');
+    expect(sand.attributes('id')).toBe('st-tabpanel');
+    expect(sand.attributes('aria-labelledby')).toBe('st-tab-s-1');
+    const tabs = w.findAll('[role="tab"]');
+    expect(tabs[0].attributes('id')).toBe('st-tab-s-1');
+    expect(tabs[0].attributes('aria-controls')).toBe('st-tabpanel');
+    expect(tabs[1].attributes('aria-controls')).toBe('st-tabpanel');
+  });
+
+  it('D-057: senza settori la sabbia non è un tabpanel orfano', () => {
+    const w = mount(StructureScene, { props: { ...base, sectors: [], selectedSectorId: null } });
+    const sand = w.find('[data-testid="scene-sand"]');
+    expect(sand.attributes('role')).toBeUndefined();
+    expect(sand.attributes('aria-labelledby')).toBeUndefined();
   });
 
   it('tablist APG: frecce con wrap e Home/End spostano selezione e fuoco', async () => {

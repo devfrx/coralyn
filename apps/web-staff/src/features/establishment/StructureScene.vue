@@ -75,7 +75,8 @@ function onTabKeydown(e: KeyboardEvent, i: number) {
     <div class="map-shore" aria-hidden="true"></div>
     <div class="map-toolbar flex items-center gap-2 px-4 py-2.5">
       <div class="flex items-center gap-2" role="tablist" aria-label="Settori">
-        <button v-for="(s, i) in sectors" :key="s.id" type="button" role="tab" :aria-selected="current?.id === s.id"
+        <button v-for="(s, i) in sectors" :key="s.id" type="button" role="tab" :id="`st-tab-${s.id}`"
+          aria-controls="st-tabpanel" :aria-selected="current?.id === s.id"
           :tabindex="current?.id === s.id ? 0 : -1" :ref="(el) => setTabRef(el, i)"
           class="rounded-full border-[1.5px] px-3.5 py-1.5 text-[12.5px] font-bold focus-visible:outline-none focus-visible:[box-shadow:var(--ring-focus)]"
           :class="current?.id === s.id ? 'border-[var(--color-border-input)] bg-[var(--color-surface)] text-[var(--color-text)] [box-shadow:var(--shadow-soft)]' : 'border-transparent text-[var(--color-text-2nd)]'"
@@ -91,7 +92,11 @@ function onTabKeydown(e: KeyboardEvent, i: number) {
         :class="selectMode ? 'border-[var(--color-brand)] bg-[var(--color-brand-tint)] text-[var(--color-brand-ink)]' : 'border-[var(--color-border-input)] bg-[var(--color-surface)] text-[var(--color-text-2nd)]'"
         @click="emit('toggle-select-mode')">Seleziona</button>
     </div>
-    <div class="st-sand flex-1 overflow-auto" data-testid="scene-sand" @click.self="emit('select-beach')">
+    <!-- D-057: pannello unico riusato dai tab (id stabile); ruolo/etichetta solo se un settore esiste,
+         così senza settori la sabbia (che ospita il setup guidato) non è un tabpanel orfano. -->
+    <div class="st-sand flex-1 overflow-auto" data-testid="scene-sand" id="st-tabpanel"
+      :role="current ? 'tabpanel' : undefined" :aria-labelledby="current ? `st-tab-${current.id}` : undefined"
+      @click.self="emit('select-beach')">
       <StructureGuidedSetup v-if="showGuided" :step="guidedStep" @advance="handleGuidedAdvance" />
       <template v-if="current">
         <div class="st-sector-cap">
