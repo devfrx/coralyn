@@ -114,7 +114,7 @@ erDiagram
     TIME_SLOT ||--o{ RATE : "qualifica"
     TIME_SLOT ||--o{ BOOKING : "slot di"
     SECTOR ||--o{ ROW : "contiene"
-    ROW ||--o{ UMBRELLA : "contiene"
+    ROW |o--o{ UMBRELLA : "contiene (nullable = ritirato, D-055)"
     UMBRELLA_TYPE |o--o{ UMBRELLA : "classifica"
     SEASON ||--o{ PRICING : "contiene"
     PRICING ||--o{ RATE : "contiene"
@@ -165,10 +165,12 @@ erDiagram
     UMBRELLA {
         uuid id PK
         uuid establishmentId FK
-        uuid rowId FK
+        uuid rowId FK "nullable = ritirato, sganciato dalla fila (D-055/ADR-0053)"
         uuid umbrellaTypeId FK "nullable; NULL = normale (ADR-0016)"
-        string label "numero fisico reale; unico per Establishment (ADR-0016)"
+        string label "numero fisico reale; unico tra gli ATTIVI per Establishment (D-055/ADR-0053)"
         int logicalOrder
+        datetime retiredAt "nullable; valorizzato = ritirato, soft-delete (D-055/ADR-0053)"
+        string retiredFrom "nullable; snapshot storico «Settore · Fila» al ritiro (D-055/ADR-0053)"
         json presentationPosition "layer visivo (D-005)"
     }
     UMBRELLA_TYPE {
@@ -457,10 +459,24 @@ erDiagram
   `presentationPosition` è un layer visivo opzionale (porta aperta alla planimetria,
   [D-005](../architecture/deferred.md)).
 - **Etichetta ombrellone**: `label` è il **numero/identificativo fisico reale**
-  (stringa libera: `"1"`, `"47"`, `"A1"`, `"12bis"`), **unico per Establishment** e
-  **disaccoppiato** da `logicalOrder` e dalla tipologia. L'auto‑generazione del setup è
+  (stringa libera: `"1"`, `"47"`, `"A1"`, `"12bis"`), **unico tra gli ATTIVI per
+  Establishment** (indice unico parziale `WHERE "retiredAt" IS NULL`, invisibile al DSL
+  Prisma, [D-055](../architecture/deferred.md)/[ADR-0053](../architecture/decisions/0053-ritiro-ombrellone-soft-delete.md))
+  e **disaccoppiato** da `logicalOrder` e dalla tipologia. L'auto‑generazione del setup è
   una comodità: etichette modificabili singolarmente, buchi ammessi
-  ([ADR-0016](../architecture/decisions/0016-tipologia-ombrellone.md)).
+  ([ADR-0016](../architecture/decisions/0016-tipologia-ombrellone.md)). I **ritirati**
+  conservano la propria label a fini storici: una volta ritirato un «12», un nuovo «12»
+  attivo può essere creato subito — collisione accettata, mai nello stesso istante tra due
+  attivi.
+- **Ritiro ombrellone (soft-delete)**: un ombrellone con storico prenotazioni non è
+  eliminabile (guardia block-409 di `delete` + FK `Booking.umbrellaId` RESTRICT,
+  [ADR-0052](../architecture/decisions/0052-editor-struttura-cantiere.md)); `retiredAt`
+  (nullable, non-null = ritirato) lo dismette dalla spiaggia operativa **sganciandolo dalla
+  fila** (`rowId → null`) preservando lo storico intatto, con `retiredFrom` a registrarne lo
+  snapshot testuale di posizione. Reversibile via `Ripristina` (sceglie la fila di
+  destinazione, ricalcola `logicalOrder`). Guardia di ritiro: prenotazioni **confermate** con
+  `endDate` futura bloccano (409); scadute/cancellate no
+  ([D-055](../architecture/deferred.md)/[ADR-0053](../architecture/decisions/0053-ritiro-ombrellone-soft-delete.md)).
 - **Tipologia**: `UmbrellaType` (per Establishment) classifica gli ombrelloni (es. Normale,
   Mini‑palma, Palma) **ortogonalmente alla posizione**; `Umbrella.umbrellaTypeId` è
   nullable (`NULL` = normale). È **classificazione** (display, scelta cliente,

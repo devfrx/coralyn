@@ -745,10 +745,10 @@ selezione e chiuso = deselezione (stesso pattern del dettaglio Mappa, [ADR-0019]
 
 | Pannello | Contenuto |
 |---|---|
-| **Spiaggia** (default, selezione vuota) | Stat 2×2 (settori/file/ombrelloni/tipologie), **Tipologie** con CRUD inline (niente modale), hint d'uso |
+| **Spiaggia** (default, selezione vuota) | Stat 2×2 (settori/file/ombrelloni/tipologie), **Tipologie** con CRUD inline (niente modale), sezione **«Ritirati (N)»** sotto le Tipologie (assente a N=0): per riga etichetta + `retiredFrom` + data ritiro + **«Ripristina»** con select della fila di destinazione ([D-055](../architecture/deferred.md)/[ADR-0053](../architecture/decisions/0053-ritiro-ombrellone-soft-delete.md)), hint d'uso |
 | **Settore** | Nome, disposizione (griglia/speciali), danger-zone «Elimina settore» |
 | **Fila** | Etichetta, generatore (prefisso/da numero/quantità/tipologia + anteprima live, limite 1..500 esplicito: oltre `GENERATE_MAX` hint «Massimo 500 per volta» e submit disabilitato, niente clamp silenzioso), danger-zone «Svuota fila (N)» + «Elimina fila» |
-| **Ombrellone** | Etichetta (hint «numero fisico reale, unico»), tipologia, Salva, Elimina |
+| **Ombrellone** | Etichetta (hint «numero fisico reale, unico»), tipologia, Salva; danger-zone «Elimina ombrellone» + **«Ritira ombrellone»** con `ConfirmDialog` dedicato (copy: storico conservato, reversibile — [D-055](../architecture/deferred.md)/[ADR-0053](../architecture/decisions/0053-ritiro-ombrellone-soft-delete.md)) |
 | **Selezione multipla** | Conteggio (`aria-live="polite"`) + chip etichette, «Assegna tipologia a tutti», «Elimina N» |
 | **Nuovo settore / Nuova fila / Nuovo ombrellone** | Form di creazione; «Nuova fila» compone crea-fila + generate in due chiamate (`mutateAsync`, guardia anti doppio-create) |
 
@@ -761,8 +761,10 @@ Regole trasversali:
 - **Invalidazione sistematica**: ogni mutation invalida sia `establishmentStructure` sia
   `establishmentOverview`, così i contatori della pagina Stabilimento restano coerenti.
 - **`ConfirmDialog` riservato al distruttivo**: elimina settore/fila/ombrellone/tipologia, svuota
-  fila, elimina in blocco. Tutto il resto (rinomina, crea, genera, assegna tipologia in blocco) è
-  inline senza interruzioni.
+  fila, elimina in blocco, **ritira ombrellone** (dedicato, distinto da quello di elimina — copy
+  che ne spiega la reversibilità). Tutto il resto (rinomina, crea, genera, assegna tipologia in
+  blocco, **ripristina un ritirato**) è inline senza interruzioni: `Ripristina` è costruttiva, non
+  passa da conferma.
 
 ### 14.4 Selezione multipla e bulk
 
