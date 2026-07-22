@@ -81,6 +81,17 @@ describe('UmbrellasService', () => {
     await expect(service.update('u', { label: '2' })).rejects.toBeInstanceOf(ConflictException);
   });
 
+  it('update: il clash label ignora i ritirati (label riusabile)', async () => {
+    const { service, tx } = makeService();
+    tx.umbrella.findUnique.mockResolvedValue({ id: 'u', label: '1', umbrellaTypeId: null, logicalOrder: 1 });
+    tx.umbrella.findFirst.mockResolvedValue(null); // clash label: nessun attivo con questa etichetta
+    tx.umbrella.update.mockResolvedValue({ id: 'u', label: '2', umbrellaTypeId: null, logicalOrder: 1 });
+    await service.update('u', { label: '2' });
+    expect(tx.umbrella.findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({ where: expect.objectContaining({ retiredAt: null, id: { not: 'u' } }) }),
+    );
+  });
+
   it('update: 422 tipologia estranea', async () => {
     const { service, tx } = makeService();
     tx.umbrella.findUnique.mockResolvedValue({ id: 'u', label: '1', umbrellaTypeId: null, logicalOrder: 1 });
