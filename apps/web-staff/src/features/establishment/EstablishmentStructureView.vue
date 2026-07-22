@@ -10,6 +10,8 @@ import StructureScene from './StructureScene.vue';
 import BeachPanel from './panels/BeachPanel.vue';
 import SectorPanel from './panels/SectorPanel.vue';
 import SectorCreatePanel from './panels/SectorCreatePanel.vue';
+import RowPanel from './panels/RowPanel.vue';
+import RowCreatePanel from './panels/RowCreatePanel.vue';
 import type { Selection } from './structureSelection';
 
 const session = useSessionStore();
@@ -46,6 +48,25 @@ const selectedSector = computed(() => {
   return data.value.sectors.find((s) => s.id === (selection.value as { kind: 'sector'; id: string }).id) ?? null;
 });
 watch(selectedSector, (sec) => { if (selection.value.kind === 'sector' && !sec) reset(); });
+
+// Pannello Fila: risolve la fila (e il settore che la contiene) dall'albero via id, stesso pattern
+// del settore sopra — fallback a Spiaggia se sparisce (delete altrove o dalla sua stessa delete).
+const selectedRow = computed(() => {
+  if (selection.value.kind !== 'row' || !data.value) return null;
+  const id = (selection.value as { kind: 'row'; id: string }).id;
+  for (const sec of data.value.sectors) {
+    const row = sec.rows.find((r) => r.id === id);
+    if (row) return { row, sector: sec };
+  }
+  return null;
+});
+watch(selectedRow, (r) => { if (selection.value.kind === 'row' && !r) reset(); });
+
+const createRowSector = computed(() => {
+  if (selection.value.kind !== 'create-row' || !data.value) return null;
+  const sectorId = (selection.value as { kind: 'create-row'; sectorId: string }).sectorId;
+  return data.value.sectors.find((s) => s.id === sectorId) ?? null;
+});
 
 function onSelectSector(id: string) { selectedSectorId.value = id; selection.value = { kind: 'sector', id }; }
 function onSelectUmbrella(id: string, additive: boolean) {
@@ -106,7 +127,9 @@ const placeholderLabel = computed(() => {
         <BeachPanel v-if="selection.kind === 'beach'" :data="data" :is-admin="isAdmin" />
         <SectorPanel v-else-if="selection.kind === 'sector' && selectedSector" :sector="selectedSector" :is-admin="isAdmin" @close="reset" />
         <SectorCreatePanel v-else-if="selection.kind === 'create-sector'" @created="(id) => selectedSectorId = id" @close="reset" />
-        <!-- I pannelli Fila/Ombrellone/Multi/Create-riga/Create-ombrellone arrivano nei Task 10-12 -->
+        <RowPanel v-else-if="selection.kind === 'row' && selectedRow" :row="selectedRow.row" :sector-name="selectedRow.sector.name" :types="data.umbrellaTypes" :is-admin="isAdmin" @close="reset" />
+        <RowCreatePanel v-else-if="selection.kind === 'create-row' && createRowSector" :sector-id="createRowSector.id" :sector-name="createRowSector.name" :types="data.umbrellaTypes" @close="reset" />
+        <!-- I pannelli Ombrellone/Multi/Create-ombrellone arrivano nei Task 11-12 -->
         <div v-else class="p-[18px] text-[12.5px] text-[var(--color-text-muted)]" data-testid="panel-placeholder">{{ placeholderLabel }}</div>
       </aside>
       <Drawer v-else v-model:open="drawerOpen" title="Ispettore">

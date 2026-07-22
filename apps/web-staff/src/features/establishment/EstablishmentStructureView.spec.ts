@@ -109,4 +109,82 @@ describe('EstablishmentStructureView — shell Cantiere', () => {
     await settle();
     expect(w.find('[data-testid="inspector"]').text()).toContain('Spiaggia'); // close → beach
   });
+
+  it('rail fila → pannello Fila; generatore con anteprima; genera → POST generate + toast', async () => {
+    useFixture();
+    let generated: unknown = null;
+    server.use(http.post('/api/establishment/umbrellas/generate', async ({ request }) => {
+      generated = await request.json();
+      return HttpResponse.json({ created: 3, skipped: 1, umbrellas: [] });
+    }));
+    const w = mountApp(EstablishmentStructureView);
+    const session = useSessionStore();
+    session.user = { id: 'u-1', email: 'admin@coralyn.dev', role: Role.Admin, establishmentId: 'e-1', establishmentName: 'Lido Maestrale' };
+    await settle();
+    await w.find('[data-testid="scene-row"] .st-rail-name').trigger('click');
+    const insp = w.find('[data-testid="inspector"]');
+    expect(insp.text()).toContain('Genera');
+    await insp.find('[data-testid="gen-prefix"]').setValue('A');
+    await insp.find('[data-testid="gen-start"]').setValue(3);
+    await insp.find('[data-testid="gen-count"]').setValue(4);
+    expect(insp.text()).toContain('A3'); // anteprima live
+    await insp.find('[data-testid="gen-form"]').trigger('submit');
+    await settle();
+    expect(generated).toEqual({ rowId: 'r-1', prefix: 'A', start: 3, count: 4, umbrellaTypeId: null });
+  });
+
+  it('svuota fila → ConfirmDialog → bulk-delete con gli id della fila → toast eliminati/saltati', async () => {
+    useFixture();
+    let bulk: unknown = null;
+    server.use(http.post('/api/establishment/umbrellas/bulk-delete', async ({ request }) => {
+      bulk = await request.json();
+      return HttpResponse.json({ deleted: 1, skipped: 1 });
+    }));
+    const w = mountApp(EstablishmentStructureView, { attachTo: document.body });
+    const session = useSessionStore();
+    session.user = { id: 'u-1', email: 'admin@coralyn.dev', role: Role.Admin, establishmentId: 'e-1', establishmentName: 'Lido Maestrale' };
+    await settle();
+    await w.find('[data-testid="scene-row"] .st-rail-name').trigger('click');
+    await w.find('[data-testid="row-clear"]').trigger('click');
+    await flushPromises();
+    expect(document.body.textContent).toContain('Svuotare la fila?');
+    Array.from(document.body.querySelectorAll('button')).find((b) => b.textContent?.trim() === 'Svuota')!.click();
+    await settle();
+    expect(bulk).toEqual({ ids: ['u-1', 'u-2'] });
+    const { useToasts } = await import('@/lib/toasts');
+    expect(useToasts().items.some((t) => t.message.includes('Eliminati 1') && t.message.includes('saltati 1'))).toBe(true);
+    w.unmount();
+  });
+
+  it('tab «+ Fila» → pannello di creazione → genera al submit → toast, chiude pannello prima del generate', async () => {
+    useFixture();
+    let createdRow: unknown = null;
+    let generated: unknown = null;
+    server.use(
+      http.post('/api/establishment/rows', async ({ request }) => {
+        createdRow = await request.json();
+        return HttpResponse.json({ id: 'r-2', label: 'Fila 2', sortOrder: 2, umbrellas: [] });
+      }),
+      http.post('/api/establishment/umbrellas/generate', async ({ request }) => {
+        generated = await request.json();
+        return HttpResponse.json({ created: 4, skipped: 0, umbrellas: [] });
+      }),
+    );
+    const w = mountApp(EstablishmentStructureView);
+    const session = useSessionStore();
+    session.user = { id: 'u-1', email: 'admin@coralyn.dev', role: Role.Admin, establishmentId: 'e-1', establishmentName: 'Lido Maestrale' };
+    await settle();
+    await w.findAll('[role="tab"]')[0].trigger('click'); // Settore Centro selezionato
+    await w.find('[data-testid="ghost-row"]').trigger('click');
+    const insp = w.find('[data-testid="inspector"]');
+    expect(insp.text()).toContain('Nuova fila');
+    await insp.find('[data-testid="row-label"]').setValue('Fila 2');
+    await insp.find('[data-testid="gen-count"]').setValue(4);
+    await insp.find('[data-testid="row-form"]').trigger('submit');
+    await settle();
+    expect(createdRow).toEqual({ sectorId: 's-1', label: 'Fila 2' });
+    expect(generated).toEqual({ rowId: 'r-2', prefix: '', start: 1, count: 4, umbrellaTypeId: null });
+    const { useToasts } = await import('@/lib/toasts');
+    expect(useToasts().items.some((t) => t.message.includes('Fila creata') && t.message.includes('4 ombrelloni'))).toBe(true);
+  });
 });
