@@ -72,4 +72,14 @@ describe('UmbrellaCell (Tessera)', () => {
     const w = mount(UmbrellaCell, { props: { ...base, typeIcon: 'palmtree' } });
     expect(w.find('[data-test="type-badge"]').exists()).toBe(true);
   });
+  it('senza slotStates → resa «rest»: fill sabbia neutra e ink editor', () => {
+    const w = mount(UmbrellaCell, { props: { label: 'A1', ariaLabel: 'Ombrellone A1' } });
+    expect(w.vm.rest).toBe(true);
+    expect(w.vm.fills).toEqual(['var(--color-warm-025)']);
+  });
+  it('slotStates presente → rest false, resa stato invariata', () => {
+    const w = mount(UmbrellaCell, { props: { label: 'A1', ariaLabel: 'x', slotStates: ['free', 'daily'] } });
+    expect(w.vm.rest).toBe(false);
+    expect(w.vm.fills).toEqual(['var(--color-state-free)', 'var(--color-state-daily)']);
+  });
 });

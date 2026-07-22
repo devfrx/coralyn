@@ -6,12 +6,13 @@ import Icon from './Icon.vue';
 const props = withDefaults(defineProps<{
   label: string;
   ariaLabel: string;
-  slotStates: readonly SlotState[];
+  /** Omesso/null = resa «rest» (editor struttura): niente stati, sabbia neutra. */
+  slotStates?: readonly SlotState[] | null;
   typeIcon?: string | null;
   selected?: boolean;
   dimmed?: boolean;
   found?: boolean;
-}>(), { selected: false, dimmed: false, found: false });
+}>(), { slotStates: null, selected: false, dimmed: false, found: false });
 
 defineEmits<{ select: [] }>();
 
@@ -26,17 +27,20 @@ const ink: Record<SlotState, string> = {
   covered: 'var(--color-state-covered-ink)',
 };
 
-// N-agnostico: array vuoto → una fascia libera; nessun ramo speciale per N=2.
-const states = computed<readonly SlotState[]>(() => (props.slotStates.length ? props.slotStates : ['free']));
+const rest = computed(() => props.slotStates == null);
+const states = computed<readonly SlotState[]>(() => (props.slotStates?.length ? props.slotStates : ['free']));
 const uniform = computed(() => states.value.every((s) => s === states.value[0]));
 /** Colonne verticali nell'ordine delle fasce (prima fascia a sinistra); length 1 se uniforme. */
 const fills = computed<string[]>(() =>
-  uniform.value ? [fill[states.value[0]]] : states.value.map((s) => fill[s]),
+  rest.value ? ['var(--color-warm-025)']
+  : uniform.value ? [fill[states.value[0]]] : states.value.map((s) => fill[s]),
 );
-const color = computed(() => (uniform.value ? ink[states.value[0]] : 'var(--color-text)'));
+const color = computed(() =>
+  rest.value ? 'var(--color-ink-700)' : uniform.value ? ink[states.value[0]] : 'var(--color-text)',
+);
 
 // jsdom non serializza var() negli style: esponiamo i computed grezzi per i test.
-defineExpose({ uniform, fills });
+defineExpose({ uniform, fills, rest });
 </script>
 
 <template>
