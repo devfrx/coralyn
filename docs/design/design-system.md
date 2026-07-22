@@ -206,7 +206,7 @@ Ruoli consumati dai componenti. Ogni colore "di sfondo" ha il suo `-ink` (testo 
 | Giornaliero | `#E89270` | `#3A1E08` | ~5.4 ✓ |
 | Prenotato | `#F1C879` | `#4A3711` | ~8.1 ✓ |
 
-\* Stima sui valori sRGB; da verificare in CI con un check di contrasto sui token (vedi §14).
+\* Stima sui valori sRGB; da verificare in CI con un check di contrasto sui token (vedi §15).
 L'etichetta usa **sempre ink scuro** su tutti gli stati: leggibilità e coerenza, niente testo
 bianco a basso contrasto.
 
@@ -548,6 +548,15 @@ precedente cerchio a spicchi conici ([spec rework Riva](../superpowers/specs/202
 §4) — i 4 assi restano quelli di ADR-0020 invariati (nessun emendamento: la forma è dettaglio del
 living doc, non dell'ADR).
 
+**Resa «rest»** (estensione additiva, [ADR-0052](../architecture/decisions/0052-editor-struttura-cantiere.md)):
+`slotStates` è **opzionale** — omesso o `null` → riempimento neutro **`--color-warm-025`**, ink
+**`--color-ink-700`**, **nessuno stato** (niente split per fascia, niente colore semantico). Usata
+**solo** dall'editor Struttura — il Cantiere (§14), dove non esistono prenotazioni/fasce da
+rappresentare; la Mappa (§13.2) continua a passare sempre `slotStates` esplicito. Se `slotStates` è
+un array vuoto (`[]`), la resa ricade su `'free'` (non su «rest»): «rest» è distinto da «assenza di
+prenotazioni», è l'assenza stessa del concetto di stato. Anello di selezione, marcatore tipologia e
+focus (§13.3–§13.5) sono invariati sulla resa «rest» — cambiano solo riempimento e ink.
+
 ### 13.2 Stato — colore e split per fascia (colonne verticali)
 
 - **Pieno** (stesso stato tutto il giorno): riempimento = `--state-*`, etichetta = `--state-*-ink`.
@@ -680,7 +689,122 @@ Riferimenti: [spec rework Riva](../superpowers/specs/2026-07-21-map-redesign-riv
   zero, il tap apre direttamente il drawer.
 - `openDelay` ~350ms evita flicker passando velocemente sulla griglia.
 
-## 14. Accessibilità (trasversale)
+## 14. L'editor Struttura — il Cantiere ([ADR-0052](../architecture/decisions/0052-editor-struttura-cantiere.md))
+
+Editor di `Settore/Fila/Ombrellone` (`EstablishmentStructureView`, `/establishment/structure`,
+admin-only) in modello **canvas + ispettore**: la scena «Riva» **a riposo** è l'editor stesso, un
+pannello laterale ospita form e azioni contestuali sulla selezione corrente. Il paradigma di
+costruzione resta **per form + numerazione automatica** ([ADR-0014](../architecture/decisions/0014-setup-mappa-strutturato.md),
+confermato) — cambia dove vivono i form (in scena, non modali), non il modello. Spec:
+[2026-07-22-struttura-cantiere-design.md](../superpowers/specs/2026-07-22-struttura-cantiere-design.md).
+
+### 14.1 La scena «Cantiere»
+
+- **Riuso dei mattoni Riva** di `map-scene.css` (§13.8: mare a velature, bagnasciuga, sabbia con
+  grana, toolbar vetro sticky) — zero duplicazione. Le classi editor-specifiche vivono affiancate in
+  `apps/web-staff/src/styles/structure-scene.css` (prefisso `.st-*`).
+- **Toolbar**: `role="tablist"` con un tab per settore (nome + conteggio posti — qui non esiste
+  occupazione, non ci sono prenotazioni da mostrare), tab ghost **«+ Settore»**, e a destra il
+  toggle **«Seleziona»** (`aria-pressed`, §14.3).
+- **Fila** (`StructureRow`): rail sinistro cliccabile (`FILA n`, conteggio ombrelloni), azioni
+  rapide **su hover/selezione** — genera ⚡ (`IconButton variant="ghost"`) e svuota/elimina 🗑
+  (`IconButton variant="danger"`, [ADR-0044](../architecture/decisions/0044-iconbutton-variante-danger.md)) —
+  scorciatoie delle stesse azioni del pannello Fila; celle al centro; **ghost «+»** in coda alla fila
+  per aggiungere un ombrellone.
+- **Tessera «a riposo»**: `UmbrellaCell` in resa **rest** (§13.1) — stessa anatomia della cella
+  Mappa, nessuna occupazione da mostrare.
+- **Selezione visiva**: cella → stesso anello coral della Mappa (§13.4); fila → inset ring sul
+  blocco (`box-shadow: inset 0 0 0 1.5px var(--color-brand)`); settore → tab attivo. Click sulla
+  sabbia nuda deseleziona (torna al pannello Spiaggia).
+- **Settore Speciali**: è un tab come gli altri (contesto di *editing*, un settore alla volta) —
+  diverge deliberatamente dalla convenzione Mappa (blocco Speciali sempre in coda, §13.6): contesti
+  d'uso diversi, non un'incoerenza.
+
+### 14.2 Ghost-affordance (creazione in-place)
+
+Niente modali di creazione: le forme tratteggiate in scena aprono il pannello di creazione
+corrispondente nell'ispettore.
+
+- Cella **`+`** in coda a una fila → pannello «Nuovo ombrellone» su quella fila.
+- Fascia tratteggiata **«+ Nuova fila»** in coda al settore, con hint («etichetta e, se vuoi, genera
+  subito gli ombrelloni») → pannello «Nuova fila».
+- Tab **«+ Settore»** in toolbar → pannello «Nuovo settore».
+- Stile: bordo tratteggiato `--color-border-input`; hover → `--color-coral-050` + `--color-brand-ink`
+  (stesso vocabolario coral della selezione).
+- Una fila senza ombrelloni mostra comunque il testo d'aiuto («Nessun ombrellone: aggiungi col «+» o
+  genera dalla fila») accanto alla cella ghost: la scena guida senza un wizard separato (§14.5).
+
+### 14.3 L'ispettore
+
+Un pannello visibile alla volta (eyebrow + titolo + crumb «Settore · Fila»), `lg+` colonna fissa
+(`--color-raised`, bordo sinistro); **sotto `lg` nel `Drawer` ui-kit in overlay**, aperto alla
+selezione e chiuso = deselezione (stesso pattern del dettaglio Mappa, [ADR-0019](../architecture/decisions/0019-app-shell-e-ux.md)/
+[ADR-0051](../architecture/decisions/0051-responsive-drawer-e-telefono-graceful.md)).
+
+| Pannello | Contenuto |
+|---|---|
+| **Spiaggia** (default, selezione vuota) | Stat 2×2 (settori/file/ombrelloni/tipologie), **Tipologie** con CRUD inline (niente modale), hint d'uso |
+| **Settore** | Nome, disposizione (griglia/speciali), danger-zone «Elimina settore» |
+| **Fila** | Etichetta, generatore (prefisso/da numero/quantità/tipologia + anteprima live, clamp 1..60), danger-zone «Svuota fila (N)» + «Elimina fila» |
+| **Ombrellone** | Etichetta (hint «numero fisico reale, unico»), tipologia, Salva, Elimina |
+| **Selezione multipla** | Conteggio (`aria-live="polite"`) + chip etichette, «Assegna tipologia a tutti», «Elimina N» |
+| **Nuovo settore / Nuova fila / Nuovo ombrellone** | Form di creazione; «Nuova fila» compone crea-fila + generate in due chiamate (`mutateAsync`, guardia anti doppio-create) |
+
+Regole trasversali:
+
+- **Salvataggio esplicito**: submit del form del pannello (Enter), mai autosave; `:loading` sul
+  bottone durante il pending.
+- **Toast su ogni esito** — crea/rinomina/elimina/bulk — via `pushToast`; gli errori (409/422/404)
+  passano dal toast di default di `mutationResource` (`onError` globale), invariato.
+- **Invalidazione sistematica**: ogni mutation invalida sia `establishmentStructure` sia
+  `establishmentOverview`, così i contatori della pagina Stabilimento restano coerenti.
+- **`ConfirmDialog` riservato al distruttivo**: elimina settore/fila/ombrellone/tipologia, svuota
+  fila, elimina in blocco. Tutto il resto (rinomina, crea, genera, assegna tipologia in blocco) è
+  inline senza interruzioni.
+
+### 14.4 Selezione multipla e bulk
+
+- Modalità **«Seleziona»** esplicita (toggle in toolbar, `aria-pressed`): il click su una cella
+  aggiunge/toglie dalla selezione. **Maiusc+clic** attiva la modalità al volo su qualunque cella (la
+  sola scorciatoia da tastiera non è scopribile né disponibile su touch).
+  **`Esc`** esce dalla modalità e svuota la selezione — **con guardia**: se un `[role="dialog"]`/
+  `[role="alertdialog"]` (`ConfirmDialog`) è aperto, `Esc` annulla solo quello (gestito dal
+  primitivo reka-ui), senza collassare anche il pannello sottostante. La selezione **non persiste**
+  al cambio di settore o vista.
+- **Bulk = endpoint backend dedicati**, mai iterazione FE di delete singoli (niente N richieste
+  separate, niente perdita di atomicità): `POST /establishment/umbrellas/bulk-delete` (`{ ids }` →
+  `{ deleted, skipped }`, in una transazione) e `POST /establishment/umbrellas/bulk-assign-type`
+  (`{ ids, umbrellaTypeId }` → `{ updated }`).
+- **Semantica «salta e riporta», mai 409 sul batch** — speculare al `generate`: `bulk-delete` elimina
+  gli ombrelloni senza prenotazioni e **salta** quelli con prenotazioni (conteggiati in `skipped`,
+  insieme a eventuali id non trovati/estranei al tenant); `bulk-assign-type` risponde 422 solo se la
+  *tipologia* è estranea al tenant (come il create singolo), non per singoli id di ombrellone.
+- **«Svuota fila» riusa `bulk-delete`** con tutti gli id della fila lato FE: un solo endpoint per
+  svuota-fila e multi-select, nessuna API per-fila dedicata.
+- Toast riepilogo sull'esito: «Eliminati N · saltati M (con prenotazioni)» / «Tipologia assegnata a
+  N ombrelloni».
+
+### 14.5 Setup guidato ed empty-state
+
+- **Spiaggia vuota** (0 settori): card «Costruiamo la tua spiaggia» sulla sabbia — 3 passi (1. Crea
+  un settore · 2. Aggiungi una fila · 3. Genera gli ombrelloni), il passo 1 sempre attivo/cliccabile
+  (apre il pannello «Nuovo settore»); la scena (mare/sabbia) resta visibile sotto la card — si
+  costruisce *sulla* spiaggia, non in un wizard a schermo intero.
+- Dopo il primo settore la card sparisce: la guida prosegue **in scena** tramite le ghost-affordance
+  (§14.2) — fascia «+ Nuova fila» con hint sul settore vuoto, cella «+» con hint testuale sulla fila
+  vuota. Nessun secondo componente di wizard per i passi 2/3: la scena stessa guida.
+
+### 14.6 Architettura FE (scomposizione)
+
+`EstablishmentStructureView.vue` (shell: query, stato `selection: {kind, id[]} | null`, layout due
+colonne/`Drawer`) · `StructureScene.vue` (scena, tab settori, modalità Seleziona) · `StructureRow.vue`
+(rail + celle + ghost di una fila) · `panels/` (un SFC per pannello: `BeachPanel`, `SectorPanel`,
+`RowPanel`, `UmbrellaPanel`, `MultiPanel`, `SectorCreatePanel`, `RowCreatePanel`,
+`UmbrellaCreatePanel`) · `StructureGuidedSetup.vue` (card 3-passi, §14.5) ·
+`useEstablishmentStructure.ts` (query + mutation, incluse le 2 bulk — tutte invalidano anche
+l'overview, §14.3).
+
+## 15. Accessibilità (trasversale)
 
 - Contrasti testo **AA**; verifica dei token di stato/ink in CI (un test che calcola il rapporto
   di contrasto etichetta↔stato fallisce sotto 4.5).
@@ -689,7 +813,7 @@ Riferimenti: [spec rework Riva](../superpowers/specs/2026-07-21-map-redesign-riv
 - Colore **mai** unico veicolo: testo + `aria-label` ovunque (celle, badge di stato, legende).
 - Target tocco ≥ 44px su tablet; `prefers-reduced-motion` rispettato.
 
-## 15. Disciplina anti-debito ([ADR-0017](../architecture/decisions/0017-design-system-frontend.md))
+## 16. Disciplina anti-debito ([ADR-0017](../architecture/decisions/0017-design-system-frontend.md))
 
 1. **Solo token** come valori nei componenti (niente hex/px) — verificato da lint.
 2. **Regola di promozione**: se un elemento è riusato o ha superficie a11y → `ui-kit`; se è
@@ -699,14 +823,16 @@ Riferimenti: [spec rework Riva](../superpowers/specs/2026-07-21-map-redesign-riv
    **tracciate** e additive ([ADR-0020](../architecture/decisions/0020-resa-mappa.md)); fallback FE
    finché il backend non le espone.
 
-## 16. Riferimenti
+## 17. Riferimenti
 
 [ADR-0017](../architecture/decisions/0017-design-system-frontend.md) ·
 [ADR-0027](../architecture/decisions/0027-coralyn-linguaggio-visivo.md) *(Coralyn — supercede ADR-0018 per palette/tipografia)* ·
 [ADR-0019](../architecture/decisions/0019-app-shell-e-ux.md) ·
 [ADR-0020](../architecture/decisions/0020-resa-mappa.md) ·
 [ADR-0016](../architecture/decisions/0016-tipologia-ombrellone.md) ·
+[ADR-0052](../architecture/decisions/0052-editor-struttura-cantiere.md) *(editor Struttura — il Cantiere, §14)* ·
 [spec UI/UX](../specs/2026-06-28-frontend-ui-ux-design.md) ·
+[spec editor Cantiere](../superpowers/specs/2026-07-22-struttura-cantiere-design.md) ·
 [mockup Coralyn *(corrente)*](mockups/Coralyn.dc.html) ·
 [mockup app-shell *(storico)*](mockups/frontend-app-shell.html) ·
 [data-model](data-model.md) · [flows](flows.md) ·
