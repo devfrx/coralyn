@@ -804,7 +804,9 @@ Regole trasversali:
 ### 14.6 Architettura FE (scomposizione)
 
 `EstablishmentStructureView.vue` (shell: query, stato `selection: {kind, id[]} | null`, layout due
-colonne/`Drawer`) · `StructureScene.vue` (scena, tab settori, modalità Seleziona) · `StructureRow.vue`
+colonne/`Drawer`) · `InspectorPanels.vue` (ramo unico dei pannelli, montato sia nell'aside desktop
+che nel `Drawer` mobile — un solo punto da cablare) · `StructureScene.vue` (scena, tab settori,
+modalità Seleziona) · `StructureRow.vue`
 (rail + celle + ghost di una fila) · `panels/` (un SFC per pannello: `BeachPanel`, `SectorPanel`,
 `RowPanel`, `UmbrellaPanel`, `MultiPanel`, `SectorCreatePanel`, `RowCreatePanel`,
 `UmbrellaCreatePanel`) · `StructureGuidedSetup.vue` (card 3-passi, §14.5) ·

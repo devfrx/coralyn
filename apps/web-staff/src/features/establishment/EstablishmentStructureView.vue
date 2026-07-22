@@ -7,14 +7,7 @@ import { useSessionStore } from '@/stores/session';
 import { useMediaQuery } from '@/lib/useMediaQuery';
 import { useEstablishmentStructure } from './useEstablishmentStructure';
 import StructureScene from './StructureScene.vue';
-import BeachPanel from './panels/BeachPanel.vue';
-import SectorPanel from './panels/SectorPanel.vue';
-import SectorCreatePanel from './panels/SectorCreatePanel.vue';
-import RowPanel from './panels/RowPanel.vue';
-import RowCreatePanel from './panels/RowCreatePanel.vue';
-import UmbrellaPanel from './panels/UmbrellaPanel.vue';
-import UmbrellaCreatePanel from './panels/UmbrellaCreatePanel.vue';
-import MultiPanel from './panels/MultiPanel.vue';
+import InspectorPanels from './InspectorPanels.vue';
 import { findUmbrella, type Selection } from './structureSelection';
 
 const session = useSessionStore();
@@ -154,25 +147,17 @@ onUnmounted(() => window.removeEventListener('keydown', onKeydown));
         @row-generate="(id) => selection = { kind: 'row', id }" @row-danger="(id) => selection = { kind: 'row', id }" />
 
       <aside v-if="isDesktop" data-testid="inspector" class="min-w-0 overflow-auto border-l border-[var(--color-border)] bg-[var(--color-raised)]" aria-label="Ispettore">
-        <BeachPanel v-if="selection.kind === 'beach'" :data="data" :is-admin="isAdmin" />
-        <SectorPanel v-else-if="selection.kind === 'sector' && selectedSector" :sector="selectedSector" :is-admin="isAdmin" @close="reset" />
-        <SectorCreatePanel v-else-if="selection.kind === 'create-sector'" @created="(id) => selectedSectorId = id" @close="reset" />
-        <RowPanel v-else-if="selection.kind === 'row' && selectedRow" :row="selectedRow.row" :sector-name="selectedRow.sector.name" :types="data.umbrellaTypes" :is-admin="isAdmin" @close="reset" />
-        <RowCreatePanel v-else-if="selection.kind === 'create-row' && createRowSector" :sector-id="createRowSector.id" :sector-name="createRowSector.name" :types="data.umbrellaTypes" @close="reset" />
-        <UmbrellaPanel v-else-if="selection.kind === 'umbrella' && selectedUmbrella" :umbrella="selectedUmbrella.umbrella" :row-label="selectedUmbrella.row.label" :sector-name="selectedUmbrella.sector.name" :types="data.umbrellaTypes" :is-admin="isAdmin" @close="reset" />
-        <UmbrellaCreatePanel v-else-if="selection.kind === 'create-umbrella' && createUmbrellaRow" :row-id="createUmbrellaRow.id" :row-label="createUmbrellaRow.label" :types="data.umbrellaTypes" @close="reset" />
-        <MultiPanel v-else-if="selection.kind === 'multi'" :ids="selection.ids" :labels="multiLabels" :types="data.umbrellaTypes" @close="reset" />
+        <InspectorPanels :data="data" :selection="selection" :is-admin="isAdmin"
+          :selected-sector="selectedSector" :selected-row="selectedRow" :selected-umbrella="selectedUmbrella"
+          :create-row-sector="createRowSector" :create-umbrella-row="createUmbrellaRow" :multi-labels="multiLabels"
+          @close="reset" @created="(id) => selectedSectorId = id" />
       </aside>
       <Drawer v-else v-model:open="drawerOpen" title="Ispettore">
         <div data-testid="inspector">
-          <BeachPanel v-if="selection.kind === 'beach'" :data="data" :is-admin="isAdmin" />
-          <SectorPanel v-else-if="selection.kind === 'sector' && selectedSector" :sector="selectedSector" :is-admin="isAdmin" @close="reset" />
-          <SectorCreatePanel v-else-if="selection.kind === 'create-sector'" @created="(id) => selectedSectorId = id" @close="reset" />
-          <RowPanel v-else-if="selection.kind === 'row' && selectedRow" :row="selectedRow.row" :sector-name="selectedRow.sector.name" :types="data.umbrellaTypes" :is-admin="isAdmin" @close="reset" />
-          <RowCreatePanel v-else-if="selection.kind === 'create-row' && createRowSector" :sector-id="createRowSector.id" :sector-name="createRowSector.name" :types="data.umbrellaTypes" @close="reset" />
-          <UmbrellaPanel v-else-if="selection.kind === 'umbrella' && selectedUmbrella" :umbrella="selectedUmbrella.umbrella" :row-label="selectedUmbrella.row.label" :sector-name="selectedUmbrella.sector.name" :types="data.umbrellaTypes" :is-admin="isAdmin" @close="reset" />
-          <UmbrellaCreatePanel v-else-if="selection.kind === 'create-umbrella' && createUmbrellaRow" :row-id="createUmbrellaRow.id" :row-label="createUmbrellaRow.label" :types="data.umbrellaTypes" @close="reset" />
-          <MultiPanel v-else-if="selection.kind === 'multi'" :ids="selection.ids" :labels="multiLabels" :types="data.umbrellaTypes" @close="reset" />
+          <InspectorPanels :data="data" :selection="selection" :is-admin="isAdmin"
+            :selected-sector="selectedSector" :selected-row="selectedRow" :selected-umbrella="selectedUmbrella"
+            :create-row-sector="createRowSector" :create-umbrella-row="createUmbrellaRow" :multi-labels="multiLabels"
+            @close="reset" @created="(id) => selectedSectorId = id" />
         </div>
       </Drawer>
     </div>
