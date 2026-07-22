@@ -184,4 +184,67 @@ describe('UmbrellasService', () => {
       expect(tx.umbrella.updateMany).not.toHaveBeenCalled();
     });
   });
+
+  describe('retire/restore (D-055)', () => {
+    it('retire: 409 se esistono prenotazioni confermate con endDate >= oggi', async () => {
+      const { service, tx } = makeService();
+      tx.umbrella.findUnique.mockResolvedValue({ id: 'u-1', label: '12', retiredAt: null, row: { label: 'F1', sector: { name: 'Centro' } } });
+      tx.booking.count.mockResolvedValue(1);
+      await expect(service.retire('u-1')).rejects.toBeInstanceOf(ConflictException);
+      expect(tx.umbrella.update).not.toHaveBeenCalled();
+    });
+
+    it('retire: sgancia dalla fila, timbra retiredAt e salva lo snapshot posizione', async () => {
+      const { service, tx } = makeService();
+      tx.umbrella.findUnique.mockResolvedValue({ id: 'u-1', label: '12', retiredAt: null, row: { label: 'F1', sector: { name: 'Centro' } } });
+      tx.booking.count.mockResolvedValue(0);
+      tx.umbrella.update.mockResolvedValue({ id: 'u-1', label: '12', umbrellaTypeId: null, retiredAt: new Date('2026-07-22T10:00:00Z'), retiredFrom: 'Centro · F1' });
+      const dto = await service.retire('u-1');
+      expect(tx.umbrella.update).toHaveBeenCalledWith(expect.objectContaining({
+        where: { id: 'u-1' },
+        data: expect.objectContaining({ rowId: null, retiredFrom: 'Centro · F1', retiredAt: expect.any(Date) }),
+      }));
+      expect(dto.retiredFrom).toBe('Centro · F1');
+    });
+
+    it('retire: idempotente se già ritirato (nessun update, nessun 409)', async () => {
+      const { service, tx } = makeService();
+      tx.umbrella.findUnique.mockResolvedValue({ id: 'u-1', label: '12', umbrellaTypeId: null, retiredAt: new Date('2026-07-01T00:00:00Z'), retiredFrom: 'Centro · F1', row: null });
+      const dto = await service.retire('u-1');
+      expect(tx.umbrella.update).not.toHaveBeenCalled();
+      expect(dto.id).toBe('u-1');
+    });
+
+    it('restore: 409 se un ATTIVO ha già la stessa label', async () => {
+      const { service, tx } = makeService();
+      tx.umbrella.findUnique.mockResolvedValue({ id: 'u-1', label: '12', retiredAt: new Date() });
+      tx.row.findUnique.mockResolvedValue({ id: 'r-1' });
+      tx.umbrella.findFirst.mockResolvedValue({ id: 'u-9' }); // clash attivo
+      await expect(service.restore('u-1', { rowId: 'r-1' })).rejects.toBeInstanceOf(ConflictException);
+    });
+
+    it('restore: azzera retiredAt/retiredFrom, riaggancia alla fila scelta e ricalcola logicalOrder', async () => {
+      const { service, tx } = makeService();
+      tx.umbrella.findUnique.mockResolvedValue({ id: 'u-1', label: '12', retiredAt: new Date() });
+      tx.row.findUnique.mockResolvedValue({ id: 'r-1' });
+      tx.umbrella.findFirst
+        .mockResolvedValueOnce(null) // nessun clash attivo
+        .mockResolvedValueOnce({ logicalOrder: 7 }); // nextLogicalOrder
+      tx.umbrella.update.mockResolvedValue({ id: 'u-1', label: '12', umbrellaTypeId: null, logicalOrder: 8 });
+      await service.restore('u-1', { rowId: 'r-1' });
+      expect(tx.umbrella.update).toHaveBeenCalledWith(expect.objectContaining({
+        data: { retiredAt: null, retiredFrom: null, rowId: 'r-1', logicalOrder: 8 },
+      }));
+    });
+
+    it('listRetired: filtra retiredAt not-null, ordina per retiredAt desc', async () => {
+      const { service, tx } = makeService();
+      tx.umbrella.findMany.mockResolvedValue([{ id: 'u-1', label: '12', umbrellaTypeId: null, retiredAt: new Date('2026-07-22T10:00:00Z'), retiredFrom: 'Centro · F1' }]);
+      const list = await service.listRetired();
+      expect(tx.umbrella.findMany).toHaveBeenCalledWith(expect.objectContaining({
+        where: { retiredAt: { not: null } }, orderBy: { retiredAt: 'desc' },
+      }));
+      expect(list[0]).toEqual({ id: 'u-1', label: '12', umbrellaTypeId: null, retiredAt: '2026-07-22T10:00:00.000Z', retiredFrom: 'Centro · F1' });
+    });
+  });
 });

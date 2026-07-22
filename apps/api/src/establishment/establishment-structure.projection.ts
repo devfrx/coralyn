@@ -1,4 +1,4 @@
-import type { EstablishmentStructureDTO, SectorKind, StructureRowDTO, StructureSectorDTO, StructureUmbrellaDTO, UmbrellaTypeDTO } from '@coralyn/contracts';
+import type { EstablishmentStructureDTO, RetiredUmbrellaDTO, SectorKind, StructureRowDTO, StructureSectorDTO, StructureUmbrellaDTO, UmbrellaTypeDTO } from '@coralyn/contracts';
 
 type RawUmbrella = { id: string; label: string; umbrellaTypeId: string | null; logicalOrder: number };
 type RawRow = { id: string; label: string; sortOrder: number; umbrellas: RawUmbrella[] };
@@ -7,6 +7,12 @@ type RawType = { id: string; name: string; sortOrder: number; icon: string | nul
 
 export function toStructureUmbrella(u: RawUmbrella): StructureUmbrellaDTO {
   return { id: u.id, label: u.label, umbrellaTypeId: u.umbrellaTypeId };
+}
+
+type RawRetired = { id: string; label: string; umbrellaTypeId: string | null; retiredAt: Date; retiredFrom: string | null };
+/** Ombrellone ritirato (soft-delete, D-055). */
+export function toRetiredUmbrella(u: RawRetired): RetiredUmbrellaDTO {
+  return { id: u.id, label: u.label, umbrellaTypeId: u.umbrellaTypeId, retiredAt: u.retiredAt.toISOString(), retiredFrom: u.retiredFrom };
 }
 
 export function toStructureRow(r: RawRow): StructureRowDTO {

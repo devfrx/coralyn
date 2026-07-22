@@ -1,12 +1,13 @@
 import { ConflictException, Injectable, NotFoundException, UnprocessableEntityException } from '@nestjs/common';
 import type { Prisma } from '@prisma/client';
 import type {
-  BulkDeleteUmbrellasInput, BulkDeleteUmbrellasResultDTO, BulkAssignUmbrellaTypeInput, BulkAssignUmbrellaTypeResultDTO, CreateUmbrellaInput, GenerateUmbrellasInput, GenerateUmbrellasResultDTO, StructureUmbrellaDTO, UpdateUmbrellaInput,
+  BulkDeleteUmbrellasInput, BulkDeleteUmbrellasResultDTO, BulkAssignUmbrellaTypeInput, BulkAssignUmbrellaTypeResultDTO, CreateUmbrellaInput, GenerateUmbrellasInput, GenerateUmbrellasResultDTO, RestoreUmbrellaInput, RetiredUmbrellaDTO, StructureUmbrellaDTO, UpdateUmbrellaInput,
 } from '@coralyn/contracts';
 import { PrismaService } from '../prisma/prisma.service';
 import { TenantContext } from '../tenant/tenant-context';
+import { todayInRome, toDbDate } from '../common/dates';
 import { UMBRELLA_SELECT } from './establishment-structure.select';
-import { toStructureUmbrella } from './establishment-structure.projection';
+import { toStructureUmbrella, toRetiredUmbrella } from './establishment-structure.projection';
 
 @Injectable()
 export class UmbrellasService {
@@ -134,5 +135,64 @@ export class UmbrellasService {
       });
       return { updated: res.count };
     });
+  }
+
+  /** Guardia: prenotazioni confermate non ancora concluse bloccano il ritiro (spec §4, D-055). */
+  async retire(id: string): Promise<RetiredUmbrellaDTO> {
+    const tenantId = this.tenant.require();
+    const retired = await this.prisma.forTenant(tenantId, async (tx) => {
+      const existing = await tx.umbrella.findUnique({
+        where: { id },
+        include: { row: { select: { label: true, sector: { select: { name: true } } } } },
+      });
+      if (!existing) return null;
+      if (existing.retiredAt != null) {
+        // idempotente, come l'archive dei pacchetti: retiredAt è già valorizzato, narrow esplicito per il DTO.
+        return { id: existing.id, label: existing.label, umbrellaTypeId: existing.umbrellaTypeId, retiredAt: existing.retiredAt, retiredFrom: existing.retiredFrom };
+      }
+      const active = await tx.booking.count({
+        where: { umbrellaId: id, status: 'confirmed', endDate: { gte: toDbDate(todayInRome()) } },
+      });
+      if (active > 0) throw new ConflictException('Ombrellone con prenotazioni attive o future: disdici prima di ritirare.');
+      const retiredFrom = existing.row ? `${existing.row.sector.name} · ${existing.row.label}` : null;
+      const updated = await tx.umbrella.update({ where: { id }, data: { retiredAt: new Date(), rowId: null, retiredFrom } });
+      // Appena valorizzato in questa stessa transazione: mai null a runtime.
+      return { id: updated.id, label: updated.label, umbrellaTypeId: updated.umbrellaTypeId, retiredAt: updated.retiredAt!, retiredFrom: updated.retiredFrom };
+    });
+    if (!retired) throw new NotFoundException('Ombrellone non trovato');
+    return toRetiredUmbrella(retired);
+  }
+
+  /** Ripristina un ombrellone ritirato riagganciandolo a una fila; 409 se la label collide con un attivo. */
+  async restore(id: string, input: RestoreUmbrellaInput): Promise<StructureUmbrellaDTO> {
+    const tenantId = this.tenant.require();
+    const result = await this.prisma.forTenant(tenantId, async (tx) => {
+      const existing = await tx.umbrella.findUnique({ where: { id } });
+      if (!existing) return null;
+      if (existing.retiredAt == null) {
+        return tx.umbrella.findUniqueOrThrow({ where: { id }, select: UMBRELLA_SELECT }); // già attivo: idempotente
+      }
+      await this.assertRow(tx, input.rowId);
+      const clash = await tx.umbrella.findFirst({ where: { label: existing.label, retiredAt: null } });
+      if (clash) throw new ConflictException('Esiste già un ombrellone attivo con questa etichetta: rinominalo prima di ripristinare.');
+      const logicalOrder = await this.nextLogicalOrder(tx, input.rowId);
+      return tx.umbrella.update({
+        where: { id },
+        data: { retiredAt: null, retiredFrom: null, rowId: input.rowId, logicalOrder },
+        select: UMBRELLA_SELECT,
+      });
+    });
+    if (!result) throw new NotFoundException('Ombrellone non trovato');
+    return toStructureUmbrella(result);
+  }
+
+  /** Elenco ombrelloni ritirati (storico), più recenti prima. */
+  async listRetired(): Promise<RetiredUmbrellaDTO[]> {
+    const tenantId = this.tenant.require();
+    const rows = await this.prisma.forTenant(tenantId, (tx) =>
+      tx.umbrella.findMany({ where: { retiredAt: { not: null } }, orderBy: { retiredAt: 'desc' } }),
+    );
+    // Il filtro where garantisce retiredAt non-null: Prisma non propaga il vincolo al tipo.
+    return rows.map((u) => toRetiredUmbrella({ ...u, retiredAt: u.retiredAt! }));
   }
 }

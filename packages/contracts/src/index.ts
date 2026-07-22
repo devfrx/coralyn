@@ -608,6 +608,16 @@ export interface BulkDeleteUmbrellasResultDTO { deleted: number; skipped: number
 export interface BulkAssignUmbrellaTypeInput { ids: string[]; umbrellaTypeId: string | null }
 export interface BulkAssignUmbrellaTypeResultDTO { updated: number }
 
+/** Ombrellone ritirato (soft-delete, D-055): fuori da struttura/mappa, storico conservato. */
+export interface RetiredUmbrellaDTO {
+  id: string;
+  label: string;
+  umbrellaTypeId: string | null;
+  retiredAt: string;            // ISO
+  retiredFrom: string | null;   // snapshot «Settore · Fila» al ritiro
+}
+export interface RestoreUmbrellaInput { rowId: string }
+
 // --- Platform Console (superuser) --------------------------------------------
 
 /** Metriche aggregate di un lido per la Platform Console (superuser). PII-free per costruzione
