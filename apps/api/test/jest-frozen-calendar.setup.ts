@@ -18,9 +18,11 @@ const FAKEABLE_EXCEPT_DATE = [
   'setImmediate', 'clearImmediate', 'setInterval', 'clearInterval', 'setTimeout', 'clearTimeout',
 ] as const;
 
-/** «Oggi» delle e2e: 2026-07-15, ore 09:00 Europe/Rome (CEST), metà Estate 2026. */
-export const FROZEN_NOW = '2026-07-15T07:00:00Z';
-export const FROZEN_TODAY = '2026-07-15';
+// «Oggi» delle e2e: 2026-07-15, ore 09:00 Europe/Rome (CEST), metà Estate 2026. Volutamente non
+// esportato: le suite scrivono date letterali (stile del file, es. '2026-07-18' > oggi) e nei
+// test «oggi» si ricava come fa il server, con todayInRome() — che sotto questo clock è
+// deterministica. Se si ri-centra l'istante, ripassare le guardie passato/futuro delle suite.
+const FROZEN_NOW = '2026-07-15T07:00:00Z';
 
 jest.useFakeTimers({ doNotFake: [...FAKEABLE_EXCEPT_DATE], now: new Date(FROZEN_NOW) });
 
