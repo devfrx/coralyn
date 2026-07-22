@@ -609,8 +609,10 @@ bundled/offline** dal `<Icon>`. **Fallback** finché manca `icona`: chiave di de
 
 ### 13.6 Settore Speciali, filtri di stato e legenda
 
-- **Speciali** (palme): settore dedicato in coda, celle leggermente più grandi col proprio
-  marcatore tipologia ([ADR-0016](../architecture/decisions/0016-tipologia-ombrellone.md)).
+- **Speciali** (palme): settore dedicato in coda — un blocco per **ogni** settore `kind: special`,
+  discriminato per `Sector.kind` e non per nome (D-056), intestato col nome reale del settore —
+  celle leggermente più grandi col proprio marcatore tipologia
+  ([ADR-0016](../architecture/decisions/0016-tipologia-ombrellone.md)).
 - **Filtri Stato — nella toolbar** (separati dalla legenda): i chip Libero / Abbonato /
   Giornaliero / Prenotato / **Non disponibile** (`covered`, D-048) vivono nella **toolbar della
   scena** (§13.8) come **toggle multi-select** compatti (`<button aria-pressed>`, in un
