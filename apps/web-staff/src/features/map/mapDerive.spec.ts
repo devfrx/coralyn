@@ -32,7 +32,7 @@ describe('rowOccupancy / sectorOccupancyPct', () => {
     expect(sectorOccupancyPct(sector)).toBe(67); // 2/3
   });
   it('settore vuoto → 0 (niente divisione per zero)', () => {
-    expect(sectorOccupancyPct({ id: 's', name: 'X', sortOrder: 1, rows: [] })).toBe(0);
+    expect(sectorOccupancyPct({ id: 's', name: 'X', sortOrder: 1, kind: 'grid', rows: [] })).toBe(0);
   });
 });
 
