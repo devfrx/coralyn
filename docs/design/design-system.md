@@ -781,8 +781,9 @@ Regole trasversali:
   *tipologia* è estranea al tenant (come il create singolo), non per singoli id di ombrellone.
 - **«Svuota fila» riusa `bulk-delete`** con tutti gli id della fila lato FE: un solo endpoint per
   svuota-fila e multi-select, nessuna API per-fila dedicata.
-- Toast riepilogo sull'esito: «Eliminati N · saltati M (con prenotazioni)» / «Tipologia assegnata a
-  N ombrelloni».
+- Toast riepilogo sull'esito: «Eliminati N · saltati M (con prenotazioni)» per «Svuota fila»
+  (RowPanel); il bulk della selezione multipla (MultiPanel) usa «Eliminati N · saltati M» senza
+  suffisso / «Tipologia assegnata a N ombrelloni».
 
 ### 14.5 Setup guidato ed empty-state
 

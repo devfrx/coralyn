@@ -90,5 +90,9 @@ addendum, `flows.md` §7 (nota `source='customer'`), 4 mockup `web-customer-*.ht
 
 **Baseline finale D-051 (2026-07-15):** api unit invariata **238** · api e2e **360** (354 + 6: `GET /bookings/:id/customer-access` — Customer access status) · web-staff **387** · typecheck (`tsc -p tsconfig.json --noEmit` su api + `vue-tsc -b` su web-staff) pulito.
 
+- **D-055** — **«Ritira ombrellone» (soft-delete)**: un ombrellone con storico prenotazioni (anche solo scadute/cancellate — le «prenotazioni fantasma») **non è eliminabile by design** (guardia block-409 che conta tutte le Booking + FK `Booking.umbrellaId` RESTRICT, [ADR-0052](decisions/0052-editor-struttura-cantiere.md)); la disdetta anticipata libera il posto in mappa ma non sblocca l'eliminazione. Gap dimostrato sul campo (2026-07-22): oggi l'unica via è distruggere storico contabile. Proposta: colonna `retiredAt` su `Umbrella` (sparisce da struttura/mappa/generatore, storico intatto); da decidere in brainstorming: unicità della label per i ritirati, proiezioni, UI nel pannello Ombrellone del Cantiere.
+
+- **D-056** — **MapView discrimina il settore «Speciali» per nome-stringa** (`s.name.toLowerCase()` ~L52) invece che per `Sector.kind` (che esiste a schema dal 07-04 ed è editabile dal Cantiere): un rename rompe la resa dedicata, e un settore `kind: special` con altro nome non la ottiene. Fix piccolo ma tocca la Mappa (fuori dallo scope del Cantiere). Nota dati correlata: nel seed dev «Speciali» è `kind: grid`.
+
 > Nota: le voci sopra sono il punto di partenza emerso dal brainstorming iniziale e
 > verranno raffinate man mano.

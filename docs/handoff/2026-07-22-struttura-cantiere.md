@@ -83,12 +83,12 @@
    `GENERATE_MAX`, nit doc §14.4, ARIA tablist senza pattern tastiera.
 2. **Chip time-bomb e2e** (task_673403dd): bookings/customer-bookings/subscription-cession rossi
    per date hardcoded ormai passate (18 test, anche su main) — rendere le date relative.
-3. **Feature «Ritira ombrellone» (soft-delete)**: gap dimostrato sul campo — la disdetta anticipata
-   libera il posto in mappa ma non sblocca l'eliminazione; oggi l'unica via è distruggere storico
-   contabile (fatto 3 volte su richiesta esplicita utente in questa sessione, dati dev). Da
-   progettare con brainstorming (colonna `retiredAt`, proiezioni, unicità label).
-4. **Dati/`MapView`**: il settore «Speciali» del seed dev è `kind: grid` (non `special`); MapView
-   discrimina Speciali per NOME-stringa invece che per `kind` (difetto pre-esistente, ~L52).
+3. **Feature «Ritira ombrellone» (soft-delete)** — tracciata come **D-055** in `deferred.md`: gap
+   dimostrato sul campo — la disdetta anticipata libera il posto in mappa ma non sblocca
+   l'eliminazione; oggi l'unica via è distruggere storico contabile (fatto 3 volte su richiesta
+   esplicita utente in questa sessione, dati dev). Da progettare con brainstorming.
+4. **Dati/`MapView`** — tracciato come **D-056**: MapView discrimina Speciali per NOME-stringa
+   invece che per `kind` (difetto pre-esistente, ~L52); nel seed dev «Speciali» è `kind: grid`.
 5. Minori triati ship-as-is: elenco nel ledger `.superpowers/sdd/progress.md` (sezione
    struttura-cantiere).
 

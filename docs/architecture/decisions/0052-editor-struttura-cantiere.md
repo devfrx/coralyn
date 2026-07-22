@@ -81,8 +81,11 @@ block-409 (mai cascade) — invariate anche nel bulk-delete, che *salta* invece 
   multi-select condividono `bulk-delete`.
 - Contatori dell'overview sempre coerenti con la struttura (invalidazione sistematica).
 - Empty-state con setup guidato reale (card «Crea un settore · Aggiungi una fila · Genera gli
-  ombrelloni» sulla sabbia visibile); dopo il primo settore, la guida prosegue **in scena** tramite
-  le affordance ghost (fila/cella tratteggiate con hint), non un wizard separato.
+  ombrelloni» sulla sabbia visibile): il passo attivo è **derivato dall'albero** (0 settori → 1,
+  0 file → 2, 0 ombrelloni → 3, con i passi precedenti spuntati) e la card resta finché non esiste
+  il **primo ombrellone** — poi guida solo la scena con le affordance ghost. Le due guide
+  coesistono, non è un wizard a schermo intero. (Comportamento raffinato post gate-visivo: la
+  versione iniziale spariva al primo settore; design-system §14.5 è la descrizione autoritativa.)
 
 ### Negative / Trade-off
 
