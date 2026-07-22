@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue';
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { Icon, Drawer, Skeleton, EmptyState, useDelayedLoading } from '@coralyn/ui-kit';
 import { Role } from '@coralyn/contracts';
@@ -14,6 +14,7 @@ import RowPanel from './panels/RowPanel.vue';
 import RowCreatePanel from './panels/RowCreatePanel.vue';
 import UmbrellaPanel from './panels/UmbrellaPanel.vue';
 import UmbrellaCreatePanel from './panels/UmbrellaCreatePanel.vue';
+import MultiPanel from './panels/MultiPanel.vue';
 import { findUmbrella, type Selection } from './structureSelection';
 
 const session = useSessionStore();
@@ -72,6 +73,14 @@ const selectedUmbrella = computed(() => {
 });
 watch(selectedUmbrella, (u) => { if (selection.value.kind === 'umbrella' && !u) reset(); });
 
+// Pannello Multi-selezione: risolve le etichette dall'albero via id (stesso pattern findUmbrella
+// riusato per ciascun id selezionato), per i chip nel pannello e per l'aria-live sul conteggio.
+const multiLabels = computed(() => {
+  if (selection.value.kind !== 'multi' || !data.value) return [];
+  const ids = (selection.value as { kind: 'multi'; ids: string[] }).ids;
+  return ids.map((id) => findUmbrella(data.value!, id)?.umbrella.label ?? id);
+});
+
 const createUmbrellaRow = computed(() => {
   if (selection.value.kind !== 'create-umbrella' || !data.value) return null;
   const rowId = (selection.value as { kind: 'create-umbrella'; rowId: string }).rowId;
@@ -103,10 +112,11 @@ function toggleSelectMode() {
   if (!selectMode.value && selection.value.kind === 'multi') selection.value = { kind: 'beach' };
 }
 
-// Stadio 1 (Task 8-9): Settore (SectorPanel/SectorCreatePanel); Stadio 2 (Task 10): Fila
-// (RowPanel/RowCreatePanel); Stadio 3 (Task 11): Ombrellone (UmbrellaPanel/UmbrellaCreatePanel).
-// Il pannello Multi-selezione arriva nel Task 12: il placeholder resta solo per quel caso.
-const placeholderLabel = computed(() => selection.value.kind);
+// Esc globale: chiude qualunque pannello aperto (utile in particolare per uscire dalla
+// selezione multipla senza dover ri-cliccare il toggle «Seleziona»).
+function onKeydown(e: KeyboardEvent) { if (e.key === 'Escape') reset(); }
+onMounted(() => window.addEventListener('keydown', onKeydown));
+onUnmounted(() => window.removeEventListener('keydown', onKeydown));
 </script>
 
 <template>
@@ -145,8 +155,7 @@ const placeholderLabel = computed(() => selection.value.kind);
         <RowCreatePanel v-else-if="selection.kind === 'create-row' && createRowSector" :sector-id="createRowSector.id" :sector-name="createRowSector.name" :types="data.umbrellaTypes" @close="reset" />
         <UmbrellaPanel v-else-if="selection.kind === 'umbrella' && selectedUmbrella" :umbrella="selectedUmbrella.umbrella" :row-label="selectedUmbrella.row.label" :sector-name="selectedUmbrella.sector.name" :types="data.umbrellaTypes" :is-admin="isAdmin" @close="reset" />
         <UmbrellaCreatePanel v-else-if="selection.kind === 'create-umbrella' && createUmbrellaRow" :row-id="createUmbrellaRow.id" :row-label="createUmbrellaRow.label" :types="data.umbrellaTypes" @close="reset" />
-        <!-- Il pannello Multi arriva nel Task 12 -->
-        <div v-else class="p-[18px] text-[12.5px] text-[var(--color-text-muted)]" data-testid="panel-placeholder">{{ placeholderLabel }}</div>
+        <MultiPanel v-else-if="selection.kind === 'multi'" :ids="selection.ids" :labels="multiLabels" :types="data.umbrellaTypes" @close="reset" />
       </aside>
       <Drawer v-else v-model:open="drawerOpen" title="Ispettore">
         <div data-testid="inspector">
@@ -157,8 +166,7 @@ const placeholderLabel = computed(() => selection.value.kind);
           <RowCreatePanel v-else-if="selection.kind === 'create-row' && createRowSector" :sector-id="createRowSector.id" :sector-name="createRowSector.name" :types="data.umbrellaTypes" @close="reset" />
           <UmbrellaPanel v-else-if="selection.kind === 'umbrella' && selectedUmbrella" :umbrella="selectedUmbrella.umbrella" :row-label="selectedUmbrella.row.label" :sector-name="selectedUmbrella.sector.name" :types="data.umbrellaTypes" :is-admin="isAdmin" @close="reset" />
           <UmbrellaCreatePanel v-else-if="selection.kind === 'create-umbrella' && createUmbrellaRow" :row-id="createUmbrellaRow.id" :row-label="createUmbrellaRow.label" :types="data.umbrellaTypes" @close="reset" />
-          <!-- Il pannello Multi arriva nel Task 12 -->
-          <div v-else class="p-[18px] text-[12.5px] text-[var(--color-text-muted)]" data-testid="panel-placeholder">{{ placeholderLabel }}</div>
+          <MultiPanel v-else-if="selection.kind === 'multi'" :ids="selection.ids" :labels="multiLabels" :types="data.umbrellaTypes" @close="reset" />
         </div>
       </Drawer>
     </div>

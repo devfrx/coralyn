@@ -299,4 +299,70 @@ describe('EstablishmentStructureView — shell Cantiere', () => {
     expect(document.body.textContent).toContain('Numero fisico reale'); // pannello Ombrellone, non il placeholder 'umbrella'
     w.unmount();
   });
+
+  it('shift+clic su due celle → pannello multi; assegna tipologia → bulk-assign-type', async () => {
+    useFixture();
+    let assigned: unknown = null;
+    server.use(http.post('/api/establishment/umbrellas/bulk-assign-type', async ({ request }) => {
+      assigned = await request.json();
+      return HttpResponse.json({ updated: 2 });
+    }));
+    const w = mountApp(EstablishmentStructureView);
+    const session = useSessionStore();
+    session.user = { id: 'u-1', email: 'admin@coralyn.dev', role: Role.Admin, establishmentId: 'e-1', establishmentName: 'Lido Maestrale' };
+    await settle();
+    await w.findAll('[data-testid="scene-cell"] button')[0].trigger('click');
+    await w.findAll('[data-testid="scene-cell"] button')[1].trigger('click', { shiftKey: true });
+    const insp = w.find('[data-testid="inspector"]');
+    expect(insp.text()).toContain('2 ombrelloni');
+    await insp.find('[data-testid="multi-type"]').setValue('typ-1');
+    await insp.find('[data-testid="multi-assign"]').trigger('click');
+    await settle();
+    expect(assigned).toEqual({ ids: ['u-1', 'u-2'], umbrellaTypeId: 'typ-1' });
+  });
+
+  it('toggle Seleziona: click semplici accumulano; elimina bulk → conferma → bulk-delete + toast', async () => {
+    useFixture();
+    server.use(http.post('/api/establishment/umbrellas/bulk-delete', () => HttpResponse.json({ deleted: 2, skipped: 0 })));
+    const w = mountApp(EstablishmentStructureView, { attachTo: document.body });
+    const session = useSessionStore();
+    session.user = { id: 'u-1', email: 'admin@coralyn.dev', role: Role.Admin, establishmentId: 'e-1', establishmentName: 'Lido Maestrale' };
+    await settle();
+    await w.find('[data-testid="select-mode"]').trigger('click');
+    await w.findAll('[data-testid="scene-cell"] button')[0].trigger('click');
+    await w.findAll('[data-testid="scene-cell"] button')[1].trigger('click');
+    await w.find('[data-testid="multi-delete"]').trigger('click');
+    await flushPromises();
+    Array.from(document.body.querySelectorAll('button')).find((b) => b.textContent?.trim() === 'Elimina')!.click();
+    await settle();
+    const { useToasts } = await import('@/lib/toasts');
+    expect(useToasts().items.some((t) => t.message.includes('Eliminati 2'))).toBe(true);
+    w.unmount();
+  });
+
+  it('mobile: shift+clic su due celle → Drawer con pannello Multi (ramo <lg, non solo l\'aside desktop)', async () => {
+    useFixture();
+    // Stessa guardia di regressione di fila/ombrellone: senza cablaggio nel ramo Drawer resterebbe
+    // il placeholder invece del pannello Multi.
+    vi.stubGlobal('matchMedia', (query: string) => ({
+      matches: false,
+      media: query,
+      onchange: null,
+      addEventListener: () => {},
+      removeEventListener: () => {},
+      addListener: () => {},
+      removeListener: () => {},
+      dispatchEvent: () => false,
+    }));
+    const w = mountApp(EstablishmentStructureView, { attachTo: document.body });
+    const session = useSessionStore();
+    session.user = { id: 'u-1', email: 'admin@coralyn.dev', role: Role.Admin, establishmentId: 'e-1', establishmentName: 'Lido Maestrale' };
+    await settle();
+    await w.findAll('[data-testid="scene-cell"] button')[0].trigger('click');
+    await w.findAll('[data-testid="scene-cell"] button')[1].trigger('click', { shiftKey: true });
+    await settle();
+    expect(document.body.textContent).toContain('Selezione multipla'); // pannello Multi, non il placeholder
+    expect(document.body.textContent).toContain('2 ombrelloni');
+    w.unmount();
+  });
 });
