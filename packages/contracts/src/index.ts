@@ -596,7 +596,7 @@ export interface GenerateUmbrellasInput {
   rowId: string;
   prefix: string;                // '' = solo numero
   start: number;                 // "Da numero"
-  count: number;                 // "Quantità" (1..60)
+  count: number;                 // "Quantità" (1..500)
   umbrellaTypeId: string | null; // tipologia predefinita del batch
 }
 export interface GenerateUmbrellasResultDTO { created: number; skipped: number; umbrellas: StructureUmbrellaDTO[]; }

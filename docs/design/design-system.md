@@ -745,7 +745,7 @@ selezione e chiuso = deselezione (stesso pattern del dettaglio Mappa, [ADR-0019]
 |---|---|
 | **Spiaggia** (default, selezione vuota) | Stat 2×2 (settori/file/ombrelloni/tipologie), **Tipologie** con CRUD inline (niente modale), hint d'uso |
 | **Settore** | Nome, disposizione (griglia/speciali), danger-zone «Elimina settore» |
-| **Fila** | Etichetta, generatore (prefisso/da numero/quantità/tipologia + anteprima live, clamp 1..60), danger-zone «Svuota fila (N)» + «Elimina fila» |
+| **Fila** | Etichetta, generatore (prefisso/da numero/quantità/tipologia + anteprima live, limite 1..500 esplicito: oltre `GENERATE_MAX` hint «Massimo 500 per volta» e submit disabilitato, niente clamp silenzioso), danger-zone «Svuota fila (N)» + «Elimina fila» |
 | **Ombrellone** | Etichetta (hint «numero fisico reale, unico»), tipologia, Salva, Elimina |
 | **Selezione multipla** | Conteggio (`aria-live="polite"`) + chip etichette, «Assegna tipologia a tutti», «Elimina N» |
 | **Nuovo settore / Nuova fila / Nuovo ombrellone** | Form di creazione; «Nuova fila» compone crea-fila + generate in due chiamate (`mutateAsync`, guardia anti doppio-create) |

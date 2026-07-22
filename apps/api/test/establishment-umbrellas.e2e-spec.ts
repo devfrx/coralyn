@@ -95,7 +95,7 @@ describe('Establishment umbrellas + generate (e2e)', () => {
 
   it('POST /umbrellas/generate count fuori range → 400', async () => {
     await request(app.getHttpServer()).post('/api/establishment/umbrellas/generate').set(...bearer(adminT)).send({ rowId, prefix: 'A', start: 1, count: 0, umbrellaTypeId: null }).expect(400);
-    await request(app.getHttpServer()).post('/api/establishment/umbrellas/generate').set(...bearer(adminT)).send({ rowId, prefix: 'A', start: 1, count: 61, umbrellaTypeId: null }).expect(400);
+    await request(app.getHttpServer()).post('/api/establishment/umbrellas/generate').set(...bearer(adminT)).send({ rowId, prefix: 'A', start: 1, count: 501, umbrellaTypeId: null }).expect(400);
   });
 
   it('POST /umbrellas/generate admin → crea, poi salta le esistenti', async () => {

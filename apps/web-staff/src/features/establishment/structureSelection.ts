@@ -1,5 +1,10 @@
 import type { EstablishmentStructureDTO, StructureRowDTO, StructureSectorDTO, StructureUmbrellaDTO } from '@coralyn/contracts';
 
+/** Cap del generatore ombrelloni (RowPanel/RowCreatePanel): i lidi reali hanno 400/500+ ombrelloni.
+ * Deve restare in sync col `@Max` di `GenerateUmbrellasDto` lato api — il DTO è la fonte di verità
+ * server-side, questa è la sola copia FE (niente hardcode duplicato nei due pannelli). */
+export const GENERATE_MAX = 500;
+
 export type Selection =
   | { kind: 'beach' }
   | { kind: 'sector'; id: string }

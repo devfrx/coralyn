@@ -15,7 +15,7 @@ export class GenerateUmbrellasDto implements GenerateUmbrellasInput {
 
   @IsInt()
   @Min(1)
-  @Max(60)
+  @Max(500)
   count!: number;
 
   @ValidateIf((o: GenerateUmbrellasDto) => o.umbrellaTypeId !== null)

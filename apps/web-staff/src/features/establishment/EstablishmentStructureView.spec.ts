@@ -147,6 +147,38 @@ describe('EstablishmentStructureView — shell Cantiere', () => {
     expect(generated).toEqual({ rowId: 'r-1', prefix: 'A', start: 3, count: 4, umbrellaTypeId: null });
   });
 
+  it('generatore Fila: quantità oltre il cap (500) → hint «Massimo 500 per volta» + submit disabilitato, nessuna generate', async () => {
+    useFixture();
+    let called = false;
+    server.use(http.post('/api/establishment/umbrellas/generate', async () => { called = true; return HttpResponse.json({ created: 0, skipped: 0, umbrellas: [] }); }));
+    const w = mountApp(EstablishmentStructureView);
+    const session = useSessionStore();
+    session.user = { id: 'u-1', email: 'admin@coralyn.dev', role: Role.Admin, establishmentId: 'e-1', establishmentName: 'Lido Maestrale' };
+    await settle();
+    await w.find('[data-testid="scene-row"] .st-rail-name').trigger('click');
+    const insp = w.find('[data-testid="inspector"]');
+    await insp.find('[data-testid="gen-count"]').setValue(501);
+    expect(insp.text()).toContain('Massimo 500 per volta');
+    expect(insp.find('[data-testid="gen-save"]').attributes('disabled')).toBeDefined();
+    await insp.find('[data-testid="gen-form"]').trigger('submit');
+    await settle();
+    expect(called).toBe(false);
+  });
+
+  it('generatore Fila: quantità = 500 (cap) → anteprima corretta e submit abilitato', async () => {
+    useFixture();
+    const w = mountApp(EstablishmentStructureView);
+    const session = useSessionStore();
+    session.user = { id: 'u-1', email: 'admin@coralyn.dev', role: Role.Admin, establishmentId: 'e-1', establishmentName: 'Lido Maestrale' };
+    await settle();
+    await w.find('[data-testid="scene-row"] .st-rail-name').trigger('click');
+    const insp = w.find('[data-testid="inspector"]');
+    await insp.find('[data-testid="gen-count"]').setValue(500);
+    expect(insp.text()).toContain('(500)');
+    expect(insp.text()).not.toContain('Massimo 500 per volta');
+    expect(insp.find('[data-testid="gen-save"]').attributes('disabled')).toBeUndefined();
+  });
+
   it('svuota fila → ConfirmDialog → bulk-delete con gli id della fila → toast eliminati/saltati', async () => {
     useFixture();
     let bulk: unknown = null;
@@ -200,6 +232,28 @@ describe('EstablishmentStructureView — shell Cantiere', () => {
     expect(generated).toEqual({ rowId: 'r-2', prefix: '', start: 1, count: 4, umbrellaTypeId: null });
     const { useToasts } = await import('@/lib/toasts');
     expect(useToasts().items.some((t) => t.message.includes('Fila creata') && t.message.includes('4 ombrelloni'))).toBe(true);
+  });
+
+  it('tab «+ Fila»: quantità oltre il cap (500) → hint + submit disabilitato, nessuna create/generate', async () => {
+    useFixture();
+    let createCalled = false;
+    server.use(
+      http.post('/api/establishment/rows', async () => { createCalled = true; return HttpResponse.json({ id: 'r-2', label: 'Fila 2', sortOrder: 2, umbrellas: [] }); }),
+    );
+    const w = mountApp(EstablishmentStructureView);
+    const session = useSessionStore();
+    session.user = { id: 'u-1', email: 'admin@coralyn.dev', role: Role.Admin, establishmentId: 'e-1', establishmentName: 'Lido Maestrale' };
+    await settle();
+    await w.findAll('[role="tab"]')[0].trigger('click');
+    await w.find('[data-testid="ghost-row"]').trigger('click');
+    const insp = w.find('[data-testid="inspector"]');
+    await insp.find('[data-testid="row-label"]').setValue('Fila 2');
+    await insp.find('[data-testid="gen-count"]').setValue(501);
+    expect(insp.text()).toContain('Massimo 500 per volta');
+    expect(insp.find('[data-testid="row-save"]').attributes('disabled')).toBeDefined();
+    await insp.find('[data-testid="row-form"]').trigger('submit');
+    await settle();
+    expect(createCalled).toBe(false);
   });
 
   it('mobile: rail fila → Drawer con pannello Fila (ramo <lg, non solo l\'aside desktop)', async () => {
