@@ -86,7 +86,7 @@ export function projectDayMap(date: string, source: MapSource): DayMapDTO {
           stateBySlot[slot.id] = state;
           if (state === 'covered') coveredBySlot[slot.id] = coveredBy;
         }
-        return { id: u.id, label: u.label, umbrellaTypeId: u.umbrellaTypeId, rowId: u.rowId, stateBySlot, coveredBySlot };
+        return { id: u.id, label: u.label, umbrellaTypeId: u.umbrellaTypeId, rowId: r.id, stateBySlot, coveredBySlot };
       }),
     })),
   }));

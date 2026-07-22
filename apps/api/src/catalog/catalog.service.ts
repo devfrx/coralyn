@@ -151,6 +151,7 @@ export class CatalogService {
       include: { row: true },
     });
     if (!umbrella) return { ok: false, reason: 'UMBRELLA_NOT_FOUND' };
+    if (!umbrella.row) return { ok: false, reason: 'UMBRELLA_NOT_FOUND' }; // ritirato (D-055): non prezzabile
 
     const day = toDbDate(ctx.startDate);
     const seasons = await tx.season.findMany({
@@ -169,7 +170,7 @@ export class CatalogService {
       {
         type: ctx.type,
         sectorId: umbrella.row.sectorId,
-        rowId: umbrella.rowId,
+        rowId: umbrella.row.id, // umbrella.rowId è nullable (D-055); qui row è già narrowed non-null sopra
         packageId: ctx.packageId ?? null,
         timeSlotId: ctx.timeSlotId,
         startDate: ctx.startDate,

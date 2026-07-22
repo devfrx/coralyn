@@ -214,17 +214,21 @@ model Row {
 model Umbrella {
   id                   String        @id @default(uuid()) @db.Uuid
   establishmentId      String        @db.Uuid
-  rowId                String        @db.Uuid
+  rowId                String?       @db.Uuid // null = ritirato (D-055): sganciato dalla struttura
   umbrellaTypeId       String?       @db.Uuid // null = Normal (ADR-0016)
-  label                String // real physical number, unique per Establishment (ADR-0016)
+  label                String // real physical number, unique among ACTIVE per Establishment (ADR-0016, D-055)
   logicalOrder         Int
+  retiredAt            DateTime? // null = attivo; valorizzato = ritirato (soft-delete, D-055/ADR-0053)
+  retiredFrom          String? // snapshot «Settore · Fila» al ritiro (storico, non riferimento vivo)
   presentationPosition Json?         @db.JsonB // visual layer (D-005): modeled, unused in this slice
   establishment        Establishment @relation(fields: [establishmentId], references: [id])
-  row                  Row           @relation(fields: [rowId], references: [id])
+  row                  Row?          @relation(fields: [rowId], references: [id])
   type                 UmbrellaType? @relation(fields: [umbrellaTypeId], references: [id])
   bookings             Booking[]
 
-  @@unique([establishmentId, label])
+  // NB: l'unicità (establishmentId, label) vale SOLO tra gli attivi: indice unico PARZIALE
+  // `WHERE "retiredAt" IS NULL`, creato a mano nella migration umbrella_retire_soft_delete
+  // (il DSL Prisma non modella indici parziali). Non reintrodurre @@unique qui.
   @@index([establishmentId])
   @@index([rowId])
 }

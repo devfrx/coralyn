@@ -22,8 +22,8 @@ const source: MapSource = {
           label: 'Fila 1',
           sortOrder: 1,
           umbrellas: [
-            { id: 'u1', establishmentId: 'e', rowId: 'row1', umbrellaTypeId: 't1', label: '1', logicalOrder: 1, presentationPosition: null },
-            { id: 'u2', establishmentId: 'e', rowId: 'row1', umbrellaTypeId: null, label: '2', logicalOrder: 2, presentationPosition: null },
+            { id: 'u1', establishmentId: 'e', rowId: 'row1', umbrellaTypeId: 't1', label: '1', logicalOrder: 1, retiredAt: null, retiredFrom: null, presentationPosition: null },
+            { id: 'u2', establishmentId: 'e', rowId: 'row1', umbrellaTypeId: null, label: '2', logicalOrder: 2, retiredAt: null, retiredFrom: null, presentationPosition: null },
           ],
         },
       ],

@@ -144,7 +144,7 @@ export class BookingsService {
         return toCustomerBookingDTO(b, {
           umbrellaLabel: b.umbrella.label,
           packageName: b.package?.name ?? undefined,
-          sectorName: b.umbrella.row.sector.name,
+          sectorName: b.umbrella.row?.sector.name, // umbrella ritirato (D-055): rowId null, niente sector name live
           seasonName: resolveSeasonName(seasons, b.startDate),
           seniority: isSub ? (seniorityById.get(b.id) ?? 1) : undefined,
           renewed: isSub ? b.renewals.some((r) => r.status === 'confirmed') : undefined,
