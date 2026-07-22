@@ -2,6 +2,7 @@
 import { computed, ref } from 'vue';
 import { useRoute } from 'vue-router';
 import { ActionBar, Badge, Button, ConfirmDialog, EmptyState, Skeleton, StatTile, formatEuro, useDelayedLoading } from '@coralyn/ui-kit';
+import type { PlatformEstablishmentDTO } from '@coralyn/contracts';
 import { useEstablishmentDetail, useSuspendEstablishment, useReactivateEstablishment, useResetAdminPassword } from './usePlatformEstablishments';
 import { pushToast } from '@/lib/toasts';
 
@@ -10,12 +11,25 @@ const id = () => String(route.params.id);
 
 const { data, isLoading, isError, refetch } = useEstablishmentDetail(id);
 const skeletonVisible = useDelayedLoading(() => isLoading.value);
-const METRIC_LABELS = ['Ombrelloni', 'Settori', 'File', 'Staff attivi', 'Incasso stagione', 'Abbonamenti attivi', 'Prenotazioni stagione', 'Occ. oggi', 'Ultima attività', 'Creato'] as const;
 
 const DATE_FMT = new Intl.DateTimeFormat('it-IT', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' });
 function fmtDate(iso: string | null | undefined): string {
   return iso ? DATE_FMT.format(new Date(iso)) : '—';
 }
+
+// Sorgente unica delle metriche: lo skeleton e i tile reali derivano da qui, così label/testid/ordine non driftano.
+const METRICS: readonly { testid: string; label: string; value: (d: PlatformEstablishmentDTO) => string }[] = [
+  { testid: 'metric-umbrellas', label: 'Ombrelloni', value: (d) => String(d.umbrellas) },
+  { testid: 'metric-sectors', label: 'Settori', value: (d) => String(d.sectors) },
+  { testid: 'metric-rows', label: 'File', value: (d) => String(d.rows) },
+  { testid: 'metric-staff', label: 'Staff attivi', value: (d) => String(d.staffUsersActive) },
+  { testid: 'metric-revenue', label: 'Incasso stagione', value: (d) => formatEuro(d.revenueSeasonTotal) },
+  { testid: 'metric-subscriptions', label: 'Abbonamenti attivi', value: (d) => String(d.activeSubscriptions) },
+  { testid: 'metric-bookings', label: 'Prenotazioni stagione', value: (d) => String(d.bookingsThisSeason) },
+  { testid: 'metric-occupancy', label: 'Occ. oggi', value: (d) => `${d.occupancyPctToday}%` },
+  { testid: 'metric-last-activity', label: 'Ultima attività', value: (d) => fmtDate(d.lastActivityAt) },
+  { testid: 'metric-created', label: 'Creato', value: (d) => fmtDate(d.createdAt) },
+];
 
 const suspend = useSuspendEstablishment();
 const reactivate = useReactivateEstablishment();
@@ -68,7 +82,7 @@ async function onConfirmReset(): Promise<void> {
     <div v-if="skeletonVisible" aria-busy="true">
       <div class="mb-5 flex items-center gap-3"><Skeleton width="220px" height="28px" /></div>
       <div class="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
-        <StatTile v-for="l in METRIC_LABELS" :key="l" :label="l" loading />
+        <StatTile v-for="m in METRICS" :key="m.testid" :label="m.label" loading />
       </div>
     </div>
 
@@ -99,16 +113,7 @@ async function onConfirmReset(): Promise<void> {
       </div>
 
       <div class="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
-        <StatTile data-testid="metric-umbrellas" label="Ombrelloni" :value="String(data.umbrellas)" />
-        <StatTile data-testid="metric-sectors" label="Settori" :value="String(data.sectors)" />
-        <StatTile data-testid="metric-rows" label="File" :value="String(data.rows)" />
-        <StatTile data-testid="metric-staff" label="Staff attivi" :value="String(data.staffUsersActive)" />
-        <StatTile data-testid="metric-revenue" label="Incasso stagione" :value="formatEuro(data.revenueSeasonTotal)" />
-        <StatTile data-testid="metric-subscriptions" label="Abbonamenti attivi" :value="String(data.activeSubscriptions)" />
-        <StatTile data-testid="metric-bookings" label="Prenotazioni stagione" :value="String(data.bookingsThisSeason)" />
-        <StatTile data-testid="metric-occupancy" label="Occ. oggi" :value="`${data.occupancyPctToday}%`" />
-        <StatTile data-testid="metric-last-activity" label="Ultima attività" :value="fmtDate(data.lastActivityAt)" />
-        <StatTile data-testid="metric-created" label="Creato" :value="fmtDate(data.createdAt)" />
+        <StatTile v-for="m in METRICS" :key="m.testid" :data-testid="m.testid" :label="m.label" :value="m.value(data)" />
       </div>
     </template>
 
