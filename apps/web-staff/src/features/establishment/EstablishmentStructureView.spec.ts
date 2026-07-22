@@ -214,4 +214,89 @@ describe('EstablishmentStructureView — shell Cantiere', () => {
     expect(document.body.textContent).toContain('Genera'); // pannello Fila, non il placeholder 'row'
     w.unmount();
   });
+
+  it('cella → pannello Ombrellone: salva etichetta+tipologia → PATCH e toast', async () => {
+    useFixture();
+    let patched: unknown = null;
+    server.use(http.patch('/api/establishment/umbrellas/u-1', async ({ request }) => {
+      patched = await request.json();
+      return HttpResponse.json({ id: 'u-1', label: 'A1-bis', umbrellaTypeId: 'typ-1' });
+    }));
+    const w = mountApp(EstablishmentStructureView);
+    const session = useSessionStore();
+    session.user = { id: 'u-1', email: 'admin@coralyn.dev', role: Role.Admin, establishmentId: 'e-1', establishmentName: 'Lido Maestrale' };
+    await settle();
+    await w.findAll('[data-testid="scene-cell"] button')[0].trigger('click');
+    const insp = w.find('[data-testid="inspector"]');
+    await insp.find('[data-testid="umbrella-label"]').setValue('A1-bis');
+    await insp.find('[data-testid="umbrella-form"]').trigger('submit');
+    await settle();
+    expect(patched).toEqual({ label: 'A1-bis', umbrellaTypeId: null });
+    const { useToasts } = await import('@/lib/toasts');
+    expect(useToasts().items.some((t) => t.message.includes('Ombrellone aggiornato'))).toBe(true);
+  });
+
+  it('ghost cella → pannello Nuovo ombrellone → POST sulla fila giusta', async () => {
+    useFixture();
+    let posted: unknown = null;
+    server.use(http.post('/api/establishment/umbrellas', async ({ request }) => {
+      posted = await request.json();
+      return HttpResponse.json({ id: 'u-9', label: 'A9', umbrellaTypeId: null });
+    }));
+    const w = mountApp(EstablishmentStructureView);
+    const session = useSessionStore();
+    session.user = { id: 'u-1', email: 'admin@coralyn.dev', role: Role.Admin, establishmentId: 'e-1', establishmentName: 'Lido Maestrale' };
+    await settle();
+    await w.find('[data-testid="ghost-cell"]').trigger('click');
+    const insp = w.find('[data-testid="inspector"]');
+    await insp.find('[data-testid="umbrella-label"]').setValue('A9');
+    await insp.find('[data-testid="umbrella-form"]').trigger('submit');
+    await settle();
+    expect(posted).toEqual({ rowId: 'r-1', label: 'A9', umbrellaTypeId: null });
+  });
+
+  it('elimina ombrellone → ConfirmDialog → DELETE → toast, chiude pannello', async () => {
+    useFixture();
+    let deletedId: string | null = null;
+    server.use(http.delete('/api/establishment/umbrellas/:id', ({ params }) => {
+      deletedId = params.id as string;
+      return HttpResponse.json({ id: 'u-1', label: 'A1', umbrellaTypeId: null });
+    }));
+    const w = mountApp(EstablishmentStructureView, { attachTo: document.body });
+    const session = useSessionStore();
+    session.user = { id: 'u-1', email: 'admin@coralyn.dev', role: Role.Admin, establishmentId: 'e-1', establishmentName: 'Lido Maestrale' };
+    await settle();
+    await w.findAll('[data-testid="scene-cell"] button')[0].trigger('click');
+    await w.find('[data-testid="umbrella-delete"]').trigger('click');
+    await flushPromises();
+    expect(document.body.textContent).toContain("Eliminare l'ombrellone?");
+    Array.from(document.body.querySelectorAll('button')).find((b) => b.textContent?.trim() === 'Elimina')!.click();
+    await settle();
+    expect(deletedId).toBe('u-1');
+    expect(w.find('[data-testid="inspector"]').text()).toContain('Spiaggia'); // close → beach
+    w.unmount();
+  });
+
+  it('mobile: cella → Drawer con pannello Ombrellone (ramo <lg, non solo l\'aside desktop)', async () => {
+    useFixture();
+    // Stessa guardia di regressione della fila: senza cablaggio nel ramo Drawer resterebbe il placeholder.
+    vi.stubGlobal('matchMedia', (query: string) => ({
+      matches: false,
+      media: query,
+      onchange: null,
+      addEventListener: () => {},
+      removeEventListener: () => {},
+      addListener: () => {},
+      removeListener: () => {},
+      dispatchEvent: () => false,
+    }));
+    const w = mountApp(EstablishmentStructureView, { attachTo: document.body });
+    const session = useSessionStore();
+    session.user = { id: 'u-1', email: 'admin@coralyn.dev', role: Role.Admin, establishmentId: 'e-1', establishmentName: 'Lido Maestrale' };
+    await settle();
+    await w.findAll('[data-testid="scene-cell"] button')[0].trigger('click');
+    await settle();
+    expect(document.body.textContent).toContain('Numero fisico reale'); // pannello Ombrellone, non il placeholder 'umbrella'
+    w.unmount();
+  });
 });

@@ -12,7 +12,9 @@ import SectorPanel from './panels/SectorPanel.vue';
 import SectorCreatePanel from './panels/SectorCreatePanel.vue';
 import RowPanel from './panels/RowPanel.vue';
 import RowCreatePanel from './panels/RowCreatePanel.vue';
-import type { Selection } from './structureSelection';
+import UmbrellaPanel from './panels/UmbrellaPanel.vue';
+import UmbrellaCreatePanel from './panels/UmbrellaCreatePanel.vue';
+import { findUmbrella, type Selection } from './structureSelection';
 
 const session = useSessionStore();
 const router = useRouter();
@@ -62,6 +64,24 @@ const selectedRow = computed(() => {
 });
 watch(selectedRow, (r) => { if (selection.value.kind === 'row' && !r) reset(); });
 
+// Pannello Ombrellone: risolve ombrellone+fila+settore dall'albero via id, stesso pattern
+// di risoluzione per id di Settore/Fila sopra — fallback a Spiaggia se sparisce.
+const selectedUmbrella = computed(() => {
+  if (selection.value.kind !== 'umbrella' || !data.value) return null;
+  return findUmbrella(data.value, (selection.value as { kind: 'umbrella'; id: string }).id);
+});
+watch(selectedUmbrella, (u) => { if (selection.value.kind === 'umbrella' && !u) reset(); });
+
+const createUmbrellaRow = computed(() => {
+  if (selection.value.kind !== 'create-umbrella' || !data.value) return null;
+  const rowId = (selection.value as { kind: 'create-umbrella'; rowId: string }).rowId;
+  for (const sec of data.value.sectors) {
+    const row = sec.rows.find((r) => r.id === rowId);
+    if (row) return row;
+  }
+  return null;
+});
+
 const createRowSector = computed(() => {
   if (selection.value.kind !== 'create-row' || !data.value) return null;
   const sectorId = (selection.value as { kind: 'create-row'; sectorId: string }).sectorId;
@@ -83,16 +103,10 @@ function toggleSelectMode() {
   if (!selectMode.value && selection.value.kind === 'multi') selection.value = { kind: 'beach' };
 }
 
-// Stadio 1 (Task 8-9): Settore ha il suo pannello (SectorPanel/SectorCreatePanel); Stadio 2 (Task 10):
-// Fila ha il suo (RowPanel/RowCreatePanel). I pannelli Ombrellone/Multi/Create-ombrellone arrivano
-// nei Task 11-12. Il placeholder mostra `selection.kind`, tranne per l'ombrellone dove mostra la sua etichetta
-// (crumb «A1»…) — è l'unico caso in cui il vecchio test di navigazione ha un'aspettativa leggibile.
-const placeholderLabel = computed(() => {
-  const s = selection.value;
-  if (s.kind !== 'umbrella' || !data.value) return s.kind;
-  for (const sec of data.value.sectors) for (const r of sec.rows) { const u = r.umbrellas.find((x) => x.id === s.id); if (u) return u.label; }
-  return s.kind;
-});
+// Stadio 1 (Task 8-9): Settore (SectorPanel/SectorCreatePanel); Stadio 2 (Task 10): Fila
+// (RowPanel/RowCreatePanel); Stadio 3 (Task 11): Ombrellone (UmbrellaPanel/UmbrellaCreatePanel).
+// Il pannello Multi-selezione arriva nel Task 12: il placeholder resta solo per quel caso.
+const placeholderLabel = computed(() => selection.value.kind);
 </script>
 
 <template>
@@ -129,7 +143,9 @@ const placeholderLabel = computed(() => {
         <SectorCreatePanel v-else-if="selection.kind === 'create-sector'" @created="(id) => selectedSectorId = id" @close="reset" />
         <RowPanel v-else-if="selection.kind === 'row' && selectedRow" :row="selectedRow.row" :sector-name="selectedRow.sector.name" :types="data.umbrellaTypes" :is-admin="isAdmin" @close="reset" />
         <RowCreatePanel v-else-if="selection.kind === 'create-row' && createRowSector" :sector-id="createRowSector.id" :sector-name="createRowSector.name" :types="data.umbrellaTypes" @close="reset" />
-        <!-- I pannelli Ombrellone/Multi/Create-ombrellone arrivano nei Task 11-12 -->
+        <UmbrellaPanel v-else-if="selection.kind === 'umbrella' && selectedUmbrella" :umbrella="selectedUmbrella.umbrella" :row-label="selectedUmbrella.row.label" :sector-name="selectedUmbrella.sector.name" :types="data.umbrellaTypes" :is-admin="isAdmin" @close="reset" />
+        <UmbrellaCreatePanel v-else-if="selection.kind === 'create-umbrella' && createUmbrellaRow" :row-id="createUmbrellaRow.id" :row-label="createUmbrellaRow.label" :types="data.umbrellaTypes" @close="reset" />
+        <!-- Il pannello Multi arriva nel Task 12 -->
         <div v-else class="p-[18px] text-[12.5px] text-[var(--color-text-muted)]" data-testid="panel-placeholder">{{ placeholderLabel }}</div>
       </aside>
       <Drawer v-else v-model:open="drawerOpen" title="Ispettore">
@@ -139,7 +155,9 @@ const placeholderLabel = computed(() => {
           <SectorCreatePanel v-else-if="selection.kind === 'create-sector'" @created="(id) => selectedSectorId = id" @close="reset" />
           <RowPanel v-else-if="selection.kind === 'row' && selectedRow" :row="selectedRow.row" :sector-name="selectedRow.sector.name" :types="data.umbrellaTypes" :is-admin="isAdmin" @close="reset" />
           <RowCreatePanel v-else-if="selection.kind === 'create-row' && createRowSector" :sector-id="createRowSector.id" :sector-name="createRowSector.name" :types="data.umbrellaTypes" @close="reset" />
-          <!-- I pannelli Ombrellone/Multi/Create-ombrellone arrivano nei Task 11-12 -->
+          <UmbrellaPanel v-else-if="selection.kind === 'umbrella' && selectedUmbrella" :umbrella="selectedUmbrella.umbrella" :row-label="selectedUmbrella.row.label" :sector-name="selectedUmbrella.sector.name" :types="data.umbrellaTypes" :is-admin="isAdmin" @close="reset" />
+          <UmbrellaCreatePanel v-else-if="selection.kind === 'create-umbrella' && createUmbrellaRow" :row-id="createUmbrellaRow.id" :row-label="createUmbrellaRow.label" :types="data.umbrellaTypes" @close="reset" />
+          <!-- Il pannello Multi arriva nel Task 12 -->
           <div v-else class="p-[18px] text-[12.5px] text-[var(--color-text-muted)]" data-testid="panel-placeholder">{{ placeholderLabel }}</div>
         </div>
       </Drawer>
