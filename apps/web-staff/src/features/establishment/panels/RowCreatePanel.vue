@@ -61,7 +61,7 @@ function submit() {
         <div class="grid grid-cols-3 gap-2">
           <Field label="Prefisso"><Input name="gen-prefix" data-testid="gen-prefix" v-model="genPrefix" placeholder="es. A" /></Field>
           <Field label="Da numero"><Input name="gen-start" data-testid="gen-start" v-model.number="genStart" type="number" step="1" min="0" /></Field>
-          <Field label="Quantità" :error="genCountOverMax ? 'Massimo 500 per volta' : undefined">
+          <Field label="Quantità" :error="genCountOverMax ? `Massimo ${GENERATE_MAX} per volta` : undefined">
             <Input name="gen-count" data-testid="gen-count" v-model.number="genCount" type="number" step="1" min="1" :max="GENERATE_MAX" />
           </Field>
         </div>

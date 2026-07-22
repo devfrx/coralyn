@@ -12,7 +12,11 @@ const remove = useDeleteSector();
 
 const name = ref(props.sector.name);
 const kind = ref<SectorKind>(props.sector.kind);
-watch(() => props.sector, (s) => { name.value = s.name; kind.value = s.kind; });
+// Sync per id, non per identità oggetto: i refetch (ogni mutation invalida la query struttura)
+// producono oggetti nuovi con lo stesso id e non devono azzerare le bozze in corso; il cambio di
+// entità (istanza non key-ata) sì. Contropartita accettata: un rename arrivato da un'altra scheda
+// non aggiorna il form finché la selezione non cambia.
+watch(() => props.sector.id, () => { name.value = props.sector.name; kind.value = props.sector.kind; });
 
 function submit() {
   const n = name.value.trim();

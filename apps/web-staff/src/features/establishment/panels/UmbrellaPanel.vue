@@ -12,7 +12,7 @@ const removeUmbrella = useDeleteUmbrella();
 
 const label = ref(props.umbrella.label);
 const umbrellaTypeId = ref(props.umbrella.umbrellaTypeId ?? '');
-watch(() => props.umbrella, (u) => { label.value = u.label; umbrellaTypeId.value = u.umbrellaTypeId ?? ''; });
+watch(() => props.umbrella.id, () => { label.value = props.umbrella.label; umbrellaTypeId.value = props.umbrella.umbrellaTypeId ?? ''; });
 
 function submit() {
   const l = label.value.trim();
