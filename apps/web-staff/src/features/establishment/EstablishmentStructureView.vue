@@ -83,9 +83,9 @@ function toggleSelectMode() {
   if (!selectMode.value && selection.value.kind === 'multi') selection.value = { kind: 'beach' };
 }
 
-// Stadio 1 (Task 8-9): Settore ha il suo pannello (SectorPanel/SectorCreatePanel); i pannelli
-// Fila/Ombrellone/Multi/Create-riga/Create-ombrellone arrivano nei Task 10-12.
-// Il placeholder mostra `selection.kind`, tranne per l'ombrellone dove mostra la sua etichetta
+// Stadio 1 (Task 8-9): Settore ha il suo pannello (SectorPanel/SectorCreatePanel); Stadio 2 (Task 10):
+// Fila ha il suo (RowPanel/RowCreatePanel). I pannelli Ombrellone/Multi/Create-ombrellone arrivano
+// nei Task 11-12. Il placeholder mostra `selection.kind`, tranne per l'ombrellone dove mostra la sua etichetta
 // (crumb «A1»…) — è l'unico caso in cui il vecchio test di navigazione ha un'aspettativa leggibile.
 const placeholderLabel = computed(() => {
   const s = selection.value;
@@ -137,6 +137,9 @@ const placeholderLabel = computed(() => {
           <BeachPanel v-if="selection.kind === 'beach'" :data="data" :is-admin="isAdmin" />
           <SectorPanel v-else-if="selection.kind === 'sector' && selectedSector" :sector="selectedSector" :is-admin="isAdmin" @close="reset" />
           <SectorCreatePanel v-else-if="selection.kind === 'create-sector'" @created="(id) => selectedSectorId = id" @close="reset" />
+          <RowPanel v-else-if="selection.kind === 'row' && selectedRow" :row="selectedRow.row" :sector-name="selectedRow.sector.name" :types="data.umbrellaTypes" :is-admin="isAdmin" @close="reset" />
+          <RowCreatePanel v-else-if="selection.kind === 'create-row' && createRowSector" :sector-id="createRowSector.id" :sector-name="createRowSector.name" :types="data.umbrellaTypes" @close="reset" />
+          <!-- I pannelli Ombrellone/Multi/Create-ombrellone arrivano nei Task 11-12 -->
           <div v-else class="p-[18px] text-[12.5px] text-[var(--color-text-muted)]" data-testid="panel-placeholder">{{ placeholderLabel }}</div>
         </div>
       </Drawer>

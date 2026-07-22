@@ -187,4 +187,31 @@ describe('EstablishmentStructureView — shell Cantiere', () => {
     const { useToasts } = await import('@/lib/toasts');
     expect(useToasts().items.some((t) => t.message.includes('Fila creata') && t.message.includes('4 ombrelloni'))).toBe(true);
   });
+
+  it('mobile: rail fila → Drawer con pannello Fila (ramo <lg, non solo l\'aside desktop)', async () => {
+    useFixture();
+    // Sovrascrive lo stub desktop del beforeEach: viewport mobile → StructureView monta il ramo
+    // Drawer (v-else di isDesktop), non l'aside. Regression guard per il bug segnalato in review:
+    // i pannelli Fila erano stati cablati solo nell'aside, lasciando il placeholder nel Drawer.
+    vi.stubGlobal('matchMedia', (query: string) => ({
+      matches: false,
+      media: query,
+      onchange: null,
+      addEventListener: () => {},
+      removeEventListener: () => {},
+      addListener: () => {},
+      removeListener: () => {},
+      dispatchEvent: () => false,
+    }));
+    const w = mountApp(EstablishmentStructureView, { attachTo: document.body });
+    const session = useSessionStore();
+    session.user = { id: 'u-1', email: 'admin@coralyn.dev', role: Role.Admin, establishmentId: 'e-1', establishmentName: 'Lido Maestrale' };
+    await settle();
+    await w.find('[data-testid="scene-row"] .st-rail-name').trigger('click');
+    await settle();
+    // Il Drawer (reka-ui DialogPortal) teleporta il contenuto fuori dall'albero del wrapper: verifica
+    // su document.body, come già fatto per ConfirmDialog nel test «svuota fila».
+    expect(document.body.textContent).toContain('Genera'); // pannello Fila, non il placeholder 'row'
+    w.unmount();
+  });
 });
