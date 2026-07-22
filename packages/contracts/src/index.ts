@@ -600,6 +600,12 @@ export interface GenerateUmbrellasInput {
   umbrellaTypeId: string | null; // tipologia predefinita del batch
 }
 export interface GenerateUmbrellasResultDTO { created: number; skipped: number; umbrellas: StructureUmbrellaDTO[]; }
+/** Bulk-delete ombrelloni (Cantiere): elimina i non-prenotati, salta i protetti. Mai 409 sul batch. */
+export interface BulkDeleteUmbrellasInput { ids: string[] }
+export interface BulkDeleteUmbrellasResultDTO { deleted: number; skipped: number }
+/** Bulk-assegnazione tipologia (null = Normale). */
+export interface BulkAssignUmbrellaTypeInput { ids: string[]; umbrellaTypeId: string | null }
+export interface BulkAssignUmbrellaTypeResultDTO { updated: number }
 
 // --- Platform Console (superuser) --------------------------------------------
 
