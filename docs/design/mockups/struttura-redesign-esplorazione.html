@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Esplorazione — Overhaul editor «Struttura della spiaggia» (Cantiere + Ispettore)</title>
+<style>
+/* ============ TOKEN (estratto fedele da packages/ui-kit/src/styles/theme.css) ============ */
+:root{
+  --color-coral-500:#E0795A; --color-coral-600:#C9603F; --color-coral-700:#B65A38;
+  --color-coral-100:#FBE8DF; --color-coral-050:#FBF1EF;
+  --color-accent-500:#2F7281; --color-accent-100:#E6EFEC;
+  --color-warm-000:#FFFFFF; --color-warm-025:#FCFAF5; --color-warm-050:#FBF6EE;
+  --color-warm-075:#FBF4E6; --color-warm-100:#F4ECE0; --color-warm-150:#F6EAD3;
+  --color-warm-200:#ECE3D5;
+  --color-warm-border:#E7DCCB; --color-warm-border-input:#E0D5C3; --color-warm-border-row:#F1EADC;
+  --color-ink-900:#22303A; --color-ink-700:#5E5648; --color-ink-500:#978C7B; --color-ink-400:#B3A998;
+  --color-stage-1:#8A6E3F; --color-stage-2:#B79A63;
+  --color-sea-1:#E0EFF3; --color-sea-2:#BEDDE8; --color-sea-3:#A8D0DE; --color-sea-deep:#8FC2D4; --color-sea-ink:#2E6B81;
+  --color-sea-veil:rgba(255,255,255,.16); --color-sea-veil-strong:rgba(255,255,255,.22);
+  --color-danger:#C8503E; --color-danger-bg:#FBE3E0; --color-danger-ink:#A33A2C; --color-danger-border:#EBB7AF;
+  --color-state-normal-mark:#D8CDBB;
+  --color-canvas:var(--color-warm-200); --color-bg:var(--color-warm-100);
+  --color-surface:var(--color-warm-000); --color-raised:var(--color-warm-050);
+  --color-border:var(--color-warm-border); --color-border-input:var(--color-warm-border-input);
+  --color-border-row:var(--color-warm-border-row);
+  --color-text:var(--color-ink-900); --color-text-2nd:var(--color-ink-700); --color-text-muted:var(--color-ink-500);
+  --color-brand:var(--color-coral-500); --color-brand-hover:var(--color-coral-600);
+  --color-brand-ink:var(--color-coral-700); --color-brand-tint:var(--color-coral-100);
+  --color-accent:var(--color-accent-500); --color-accent-tint:var(--color-accent-100);
+  --tracking-caps:.05em;
+  --radius-sm:9px; --radius-md:11px; --radius-lg:16px; --radius-full:999px;
+  --shadow-card:0 1px 3px rgba(15,60,73,.05); --shadow-soft:0 1px 2px rgba(15,60,73,.08);
+  --shadow-drawer:0 12px 40px rgba(15,60,73,.13);
+  --shadow-sun:0 5px 9px -3px rgba(138,110,63,.30),0 1px 2px rgba(138,110,63,.12);
+  --color-cell-glare:rgba(255,255,255,.35);
+  --ring-focus:0 0 0 3px rgba(224,121,90,.16);
+  --ease-standard:cubic-bezier(.2,0,.2,1);
+}
+*{box-sizing:border-box} button{font:inherit;cursor:pointer}
+body{margin:0;font-family:'Inter',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;background:var(--color-canvas);color:var(--color-text);-webkit-font-smoothing:antialiased}
+
+/* ============ Intestazione del documento di esplorazione ============ */
+.doc{max-width:1280px;margin:0 auto;padding:28px 26px 60px}
+.doc-head{margin-bottom:18px}
+.doc-eyebrow{font-size:11px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--color-stage-2)}
+.doc-title{font-size:24px;font-weight:800;letter-spacing:-.015em;margin:.2em 0 .3em}
+.doc-sub{font-size:13.5px;color:var(--color-text-2nd);max-width:70ch;line-height:1.55;margin:0}
+.doc-controls{display:flex;gap:8px;margin:16px 0 10px;flex-wrap:wrap}
+.doc-controls .chip{border:1.5px solid var(--color-border-input);background:var(--color-surface);border-radius:var(--radius-full);padding:7px 14px;font-size:12.5px;font-weight:600;color:var(--color-text-2nd)}
+.doc-controls .chip[aria-pressed="true"]{border-color:var(--color-brand);background:var(--color-brand-tint);color:var(--color-brand-ink)}
+
+/* ============ Cornice "app": vista + ispettore ============ */
+.frame{background:var(--color-bg);border:1px solid var(--color-border);border-radius:var(--radius-lg);overflow:hidden;box-shadow:var(--shadow-card)}
+.view-head{display:flex;align-items:baseline;gap:14px;padding:18px 22px 12px}
+.view-head h1{font-size:20px;font-weight:800;letter-spacing:-.015em;margin:0}
+.view-head .meta{font-size:12.5px;color:var(--color-text-muted)}
+.view-head .meta b{color:var(--color-text-2nd);font-weight:700;font-variant-numeric:tabular-nums}
+
+.shell{display:grid;grid-template-columns:1fr 320px;min-height:640px}
+
+/* ============ STAGE — scena Riva «a riposo» (cantiere) ============ */
+.stage{position:relative;display:flex;flex-direction:column;overflow:hidden;border-right:1px solid var(--color-border)}
+.sea{position:relative;height:56px;flex:none;background:linear-gradient(to bottom,var(--color-sea-deep),var(--color-sea-3) 38%,var(--color-sea-2) 70%,var(--color-sea-1));overflow:hidden}
+.sea .veil{position:absolute;height:10px;border-radius:999px;background:var(--color-sea-veil)}
+.sea .veil.s{background:var(--color-sea-veil-strong)}
+.sea .lbl{position:absolute;top:8px;right:14px;font-size:10px;font-weight:700;letter-spacing:.14em;color:var(--color-sea-ink)}
+@keyframes drift{from{transform:translateX(-12%)}to{transform:translateX(12%)}}
+.veil{animation:drift 24s linear infinite alternate}
+.veil:nth-child(2){animation-duration:31s}.veil:nth-child(3){animation-duration:19s}
+.shore{height:14px;flex:none;background:linear-gradient(to bottom,var(--color-sea-1),#EDE6D2 55%,var(--color-warm-075))}
+.toolbar{position:relative;z-index:2;display:flex;align-items:center;gap:8px;padding:10px 16px;background:color-mix(in srgb,var(--color-warm-075) 82%,transparent);backdrop-filter:blur(6px);border-bottom:1px solid var(--color-border-row)}
+.tab{border:1.5px solid transparent;background:transparent;border-radius:var(--radius-full);padding:6px 13px;font-size:12.5px;font-weight:700;color:var(--color-text-2nd)}
+.tab .n{font-weight:600;color:var(--color-text-muted);font-variant-numeric:tabular-nums;margin-left:5px;font-size:11.5px}
+.tab[aria-selected="true"]{background:var(--color-surface);border-color:var(--color-border-input);box-shadow:var(--shadow-soft);color:var(--color-text)}
+.tab.ghost{border:1.5px dashed var(--color-border-input);color:var(--color-text-muted);font-weight:600}
+.tab.ghost:hover{border-color:var(--color-brand);color:var(--color-brand-ink);background:var(--color-coral-050)}
+.sand{flex:1;overflow:auto;padding:20px 22px 30px;background:linear-gradient(to bottom,var(--color-warm-075),var(--color-warm-150));background-attachment:local}
+.sand::after{content:"";position:fixed;pointer-events:none}
+.sector-cap{display:flex;align-items:center;gap:10px;margin:2px 0 14px}
+.sector-cap .eyebrow{font-size:10.5px;font-weight:800;letter-spacing:.1em;color:var(--color-stage-1);text-transform:uppercase}
+.sector-cap .sub{font-size:11.5px;color:var(--color-text-muted)}
+
+/* --- fila: rail sinistro + celle + coda azioni --- */
+.row{display:grid;grid-template-columns:92px 1fr;gap:14px;align-items:start;padding:10px 8px;margin:0 -8px;border-radius:var(--radius-md)}
+.row + .row{margin-top:6px}
+.row:hover{background:color-mix(in srgb,var(--color-warm-000) 42%,transparent)}
+.row.sel{background:color-mix(in srgb,var(--color-warm-000) 62%,transparent);box-shadow:inset 0 0 0 1.5px var(--color-brand)}
+.rail{padding-top:7px}
+.rail button.rname{all:unset;display:block;font-size:11px;font-weight:800;letter-spacing:.1em;color:var(--color-stage-1);text-transform:uppercase;cursor:pointer}
+.rail button.rname:hover{color:var(--color-brand-ink)}
+.rail .rcount{font-size:11px;color:var(--color-text-muted);margin-top:3px;font-variant-numeric:tabular-nums}
+.rail .ract{display:flex;gap:4px;margin-top:7px;opacity:0;transition:opacity .15s var(--ease-standard)}
+.row:hover .ract,.row.sel .ract{opacity:1}
+.iconbtn{display:grid;place-items:center;width:24px;height:24px;border-radius:7px;border:1px solid var(--color-border);background:var(--color-surface);color:var(--color-text-2nd);font-size:11px;line-height:1}
+.iconbtn:hover{border-color:var(--color-brand);color:var(--color-brand-ink)}
+.iconbtn.danger:hover{border-color:var(--color-danger-border);background:var(--color-danger-bg);color:var(--color-danger-ink)}
+.cells{display:flex;flex-wrap:wrap;gap:9px;align-items:center}
+
+/* --- cella Tessera «a riposo» (nessuno stato prenotazione nell'editor) --- */
+.cell{position:relative;display:grid;place-items:center;width:40px;height:40px;border:none;border-radius:12px;background:var(--color-warm-025);box-shadow:var(--shadow-sun);font-size:12px;font-weight:600;font-variant-numeric:tabular-nums;color:var(--color-ink-700);transition:transform .14s var(--ease-standard)}
+.cell::before{content:"";position:absolute;inset:0;border-radius:12px;background:linear-gradient(to bottom,var(--color-cell-glare),transparent 35%)}
+.cell:hover{transform:translateY(-2px)}
+.cell:active{transform:scale(.97)}
+.cell .num{position:relative;z-index:1}
+.cell.sel{outline:2px solid var(--color-brand);outline-offset:2px;box-shadow:0 0 0 4px var(--color-brand-tint)}
+.cell .tbadge{position:absolute;right:-4px;top:-4px;z-index:2;display:grid;place-items:center;width:15px;height:15px;border-radius:999px;background:var(--color-surface);color:var(--color-accent);box-shadow:var(--shadow-soft);font-size:9px}
+.cell.ghost{background:transparent;box-shadow:none;border:1.5px dashed var(--color-border-input);color:var(--color-ink-400);font-size:16px;font-weight:500}
+.cell.ghost::before{display:none}
+.cell.ghost:hover{border-color:var(--color-brand);color:var(--color-brand-ink);background:var(--color-coral-050)}
+
+.ghost-row{margin:14px -8px 0;padding:13px 8px;border:1.5px dashed var(--color-border-input);border-radius:var(--radius-md);display:flex;align-items:center;gap:9px;color:var(--color-text-muted);font-size:12.5px;font-weight:600;background:transparent}
+.ghost-row:hover{border-color:var(--color-brand);color:var(--color-brand-ink);background:color-mix(in srgb,var(--color-coral-050) 65%,transparent)}
+.ghost-row .plus{display:grid;place-items:center;width:24px;height:24px;border-radius:8px;border:1.5px dashed currentColor;font-size:14px}
+
+/* ============ ISPETTORE ============ */
+.inspector{background:var(--color-raised);display:flex;flex-direction:column;min-width:0}
+.insp-head{padding:14px 18px 12px;border-bottom:1px solid var(--color-border-row)}
+.insp-eyebrow{font-size:10px;font-weight:800;letter-spacing:var(--tracking-caps);letter-spacing:.09em;text-transform:uppercase;color:var(--color-text-muted)}
+.insp-title{font-size:15.5px;font-weight:800;letter-spacing:-.01em;margin-top:2px}
+.insp-title .crumb{font-size:11.5px;font-weight:600;color:var(--color-text-muted);display:block;margin-top:2px}
+.insp-body{padding:16px 18px;display:flex;flex-direction:column;gap:14px;overflow:auto}
+.f{display:flex;flex-direction:column;gap:5px}
+.f label{font-size:11.5px;font-weight:700;color:var(--color-text-2nd)}
+.f input,.f select{border:1.5px solid var(--color-border-input);background:var(--color-surface);border-radius:var(--radius-md);padding:8px 11px;font-size:13px;color:var(--color-text);font-family:inherit}
+.f input:focus,.f select:focus{outline:none;box-shadow:var(--ring-focus);border-color:var(--color-brand)}
+.hint{font-size:11.5px;color:var(--color-text-muted);line-height:1.5;margin:0}
+.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+.preview{display:flex;flex-wrap:wrap;gap:5px}
+.preview .p{font-size:11px;font-weight:600;font-variant-numeric:tabular-nums;background:var(--color-warm-100);border:1px solid var(--color-border-row);border-radius:7px;padding:3px 7px;color:var(--color-text-2nd)}
+.preview .p.more{background:transparent;border-style:dashed;color:var(--color-text-muted)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;border-radius:var(--radius-md);padding:8px 14px;font-size:12.5px;font-weight:700;border:1.5px solid transparent}
+.btn.primary{background:var(--color-brand);color:#fff;box-shadow:0 2px 8px rgba(224,121,90,.3)}
+.btn.primary:hover{background:var(--color-brand-hover)}
+.btn.secondary{background:var(--color-surface);border-color:var(--color-border-input);color:var(--color-text-2nd)}
+.btn.secondary:hover{border-color:var(--color-brand);color:var(--color-brand-ink)}
+.btn.danger{background:transparent;border-color:var(--color-danger-border);color:var(--color-danger-ink)}
+.btn.danger:hover{background:var(--color-danger-bg)}
+.btn.block{width:100%}
+.sep{border:none;border-top:1px solid var(--color-border-row);margin:2px 0}
+.danger-zone{border:1px solid var(--color-danger-border);border-radius:var(--radius-md);padding:11px 12px;background:color-mix(in srgb,var(--color-danger-bg) 45%,transparent)}
+.danger-zone .t{font-size:11.5px;font-weight:800;color:var(--color-danger-ink);margin:0 0 6px}
+.danger-zone .hint{margin-bottom:8px}
+.tlist{display:flex;flex-direction:column}
+.tlist .trow{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--color-border-row)}
+.tlist .trow:last-child{border-bottom:none}
+.tlist .tic{display:grid;place-items:center;width:28px;height:28px;border-radius:9px;background:var(--color-warm-100);color:var(--color-text-2nd);font-size:13px}
+.tlist .tn{flex:1;font-size:12.5px;font-weight:700}
+.stat{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.stat .s{background:var(--color-surface);border:1px solid var(--color-border-row);border-radius:var(--radius-md);padding:10px 12px}
+.stat .s b{display:block;font-size:18px;font-weight:800;font-variant-numeric:tabular-nums}
+.stat .s span{font-size:11px;color:var(--color-text-muted)}
+.multi-count{display:flex;align-items:center;gap:8px;background:var(--color-brand-tint);border:1px solid var(--color-brand);border-radius:var(--radius-md);padding:9px 12px;font-size:12.5px;font-weight:700;color:var(--color-brand-ink)}
+
+/* ============ EMPTY STATE (setup guidato) ============ */
+.empty{display:none;flex-direction:column;align-items:center;gap:18px;padding:52px 30px;text-align:center}
+.empty h3{font-size:17px;font-weight:800;margin:0}
+.empty p{font-size:13px;color:var(--color-text-2nd);max-width:44ch;margin:0;line-height:1.55}
+.steps{display:grid;grid-template-columns:repeat(3,180px);gap:12px}
+.step{background:var(--color-surface);border:1px solid var(--color-border);border-radius:var(--radius-lg);padding:16px 14px;text-align:left;box-shadow:var(--shadow-card)}
+.step .k{display:grid;place-items:center;width:26px;height:26px;border-radius:999px;background:var(--color-brand-tint);color:var(--color-brand-ink);font-size:12.5px;font-weight:800;margin-bottom:9px}
+.step b{display:block;font-size:12.5px;margin-bottom:3px}
+.step span{font-size:11.5px;color:var(--color-text-muted);line-height:1.45;display:block}
+.step.todo{opacity:.55}
+
+/* note finali */
+.notes{margin-top:26px;font-size:13px;line-height:1.6;color:var(--color-text-2nd);max-width:78ch}
+.notes h2{font-size:14px;font-weight:800;color:var(--color-text);margin:22px 0 6px}
+.notes ul{margin:6px 0;padding-left:20px}
+.notes li{margin:4px 0}
+.notes .q{color:var(--color-brand-ink);font-weight:600}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div class="doc">
+  <header class="doc-head">
+    <div class="doc-eyebrow">Esplorazione · 2026-07-22 · overhaul «Struttura della spiaggia»</div>
+    <h1 class="doc-title">Il Cantiere — l'editor è la spiaggia, l'ispettore è il banco di lavoro</h1>
+    <p class="doc-sub">La configurazione abbandona liste e modali: la scena «Riva» (la stessa della Mappa, a riposo —
+    celle neutre color sabbia, senza stati prenotazione) diventa il canvas dell'editor. Si clicca ciò che si vuole
+    modificare — settore, fila, ombrellone — e l'<b>ispettore</b> a destra mostra form e azioni contestuali, bulk
+    compresi. Ghost-affordance tratteggiate per creare (cella «+», fila «+», tab settore «+»). Interagisci: il mockup
+    è cliccabile.</p>
+    <div class="doc-controls" role="group" aria-label="Stati del mockup">
+      <button class="chip" aria-pressed="true"  data-mode="full"  onclick="setMode('full')">Spiaggia configurata</button>
+      <button class="chip" aria-pressed="false" data-mode="empty" onclick="setMode('empty')">Spiaggia vuota (setup guidato)</button>
+    </div>
+  </header>
+
+  <div class="frame">
+    <div class="view-head">
+      <h1>Struttura della spiaggia</h1>
+      <span class="meta"><b>2</b> settori · <b>3</b> file · <b>26</b> ombrelloni · <b>2</b> tipologie</span>
+    </div>
+    <div class="shell">
+      <!-- ==================== STAGE ==================== -->
+      <div class="stage">
+        <div class="sea" aria-hidden="true">
+          <span class="veil"   style="left:6%;top:14px;width:34%"></span>
+          <span class="veil s" style="left:46%;top:26px;width:28%"></span>
+          <span class="veil"   style="left:22%;top:38px;width:40%"></span>
+          <span class="lbl">MARE</span>
+        </div>
+        <div class="shore" aria-hidden="true"></div>
+        <div class="toolbar" role="tablist" aria-label="Settori">
+          <button class="tab" aria-selected="true"  onclick="selSector(this)">Centro <span class="n">18 posti</span></button>
+          <button class="tab" aria-selected="false" onclick="selSector(this)">Speciali <span class="n">8 posti</span></button>
+          <button class="tab ghost" onclick="panel('sector-new')">+ Settore</button>
+        </div>
+
+        <div class="sand" id="sand" onclick="if(event.target===this)panel('beach')">
+          <!-- Stato configurato -->
+          <div id="cfg">
+            <div class="sector-cap">
+              <span class="eyebrow">Centro · griglia</span>
+              <span class="sub">3 file · 18 ombrelloni · le file più in alto sono più vicine al mare</span>
+            </div>
+
+            <div class="row" id="row1">
+              <div class="rail">
+                <button class="rname" onclick="selRow('row1','Fila 1 · prima linea')">FILA 1</button>
+                <div class="rcount">6 ombrelloni</div>
+                <div class="ract">
+                  <button class="iconbtn" title="Genera ombrelloni" onclick="selRow('row1','Fila 1 · prima linea')">⚡</button>
+                  <button class="iconbtn" title="Rinomina" onclick="selRow('row1','Fila 1 · prima linea')">✎</button>
+                  <button class="iconbtn danger" title="Svuota / elimina" onclick="selRow('row1','Fila 1 · prima linea')">🗑</button>
+                </div>
+              </div>
+              <div class="cells">
+                <button class="cell" onclick="selCell(this,'A1')"><span class="num">A1</span></button>
+                <button class="cell" onclick="selCell(this,'A2')"><span class="num">A2</span></button>
+                <button class="cell" onclick="selCell(this,'A3')"><span class="num">A3</span><span class="tbadge">☂</span></button>
+                <button class="cell" onclick="selCell(this,'A4')"><span class="num">A4</span></button>
+                <button class="cell" onclick="selCell(this,'A5')"><span class="num">A5</span></button>
+                <button class="cell" onclick="selCell(this,'A6')"><span class="num">A6</span></button>
+                <button class="cell ghost" title="Aggiungi ombrellone" onclick="panel('cell-new')">+</button>
+              </div>
+            </div>
+
+            <div class="row" id="row2">
+              <div class="rail">
+                <button class="rname" onclick="selRow('row2','Fila 2')">FILA 2</button>
+                <div class="rcount">6 ombrelloni</div>
+                <div class="ract">
+                  <button class="iconbtn" title="Genera ombrelloni" onclick="selRow('row2','Fila 2')">⚡</button>
+                  <button class="iconbtn" title="Rinomina" onclick="selRow('row2','Fila 2')">✎</button>
+                  <button class="iconbtn danger" title="Svuota / elimina" onclick="selRow('row2','Fila 2')">🗑</button>
+                </div>
+              </div>
+              <div class="cells">
+                <button class="cell" onclick="selCell(this,'B1')"><span class="num">B1</span></button>
+                <button class="cell" onclick="selCell(this,'B2')"><span class="num">B2</span></button>
+                <button class="cell" onclick="selCell(this,'B3')"><span class="num">B3</span></button>
+                <button class="cell" onclick="selCell(this,'B4')"><span class="num">B4</span><span class="tbadge">⛱</span></button>
+                <button class="cell" onclick="selCell(this,'B5')"><span class="num">B5</span></button>
+                <button class="cell" onclick="selCell(this,'B6')"><span class="num">B6</span></button>
+                <button class="cell ghost" title="Aggiungi ombrellone" onclick="panel('cell-new')">+</button>
+              </div>
+            </div>
+
+            <div class="row" id="row3">
+              <div class="rail">
+                <button class="rname" onclick="selRow('row3','Fila 3')">FILA 3</button>
+                <div class="rcount">6 ombrelloni</div>
+                <div class="ract">
+                  <button class="iconbtn" title="Genera ombrelloni" onclick="selRow('row3','Fila 3')">⚡</button>
+                  <button class="iconbtn" title="Rinomina" onclick="selRow('row3','Fila 3')">✎</button>
+                  <button class="iconbtn danger" title="Svuota / elimina" onclick="selRow('row3','Fila 3')">🗑</button>
+                </div>
+              </div>
+              <div class="cells">
+                <button class="cell" onclick="selCell(this,'C1')"><span class="num">C1</span></button>
+                <button class="cell" onclick="selCell(this,'C2')"><span class="num">C2</span></button>
+                <button class="cell" onclick="selCell(this,'C3')"><span class="num">C3</span></button>
+                <button class="cell" onclick="selCell(this,'C4')"><span class="num">C4</span></button>
+                <button class="cell" onclick="selCell(this,'C5')"><span class="num">C5</span></button>
+                <button class="cell" onclick="selCell(this,'C6')"><span class="num">C6</span></button>
+                <button class="cell ghost" title="Aggiungi ombrellone" onclick="panel('cell-new')">+</button>
+              </div>
+            </div>
+
+            <button class="ghost-row" onclick="panel('row-new')">
+              <span class="plus">+</span> Nuova fila — etichetta e, se vuoi, genera subito gli ombrelloni
+            </button>
+          </div>
+
+          <!-- Stato vuoto: setup guidato -->
+          <div class="empty" id="empty">
+            <h3>Costruiamo la tua spiaggia</h3>
+            <p>Tre passi e la struttura è pronta: si riflette subito sulla Mappa. Potrai sempre modificare tutto da qui.</p>
+            <div class="steps">
+              <button class="step" onclick="panel('sector-new')">
+                <span class="k">1</span><b>Crea un settore</b>
+                <span>La zona della spiaggia: «Centro», «Zona nord»… Griglia per le file regolari, Speciali per i posti fuori schema.</span>
+              </button>
+              <div class="step todo"><span class="k">2</span><b>Aggiungi una fila</b>
+                <span>Ogni settore è fatto di file, dalla più vicina al mare in giù.</span></div>
+              <div class="step todo"><span class="k">3</span><b>Genera gli ombrelloni</b>
+                <span>Prefisso + numerazione automatica: 20 ombrelloni in un click.</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ==================== ISPETTORE ==================== -->
+      <aside class="inspector" aria-label="Ispettore">
+
+        <!-- Pannello: Spiaggia (nessuna selezione) -->
+        <div class="panel" id="p-beach">
+          <div class="insp-head">
+            <div class="insp-eyebrow">Ispettore</div>
+            <div class="insp-title">Spiaggia</div>
+          </div>
+          <div class="insp-body">
+            <div class="stat">
+              <div class="s"><b>2</b><span>Settori</span></div>
+              <div class="s"><b>3</b><span>File</span></div>
+              <div class="s"><b>26</b><span>Ombrelloni</span></div>
+              <div class="s"><b>2</b><span>Tipologie</span></div>
+            </div>
+            <hr class="sep">
+            <div>
+              <div class="insp-eyebrow" style="margin-bottom:6px">Tipologie</div>
+              <div class="tlist">
+                <div class="trow"><span class="tic">☂</span><span class="tn">Gazebo</span>
+                  <button class="iconbtn" title="Modifica">✎</button><button class="iconbtn danger" title="Elimina">🗑</button></div>
+                <div class="trow"><span class="tic">⛱</span><span class="tn">Lettino king</span>
+                  <button class="iconbtn" title="Modifica">✎</button><button class="iconbtn danger" title="Elimina">🗑</button></div>
+              </div>
+              <button class="btn secondary block" style="margin-top:8px">+ Nuova tipologia</button>
+              <p class="hint" style="margin-top:8px">Classificano l'ombrellone (icona sulla Mappa), non ne fissano il prezzo. «Normale» è la predefinita.</p>
+            </div>
+            <hr class="sep">
+            <p class="hint">Clicca un settore, una fila o un ombrellone nella scena per modificarlo. Le forme tratteggiate creano.</p>
+          </div>
+        </div>
+
+        <!-- Pannello: Fila selezionata -->
+        <div class="panel" id="p-row" hidden>
+          <div class="insp-head">
+            <div class="insp-eyebrow">Fila</div>
+            <div class="insp-title" id="row-title">Fila 1 · prima linea<span class="crumb">Settore Centro · 6 ombrelloni</span></div>
+          </div>
+          <div class="insp-body">
+            <div class="f"><label>Etichetta</label><input value="Fila 1"></div>
+            <hr class="sep">
+            <div class="insp-eyebrow">Genera ombrelloni</div>
+            <div class="grid3">
+              <div class="f"><label>Prefisso</label><input value="A"></div>
+              <div class="f"><label>Da numero</label><input type="number" value="7"></div>
+              <div class="f"><label>Quantità</label><input type="number" value="6"></div>
+            </div>
+            <div class="f"><label>Tipologia</label><select><option>Normale</option><option>Gazebo</option><option>Lettino king</option></select></div>
+            <div class="preview">
+              <span class="p">A7</span><span class="p">A8</span><span class="p">A9</span>
+              <span class="p">A10</span><span class="p">A11</span><span class="p">A12</span>
+            </div>
+            <p class="hint">Le etichette già esistenti vengono saltate — buchi di numerazione ammessi.</p>
+            <button class="btn primary block">Genera 6 ombrelloni</button>
+            <hr class="sep">
+            <div class="danger-zone">
+              <p class="t">Zona rischiosa</p>
+              <p class="hint">«Svuota» elimina in blocco gli ombrelloni della fila <b>senza prenotazioni</b>; quelli con prenotazioni restano (te lo diciamo prima).</p>
+              <div style="display:flex;gap:8px">
+                <button class="btn danger" style="flex:1">Svuota fila (6)</button>
+                <button class="btn danger" style="flex:1">Elimina fila</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Pannello: Cella selezionata -->
+        <div class="panel" id="p-cell" hidden>
+          <div class="insp-head">
+            <div class="insp-eyebrow">Ombrellone</div>
+            <div class="insp-title" id="cell-title">A3<span class="crumb">Settore Centro · Fila 1</span></div>
+          </div>
+          <div class="insp-body">
+            <div class="f"><label>Etichetta</label><input id="cell-label" value="A3">
+              <p class="hint">Numero fisico reale, unico in tutta la spiaggia.</p></div>
+            <div class="f"><label>Tipologia</label><select><option>Normale</option><option selected>Gazebo</option><option>Lettino king</option></select></div>
+            <button class="btn primary block">Salva</button>
+            <hr class="sep">
+            <p class="hint">Suggerimento: <b>Maiusc+clic</b> su altre celle per selezionarne più d'una e agire in blocco.</p>
+            <button class="btn danger block">Elimina ombrellone</button>
+          </div>
+        </div>
+
+        <!-- Pannello: selezione multipla -->
+        <div class="panel" id="p-multi" hidden>
+          <div class="insp-head">
+            <div class="insp-eyebrow">Selezione multipla</div>
+            <div class="insp-title" id="multi-title">3 ombrelloni</div>
+          </div>
+          <div class="insp-body">
+            <div class="multi-count" id="multi-chips">A1 · A2 · A4</div>
+            <div class="f"><label>Assegna tipologia a tutti</label>
+              <select><option>— scegli —</option><option>Normale</option><option>Gazebo</option><option>Lettino king</option></select></div>
+            <button class="btn primary block">Applica a 3 ombrelloni</button>
+            <hr class="sep">
+            <button class="btn danger block">Elimina 3 ombrelloni</button>
+            <p class="hint">Gli ombrelloni con prenotazioni non verranno eliminati: report finale «eliminati X · saltati Y».</p>
+          </div>
+        </div>
+
+        <!-- Pannello: nuovo settore -->
+        <div class="panel" id="p-sector-new" hidden>
+          <div class="insp-head">
+            <div class="insp-eyebrow">Nuovo settore</div>
+            <div class="insp-title">Crea un settore</div>
+          </div>
+          <div class="insp-body">
+            <div class="f"><label>Nome</label><input placeholder="es. Zona nord"></div>
+            <div class="f"><label>Disposizione</label><select><option>Griglia — file regolari verso il mare</option><option>Speciali — posti fuori griglia</option></select></div>
+            <button class="btn primary block">Crea settore</button>
+            <p class="hint">Appena creato lo trovi come nuovo tab: la prima fila la aggiungi direttamente in scena.</p>
+          </div>
+        </div>
+
+        <!-- Pannello: nuova fila -->
+        <div class="panel" id="p-row-new" hidden>
+          <div class="insp-head">
+            <div class="insp-eyebrow">Nuova fila</div>
+            <div class="insp-title">Fila in «Centro»</div>
+          </div>
+          <div class="insp-body">
+            <div class="f"><label>Etichetta</label><input placeholder="es. Fila 4"></div>
+            <div class="insp-eyebrow">E se vuoi, genera subito</div>
+            <div class="grid3">
+              <div class="f"><label>Prefisso</label><input value="D"></div>
+              <div class="f"><label>Da numero</label><input type="number" value="1"></div>
+              <div class="f"><label>Quantità</label><input type="number" value="6"></div>
+            </div>
+            <div class="preview"><span class="p">D1</span><span class="p">D2</span><span class="p">D3</span><span class="p more">+3</span></div>
+            <button class="btn primary block">Crea fila + 6 ombrelloni</button>
+            <p class="hint">Quantità 0 = crea solo la fila.</p>
+          </div>
+        </div>
+
+        <!-- Pannello: nuovo ombrellone -->
+        <div class="panel" id="p-cell-new" hidden>
+          <div class="insp-head">
+            <div class="insp-eyebrow">Nuovo ombrellone</div>
+            <div class="insp-title">In coda alla fila</div>
+          </div>
+          <div class="insp-body">
+            <div class="f"><label>Etichetta</label><input placeholder="es. A7 o P1"></div>
+            <div class="f"><label>Tipologia</label><select><option>Normale</option><option>Gazebo</option><option>Lettino king</option></select></div>
+            <button class="btn primary block">Aggiungi</button>
+          </div>
+        </div>
+      </aside>
+    </div>
+  </div>
+
+  <section class="notes">
+    <h2>Cosa cambia rispetto a oggi</h2>
+    <ul>
+      <li><b>Zero modali</b> per il CRUD quotidiano: tutto vive nell'ispettore, il contesto (la spiaggia) resta sempre visibile. Il ConfirmDialog resta solo per le azioni distruttive.</li>
+      <li><b>Allineamento visivo con la Mappa</b>: stessa scena Riva, stessa Tessera (qui «a riposo»: sabbia neutra, niente stati). Quello che configuri è quello che vedrai.</li>
+      <li><b>Bulk</b>: «Svuota fila», selezione multipla (Maiusc+clic) con cambio tipologia ed eliminazione in blocco, con semantica «saltati» per gli ombrelloni protetti da prenotazioni.</li>
+      <li><b>Creazione in-place</b>: ghost cella «+», ghost fila, tab «+ Settore» — la creazione avviene dove l'oggetto apparirà.</li>
+      <li><b>Setup guidato reale</b> per la spiaggia vuota (3 passi), al posto del testo «Crea un settore per iniziare.»</li>
+    </ul>
+    <h2>Domande aperte (da decidere insieme)</h2>
+    <ul>
+      <li class="q">1 · Le Tipologie vivono nell'ispettore-radice «Spiaggia» (come qui) o meritano una sezione/pill dedicata in toolbar?</li>
+      <li class="q">2 · «Svuota fila» richiede un nuovo endpoint bulk (oggi esiste solo il DELETE singolo). Ok ad estendere il backend con delete-bulk «salta se prenotato»?</li>
+      <li class="q">3 · La selezione multipla via Maiusc+clic basta, o serve anche una modalità «seleziona» esplicita (più scopribile, utile su touch)?</li>
+    </ul>
+  </section>
+</div>
+
+<script>
+function panel(name){
+  document.querySelectorAll('.panel').forEach(p=>p.hidden=true);
+  document.getElementById('p-'+name).hidden=false;
+}
+let multi=[];
+function clearSel(){document.querySelectorAll('.cell.sel').forEach(c=>c.classList.remove('sel'));document.querySelectorAll('.row.sel').forEach(r=>r.classList.remove('sel'));}
+function selCell(el,label){
+  if(event.shiftKey){
+    el.classList.toggle('sel');
+    multi=[...document.querySelectorAll('.cell.sel .num')].map(n=>n.textContent);
+    if(multi.length>1){
+      document.getElementById('multi-title').textContent=multi.length+' ombrelloni';
+      document.getElementById('multi-chips').textContent=multi.join(' · ');
+      panel('multi');return;
+    }
+  } else { clearSel(); el.classList.add('sel'); multi=[label]; }
+  const rowNum=el.closest('.row').id.replace('row','');
+  document.getElementById('cell-title').innerHTML=label+'<span class="crumb">Settore Centro · Fila '+rowNum+'</span>';
+  document.getElementById('cell-label').value=label;
+  panel('cell');
+}
+function selRow(id,title){
+  clearSel();document.getElementById(id).classList.add('sel');
+  document.getElementById('row-title').innerHTML=title.split(' · ')[0]+'<span class="crumb">Settore Centro · 6 ombrelloni</span>';
+  panel('row');
+}
+function selSector(el){
+  document.querySelectorAll('.tab').forEach(t=>t.setAttribute('aria-selected','false'));
+  el.setAttribute('aria-selected','true');
+}
+function setMode(m){
+  document.querySelectorAll('.doc-controls .chip').forEach(c=>c.setAttribute('aria-pressed',String(c.dataset.mode===m)));
+  document.getElementById('cfg').style.display = m==='full'?'':'none';
+  document.getElementById('empty').style.display = m==='empty'?'flex':'none';
+  panel(m==='empty'?'sector-new':'beach');
+}
+panel('beach');
+</script>
+</body>
+</html>
