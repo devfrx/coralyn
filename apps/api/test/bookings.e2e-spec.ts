@@ -8,7 +8,6 @@ import { createUser, login } from './helpers/seed-auth';
 import { cleanMapTenant, seedMapTenant, type MapSeedIds } from './helpers/seed-map';
 import { seedPricingTenant, cleanPricingTenant } from './helpers/seed-pricing';
 import { createTestApp } from './helpers/create-test-app';
-import { todayInRome } from '../src/common/dates';
 
 describe('Bookings (e2e)', () => {
   let app: INestApplication;
@@ -971,13 +970,11 @@ describe('Bookings (e2e)', () => {
     const coverageOf = (id: string) =>
       prisma.forTenant(s1, (tx) => tx.bookingCoverage.findMany({ where: { bookingId: id }, orderBy: { startDate: 'asc' } }));
     const iso = (d: Date): string => d.toISOString().slice(0, 10);
-    // Data di release relativa a oggi (Roma): futura e dentro la stagione [07-01, 09-30],
-    // così i test non marciscono col passare del tempo (guard PAST_DATE su date < oggi).
-    const addDays = (isoDate: string, n: number): string => {
-      const [y, m, d] = isoDate.split('-').map(Number);
-      return new Date(Date.UTC(y, m - 1, d + n)).toISOString().slice(0, 10);
-    };
-    const releaseDate = addDays(todayInRome(), 3);
+    // Futura rispetto all'«oggi» congelato delle e2e (2026-07-15, jest-frozen-calendar.setup.ts)
+    // e dentro lo span dell'abbonamento: supera le guardie PAST_DATE/BAD_DATE in modo
+    // deterministico. (Il precedente addDays(todayInRome(), 3) è marcito comunque: relativo a
+    // oggi ma vincolato alla stagione fissa — la coerenza ora la garantisce il clock congelato.)
+    const releaseDate = '2026-07-18';
 
     it('D1: suspend-open → terminate → 409 (riattiva prima di disdire)', async () => {
       const { id } = await makeSub();

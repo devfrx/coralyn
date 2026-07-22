@@ -5,5 +5,6 @@
   "testRegex": ".e2e-spec.ts$",
   "transform": { "^.+\\.ts$": "ts-jest" },
   "setupFiles": ["./jest-setup-env.ts"],
+  "setupFilesAfterEnv": ["./jest-frozen-calendar.setup.ts"],
   "testTimeout": 20000
 }
