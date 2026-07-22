@@ -39,6 +39,7 @@ import IconCopy from '~icons/lucide/copy';
 import IconSmartphone from '~icons/lucide/smartphone';
 import IconMenu from '~icons/lucide/menu';
 import IconInfo from '~icons/lucide/info';
+import IconZap from '~icons/lucide/zap';
 
 /** Nomi consentiti (chrome + Tipologia.icona). Confine offline + fallback. */
 export const icons: Record<string, Component> = {
@@ -54,6 +55,7 @@ export const icons: Record<string, Component> = {
   copy: IconCopy, smartphone: IconSmartphone,
   menu: IconMenu,
   info: IconInfo,
+  zap: IconZap,
 };
 
 export const FALLBACK_ICON = 'umbrella';

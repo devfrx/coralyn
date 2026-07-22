@@ -1,0 +1,22 @@
+/* Scena «Cantiere» dell'editor struttura (spec 2026-07-22-struttura-cantiere §4).
+   Riusa i mattoni Riva di map-scene.css (mare/bagnasciuga/stage/toolbar);
+   qui SOLO le classi editor-specifiche. Token Coralyn, nessun hex nuovo. */
+.st-sand { padding: 20px 22px 30px; }
+.st-sector-cap { display: flex; align-items: center; gap: 10px; margin: 2px 0 14px; }
+.st-sector-cap .st-eyebrow { font-size: 10.5px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; color: var(--color-stage-1); }
+.st-sector-cap .st-sub { font-size: 11.5px; color: var(--color-text-muted); }
+.st-row { display: grid; grid-template-columns: 92px 1fr; gap: 14px; align-items: start; padding: 10px 8px; margin: 0 -8px; border-radius: var(--radius-md); }
+.st-row + .st-row { margin-top: 6px; }
+.st-row:hover { background: color-mix(in srgb, var(--color-warm-000) 42%, transparent); }
+.st-row-sel { background: color-mix(in srgb, var(--color-warm-000) 62%, transparent); box-shadow: inset 0 0 0 1.5px var(--color-brand); }
+.st-rail-name { font-size: 11px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; color: var(--color-stage-1); }
+.st-rail-name:hover { color: var(--color-brand-ink); }
+.st-rail-count { font-size: 11px; color: var(--color-text-muted); margin-top: 3px; font-variant-numeric: tabular-nums; }
+.st-rail-actions { display: flex; gap: 4px; margin-top: 7px; opacity: 0; transition: opacity var(--motion-fast) var(--ease-standard); }
+.st-row:hover .st-rail-actions, .st-row-sel .st-rail-actions { opacity: 1; }
+.st-cells { display: flex; flex-wrap: wrap; gap: 9px; align-items: center; }
+.st-ghost-cell { display: grid; place-items: center; width: 40px; height: 40px; border-radius: 12px; border: 1.5px dashed var(--color-border-input); background: transparent; color: var(--color-placeholder); font-size: 16px; }
+.st-ghost-cell:hover { border-color: var(--color-brand); color: var(--color-brand-ink); background: var(--color-coral-050); }
+.st-ghost-row { margin: 14px -8px 0; padding: 13px 8px; width: calc(100% + 16px); border: 1.5px dashed var(--color-border-input); border-radius: var(--radius-md); display: flex; align-items: center; gap: 9px; color: var(--color-text-muted); font-size: 12.5px; font-weight: 600; background: transparent; }
+.st-ghost-row:hover { border-color: var(--color-brand); color: var(--color-brand-ink); background: color-mix(in srgb, var(--color-coral-050) 65%, transparent); }
+@media (prefers-reduced-motion: reduce) { .st-rail-actions { transition: none !important; } }

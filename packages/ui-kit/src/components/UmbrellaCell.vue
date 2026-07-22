@@ -14,7 +14,7 @@ const props = withDefaults(defineProps<{
   found?: boolean;
 }>(), { slotStates: null, selected: false, dimmed: false, found: false });
 
-defineEmits<{ select: [] }>();
+defineEmits<{ select: [ev?: MouseEvent] }>();
 
 const fill: Record<SlotState, string> = {
   free: 'var(--color-state-free)', season: 'var(--color-state-season)',
@@ -55,7 +55,7 @@ defineExpose({ uniform, fills, rest });
         found ? '[animation:cell-found_1.15s_var(--ease-standard)_2]' : '',
       ]"
       :style="{ color }"
-      @click="$emit('select')"
+      @click="$emit('select', $event)"
     >
       <span aria-hidden="true" class="absolute inset-0 flex">
         <span v-for="(f, i) in fills" :key="i" class="h-full flex-1"

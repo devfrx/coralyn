@@ -1,6 +1,6 @@
 /* Scena «Riva» della Mappa (spec 2026-07-21-map-redesign-riva §3).
-   Feature-scoped: solo MapView la usa. Token Coralyn, nessun hex nuovo qui
-   (unica eccezione: la sabbia bagnata del bagnasciuga #EDE6D2, tonalità di transizione). */
+   Feature-scoped: la usano MapView e l'editor Struttura (Cantiere). Token Coralyn, nessun hex
+   nuovo qui (unica eccezione: la sabbia bagnata del bagnasciuga #EDE6D2, tonalità di transizione). */
 
 /* Full-bleed: lo stage riempie l'area contenuto (niente card: no bordo/raggio/ombra).
    Lo scroll vive nello scroller interno .map-scroll, così la grana (::after, inset-0

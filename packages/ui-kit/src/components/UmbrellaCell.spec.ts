@@ -22,6 +22,13 @@ describe('UmbrellaCell (Tessera)', () => {
     await w.get('button').trigger('click');
     expect(w.emitted('select')).toBeTruthy();
   });
+  it('inoltra il MouseEvent nativo su select (per rilevare shift+clic a monte)', async () => {
+    const w = mount(UmbrellaCell, { props: { ...base } });
+    await w.get('button').trigger('click', { shiftKey: true });
+    const payload = w.emitted('select')![0][0] as MouseEvent;
+    expect(payload).toBeInstanceOf(MouseEvent);
+    expect(payload.shiftKey).toBe(true);
+  });
   it('riflette la selezione (aria-pressed + ring)', () => {
     const w = mount(UmbrellaCell, { props: { ...base, selected: true } });
     const btn = w.get('button');
