@@ -116,8 +116,12 @@ export class UmbrellasService {
       const withBookings = await tx.booking.groupBy({ by: ['umbrellaId'], where: { umbrellaId: { in: foundIds } } });
       const protectedSet = new Set(withBookings.map((b) => b.umbrellaId));
       const deletable = foundIds.filter((id) => !protectedSet.has(id));
-      if (deletable.length > 0) await tx.umbrella.deleteMany({ where: { id: { in: deletable } } });
-      return { deleted: deletable.length, skipped: input.ids.length - deletable.length };
+      let deleted = 0;
+      if (deletable.length > 0) {
+        const res = await tx.umbrella.deleteMany({ where: { id: { in: deletable } } });
+        deleted = res.count;
+      }
+      return { deleted, skipped: input.ids.length - deleted };
     });
   }
 

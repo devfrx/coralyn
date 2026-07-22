@@ -144,6 +144,16 @@ describe('UmbrellasService', () => {
       expect(tx.umbrella.deleteMany).not.toHaveBeenCalled();
       expect(res).toEqual({ deleted: 0, skipped: 1 });
     });
+
+    it('deleted riflette il count reale di deleteMany: id spariti sotto race → saltati, non sovrastimati', async () => {
+      const { service, tx } = makeService();
+      tx.umbrella.findMany.mockResolvedValue([{ id: 'u-1' }, { id: 'u-2' }]);
+      tx.booking.groupBy.mockResolvedValue([]);
+      // u-2 eliminato da una richiesta concorrente tra findMany e deleteMany: il DB ne cancella 1 solo.
+      tx.umbrella.deleteMany.mockResolvedValue({ count: 1 });
+      const res = await service.bulkDelete({ ids: ['u-1', 'u-2'] });
+      expect(res).toEqual({ deleted: 1, skipped: 1 });
+    });
   });
 
   describe('bulkAssignType', () => {
