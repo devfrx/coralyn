@@ -786,13 +786,19 @@ Regole trasversali:
 
 ### 14.5 Setup guidato ed empty-state
 
-- **Spiaggia vuota** (0 settori): card «Costruiamo la tua spiaggia» sulla sabbia — 3 passi (1. Crea
-  un settore · 2. Aggiungi una fila · 3. Genera gli ombrelloni), il passo 1 sempre attivo/cliccabile
-  (apre il pannello «Nuovo settore»); la scena (mare/sabbia) resta visibile sotto la card — si
-  costruisce *sulla* spiaggia, non in un wizard a schermo intero.
-- Dopo il primo settore la card sparisce: la guida prosegue **in scena** tramite le ghost-affordance
-  (§14.2) — fascia «+ Nuova fila» con hint sul settore vuoto, cella «+» con hint testuale sulla fila
-  vuota. Nessun secondo componente di wizard per i passi 2/3: la scena stessa guida.
+- Card «Costruiamo la tua spiaggia» sulla sabbia, **finché la spiaggia non ha nessun ombrellone**
+  (contati su tutto l'albero, non sul solo settore corrente) — non solo a 0 settori. Al primo
+  ombrellone creato la card sparisce definitivamente; la scena (mare/sabbia) resta visibile sotto la
+  card in ogni passo — si costruisce *sulla* spiaggia, non in un wizard a schermo intero.
+- Il passo attivo è **derivato dall'albero**, non fisso: nessun settore → 1 (Crea un settore);
+  settori ma nessuna fila in tutto l'albero → 2 (Aggiungi una fila, sul primo settore); file ma
+  nessun ombrellone → 3 (Genera gli ombrelloni, sulla prima fila del primo settore che ne ha). I
+  passi già superati si mostrano **completati** (spunta ✓ + «Fatto», stile attenuato) invece del
+  numero; il mapping passo→azione (`create-sector` / `create-row` / `select-row`) sta nella scena
+  (`StructureScene.vue`), la card (`StructureGuidedSetup.vue`) è presentazionale.
+- Con settori/file già presenti la card convive con le ghost-affordance del settore corrente
+  (§14.2) — fascia «+ Nuova fila» e cella «+» restano visibili e funzionanti sotto la card: le due
+  guide non si escludono a vicenda.
 
 ### 14.6 Architettura FE (scomposizione)
 

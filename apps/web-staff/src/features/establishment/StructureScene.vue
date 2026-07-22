@@ -25,6 +25,25 @@ const emit = defineEmits<{
 
 const current = computed(() => props.sectors.find((s) => s.id === props.selectedSectorId) ?? props.sectors[0] ?? null);
 const seats = (s: StructureSectorDTO): number => s.rows.reduce((n, r) => n + r.umbrellas.length, 0);
+
+const totalRows = computed(() => props.sectors.reduce((n, s) => n + s.rows.length, 0));
+const totalUmbrellas = computed(() => props.sectors.reduce((n, s) => n + seats(s), 0));
+const showGuided = computed(() => totalUmbrellas.value === 0);
+const guidedStep = computed<1 | 2 | 3>(() => {
+  if (props.sectors.length === 0) return 1;
+  if (totalRows.value === 0) return 2;
+  return 3;
+});
+const firstSectorId = computed(() => props.sectors[0]?.id ?? null);
+const firstRowId = computed(() => {
+  for (const s of props.sectors) if (s.rows.length > 0) return s.rows[0].id;
+  return null;
+});
+function handleGuidedAdvance(): void {
+  if (guidedStep.value === 1) emit('create-sector');
+  else if (guidedStep.value === 2 && firstSectorId.value) emit('create-row', firstSectorId.value);
+  else if (guidedStep.value === 3 && firstRowId.value) emit('select-row', firstRowId.value);
+}
 </script>
 
 <template>
@@ -50,8 +69,8 @@ const seats = (s: StructureSectorDTO): number => s.rows.reduce((n, r) => n + r.u
         @click="emit('toggle-select-mode')">Seleziona</button>
     </div>
     <div class="st-sand flex-1 overflow-auto" data-testid="scene-sand" @click.self="emit('select-beach')">
-      <StructureGuidedSetup v-if="sectors.length === 0" :step="1" @advance="emit('create-sector')" />
-      <template v-else-if="current">
+      <StructureGuidedSetup v-if="showGuided" :step="guidedStep" @advance="handleGuidedAdvance" />
+      <template v-if="current">
         <div class="st-sector-cap">
           <span class="st-eyebrow">{{ current.name }} · {{ current.kind === 'special' ? 'speciali' : 'griglia' }}</span>
           <span class="st-sub">{{ current.rows.length }} file · {{ seats(current) }} ombrelloni · le file più in alto sono più vicine al mare</span>

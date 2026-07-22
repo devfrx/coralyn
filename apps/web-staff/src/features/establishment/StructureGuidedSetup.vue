@@ -23,6 +23,11 @@ const STEPS = [
           <b class="mb-[3px] block text-[12.5px] text-[var(--color-text)]">{{ s.title }}</b>
           <span class="block text-[11.5px] leading-[1.45] text-[var(--color-text-muted)]">{{ s.desc }}</span>
         </button>
+        <div v-else-if="s.n < step" data-testid="guided-step-done" class="px-3.5 py-4 opacity-80" :aria-label="`Fatto: ${s.title}`">
+          <span class="mb-2.5 grid size-[26px] place-items-center rounded-full bg-[var(--color-success-bg)] text-[12.5px] font-extrabold text-[var(--color-success-ink)]" aria-hidden="true">✓</span>
+          <b class="mb-[3px] block text-[12.5px] text-[var(--color-text)]">{{ s.title }}</b>
+          <span class="block text-[11.5px] leading-[1.45] text-[var(--color-text-muted)]">Fatto</span>
+        </div>
         <div v-else class="px-3.5 py-4 opacity-55">
           <span class="mb-2.5 grid size-[26px] place-items-center rounded-full bg-[var(--color-brand-tint)] text-[12.5px] font-extrabold text-[var(--color-brand-ink)]">{{ s.n }}</span>
           <b class="mb-[3px] block text-[12.5px] text-[var(--color-text)]">{{ s.title }}</b>
