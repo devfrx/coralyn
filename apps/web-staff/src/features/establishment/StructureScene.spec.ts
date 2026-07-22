@@ -53,4 +53,12 @@ describe('StructureScene', () => {
     const pressed = w.findAll('[data-testid="scene-cell"] button[aria-pressed="true"]');
     expect(pressed).toHaveLength(2);
   });
+
+  it('spiaggia vuota → 3 passi; il passo attivo emette create-sector', async () => {
+    const w = mount(StructureScene, { props: { ...base, sectors: [], selectedSectorId: null } });
+    expect(w.text()).toContain('Costruiamo la tua spiaggia');
+    expect(w.findAll('[data-testid="guided-step"]')).toHaveLength(3);
+    await w.find('[data-testid="guided-step-active"]').trigger('click');
+    expect(w.emitted('create-sector')).toBeTruthy();
+  });
 });

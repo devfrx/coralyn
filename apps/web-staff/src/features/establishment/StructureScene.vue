@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import type { StructureSectorDTO, UmbrellaTypeDTO } from '@coralyn/contracts';
+import StructureGuidedSetup from './StructureGuidedSetup.vue';
 import StructureRow from './StructureRow.vue';
 import type { Selection } from './structureSelection';
 import '@/styles/map-scene.css';
@@ -49,7 +50,8 @@ const seats = (s: StructureSectorDTO): number => s.rows.reduce((n, r) => n + r.u
         @click="emit('toggle-select-mode')">Seleziona</button>
     </div>
     <div class="st-sand flex-1 overflow-auto" data-testid="scene-sand" @click.self="emit('select-beach')">
-      <template v-if="current">
+      <StructureGuidedSetup v-if="sectors.length === 0" :step="1" @advance="emit('create-sector')" />
+      <template v-else-if="current">
         <div class="st-sector-cap">
           <span class="st-eyebrow">{{ current.name }} · {{ current.kind === 'special' ? 'speciali' : 'griglia' }}</span>
           <span class="st-sub">{{ current.rows.length }} file · {{ seats(current) }} ombrelloni · le file più in alto sono più vicine al mare</span>
