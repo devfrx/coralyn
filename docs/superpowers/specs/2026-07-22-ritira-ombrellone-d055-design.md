@@ -72,7 +72,6 @@ Filtro `retiredAt: null` da aggiungere:
 - validazione ombrellone alla creazione prenotazione (`bookings.service.ts:396`);
 - contatore overview (`establishment.service.ts:25`);
 - metriche piattaforma (`platform-metrics.service.ts:34`);
-- capacità nei report di occupazione (`reports.service.ts:96`);
 - `findMany` delle bulk (`umbrellas.service.ts:114`) — difensivo: i ritirati non sono
   selezionabili dalla UI ma l'API non deve operarci comunque.
 
@@ -80,9 +79,12 @@ Esclusione **gratuita** (nessun filtro): struttura, mappa e Cantiere attraversan
 `row → umbrellas` e un ritirato non ha fila; l'eliminazione fila conta per `rowId`
 (`rows.service.ts:55`) → i ritirati non la bloccano.
 
-**Deliberatamente NON filtrato**: la guardia di eliminazione tipologia
-(`umbrella-types.service.ts:69`) continua a contare anche i ritirati — una tipologia
-referenziata dallo storico non si elimina.
+**Deliberatamente NON filtrati**:
+- la guardia di eliminazione tipologia (`umbrella-types.service.ts:69`) conta anche i
+  ritirati — una tipologia referenziata dallo storico non si elimina;
+- la risoluzione label nei rinnovi in scadenza (`reports.service.ts:96`) — è display di
+  dati storici, la label di un ritirato deve continuare a risolversi. L'**occupazione**
+  dei report deriva dalla proiezione mappa → i ritirati ne escono già con lo sgancio.
 
 Copy del 409 di `delete` aggiornata: suggerisce «Ritira» come via che conserva lo storico.
 
