@@ -66,6 +66,7 @@ export class UmbrellaTypesService {
     const removed = await this.prisma.forTenant(tenantId, async (tx) => {
       const existing = await tx.umbrellaType.findUnique({ where: { id }, select: SELECT });
       if (!existing) return null;
+      // Conta ANCHE i ritirati (D-055): una tipologia referenziata dallo storico non si elimina.
       const refs = await tx.umbrella.count({ where: { umbrellaTypeId: id } });
       if (refs > 0) throw new ConflictException('Tipologia in uso da ombrelloni: riassegnali prima di eliminarla.');
       await tx.umbrellaType.delete({ where: { id } });

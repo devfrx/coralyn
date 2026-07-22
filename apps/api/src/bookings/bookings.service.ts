@@ -393,7 +393,7 @@ export class BookingsService {
 
       // 2) FK nel tenant (RLS: fuori tenant → null → 422).
       const slot = await tx.timeSlot.findFirst({ where: { id: input.timeSlotId } });
-      const umbrella = await tx.umbrella.findFirst({ where: { id: input.umbrellaId } });
+      const umbrella = await tx.umbrella.findFirst({ where: { id: input.umbrellaId, retiredAt: null } });
       const customer = await tx.customer.findFirst({ where: { id: input.customerId } });
       if (!slot || !umbrella || !customer) {
         throw new UnprocessableEntityException('Cliente, ombrellone o fascia non validi');

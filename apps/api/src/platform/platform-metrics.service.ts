@@ -31,7 +31,7 @@ export class PlatformMetricsService {
     });
 
     const agg = await this.prisma.forTenant(est.id, async (tx) => {
-      const [sectors, rows, umbrellas] = [await tx.sector.count(), await tx.row.count(), await tx.umbrella.count()];
+      const [sectors, rows, umbrellas] = [await tx.sector.count(), await tx.row.count(), await tx.umbrella.count({ where: { retiredAt: null } })];
       const lastBooking = await tx.booking.aggregate({ _max: { createdAt: true } });
 
       const season = await tx.season.findFirst({

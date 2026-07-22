@@ -22,7 +22,7 @@ export class EstablishmentService {
         tx.timeSlot.findMany({ orderBy: { sortOrder: 'asc' }, select: { id: true, name: true } }),
         tx.user.findMany({ where: { establishmentId: tenantId }, select: { id: true, email: true, role: true, disabledAt: true } }),
         tx.sector.count(),
-        tx.umbrella.count(),
+        tx.umbrella.count({ where: { retiredAt: null } }),
         tx.umbrellaType.count(),
         tx.package.count({ where: { archivedAt: null } }),
       ]);

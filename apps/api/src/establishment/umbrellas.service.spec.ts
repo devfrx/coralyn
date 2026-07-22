@@ -55,6 +55,19 @@ describe('UmbrellasService', () => {
     expect(res).toEqual({ id: 'n', label: '  5  ', umbrellaTypeId: null });
   });
 
+  it('create: il clash label ignora i ritirati (label riusabile)', async () => {
+    const { service, tx } = makeService();
+    tx.row.findUnique.mockResolvedValue({ id: 'r-1' });
+    tx.umbrella.findFirst
+      .mockResolvedValueOnce(null)                 // clash label: nessun attivo con questa etichetta
+      .mockResolvedValueOnce({ logicalOrder: 4 });  // last in row
+    tx.umbrella.create.mockResolvedValue({ id: 'n', label: '12', umbrellaTypeId: null, logicalOrder: 5 });
+    await service.create({ rowId: 'r-1', label: '12', umbrellaTypeId: null });
+    expect(tx.umbrella.findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({ where: expect.objectContaining({ retiredAt: null }) }),
+    );
+  });
+
   it('update: 404 se assente', async () => {
     const { service, tx } = makeService();
     tx.umbrella.findUnique.mockResolvedValue(null);
@@ -125,6 +138,18 @@ describe('UmbrellasService', () => {
     await expect(service.generate({ rowId: 'r-x', prefix: '', start: 1, count: 3, umbrellaTypeId: null })).rejects.toBeInstanceOf(NotFoundException);
   });
 
+  it('generate: i candidati non collidono coi ritirati', async () => {
+    const { service, tx } = makeService();
+    tx.row.findUnique.mockResolvedValue({ id: 'r-1' });
+    tx.umbrella.findMany.mockResolvedValue([]);
+    tx.umbrella.findFirst.mockResolvedValue({ logicalOrder: 0 });
+    tx.umbrella.create.mockResolvedValue({ id: 'n1', label: '1', umbrellaTypeId: null, logicalOrder: 1 });
+    await service.generate({ rowId: 'r-1', prefix: '', start: 1, count: 1, umbrellaTypeId: null });
+    expect(tx.umbrella.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ where: expect.objectContaining({ retiredAt: null }) }),
+    );
+  });
+
   describe('bulkDelete', () => {
     it('elimina i non prenotati, salta i protetti e gli id estranei', async () => {
       const { service, tx } = makeService();
@@ -154,6 +179,16 @@ describe('UmbrellasService', () => {
       const res = await service.bulkDelete({ ids: ['u-1', 'u-2'] });
       expect(res).toEqual({ deleted: 1, skipped: 1 });
     });
+
+    it('opera solo sugli attivi: i ritirati sono esclusi dal lookup', async () => {
+      const { service, tx } = makeService();
+      tx.umbrella.findMany.mockResolvedValue([]);
+      tx.booking.groupBy.mockResolvedValue([]);
+      await service.bulkDelete({ ids: ['u-1'] });
+      expect(tx.umbrella.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({ where: expect.objectContaining({ retiredAt: null }) }),
+      );
+    });
   });
 
   describe('bulkAssignType', () => {
@@ -163,9 +198,18 @@ describe('UmbrellasService', () => {
       tx.umbrella.updateMany.mockResolvedValue({ count: 3 });
       const res = await service.bulkAssignType({ ids: ['u-1', 'u-2', 'u-3'], umbrellaTypeId: 'typ-1' });
       expect(tx.umbrella.updateMany).toHaveBeenCalledWith({
-        where: { id: { in: ['u-1', 'u-2', 'u-3'] } }, data: { umbrellaTypeId: 'typ-1' },
+        where: { id: { in: ['u-1', 'u-2', 'u-3'] }, retiredAt: null }, data: { umbrellaTypeId: 'typ-1' },
       });
       expect(res).toEqual({ updated: 3 });
+    });
+
+    it('opera solo sugli attivi: i ritirati sono esclusi da updateMany', async () => {
+      const { service, tx } = makeService();
+      tx.umbrella.updateMany.mockResolvedValue({ count: 0 });
+      await service.bulkAssignType({ ids: ['u-1'], umbrellaTypeId: null });
+      expect(tx.umbrella.updateMany).toHaveBeenCalledWith(
+        expect.objectContaining({ where: expect.objectContaining({ retiredAt: null }) }),
+      );
     });
 
     it('null = Normale: nessuna validazione tipologia, updateMany con null', async () => {

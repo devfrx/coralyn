@@ -38,7 +38,7 @@ export class UmbrellasService {
     const created = await this.prisma.forTenant(tenantId, async (tx) => {
       await this.assertRow(tx, input.rowId);
       await this.assertType(tx, input.umbrellaTypeId);
-      const clash = await tx.umbrella.findFirst({ where: { label } });
+      const clash = await tx.umbrella.findFirst({ where: { label, retiredAt: null } });
       if (clash) throw new ConflictException('Esiste già un ombrellone con questa etichetta.');
       const logicalOrder = await this.nextLogicalOrder(tx, input.rowId);
       return tx.umbrella.create({
@@ -57,7 +57,7 @@ export class UmbrellasService {
       const data: Prisma.UmbrellaUncheckedUpdateInput = {};
       if (input.label !== undefined) {
         const label = input.label.trim();
-        const clash = await tx.umbrella.findFirst({ where: { label, id: { not: id } } });
+        const clash = await tx.umbrella.findFirst({ where: { label, id: { not: id }, retiredAt: null } });
         if (clash) throw new ConflictException('Esiste già un ombrellone con questa etichetta.');
         data.label = label;
       }
@@ -77,7 +77,7 @@ export class UmbrellasService {
       const existing = await tx.umbrella.findUnique({ where: { id }, select: UMBRELLA_SELECT });
       if (!existing) return null;
       const bookings = await tx.booking.count({ where: { umbrellaId: id } });
-      if (bookings > 0) throw new ConflictException('Ombrellone con prenotazioni: non eliminabile.');
+      if (bookings > 0) throw new ConflictException('Ombrellone con prenotazioni: non eliminabile. Usa «Ritira» per dismetterlo conservando lo storico.');
       await tx.umbrella.delete({ where: { id } });
       return existing;
     });
@@ -92,7 +92,7 @@ export class UmbrellasService {
       await this.assertType(tx, input.umbrellaTypeId);
       const candidates: string[] = [];
       for (let i = 0; i < input.count; i++) candidates.push(`${input.prefix}${input.start + i}`);
-      const existing = await tx.umbrella.findMany({ where: { label: { in: candidates } }, select: { label: true } });
+      const existing = await tx.umbrella.findMany({ where: { label: { in: candidates }, retiredAt: null }, select: { label: true } });
       const existingSet = new Set(existing.map((e) => e.label));
       const toCreate = candidates.filter((label) => !existingSet.has(label));
       let order = await this.nextLogicalOrder(tx, input.rowId);
@@ -112,7 +112,7 @@ export class UmbrellasService {
   async bulkDelete(input: BulkDeleteUmbrellasInput): Promise<BulkDeleteUmbrellasResultDTO> {
     const tenantId = this.tenant.require();
     return this.prisma.forTenant(tenantId, async (tx) => {
-      const found = await tx.umbrella.findMany({ where: { id: { in: input.ids } }, select: { id: true } });
+      const found = await tx.umbrella.findMany({ where: { id: { in: input.ids }, retiredAt: null }, select: { id: true } });
       const foundIds = found.map((u) => u.id);
       const withBookings = await tx.booking.groupBy({ by: ['umbrellaId'], where: { umbrellaId: { in: foundIds } } });
       const protectedSet = new Set(withBookings.map((b) => b.umbrellaId));
@@ -131,7 +131,7 @@ export class UmbrellasService {
     return this.prisma.forTenant(tenantId, async (tx) => {
       await this.assertType(tx, input.umbrellaTypeId);
       const res = await tx.umbrella.updateMany({
-        where: { id: { in: input.ids } }, data: { umbrellaTypeId: input.umbrellaTypeId },
+        where: { id: { in: input.ids }, retiredAt: null }, data: { umbrellaTypeId: input.umbrellaTypeId },
       });
       return { updated: res.count };
     });
