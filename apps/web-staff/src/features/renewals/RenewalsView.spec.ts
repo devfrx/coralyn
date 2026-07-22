@@ -53,6 +53,40 @@ describe('RenewalsView', () => {
     expect(w.text()).toContain('Apri campagna di prelazione');
   });
 
+  it('mentre la campagna è in fetch NON mostra il pannello "Apri campagna" (anti-flicker), poi rivela la campagna', async () => {
+    // GET campagna tenuto pending: coglie la finestra di caricamento, che altrimenti dura ~10-30ms in locale.
+    let release!: () => void;
+    const pending = new Promise<Response>((r) => {
+      release = () =>
+        r(
+          HttpResponse.json({
+            id: 'camp-load',
+            originSeasonId: 'se-1',
+            destinationSeasonId: 'se-2',
+            deadline: '2027-06-15',
+            windows: [],
+          } satisfies RenewalCampaignDetailDTO),
+        );
+    });
+    server.use(http.get('/api/renewal-campaigns', () => pending));
+
+    const w = mountApp(RenewalsView);
+    await flushPromises();
+    await tick();
+    await flushPromises();
+    await setDestination(w, 'se-2');
+
+    // Fetch in corso: il pannello "Apri campagna" NON deve lampeggiare finché non sappiamo se una campagna esiste.
+    expect(w.text()).not.toContain('Apri campagna di prelazione');
+
+    // Campagna arrivata: compare la vista campagna.
+    release();
+    await flushPromises();
+    await tick();
+    await flushPromises();
+    expect(w.text()).toContain('Chiudi campagna');
+  });
+
   it('dopo aver aperto la campagna compaiono la scadenza e il badge "Aperta"', async () => {
     const w = mountApp(RenewalsView);
     await flushPromises();
