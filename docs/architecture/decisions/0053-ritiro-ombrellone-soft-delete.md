@@ -62,7 +62,7 @@ API (admin-only, `establishment/umbrellas`, stile del repo — `forTenant` + `@R
   `retiredAt = now()`, `rowId = null`, `retiredFrom` = snapshot da fila+settore correnti.
   **Idempotente**: ripetuto su un già-ritirato restituisce lo stato corrente senza rilanciare la
   guardia né toccare il timestamp (mirror dell'`archive` dei pacchetti).
-- **`POST :id/restore`** — input `{ rowId }`: 422 se la fila è estranea al tenant, **409** se un
+- **`POST :id/restore`** — input `{ rowId }`: 404 se la fila non esiste nel tenant (RLS), **409** se un
   **attivo** ha già la stessa label (copy che spiega il conflitto, invita a rinominare prima).
   Effetto: `retiredAt = null`, `retiredFrom = null`, `rowId = input.rowId`,
   `logicalOrder = nextLogicalOrder(rowId)`. Idempotente su un già-attivo (no-op).
