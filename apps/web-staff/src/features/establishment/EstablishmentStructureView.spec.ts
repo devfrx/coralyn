@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { http, HttpResponse } from 'msw';
-import { flushPromises } from '@vue/test-utils';
+import { flushPromises, enableAutoUnmount } from '@vue/test-utils';
 import { Role } from '@coralyn/contracts';
 import { mountApp } from '@/test/utils';
 import { server } from '@/mocks/server';
@@ -11,6 +11,20 @@ import { STRUCTURE_FIXTURE } from './structure.fixtures';
 const tick = () => new Promise((r) => setTimeout(r, 0));
 const settle = async () => { await flushPromises(); await tick(); await flushPromises(); };
 const useFixture = () => server.use(http.get('/api/establishment/structure', () => HttpResponse.json(STRUCTURE_FIXTURE)));
+
+// La shell registra un listener keydown globale su `window` (onMounted/onUnmounted, per l'Esc —
+// vedi EstablishmentStructureView.vue). L'afterEach comune di src/test/setup.ts fa solo
+// `document.body.innerHTML = ''`, che NON invoca il lifecycle unmount di Vue: un wrapper mai
+// smontato esplicitamente resta un'istanza "zombie" con reattività (e quel listener) ancora vivi
+// anche a DOM strappato. Se un test successivo in questo file dispatcha un keydown Escape reale su
+// `window`, l'onKeydown zombie scatta comunque, chiama reset() e Vue tenta di aggiornare/rimuovere
+// nodi ormai orfani → TypeError in removeFragment (nextSibling di null), riportato come unhandled
+// rejection e attribuito a qualunque test sia in corso in quel momento — non è un bug di reka-ui o
+// di jsdom, è la mancanza di unmount(). `enableAutoUnmount` di vue-test-utils smonta ogni wrapper
+// tracciato da mount()/mountApp() nell'hook indicato (qui l'afterEach del file): idempotente sui
+// test che già chiamano w.unmount() esplicitamente (Vue.app.unmount() è un no-op con warning su
+// un'app già smontata, non lancia). Elimina la classe di bug alla radice, senza toccare i test.
+enableAutoUnmount(afterEach);
 
 // jsdom non implementa window.matchMedia (vedi useMediaQuery.spec.ts): senza stub, useMediaQuery
 // resta sempre false e la shell renderebbe SOLO il ramo Drawer (chiuso quando selection === beach,
@@ -32,43 +46,6 @@ beforeEach(() => stubDesktopMatchMedia());
 afterEach(() => vi.unstubAllGlobals());
 
 describe('EstablishmentStructureView — shell Cantiere', () => {
-  // Nota d'ordine: questo test dispatcha un keydown Escape reale su `window`. Va tenuto PRIMA di
-  // qualunque test che apra un ConfirmDialog reka-ui reale (svuota fila, elimina ombrellone, bulk
-  // multi, ecc.): la loro rimozione asincrona del Teleport (Presence) è instabile in questo harness
-  // jsdom e, se già avvenuta, un successivo dispatch di Escape su window risveglia il suo
-  // DismissableLayer residuo e corrompe il DOM di QUALSIASI test che segue (non solo di questo) —
-  // limite noto dell'harness, non del codice applicativo (vedi report task-sc-12).
-  it('Esc con un dialog aperto non resetta la selezione multi sottostante; senza dialog resetta', async () => {
-    // Guardia di regressione: il listener Esc globale della shell era registrato prima di ogni
-    // dialog e collassava pannello+selezione anche quando l'utente voleva solo annullare la
-    // conferma. Il fix guarda document.querySelector('[role="dialog"], [role="alertdialog"]')
-    // prima di fare reset(). Simuliamo qui la presenza di un dialog con un marcatore minimo
-    // (stesso attributo role="dialog" che reka-ui applica davvero al ConfirmDialog — vedi
-    // reka-ui/dist/Dialog/DialogContentImpl.js) per testare il guard della shell in isolamento
-    // (già provato altrove che il ConfirmDialog reale di MultiPanel si apre/chiude correttamente
-    // via bottoni, es. «toggle Seleziona» sotto).
-    useFixture();
-    const w = mountApp(EstablishmentStructureView);
-    const session = useSessionStore();
-    session.user = { id: 'u-1', email: 'admin@coralyn.dev', role: Role.Admin, establishmentId: 'e-1', establishmentName: 'Lido Maestrale' };
-    await settle();
-    await w.findAll('[data-testid="scene-cell"] button')[0].trigger('click');
-    await w.findAll('[data-testid="scene-cell"] button')[1].trigger('click', { shiftKey: true });
-    expect(w.find('[data-testid="inspector"]').text()).toContain('Selezione multipla');
-
-    const fakeDialog = document.createElement('div');
-    fakeDialog.setAttribute('role', 'dialog');
-    document.body.appendChild(fakeDialog);
-    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
-    await settle();
-    expect(w.find('[data-testid="inspector"]').text()).toContain('Selezione multipla'); // NON resettato
-    fakeDialog.remove();
-
-    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
-    await settle();
-    expect(w.find('[data-testid="inspector"]').text()).toContain('Spiaggia'); // senza dialog, Esc resetta
-  });
-
   it('rende scena + ispettore Spiaggia di default (contatori e tipologie)', async () => {
     useFixture();
     const w = mountApp(EstablishmentStructureView);
@@ -356,6 +333,36 @@ describe('EstablishmentStructureView — shell Cantiere', () => {
     await insp.find('[data-testid="multi-assign"]').trigger('click');
     await settle();
     expect(assigned).toEqual({ ids: ['u-1', 'u-2'], umbrellaTypeId: 'typ-1' });
+  });
+
+  it('Esc con il ConfirmDialog di «Elimina N» aperto non resetta la selezione multi; senza dialog resetta', async () => {
+    // Guardia di regressione: il listener Esc globale della shell era registrato prima di ogni
+    // dialog e collassava pannello+selezione anche quando l'utente voleva solo annullare la
+    // conferma. Il fix guarda document.querySelector('[role="dialog"], [role="alertdialog"]')
+    // prima di fare reset(). Test end-to-end col ConfirmDialog VERO di MultiPanel (non un
+    // marcatore sintetico): apre «Elimina N», dispatcha un Escape reale su window — che risveglia
+    // ANCHE il DismissableLayer di reka-ui (stesso target window), quindi il dialog si chiude da
+    // sé — e verifica che il pannello sottostante resti su Selezione multipla (il guard ha
+    // impedito reset()). Un secondo Escape, a dialog ormai chiuso, resetta normalmente a Spiaggia.
+    useFixture();
+    const w = mountApp(EstablishmentStructureView, { attachTo: document.body });
+    const session = useSessionStore();
+    session.user = { id: 'u-1', email: 'admin@coralyn.dev', role: Role.Admin, establishmentId: 'e-1', establishmentName: 'Lido Maestrale' };
+    await settle();
+    await w.findAll('[data-testid="scene-cell"] button')[0].trigger('click');
+    await w.findAll('[data-testid="scene-cell"] button')[1].trigger('click', { shiftKey: true });
+    await w.find('[data-testid="multi-delete"]').trigger('click');
+    await flushPromises();
+    expect(document.body.querySelector('[role="dialog"]')?.textContent).toContain('Eliminare 2 ombrelloni?');
+
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+    await settle();
+    expect(w.find('[data-testid="inspector"]').text()).toContain('Selezione multipla'); // NON resettato
+
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+    await settle();
+    expect(w.find('[data-testid="inspector"]').text()).toContain('Spiaggia'); // senza dialog, Esc resetta
+    w.unmount();
   });
 
   it('toggle Seleziona: click semplici accumulano; elimina bulk → conferma → bulk-delete + toast', async () => {
