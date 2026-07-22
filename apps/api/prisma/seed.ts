@@ -84,13 +84,14 @@ async function main(): Promise<void> {
     }
 
     const sectors = [
-      { id: u(3, 1), name: 'Centro', sortOrder: 1 },
-      { id: u(3, 2), name: 'Speciali', sortOrder: 99 },
+      { id: u(3, 1), name: 'Centro', sortOrder: 1, kind: 'grid' as const },
+      // kind special: la Mappa discrimina il blocco dedicato per kind, non per nome (D-056).
+      { id: u(3, 2), name: 'Speciali', sortOrder: 99, kind: 'special' as const },
     ];
     for (const x of sectors) {
       await tx.sector.upsert({
         where: { id: x.id },
-        update: { name: x.name, sortOrder: x.sortOrder },
+        update: { name: x.name, sortOrder: x.sortOrder, kind: x.kind },
         create: { establishmentId: EID, ...x },
       });
     }

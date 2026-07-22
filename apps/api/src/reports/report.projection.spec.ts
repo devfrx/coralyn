@@ -48,7 +48,7 @@ describe('occupancyStates', () => {
         { id: 'sf', name: 'G', sortOrder: 3 },
       ],
       sectors: [{
-        id: 'sec', name: 'C', sortOrder: 1,
+        id: 'sec', name: 'C', sortOrder: 1, kind: 'grid',
         rows: [{ id: 'r', label: 'F', sortOrder: 1, umbrellas: [
           // full-day venduto: sf diretta (season), s1/s2 coperte → conta SOLO sf
           { id: 'u1', label: '1', umbrellaTypeId: null, rowId: 'r', stateBySlot: { s1: 'covered', s2: 'covered', sf: 'season' } },
