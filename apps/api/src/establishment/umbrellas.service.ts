@@ -1,7 +1,7 @@
 import { ConflictException, Injectable, NotFoundException, UnprocessableEntityException } from '@nestjs/common';
 import type { Prisma } from '@prisma/client';
 import type {
-  BulkDeleteUmbrellasInput, BulkDeleteUmbrellasResultDTO, CreateUmbrellaInput, GenerateUmbrellasInput, GenerateUmbrellasResultDTO, StructureUmbrellaDTO, UpdateUmbrellaInput,
+  BulkDeleteUmbrellasInput, BulkDeleteUmbrellasResultDTO, BulkAssignUmbrellaTypeInput, BulkAssignUmbrellaTypeResultDTO, CreateUmbrellaInput, GenerateUmbrellasInput, GenerateUmbrellasResultDTO, StructureUmbrellaDTO, UpdateUmbrellaInput,
 } from '@coralyn/contracts';
 import { PrismaService } from '../prisma/prisma.service';
 import { TenantContext } from '../tenant/tenant-context';
@@ -118,6 +118,17 @@ export class UmbrellasService {
       const deletable = foundIds.filter((id) => !protectedSet.has(id));
       if (deletable.length > 0) await tx.umbrella.deleteMany({ where: { id: { in: deletable } } });
       return { deleted: deletable.length, skipped: input.ids.length - deletable.length };
+    });
+  }
+
+  async bulkAssignType(input: BulkAssignUmbrellaTypeInput): Promise<BulkAssignUmbrellaTypeResultDTO> {
+    const tenantId = this.tenant.require();
+    return this.prisma.forTenant(tenantId, async (tx) => {
+      await this.assertType(tx, input.umbrellaTypeId);
+      const res = await tx.umbrella.updateMany({
+        where: { id: { in: input.ids } }, data: { umbrellaTypeId: input.umbrellaTypeId },
+      });
+      return { updated: res.count };
     });
   }
 }

@@ -8,7 +8,7 @@ function makeService() {
     row: { findUnique: jest.fn() },
     umbrellaType: { findUnique: jest.fn() },
     umbrella: {
-      findFirst: jest.fn(), findUnique: jest.fn(), findMany: jest.fn(), create: jest.fn(), update: jest.fn(), delete: jest.fn(), deleteMany: jest.fn(),
+      findFirst: jest.fn(), findUnique: jest.fn(), findMany: jest.fn(), create: jest.fn(), update: jest.fn(), delete: jest.fn(), deleteMany: jest.fn(), updateMany: jest.fn(),
     },
     booking: { count: jest.fn(), groupBy: jest.fn() },
   };
@@ -143,6 +143,35 @@ describe('UmbrellasService', () => {
       const res = await service.bulkDelete({ ids: ['u-1'] });
       expect(tx.umbrella.deleteMany).not.toHaveBeenCalled();
       expect(res).toEqual({ deleted: 0, skipped: 1 });
+    });
+  });
+
+  describe('bulkAssignType', () => {
+    it('assegna la tipologia agli id del tenant e riporta il conteggio', async () => {
+      const { service, tx } = makeService();
+      tx.umbrellaType.findUnique.mockResolvedValue({ id: 'typ-1' });
+      tx.umbrella.updateMany.mockResolvedValue({ count: 3 });
+      const res = await service.bulkAssignType({ ids: ['u-1', 'u-2', 'u-3'], umbrellaTypeId: 'typ-1' });
+      expect(tx.umbrella.updateMany).toHaveBeenCalledWith({
+        where: { id: { in: ['u-1', 'u-2', 'u-3'] } }, data: { umbrellaTypeId: 'typ-1' },
+      });
+      expect(res).toEqual({ updated: 3 });
+    });
+
+    it('null = Normale: nessuna validazione tipologia, updateMany con null', async () => {
+      const { service, tx } = makeService();
+      tx.umbrella.updateMany.mockResolvedValue({ count: 2 });
+      const res = await service.bulkAssignType({ ids: ['u-1', 'u-2'], umbrellaTypeId: null });
+      expect(tx.umbrellaType.findUnique).not.toHaveBeenCalled();
+      expect(res).toEqual({ updated: 2 });
+    });
+
+    it('422 se la tipologia è estranea', async () => {
+      const { service, tx } = makeService();
+      tx.umbrellaType.findUnique.mockResolvedValue(null);
+      await expect(service.bulkAssignType({ ids: ['u-1'], umbrellaTypeId: 'typ-x' }))
+        .rejects.toBeInstanceOf(UnprocessableEntityException);
+      expect(tx.umbrella.updateMany).not.toHaveBeenCalled();
     });
   });
 });
