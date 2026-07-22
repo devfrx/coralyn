@@ -545,6 +545,12 @@ export const server = setupServer(
   }),
   http.delete('/api/establishment/rows/:id', ({ params }) =>
     HttpResponse.json({ id: params.id as string, label: 'Fila 1', sortOrder: 1, umbrellas: [] })),
+  // Ritiro ombrelloni (D-055): query e mutation
+  http.get('/api/establishment/umbrellas/retired', () => HttpResponse.json([])),
+  http.post('/api/establishment/umbrellas/:id/retire', ({ params }) =>
+    HttpResponse.json({ id: params.id as string, label: '1', umbrellaTypeId: null, retiredAt: '2026-06-27T10:00:00.000Z', retiredFrom: 'Centro · Fila 1' }, { status: 201 })),
+  http.post('/api/establishment/umbrellas/:id/restore', ({ params }) =>
+    HttpResponse.json({ id: params.id as string, label: '1', umbrellaTypeId: null }, { status: 201 })),
   http.post('/api/establishment/umbrellas', async ({ request }) => {
     const b = (await request.json()) as { rowId: string; label: string; umbrellaTypeId: string | null };
     return HttpResponse.json({ id: `omb-${b.label}`, label: b.label, umbrellaTypeId: b.umbrellaTypeId }, { status: 201 });

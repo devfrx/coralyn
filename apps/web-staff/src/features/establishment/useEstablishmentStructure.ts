@@ -1,4 +1,4 @@
-import type { EstablishmentStructureDTO, UmbrellaTypeDTO, CreateUmbrellaTypeInput, UpdateUmbrellaTypeInput, StructureSectorDTO, StructureRowDTO, CreateSectorInput, UpdateSectorInput, CreateRowInput, UpdateRowInput, StructureUmbrellaDTO, CreateUmbrellaInput, UpdateUmbrellaInput, GenerateUmbrellasInput, GenerateUmbrellasResultDTO, BulkDeleteUmbrellasInput, BulkDeleteUmbrellasResultDTO, BulkAssignUmbrellaTypeInput, BulkAssignUmbrellaTypeResultDTO } from '@coralyn/contracts';
+import type { EstablishmentStructureDTO, UmbrellaTypeDTO, CreateUmbrellaTypeInput, UpdateUmbrellaTypeInput, StructureSectorDTO, StructureRowDTO, CreateSectorInput, UpdateSectorInput, CreateRowInput, UpdateRowInput, StructureUmbrellaDTO, CreateUmbrellaInput, UpdateUmbrellaInput, GenerateUmbrellasInput, GenerateUmbrellasResultDTO, BulkDeleteUmbrellasInput, BulkDeleteUmbrellasResultDTO, BulkAssignUmbrellaTypeInput, BulkAssignUmbrellaTypeResultDTO, RetiredUmbrellaDTO, RestoreUmbrellaInput } from '@coralyn/contracts';
 import { apiFetch } from '@/lib/http';
 import { queryKeys } from '@/lib/queryKeys';
 import { useSessionStore } from '@/stores/session';
@@ -144,5 +144,36 @@ export function useBulkAssignUmbrellaType() {
     mutationFn: (input: BulkAssignUmbrellaTypeInput) =>
       apiFetch<BulkAssignUmbrellaTypeResultDTO>('/establishment/umbrellas/bulk-assign-type', { method: 'POST', body: JSON.stringify(input) }),
     invalidates: () => structureKeys(session.establishmentId),
+  });
+}
+
+// Ritiro ombrelloni: estende structureKeys con retiredUmbrellas per invalidazione congiunta
+function retireKeys(establishmentId: string) {
+  return [...structureKeys(establishmentId), queryKeys.retiredUmbrellas(establishmentId)];
+}
+
+export function useRetiredUmbrellas() {
+  const session = useSessionStore();
+  return queryResource({
+    queryKey: () => queryKeys.retiredUmbrellas(session.establishmentId),
+    queryFn: () => apiFetch<RetiredUmbrellaDTO[]>('/establishment/umbrellas/retired'),
+  });
+}
+
+export function useRetireUmbrella() {
+  const session = useSessionStore();
+  return mutationResource({
+    mutationFn: (id: string) =>
+      apiFetch<RetiredUmbrellaDTO>(`/establishment/umbrellas/${id}/retire`, { method: 'POST' }),
+    invalidates: () => retireKeys(session.establishmentId),
+  });
+}
+
+export function useRestoreUmbrella() {
+  const session = useSessionStore();
+  return mutationResource({
+    mutationFn: (vars: { id: string } & RestoreUmbrellaInput) =>
+      apiFetch<StructureUmbrellaDTO>(`/establishment/umbrellas/${vars.id}/restore`, { method: 'POST', body: JSON.stringify({ rowId: vars.rowId }) }),
+    invalidates: () => retireKeys(session.establishmentId),
   });
 }
