@@ -10,7 +10,8 @@
 > fixati e ri-verificati → **Approved**. Verde di prima mano IN SEQUENZA: web-staff **528/528**,
 > api unit **255/255**, typecheck pulito (incluso `tsc --noEmit` spec-incluso su api), e2e map
 > **6/6**, web-platform **17/17**, web-customer **25/25**.
-> **NON mergiato: in attesa di ok esplicito dell'utente.**
+> **MERGIATO FF su `main` e pushato con ok esplicito utente** (`43073c6..5776db5` + commit di
+> chiusura; web-staff riverificata sul mergiato: 528/528). Branch eliminato.
 
 ---
 
@@ -36,8 +37,9 @@
 
 ## 2. Stato `git` & verifica
 
-- **Branch `fix/mappa-kind-tabpanel` a `1b843b3` + commit docs, base `43073c6` (origin/main).**
-  **NON mergiato**: serve l'ok esplicito dell'utente.
+- **Mergiato**: `main` = FF `43073c6..5776db5` (5 commit) + commit di chiusura, pushato su
+  origin, branch `fix/mappa-kind-tabpanel` eliminato. Working tree pulito.
+  Riverifica sul mergiato: web-staff **528/528**.
 - Verifica di prima mano, una suite alla volta: web-staff **528/528** (524 + 4 nuovi),
   api unit **255/255** (un primo giro aveva 3 suite in errore di *collection* con 0 test rossi —
   il pattern noto dei falsi rossi di questo host; re-run pulito), `pnpm -r typecheck` pulito,
@@ -61,8 +63,8 @@
 
 ## 4. Prossimi passi
 
-1. **Merge del branch** — richiede ok esplicito dell'utente (eventuale gate visivo: login utente,
-   dev senza MSW; la resa da verificare è il blocco Speciali della Mappa dopo il seed).
+1. ~~Merge del branch~~ **fatto** (ok esplicito utente, senza gate visivo — la resa dev del
+   blocco Speciali si vede dopo un `pnpm seed` da apps/api, non eseguito: DB dev intatto).
 2. **D-055 «Ritira ombrellone»** (soft-delete) — prossima feature, parte OBBLIGATORIAMENTE dal
    brainstorming con l'utente (unicità label dei ritirati, proiezioni, UI nel pannello Ombrellone).
 3. Chip typecheck api (fuori branch, vedi §3).
