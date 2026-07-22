@@ -1,7 +1,7 @@
 import { ConflictException, Injectable, NotFoundException, UnprocessableEntityException } from '@nestjs/common';
 import type { Prisma } from '@prisma/client';
 import type {
-  CreateUmbrellaInput, GenerateUmbrellasInput, GenerateUmbrellasResultDTO, StructureUmbrellaDTO, UpdateUmbrellaInput,
+  BulkDeleteUmbrellasInput, BulkDeleteUmbrellasResultDTO, CreateUmbrellaInput, GenerateUmbrellasInput, GenerateUmbrellasResultDTO, StructureUmbrellaDTO, UpdateUmbrellaInput,
 } from '@coralyn/contracts';
 import { PrismaService } from '../prisma/prisma.service';
 import { TenantContext } from '../tenant/tenant-context';
@@ -105,6 +105,19 @@ export class UmbrellasService {
         order += 1;
       }
       return { created: umbrellas.length, skipped: candidates.length - toCreate.length, umbrellas };
+    });
+  }
+
+  async bulkDelete(input: BulkDeleteUmbrellasInput): Promise<BulkDeleteUmbrellasResultDTO> {
+    const tenantId = this.tenant.require();
+    return this.prisma.forTenant(tenantId, async (tx) => {
+      const found = await tx.umbrella.findMany({ where: { id: { in: input.ids } }, select: { id: true } });
+      const foundIds = found.map((u) => u.id);
+      const withBookings = await tx.booking.groupBy({ by: ['umbrellaId'], where: { umbrellaId: { in: foundIds } } });
+      const protectedSet = new Set(withBookings.map((b) => b.umbrellaId));
+      const deletable = foundIds.filter((id) => !protectedSet.has(id));
+      if (deletable.length > 0) await tx.umbrella.deleteMany({ where: { id: { in: deletable } } });
+      return { deleted: deletable.length, skipped: input.ids.length - deletable.length };
     });
   }
 }

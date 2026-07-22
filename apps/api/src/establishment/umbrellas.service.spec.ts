@@ -8,9 +8,9 @@ function makeService() {
     row: { findUnique: jest.fn() },
     umbrellaType: { findUnique: jest.fn() },
     umbrella: {
-      findFirst: jest.fn(), findUnique: jest.fn(), findMany: jest.fn(), create: jest.fn(), update: jest.fn(), delete: jest.fn(),
+      findFirst: jest.fn(), findUnique: jest.fn(), findMany: jest.fn(), create: jest.fn(), update: jest.fn(), delete: jest.fn(), deleteMany: jest.fn(),
     },
-    booking: { count: jest.fn() },
+    booking: { count: jest.fn(), groupBy: jest.fn() },
   };
   const prisma = { forTenant: (_t: string, cb: (tx: unknown) => unknown) => cb(tx) } as any;
   const tenant = { require: () => TENANT } as any;
@@ -123,5 +123,26 @@ describe('UmbrellasService', () => {
     const { service, tx } = makeService();
     tx.row.findUnique.mockResolvedValue(null);
     await expect(service.generate({ rowId: 'r-x', prefix: '', start: 1, count: 3, umbrellaTypeId: null })).rejects.toBeInstanceOf(NotFoundException);
+  });
+
+  describe('bulkDelete', () => {
+    it('elimina i non prenotati, salta i protetti e gli id estranei', async () => {
+      const { service, tx } = makeService();
+      tx.umbrella.findMany.mockResolvedValue([{ id: 'u-1' }, { id: 'u-2' }]); // u-3 estraneo/altro tenant: non trovato
+      tx.booking.groupBy.mockResolvedValue([{ umbrellaId: 'u-2' }]);          // u-2 protetto da prenotazioni
+      tx.umbrella.deleteMany.mockResolvedValue({ count: 1 });
+      const res = await service.bulkDelete({ ids: ['u-1', 'u-2', 'u-3'] });
+      expect(tx.umbrella.deleteMany).toHaveBeenCalledWith({ where: { id: { in: ['u-1'] } } });
+      expect(res).toEqual({ deleted: 1, skipped: 2 });
+    });
+
+    it('nessun eliminabile → deleteMany NON viene chiamato', async () => {
+      const { service, tx } = makeService();
+      tx.umbrella.findMany.mockResolvedValue([{ id: 'u-1' }]);
+      tx.booking.groupBy.mockResolvedValue([{ umbrellaId: 'u-1' }]);
+      const res = await service.bulkDelete({ ids: ['u-1'] });
+      expect(tx.umbrella.deleteMany).not.toHaveBeenCalled();
+      expect(res).toEqual({ deleted: 0, skipped: 1 });
+    });
   });
 });
