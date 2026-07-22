@@ -114,13 +114,18 @@
 
 ## 4. Prossimi passi / deferred (in ordine, tutti NON bloccanti)
 La feature è completa e mergiata. I follow-up sotto sono minori, emersi dalla review finale:
-1. **`METRIC_LABELS` duplicato** in `EstablishmentDetailView` (web-platform): le 10 label dello
-   skeleton sono hardcoded in un array e ripetute negli StatTile reali sotto → se una metrica cambia
-   nome/ordine, skeleton e contenuto driftano in silenzio. Armonizzabile derivando entrambi da
-   un'unica sorgente `{label, testid, value}`. Costo basso; era over-engineering forzarlo pre-merge.
-2. **`:loading` inerte sulla tabella finestre di `RenewalsView`**: la tabella è `v-if="campaign"`,
-   e mentre `isLoading` è true `campaign` è undefined → la tabella non è montata; il `:loading` è
-   wiring morto (innocuo). Da rimuovere o rendere vivo hoistando il `v-if`.
+1. ✅ **RISOLTO (sessione follow-up 2026-07-22)** — **`METRIC_LABELS` duplicato** in
+   `EstablishmentDetailView` (web-platform): le 10 label dello skeleton erano hardcoded in un array e
+   ripetute negli StatTile reali sotto → drift silenzioso su cambio nome/ordine. Ora derivano da
+   un'unica sorgente `METRICS: { testid, label, value }[]` con due `v-for` (skeleton e tile reali).
+   Output identico (testid/valori/ordine invariati), web-platform 17/17 + typecheck verdi.
+2. ✅ **RISOLTO (sessione follow-up 2026-07-22, opzione B «rendere vivo»)** — **`:loading` inerte
+   sulla tabella finestre di `RenewalsView`**: la tabella era `v-if="campaign"`, quindi smontata
+   mentre `campaignLoading` era true → `:loading` morto. Ora `v-if="campaign || campaignLoading"`
+   (skeleton della regione durante il fetch) + guardia `&& !campaignLoading` sul pannello «Apri
+   campagna» → **eliminato il flicker** «Apri campagna»→campagna. `campaignLoading` è false a query
+   disabilitata (destinazione vuota), quindi lo skeleton non invade lo stato «scegli destinazione».
+   Nuovo test anti-flicker (stato reattivo, no timing), web-staff 501/501 + typecheck verdi.
 3. **Minori triati ship-as-is** (elenco completo in `.superpowers/sdd/progress.md`, sezione SESSIONE
    loading-states): `DEFAULTS` per-istanza in Skeleton, `aria-hidden` ridondante in SkeletonText,
    gate skeleton teoricamente attivabile sull'API a slot del DataTable (nessun consumatore, doc già
