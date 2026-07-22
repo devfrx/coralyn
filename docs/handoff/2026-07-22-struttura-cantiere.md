@@ -77,12 +77,11 @@
 
 ## 4. Prossimi passi / deferred (non bloccanti)
 
-1. **Chip «Cantiere polish»** (task_60fa4a39): estrazione `InspectorPanels` (dedup aside/Drawer),
-   watch per-id nei pannelli (form resettati dai refetch), `res.count` nel bulk-delete, prop
-   `isAdmin` su MultiPanel, test sentinel `'__none__'`, copy «Massimo 500» interpolata da
-   `GENERATE_MAX`, nit doc §14.4, ARIA tablist senza pattern tastiera.
-2. **Chip time-bomb e2e** (task_673403dd): bookings/customer-bookings/subscription-cession rossi
-   per date hardcoded ormai passate (18 test, anche su main) — rendere le date relative.
+1. ~~**Chip «Cantiere polish»** (task_60fa4a39)~~ **FATTO e mergiato** nella sessione successiva
+   (stesso giorno) — vedi [`2026-07-22-cantiere-polish.md`](2026-07-22-cantiere-polish.md).
+2. ~~**Chip time-bomb e2e** (task_673403dd)~~ **FATTO e mergiato** — risolto alla radice
+   (calendario e2e congelato, NON date relative): vedi
+   [`2026-07-22-e2e-frozen-calendar.md`](2026-07-22-e2e-frozen-calendar.md).
 3. **Feature «Ritira ombrellone» (soft-delete)** — tracciata come **D-055** in `deferred.md`: gap
    dimostrato sul campo — la disdetta anticipata libera il posto in mappa ma non sblocca
    l'eliminazione; oggi l'unica via è distruggere storico contabile (fatto 3 volte su richiesta

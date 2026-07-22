@@ -6,8 +6,8 @@
 > **review finale whole-branch (fable): READY TO MERGE, 0 Critical/Important**.
 > Verifica controller di prima mano IN SEQUENZA: web-staff **524/524**, api unit **255/255**,
 > typecheck pulito, e2e `establishment-umbrellas-bulk` **6/6**.
-> **Branch NON mergiato**: in attesa dell'ok esplicito dell'utente (precedente della sessione
-> Cantiere — nessun merge su `main` senza autorizzazione).
+> **MERGIATO FF su `main` e pushato con ok esplicito utente** (`6687f55..fe1cc12`, 7 commit;
+> web-staff riverificata sul mergiato: 524/524). Branch eliminato.
 
 ---
 
@@ -43,8 +43,8 @@ Piano: [`2026-07-22-cantiere-polish.md`](../superpowers/plans/2026-07-22-cantier
 
 ## 2. Stato `git` & verifica
 
-- Branch **`feat/cantiere-polish`** = `be67ea5`, 6 commit da `6687f55` (5 task + il piano).
-  Working tree pulito. **`main` non toccata.**
+- **Mergiato**: `main = fe1cc12` (FF `6687f55..fe1cc12`, 7 commit: 5 task + piano + docs),
+  pushato su origin, branch `feat/cantiere-polish` eliminato. Working tree pulito.
 - Verifica controller di prima mano, **una suite alla volta**: web-staff **524/524** (82 file),
   api unit **255/255** (48 suite), `pnpm -r typecheck` pulito (ui-kit, web-staff, web-platform,
   web-customer — `apps/api` non ha script typecheck, la sua TS passa da ts-jest/build),
@@ -69,11 +69,10 @@ Piano: [`2026-07-22-cantiere-polish.md`](../superpowers/plans/2026-07-22-cantier
 
 ## 4. Prossimi passi
 
-1. **Merge del branch**: in attesa di ok esplicito. Nessun gate visivo richiesto a rigore (nessuna
-   estetica nuova), ma il Task 5 cambia la navigazione da tastiera dei tab e il Task 3 nasconde
-   azioni allo Staff: se si vuole vedere dal vivo, serve il login utente (dev senza MSW, proxy
-   `/api` → backend reale, DB `:5433`).
-2. **Chip time-bomb e2e** (task_673403dd): date hardcoded da rendere relative in 3 suite.
+1. ~~Merge del branch~~ **fatto** (ok esplicito utente, senza gate visivo — nessuna estetica
+   nuova; se si vuole comunque vedere dal vivo tastiera tab / gating Staff serve il login utente).
+2. ~~Chip time-bomb e2e~~ **fatto nella stessa sessione** — risolto alla radice col calendario
+   congelato, vedi [`2026-07-22-e2e-frozen-calendar.md`](2026-07-22-e2e-frozen-calendar.md).
 3. **D-055 «Ritira ombrellone»** (soft-delete): feature vera, parte da brainstorming.
 4. **D-056** MapView per `kind` anziché per nome · **D-057** (nuovo) relazione tab↔`tabpanel`
    mancante nel Cantiere + `enableAutoUnmount` in `StructureScene.spec.ts`.

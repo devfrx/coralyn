@@ -7,7 +7,8 @@
 > finge SOLO `Date` a **2026-07-15** (metà della stagione seed), timer reali intatti.
 > Risultato: **33/33 suite, 379/379 test — prima batteria e2e interamente verde del repo**
 > (baseline storica 30/33). Review esterna: APPROVED, 0 Critical/Important.
-> Branch `fix/e2e-timebomb-date`, **non mergiato** (attesa ok utente).
+> **MERGIATO FF su `main` e pushato con ok esplicito utente** (`fe1cc12..2981363`; full e2e
+> riverificata sul mergiato: 33/33). Branch eliminato.
 
 ## 1. Perché così (la diagnosi che cambia la soluzione)
 
@@ -52,9 +53,10 @@ della fixture** — le e2e girano per sempre al 2026-07-15.
 
 ## 4. Stato
 
-- Branch `fix/e2e-timebomb-date` = 2 commit su `fe1cc12` (fix + questo handoff/ledger).
-- Verifica: 3 suite ex-rosse 119/119 → **full e2e 33/33, 379/379** → ricontrollo post-fix
-  cosmetico (customer-bookings 7/7). Review sonnet APPROVED; unico Minor (costanti esportate mai
-  importate) fixato secondo prescrizione.
+- **Mergiato**: `main = 2981363` (FF `fe1cc12..2981363`, 2 commit), pushato su origin, branch
+  `fix/e2e-timebomb-date` eliminato. Working tree pulito.
+- Verifica: 3 suite ex-rosse 119/119 → **full e2e 33/33, 379/379** (ripetuta identica sul
+  mergiato) → ricontrollo post-fix cosmetico (customer-bookings 7/7). Review sonnet APPROVED;
+  unico Minor (costanti esportate mai importate) fixato secondo prescrizione.
 - I riferimenti storici «e2e 30/33, 3 rosse = time-bomb» negli handoff precedenti restano validi
   come storia; da questo commit la baseline e2e è **33/33**.
