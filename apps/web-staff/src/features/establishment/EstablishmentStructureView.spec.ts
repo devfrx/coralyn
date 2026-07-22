@@ -463,4 +463,47 @@ describe('EstablishmentStructureView — shell Cantiere', () => {
     expect(document.body.textContent).toContain('2 ombrelloni');
     w.unmount();
   });
+
+  it('staff (non admin): pannello Multi raggiungibile via shift+clic ma senza azioni (difesa in profondità)', async () => {
+    useFixture();
+    const w = mountApp(EstablishmentStructureView);
+    await settle(); // nessuna sessione → ruolo Staff di default
+    await w.findAll('[data-testid="scene-cell"] button')[0].trigger('click');
+    await w.findAll('[data-testid="scene-cell"] button')[1].trigger('click', { shiftKey: true });
+    const insp = w.find('[data-testid="inspector"]');
+    expect(insp.text()).toContain('2 ombrelloni');
+    expect(insp.find('[data-testid="multi-assign"]').exists()).toBe(false);
+    expect(insp.find('[data-testid="multi-delete"]').exists()).toBe(false);
+  });
+
+  it('multi: «Normale» (sentinel __none__) → bulk-assign-type con umbrellaTypeId null', async () => {
+    useFixture();
+    let assigned: unknown = null;
+    server.use(http.post('/api/establishment/umbrellas/bulk-assign-type', async ({ request }) => {
+      assigned = await request.json();
+      return HttpResponse.json({ updated: 2 });
+    }));
+    const w = mountApp(EstablishmentStructureView);
+    const session = useSessionStore();
+    session.user = { id: 'u-1', email: 'admin@coralyn.dev', role: Role.Admin, establishmentId: 'e-1', establishmentName: 'Lido Maestrale' };
+    await settle();
+    await w.findAll('[data-testid="scene-cell"] button')[0].trigger('click');
+    await w.findAll('[data-testid="scene-cell"] button')[1].trigger('click', { shiftKey: true });
+    const insp = w.find('[data-testid="inspector"]');
+    await insp.find('[data-testid="multi-type"]').setValue('__none__');
+    await insp.find('[data-testid="multi-assign"]').trigger('click');
+    await settle();
+    expect(assigned).toEqual({ ids: ['u-1', 'u-2'], umbrellaTypeId: null });
+  });
+
+  it('multi: senza scelta (sentinel «») il bottone Applica è disabilitato', async () => {
+    useFixture();
+    const w = mountApp(EstablishmentStructureView);
+    const session = useSessionStore();
+    session.user = { id: 'u-1', email: 'admin@coralyn.dev', role: Role.Admin, establishmentId: 'e-1', establishmentName: 'Lido Maestrale' };
+    await settle();
+    await w.findAll('[data-testid="scene-cell"] button')[0].trigger('click');
+    await w.findAll('[data-testid="scene-cell"] button')[1].trigger('click', { shiftKey: true });
+    expect(w.find('[data-testid="inspector"] [data-testid="multi-assign"]').attributes('disabled')).toBeDefined();
+  });
 });
