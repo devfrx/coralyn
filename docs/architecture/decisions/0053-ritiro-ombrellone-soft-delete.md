@@ -108,6 +108,15 @@ Copy del 409 di `delete` aggiornata per suggerire «Ritira» come via che conser
   necessario in ogni proiezione.
 - Pattern coerente col soft-archive già noto dei pacchetti: nessuna astrazione nuova da imparare,
   solo applicata a un dominio proprio.
+- **FK `Umbrella.rowId` resta `ON DELETE RESTRICT`** (revertito deliberatamente dal `ON DELETE
+  SET NULL` che Prisma genera di default per una relation resa opzionale): lo sgancio dalla fila è
+  un atto esplicito del `retire` (`rowId = null` scritto dal service in transazione), mai un
+  side-effect implicito della cancellazione di una fila. Con `SET NULL` la FK avrebbe potuto
+  sganciare un ombrellone *attivo* silenziosamente se una `Row` viene eliminata mentre ha ancora
+  ombrelloni collegati, producendo uno stato fantasma (`rowId = null` e `retiredAt = null`) invisibile
+  sia a struttura/mappa sia a `listRetired`. `RESTRICT` mantiene la garanzia già esistente (la fila
+  con ombrelloni collegati resta ineliminabile) e riserva lo sgancio al solo percorso applicativo
+  del ritiro.
 
 ### Negative / Trade-off
 

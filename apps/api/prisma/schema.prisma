@@ -222,7 +222,7 @@ model Umbrella {
   retiredFrom          String? // snapshot «Settore · Fila» al ritiro (storico, non riferimento vivo)
   presentationPosition Json?         @db.JsonB // visual layer (D-005): modeled, unused in this slice
   establishment        Establishment @relation(fields: [establishmentId], references: [id])
-  row                  Row?          @relation(fields: [rowId], references: [id])
+  row                  Row?          @relation(fields: [rowId], references: [id], onDelete: Restrict)
   type                 UmbrellaType? @relation(fields: [umbrellaTypeId], references: [id])
   bookings             Booking[]
 
