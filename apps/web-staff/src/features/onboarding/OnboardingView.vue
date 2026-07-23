@@ -8,6 +8,7 @@ import StepWelcome from './steps/StepWelcome.vue';
 import StepStructure from './steps/StepStructure.vue';
 import StepTimeSlots from './steps/StepTimeSlots.vue';
 import StepSeasons from './steps/StepSeasons.vue';
+import StepRates from './steps/StepRates.vue';
 import StepSummary from './steps/StepSummary.vue';
 
 const STEP_ORDER = ['welcome', 'structure', 'timeSlots', 'seasons', 'rates', 'summary'] as const;
@@ -67,6 +68,9 @@ function selectStep(key: string) {
         </div>
         <div v-else-if="current === 'seasons'" data-testid="ob-step-seasons">
           <StepSeasons :status="status" @next="goNext" />
+        </div>
+        <div v-else-if="current === 'rates'" data-testid="ob-step-rates">
+          <StepRates :status="status" @next="goNext" />
         </div>
         <div v-else-if="current === 'summary'" data-testid="ob-step-summary">
           <StepSummary :status="status" />
