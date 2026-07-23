@@ -109,11 +109,6 @@ describe('Establishment umbrellas retire (e2e)', () => {
     await request(app.getHttpServer()).post(`/api/establishment/umbrellas/${rt3}/restore`).set(...bearer(staffT)).send({ rowId }).expect(403);
   });
 
-  it('GET retired accessibile allo staff → 200 (D-060: risoluzione label storiche in Prenotazioni/Rinnovi)', async () => {
-    const res = await request(app.getHttpServer()).get('/api/establishment/umbrellas/retired').set(...bearer(staffT)).expect(200);
-    expect(Array.isArray(res.body)).toBe(true);
-  });
-
   it('retire di RT-1 (prenotazione futura confermata) → 409', async () => {
     const res = await request(app.getHttpServer()).post(`/api/establishment/umbrellas/${rt1}/retire`).set(...bearer(adminT)).expect(409);
     expect(res.body.message).toBe('Ombrellone con prenotazioni attive o future: disdici prima di ritirare.');
@@ -127,6 +122,11 @@ describe('Establishment umbrellas retire (e2e)', () => {
 
     const retired = await request(app.getHttpServer()).get('/api/establishment/umbrellas/retired').set(...bearer(adminT)).expect(200);
     expect(retired.body).toEqual([expect.objectContaining({ id: rt2, label: 'RT-2', retiredFrom: 'Retire · F1' })]);
+  });
+
+  it('GET retired accessibile allo staff → 200 con contenuto reale (D-060: risoluzione label storiche in Prenotazioni/Rinnovi)', async () => {
+    const res = await request(app.getHttpServer()).get('/api/establishment/umbrellas/retired').set(...bearer(staffT)).expect(200);
+    expect(res.body).toEqual([expect.objectContaining({ id: rt2, label: 'RT-2', retiredFrom: 'Retire · F1' })]);
   });
 
   it('la disdetta sblocca: cancella la prenotazione di RT-1 → retire 201', async () => {
