@@ -7,6 +7,7 @@
     "start:dev": "nest start --watch",
     "test": "jest",
     "test:e2e": "jest --config ./test/jest-e2e.json",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
     "seed:demo": "ts-node prisma/seed-report-demo.ts",
     "db:reset": "ts-node prisma/reset-dev.ts",
     "db:bootstrap-superuser": "ts-node prisma/bootstrap-superuser.ts"
