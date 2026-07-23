@@ -448,10 +448,14 @@ model Rate {
   price           Decimal       @db.Decimal(10, 2)
   establishment   Establishment @relation(fields: [establishmentId], references: [id])
   pricing         Pricing       @relation(fields: [pricingId], references: [id])
-  sector          Sector?       @relation(fields: [sectorId], references: [id])
-  row             Row?          @relation(fields: [rowId], references: [id])
-  package         Package?      @relation(fields: [packageId], references: [id])
-  timeSlot        TimeSlot?     @relation(fields: [timeSlotId], references: [id])
+  // onDelete: Restrict esplicito (D-058): il default Prisma per una relation opzionale è SET NULL,
+  // che qui non romperebbe la Rate ma la renderebbe PIÙ GENERICA (dimensione azzerata = wildcard,
+  // ADR-0032) — prezzi cambiati in silenzio o collisione sulla firma. Le guardie 409 dei service
+  // restano la prima linea; la FK è il backstop della finestra read-committed.
+  sector          Sector?       @relation(fields: [sectorId], references: [id], onDelete: Restrict)
+  row             Row?          @relation(fields: [rowId], references: [id], onDelete: Restrict)
+  package         Package?      @relation(fields: [packageId], references: [id], onDelete: Restrict)
+  timeSlot        TimeSlot?     @relation(fields: [timeSlotId], references: [id], onDelete: Restrict)
 
   // Firma unica delle dimensioni (ADR-0032). L'indice è creato in raw SQL con NULLS NOT DISTINCT
   // dalla migrazione 20260630203447_pricing (Prisma non emette il modificatore): questo @@unique
