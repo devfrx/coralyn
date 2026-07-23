@@ -1,4 +1,5 @@
 {
+  "//": "maxWorkers 1: le e2e condividono UN solo DB (coralyn_test). In parallelo si interferiscono (centinaia di falsi rossi) e lasciano il DB sporco in modo persistente. Non rimuovere: il sequenziale e' un requisito, non una preferenza.",
   "moduleFileExtensions": ["js", "json", "ts"],
   "rootDir": ".",
   "testEnvironment": "node",
@@ -6,5 +7,6 @@
   "transform": { "^.+\\.ts$": "ts-jest" },
   "setupFiles": ["./jest-setup-env.ts"],
   "setupFilesAfterEnv": ["./jest-frozen-calendar.setup.ts"],
-  "testTimeout": 20000
+  "testTimeout": 20000,
+  "maxWorkers": 1
 }
