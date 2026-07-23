@@ -4,7 +4,7 @@ const emit = defineEmits<{ select: [key: string] }>();
 </script>
 
 <template>
-  <nav class="flex flex-wrap items-center gap-2" aria-label="Passi della configurazione guidata">
+  <nav class="flex flex-wrap items-center justify-center gap-2" aria-label="Passi della configurazione guidata">
     <button
       v-for="(item, i) in items"
       :key="item.key"

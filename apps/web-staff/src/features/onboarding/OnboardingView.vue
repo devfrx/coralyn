@@ -47,7 +47,9 @@ function selectStep(key: string) {
 </script>
 
 <template>
-  <section class="max-w-[860px] px-[26px] pb-[30px] pt-[22px]">
+  <!-- A differenza delle altre viste (colonna capped a sinistra), il wizard occupa tutta la
+       larghezza disponibile: è un percorso a schermo pieno. I contenuti restano centrati. -->
+  <section class="w-full px-[26px] pb-[30px] pt-[22px]">
     <p v-if="isError" class="mb-4 text-sm text-[var(--color-danger)]">Impossibile caricare lo stato della configurazione.</p>
 
     <div v-if="skeletonVisible" aria-busy="true" class="p-5">
