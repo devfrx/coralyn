@@ -136,3 +136,43 @@ confronto tra due migration di task diversi).
 - Contracts: `RetiredUmbrellaDTO`, `RestoreUmbrellaInput`.
 - Ledger: `.superpowers/sdd/progress.md`, sezione «ritira-ombrellone» (scratch `task-se-N`).
 - Handoff precedente: [`2026-07-22-mappa-kind-tabpanel.md`](2026-07-22-mappa-kind-tabpanel.md).
+
+---
+
+## 9. Stato del repo a fine sessione (punto d'ingresso per il prossimo agente)
+
+**`origin/main = 388c0e2`, working tree pulito.** Questa sessione ha chiuso e mergiato tre
+voci: **D-056** e **D-057** (handoff precedente) e **D-055** (questo). Coerenza docs↔codice
+verificata a mano prima della chiusura: tutte le SHA citate negli handoff esistono, tutti i
+link relativi risolvono, le tre voci deferred sono marcate risolte, i claim di ADR-0053
+combaciano con schema/migration/servizi.
+
+**Baseline verde, misurata sul mergiato, una suite alla volta:**
+
+| Suite | Esito |
+|---|---|
+| web-staff (include ui-kit) | **533/533** (82 file) |
+| api unit | **266/266** (48 suite) |
+| api e2e | **387/387** (34 suite) |
+| web-customer | **25/25** (5 file) |
+| web-platform | **17/17** (6 file) |
+| `pnpm -r typecheck` + `tsc --noEmit` su api | pulito (exit 0) |
+
+**Lavoro aperto, in ordine di valore** (nessuno bloccante):
+
+1. **Script `typecheck` per `apps/api`** (chip task_8e2c58fd) — `pnpm -r typecheck` non copre
+   l'api, e né `nest build` (esclude gli spec) né ts-jest intercettano il drift di tipo nelle
+   fixture: è il buco che ha nascosto una fixture rotta nel branch D-056. Piccolo, alto valore.
+2. **[D-058](../architecture/deferred.md)** — le FK opzionali di `Rate` sono `ON DELETE SET NULL`
+   (stesso default Prisma che aveva degradato `Umbrella_rowId_fkey`): cancellare fila/settore
+   renderebbe una tariffa *più generica* invece di rompersi. Mitigato dalle guardie 409 di
+   `rows`/`sectors.service.remove`; resta la finestra read-committed. Scoperto durante la
+   verifica di coerenza di questa sessione, non fixato per non allargare il branch.
+3. **Backlog D-055** (§5): il più utile è il wiring di `retiredFrom` nello storico prenotazioni
+   (oggi `sectorName` resta assente per un ritirato); poi reason `UMBRELLA_RETIRED` nel quote,
+   guardia su `update`/`remove` dei ritirati, canary sull'indice parziale.
+
+**Due punti del repo dove «oggi» è congelato** (non toccarli pensando siano date vecchie):
+`apps/api/test/jest-frozen-calendar.setup.ts` (tutte le e2e api → 2026-07-15) e il `beforeAll`
+di `apps/web-customer/.../AbsenceReleaseModal.spec.ts` (stesso istante). Il contratto è scritto
+in testa a entrambi.
