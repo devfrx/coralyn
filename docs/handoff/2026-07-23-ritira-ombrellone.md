@@ -9,9 +9,9 @@
 > 8 task subagent-driven con reviewer per task (2 fix-loop), **review finale whole-branch
 > (fable): READY TO MERGE** dopo 1 Important vero (FK degradata da Prisma, revertita).
 > Verde di prima mano: web-staff **533/533**, api unit **266/266**, e2e **34/34 · 387/387**,
-> typecheck pulito (incluso tsc spec-incluso api), web-platform 17/17. web-customer **24/25**:
-> 1 rosso **PRE-esistente su main** (time-bomb data reale, chip creato — vedi §4).
-> **NON mergiato: restano gate visivo utente + ok esplicito.**
+> typecheck pulito (incluso tsc spec-incluso api), web-platform 17/17, web-customer **25/25**
+> (un rosso pre-esistente su main, risolto alla radice nello stesso branch — §4).
+> **Gate visivo utente: fatto.** **MERGIATO FF su `main` e pushato con ok esplicito.**
 
 ---
 
@@ -47,8 +47,10 @@ ADR: [`ADR-0053`](../architecture/decisions/0053-ritiro-ombrellone-soft-delete.m
 
 ## 2. Stato `git` & verifica
 
-- **Branch `feat/ritira-ombrellone-d055` = `8a2a61a`** (11 commit da `af5339b` = main).
-  **NON mergiato**: gate visivo utente + ok esplicito mancanti. Working tree pulito.
+- **Mergiato**: FF `af5339b..` su `main`, pushato su origin, branch eliminato. Working tree
+  pulito. Il branch portava anche il fix del rosso pre-esistente web-customer (§4), commit
+  separato e dichiarato: l'utente ha chiesto repo verde **prima** del merge, e tenerlo qui
+  ha evitato di riscrivere le 12 SHA già revisionate.
 - Verifica controller IN SEQUENZA (a `20aa960`, pre fix-FK): web-staff 533/533 · api unit
   48/48 266/266 · tsc api 0 · `pnpm -r typecheck` pulito · e2e full 34/34 387/387 ·
   web-platform 17/17 · web-customer 24/25 (rosso pre-esistente, §4). Post fix-FK
@@ -77,13 +79,20 @@ ADR: [`ADR-0053`](../architecture/decisions/0053-ritiro-ombrellone-soft-delete.m
 - Nel pannello Ombrellone `mutate`+`onSuccess` va bene (il pannello resta montato fino alla
   risposta); il gotcha `mutateAsync` vale solo per i flussi che smontano prima.
 
-## 4. Rosso pre-esistente web-customer (NON di questo branch)
+## 4. Rosso pre-esistente web-customer — risolto alla radice (`006cad2`)
 
-`AbsenceReleaseModal.spec.ts` («alla conferma chiama la mutation…») hardcoda
-`'2026-07-22'`: dal 23 reale è passato → la validazione data≥oggi blocca la conferma.
-Il branch tocca **0 file** web-customer (verificato con `git diff --stat`). Il test gemello
-usa già `dateInput.min || todayIso()`: il fix è rendere il primo uguale, NON aggiornare il
-letterale. **Chip creato** (task_a5ae3fa8).
+`AbsenceReleaseModal.spec.ts` è diventato rosso allo scattare del 23 reale. **Non era «una
+data da aggiornare»**: systematic-debugging + un probe a clock spostato hanno mostrato che
+anche il test «gemello buono», già relativizzato con `dateInput.min || todayIso()`, sarebbe
+marcito il **2026-10-01** (`minDate` supera l'`endDate` della fixture → 0 chiamate, stesso
+errore inline). Radice: il modale valida contro **oggi reale** (`minDate = max(todayIso(),
+startDate)`) mentre i test raccontano una storia sull'abbonamento fixture a **calendario
+assoluto** `2026-05-01…09-30` — dal 1° ottobre nessuna data può essere insieme ≥ oggi e
+≤ endDate. Stessa diagnosi del time-bomb e2e, stessa cura: **il tempo è parte della
+fixture** — `Date` congelata al **2026-07-15** (identico istante delle e2e api: un solo
+«oggi di test» nel repo), timer reali intatti (`tick()` usa `setTimeout`). Freeze mirato al
+file, non globale: `todayIso()` è usato in **un solo** componente dell'app. Chip
+task_a5ae3fa8 chiuso di conseguenza.
 
 ## 5. Backlog triato dalla review finale (nessuno bloccante)
 
@@ -101,11 +110,12 @@ letterale. **Chip creato** (task_a5ae3fa8).
 
 ## 6. Prossimi passi
 
-1. **Gate visivo utente** (feature UI nuova): login su dev, provare Ritira → archivio →
-   Ripristina dal Cantiere. Nota dati dev: il DB bonificato ha 0 ombrelloni — per provare
-   il flusso servono ombrelloni con e senza storico.
-2. **Merge SOLO con ok esplicito**; alla chiusura: deferred.md → D-055 risolta.
-3. Chip aperti: typecheck api (task_8e2c58fd) · time-bomb web-customer (task_a5ae3fa8).
+1. ~~Gate visivo utente~~ **fatto** · ~~merge~~ **fatto** (ok esplicito) · ~~D-055 in
+   deferred~~ **chiusa**.
+2. Backlog D-055 (§5), nessuno bloccante — il più utile è il wiring di `retiredFrom` lato
+   read nello storico prenotazioni.
+3. Chip ancora aperto: **script typecheck per apps/api** (task_8e2c58fd) — il buco che ha
+   nascosto una fixture rotta nel branch precedente.
 
 ## 7. Metodo
 
