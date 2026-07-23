@@ -2,13 +2,15 @@
 
 > **Data:** 2026-07-23 · **Autore sessione:** agente typecheck+D-058.
 > **TL;DR:** chiusi i primi due item del lavoro aperto dell'[handoff precedente](2026-07-23-ritira-ombrellone.md) §9
-> su branch `fix/d058-rate-fk-restrict` (3 commit da `8a2530b`): (1) **script `typecheck`**
+> su branch `fix/d058-rate-fk-restrict` (4 commit da `8a2530b`, head `dd2dc47`): (1) **script `typecheck`**
 > in `apps/api` — `pnpm -r typecheck` ora copre anche l'api, spec inclusi (chiude il chip
 > task_8e2c58fd); (2) **D-058**: le quattro FK dimensionali di `Rate` portate a
 > `ON DELETE RESTRICT` esplicito (migration `20260723062405_rate_fk_restrict`) + **canary e2e
 > DB-level** (35ª suite, 5 test). Audit delle altre relation opzionali fatto → esito tracciato
 > come **D-059** in deferred.md (nessuna cambiata d'autorità).
 > Verde di prima mano: api unit **266/266** · api e2e **392/392 (35 suite)** · typecheck `-r` pulito.
+> **Review whole-branch: READY TO MERGE, 0 Critical/0 Important**; i 3 Minor (tutti sul canary)
+> applicati in `dd2dc47` e ri-verificati (e2e full 392/392).
 > **NON mergiato: in attesa di ok esplicito.**
 
 ## 1. Cosa è stato fatto
@@ -57,8 +59,12 @@ Pacchetti web non toccati (nessuna modifica fuori da `apps/api` + docs).
 
 ## 4. Stato e prossimi passi
 
-- Branch `fix/d058-rate-fk-restrict` (3 commit), working tree pulito, **non mergiato** —
-  serve l'ok esplicito dell'utente (ed eventuale review, i commit sono piccoli e verificati).
+- Branch `fix/d058-rate-fk-restrict` (4 commit), working tree pulito, **non mergiato** —
+  serve l'ok esplicito dell'utente. Review whole-branch fatta (READY TO MERGE, 0 Crit/0 Imp;
+  3 Minor applicati: canary auto-verificante sulla constraint scattata via `meta.field_name`,
+  `instanceof PrismaClientKnownRequestError`, variabile morta rimossa). Suggerimento della
+  review lasciato aperto: fissare `maxWorkers: 1` (o `--runInBand` nello script `test:e2e`)
+  per eliminare il footgun del run parallelo invece di documentarlo.
 - Lavoro aperto rimanente (handoff precedente §9): **backlog D-055** — il più utile è il wiring
   di `retiredFrom` nello storico prenotazioni; poi reason `UMBRELLA_RETIRED` nel quote, guardia
   su `update`/`remove` dei ritirati, canary sull'indice parziale di `Umbrella` (quest'ultimo ora
