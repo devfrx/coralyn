@@ -113,7 +113,7 @@ function onConfirmReset() {
 </script>
 
 <template>
-  <section class="max-w-[940px] px-[26px] pb-[30px] pt-[22px]">
+  <section class="mx-auto max-w-[940px] px-[26px] pb-[30px] pt-[22px]">
     <Card class="mb-4">
       <div class="flex items-center gap-[18px] p-[22px]">
         <img src="/coralyn-logo.png" :alt="data?.establishment.name ?? 'Stabilimento'" class="size-14 rounded-[14px] object-cover" style="box-shadow:0 2px 8px rgba(15,60,73,.18);" />
