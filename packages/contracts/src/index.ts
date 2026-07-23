@@ -555,6 +555,23 @@ export interface UpdateEstablishmentInput {
   name: string;
 }
 
+/** Passi della prima configurazione, nell'ordine della catena di prerequisiti (ADR-0054). */
+export type SetupStepKey = 'structure' | 'timeSlots' | 'seasons' | 'rates';
+
+/** Stato di completezza della prima configurazione (GET /establishment/setup-status, admin-only).
+ *  Misura la catena reale dei prerequisiti di prenotazione: la stessa semantica dei 422
+ *  NO_SEASON / NO_RATE / UMBRELLA_NOT_FOUND, resa interrogabile (ADR-0054). */
+export interface SetupStatusDTO {
+  structure: { sectors: number; rows: number; activeUmbrellas: number; complete: boolean };
+  timeSlots: { count: number; complete: boolean };
+  /** usable = stagioni con endDate >= oggi (Europe/Rome): una stagione tutta nel passato non permette di incassare. */
+  seasons: { usable: number; complete: boolean };
+  /** count = tariffe delle stagioni usable; hasCatchAll = esiste una tariffa tutta-wildcard (advisory, non blocca). */
+  rates: { count: number; hasCatchAll: boolean; complete: boolean };
+  complete: boolean;
+  firstIncompleteStep: SetupStepKey | null;
+}
+
 /** Input creazione staff (admin-only). Lo staff riceve un invito via email per
  *  impostare la password (ADR-0042); nessuna password in chiaro. Ruolo mai `superuser`. */
 export interface CreateStaffUserInput {
