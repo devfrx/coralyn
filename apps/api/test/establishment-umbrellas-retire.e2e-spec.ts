@@ -104,10 +104,14 @@ describe('Establishment umbrellas retire (e2e)', () => {
     await app.close();
   });
 
-  it('403 per staff su retire/restore/retired', async () => {
+  it('403 per staff su retire/restore', async () => {
     await request(app.getHttpServer()).post(`/api/establishment/umbrellas/${rt3}/retire`).set(...bearer(staffT)).expect(403);
     await request(app.getHttpServer()).post(`/api/establishment/umbrellas/${rt3}/restore`).set(...bearer(staffT)).send({ rowId }).expect(403);
-    await request(app.getHttpServer()).get('/api/establishment/umbrellas/retired').set(...bearer(staffT)).expect(403);
+  });
+
+  it('GET retired accessibile allo staff → 200 (D-060: risoluzione label storiche in Prenotazioni/Rinnovi)', async () => {
+    const res = await request(app.getHttpServer()).get('/api/establishment/umbrellas/retired').set(...bearer(staffT)).expect(200);
+    expect(Array.isArray(res.body)).toBe(true);
   });
 
   it('retire di RT-1 (prenotazione futura confermata) → 409', async () => {

@@ -172,6 +172,48 @@ describe('RenewalsView', () => {
     w.unmount();
   });
 
+  it('ombrellone RITIRATO risolto in entrambe le tabelle: label storica + badge "Ritirato" (D-060)', async () => {
+    const retiredHandler = http.get('/api/establishment/umbrellas/retired', () =>
+      HttpResponse.json([{ id: 'o-rit', label: 'R7', umbrellaTypeId: null, retiredAt: '2026-06-27T10:00:00.000Z', retiredFrom: 'Centro · Fila 1' }]),
+    );
+
+    // Tabella abbonati (nessuna campagna aperta): sub su ombrellone ritirato.
+    server.use(
+      retiredHandler,
+      http.get('/api/bookings/subscriptions', () =>
+        HttpResponse.json([{ id: 'sub-rit', customerId: 'c-1', umbrellaId: 'o-rit', timeSlotId: 's1', seniority: 2, renewed: false }]),
+      ),
+    );
+    const w = mountApp(RenewalsView);
+    await flushPromises();
+    await tick();
+    await flushPromises();
+    await setDestination(w, 'se-2');
+    const subCell = w.findAll('tbody td').find((td) => td.text().includes('R7'));
+    expect(subCell).toBeDefined();
+    expect(subCell!.text()).toContain('Ritirato');
+    w.unmount();
+
+    // Tabella finestre di campagna: finestra su ombrellone ritirato.
+    server.use(
+      retiredHandler,
+      http.get('/api/renewal-campaigns', () =>
+        HttpResponse.json({
+          id: 'camp-rit', originSeasonId: 'se-1', destinationSeasonId: 'se-2', deadline: '2027-06-15',
+          windows: [{ sourceBookingId: 'sub-rit', customerId: 'c-1', umbrellaId: 'o-rit', timeSlotId: 's1', seniority: 2, state: 'open' }],
+        } satisfies RenewalCampaignDetailDTO),
+      ),
+    );
+    const w2 = mountApp(RenewalsView);
+    await flushPromises();
+    await tick();
+    await flushPromises();
+    await setDestination(w2, 'se-2');
+    const winCell = w2.findAll('tbody td').find((td) => td.text().includes('R7'));
+    expect(winCell).toBeDefined();
+    expect(winCell!.text()).toContain('Ritirato');
+  });
+
   it('campagna senza finestre: messaggio vuoto in-card dentro la tabella', async () => {
     const emptyCampaign: RenewalCampaignDetailDTO = {
       id: 'camp-empty',

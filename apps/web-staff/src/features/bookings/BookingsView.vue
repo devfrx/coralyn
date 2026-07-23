@@ -24,7 +24,7 @@ const filtri = [
   { value: 'paid', label: 'Saldate' },
 ];
 
-const { customerName, umbrellaLabel, packageName } = useEntityLabels();
+const { customerName, umbrellaLabel, retiredUmbrellaIds, packageName } = useEntityLabels();
 const periodLabel = (b: BookingDTO): string => (b.type === 'daily' ? b.startDate : dateRange(b.startDate, b.endDate));
 
 const cols: DataTableColumn[] = [
@@ -64,7 +64,7 @@ function openSettle(b: BookingDTO): void {
           <span class="font-semibold text-[var(--color-text)]">{{ customerName((row as unknown as BookingDTO).customerId) }}</span>
         </div>
       </template>
-      <template #cell-ombrellone="{ row }"><span class="text-[var(--color-text-2nd)]">{{ umbrellaLabel.get((row as unknown as BookingDTO).umbrellaId) ?? '—' }}</span></template>
+      <template #cell-ombrellone="{ row }"><span class="text-[var(--color-text-2nd)]">{{ umbrellaLabel.get((row as unknown as BookingDTO).umbrellaId) ?? '—' }}</span> <Badge v-if="retiredUmbrellaIds.has((row as unknown as BookingDTO).umbrellaId)" tone="neutral">Ritirato</Badge></template>
       <template #cell-tipo="{ row }"><span class="text-[var(--color-text-2nd)]">{{ TYPE_LABEL[(row as unknown as BookingDTO).type] }}</span></template>
       <template #cell-pacchetto="{ row }"><span class="text-[var(--color-text-2nd)]" :title="(row as unknown as BookingDTO).packageId ? (packageName.get((row as unknown as BookingDTO).packageId!) ?? '') : ''">{{ (row as unknown as BookingDTO).packageId ? (packageName.get((row as unknown as BookingDTO).packageId!) ?? '—') : '—' }}</span></template>
       <template #cell-periodo="{ row }"><span class="text-[var(--color-text-2nd)]">{{ periodLabel(row as unknown as BookingDTO) }}</span></template>

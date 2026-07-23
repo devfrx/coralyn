@@ -100,7 +100,7 @@ addendum, `flows.md` §7 (nota `source='customer'`), 4 mockup `web-customer-*.ht
 
 - **D-059** (aperta) — **Relation opzionali residue con `ON DELETE SET NULL` implicito**, esito dell'audit 2026-07-23 richiesto da D-058. Stessa classe di rischio ma mai decise esplicitamente, quindi **non cambiate d'autorità**: **`Umbrella.umbrellaTypeId`** (la guardia 409 delle tipologie conta gli ombrelloni, anche ritirati; nella finestra di race un ombrellone perderebbe la tipologia in silenzio) e **`Booking.packageId`** (guardia 409 in `deletePackage` conta rate+booking; nella race una prenotazione perderebbe il pacchetto — nota: l'e2e cleanup e il seed non ne dipendono, verificato col full-run verde post-D-058). Caso a parte: **`Rental.customerId`** — l'erasure GDPR ([ADR-0043](decisions/0043-erasure-e-retention-cliente-gdpr.md), `customers.service.remove`) conta solo le `Booking`: un cliente con noleggi e 0 prenotazioni viene hard-deletato e i suoi noleggi perdono il riferimento (di fatto anonimizzati). Plausibilmente desiderabile in ottica GDPR, ma è un **comportamento emergente, non una decisione**. Deliberati e ok: `CustomerSession.rotatedFromId` (SetNull esplicito, catena di rotazione), `Umbrella.rowId` (Restrict, ADR-0053), `User.establishmentId` e `Booking.previousBookingId` (nessun hard-delete applicativo del target: FK irraggiungibile dal flusso). Trigger: prossimo branch che tocca tipologie o pacchetti, o una decisione esplicita su erasure↔noleggi. Impatto se ignorata: basso — le guardie applicative coprono i flussi normali, resta la sola finestra read-committed.
 
-- **D-060** (aperta) — **`useEntityLabels().umbrellaLabel` non risolve gli ombrelloni ritirati.**
+- **D-060** — **`useEntityLabels().umbrellaLabel` non risolve gli ombrelloni ritirati.**
   [`apps/web-staff/src/lib/useEntityLabels.ts`](../../apps/web-staff/src/lib/useEntityLabels.ts) costruisce
   la mappa id→label attraversando la **day-map viva** (settori → file → ombrelloni): un ritirato non ha
   fila, quindi non c'è. Consumatori impattati: `BookingsView` (una prenotazione passata su ombrellone poi
@@ -115,6 +115,15 @@ addendum, `flows.md` §7 (nota `source='customer'`), 4 mockup `web-customer-*.ht
   dichiarato di quel branch (solo Scheda cliente). Trigger: prossimo lavoro su Prenotazioni o Rinnovi.
   Impatto se ignorata: bassa/media — non è perdita di dati (lo storico è integro), è una vista che mente
   con «—»; la guardia 409 del retire limita l'esposizione ai giorni passati.
+  → **risolta** (2026-07-23, branch `fix/d060-label-ombrelloni-ritirati`,
+  [spec](../superpowers/specs/2026-07-23-d060-label-ombrelloni-ritirati-design.md)): la regola di
+  risoluzione storica di `packageName`/`useAllPackages` è estesa agli ombrelloni — `umbrellaLabel`
+  fonde i ritirati da `GET /establishment/umbrellas/retired`, **aperto anche allo staff** (i `@Roles`
+  scendono dalla classe ai singoli handler di `UmbrellasController`: mutazioni e CRUD restano
+  admin-only; il DTO è pura struttura senza PII, e2e del 403 aggiornata deliberatamente); nuovo
+  `retiredUmbrellaIds` alimenta il badge «Ritirato» nelle celle di `BookingsView` e `RenewalsView`
+  (entrambe le tabelle), come nella Scheda cliente. Alternativa rigettata: label in projection sui
+  DTO di lista (seconda fonte di verità). Nessuna migration, nessun contratto nuovo.
 
 > Nota: le voci sopra sono il punto di partenza emerso dal brainstorming iniziale e
 > verranno raffinate man mano.

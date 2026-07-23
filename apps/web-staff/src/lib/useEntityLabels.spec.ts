@@ -41,6 +41,22 @@ describe('useEntityLabels', () => {
     expect(api().umbrellaLabel.value.get('non-esiste')).toBeUndefined();
   });
 
+  it('umbrellaLabel: risolve anche un ombrellone RITIRATO (storico, D-060) e lo espone in retiredUmbrellaIds', async () => {
+    server.use(
+      http.get('/api/establishment/umbrellas/retired', () =>
+        HttpResponse.json([{ id: 'o-rit', label: 'R7', umbrellaTypeId: null, retiredAt: '2026-06-27T10:00:00.000Z', retiredFrom: 'Centro · Fila 1' }]),
+      ),
+    );
+    const { api } = mountHook();
+    await flushPromises();
+    await tick();
+    await flushPromises();
+    expect(api().umbrellaLabel.value.get('o-rit')).toBe('R7');
+    expect(api().retiredUmbrellaIds.value.has('o-rit')).toBe(true);
+    // Gli attivi della day-map non sono "ritirati".
+    expect(api().retiredUmbrellaIds.value.has('o-1')).toBe(false);
+  });
+
   it('packageName: risolve nome pacchetto da id iniettato via MSW', async () => {
     server.use(
       http.get('/api/packages', () =>

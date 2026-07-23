@@ -31,7 +31,7 @@ const { data: campaign, isLoading: campaignLoading } = useRenewalCampaign(destin
 const renew = useRenewBooking();
 const openCampaign = useOpenCampaign();
 const closeCampaign = useCloseCampaign();
-const { customerName, umbrellaLabel } = useEntityLabels();
+const { customerName, umbrellaLabel, retiredUmbrellaIds } = useEntityLabels();
 
 const cols = [
   { key: 'cliente', label: 'Cliente' },
@@ -127,7 +127,7 @@ function stateBadge(s: RenewalWindowState): { tone: 'success' | 'warning' | 'neu
           <span class="font-semibold text-[var(--color-text)]">{{ customerName((row as unknown as RenewalWindowItemDTO).customerId) }}</span>
         </div>
       </template>
-      <template #cell-ombrellone="{ row }"><span class="text-[var(--color-text-2nd)]">{{ umbrellaLabel.get((row as unknown as RenewalWindowItemDTO).umbrellaId) ?? '—' }}</span></template>
+      <template #cell-ombrellone="{ row }"><span class="text-[var(--color-text-2nd)]">{{ umbrellaLabel.get((row as unknown as RenewalWindowItemDTO).umbrellaId) ?? '—' }}</span> <Badge v-if="retiredUmbrellaIds.has((row as unknown as RenewalWindowItemDTO).umbrellaId)" tone="neutral">Ritirato</Badge></template>
       <template #cell-anzianita="{ row }"><span class="text-[var(--color-text-2nd)]">{{ (row as unknown as RenewalWindowItemDTO).seniority }} {{ (row as unknown as RenewalWindowItemDTO).seniority === 1 ? 'stagione' : 'stagioni' }}</span></template>
       <template #cell-stato="{ row }">
         <Badge :tone="stateBadge((row as unknown as RenewalWindowItemDTO).state).tone">{{ stateBadge((row as unknown as RenewalWindowItemDTO).state).label }}</Badge>
@@ -149,7 +149,7 @@ function stateBadge(s: RenewalWindowState): { tone: 'success' | 'warning' | 'neu
               <span class="font-semibold text-[var(--color-text)]">{{ customerName((row as unknown as SubscriptionListItemDTO).customerId) }}</span>
             </div>
           </template>
-          <template #cell-ombrellone="{ row }"><span class="text-[var(--color-text-2nd)]">{{ umbrellaLabel.get((row as unknown as SubscriptionListItemDTO).umbrellaId) ?? '—' }}</span></template>
+          <template #cell-ombrellone="{ row }"><span class="text-[var(--color-text-2nd)]">{{ umbrellaLabel.get((row as unknown as SubscriptionListItemDTO).umbrellaId) ?? '—' }}</span> <Badge v-if="retiredUmbrellaIds.has((row as unknown as SubscriptionListItemDTO).umbrellaId)" tone="neutral">Ritirato</Badge></template>
           <template #cell-anzianita="{ row }"><span class="text-[var(--color-text-2nd)]">{{ (row as unknown as SubscriptionListItemDTO).seniority }} {{ (row as unknown as SubscriptionListItemDTO).seniority === 1 ? 'stagione' : 'stagioni' }}</span></template>
           <template #cell-stato="{ row }">
             <Badge :tone="(row as unknown as SubscriptionListItemDTO).renewed ? 'success' : 'neutral'">{{ (row as unknown as SubscriptionListItemDTO).renewed ? 'Rinnovato' : 'Da rinnovare' }}</Badge>

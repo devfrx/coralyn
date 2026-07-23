@@ -72,6 +72,30 @@ describe('BookingsView', () => {
     expect(w.text()).toContain('Standard'); // risolto per bk-1
   });
 
+  it('ombrellone RITIRATO: label storica risolta dalla lista retired + badge "Ritirato" (D-060)', async () => {
+    server.use(
+      http.get('/api/establishment/umbrellas/retired', () =>
+        HttpResponse.json([{ id: 'o-rit', label: 'R7', umbrellaTypeId: null, retiredAt: '2026-06-27T10:00:00.000Z', retiredFrom: 'Centro · Fila 1' }]),
+      ),
+      http.get('/api/bookings', () =>
+        HttpResponse.json([
+          {
+            id: 'bk-1', customerId: 'c-1', umbrellaId: 'o-rit', timeSlotId: 's1',
+            startDate: '2026-07-10', endDate: '2026-07-10', type: 'daily', status: 'confirmed',
+            totalPrice: 28, paymentStatus: 'paid', amountCollected: 28,
+          },
+        ]),
+      ),
+    );
+    const w = mountApp(BookingsView);
+    await flushPromises();
+    await tick();
+    await flushPromises();
+    const cell = w.findAll('tbody td').find((td) => td.text().includes('R7'));
+    expect(cell).toBeDefined();
+    expect(cell!.text()).toContain('Ritirato');
+  });
+
   it('colonna Tipo: etichetta IT dal type; Periodo mostra il range per periodic/subscription', async () => {
     server.use(
       http.get('/api/bookings', () =>
