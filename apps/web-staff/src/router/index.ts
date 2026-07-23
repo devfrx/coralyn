@@ -18,6 +18,7 @@ const routes: RouteRecordRaw[] = [
   { path: '/report', name: 'report', component: () => import('@/features/report/ReportView.vue'), meta: { title: 'Report', subtitle: 'Andamento della stagione' } },
   { path: '/establishment', name: 'establishment', component: () => import('@/features/establishment/EstablishmentView.vue'), meta: { title: 'Stabilimento', subtitle: 'Configurazione e team' } },
   { path: '/establishment/structure', name: 'establishment-structure', component: () => import('@/features/establishment/EstablishmentStructureView.vue'), meta: { title: 'Struttura', subtitle: 'Settori, file, ombrelloni e tipologie', role: Role.Admin } },
+  { path: '/onboarding', name: 'onboarding', component: () => import('@/features/onboarding/OnboardingView.vue'), meta: { title: 'Configurazione guidata', subtitle: 'Prepara il lido a incassare la prima prenotazione', role: Role.Admin } },
 ];
 
 export const router = createRouter({ history: createWebHistory(), routes });
