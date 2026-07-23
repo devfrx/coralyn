@@ -282,6 +282,8 @@ export interface CustomerBookingDTO {
   umbrellaLabel: string;          // join Umbrella.label (il FE non carica la mappa)
   packageName?: string;           // nome del Package (se packageId presente); il FE non carica il catalogo
   sectorName?: string;            // nome del Settore dell'ombrellone (per il chip «Centro · A12»)
+  umbrellaRetiredAt?: string;     // D-055 (additivo): ISO datetime; presente SOLO se l'ombrellone è ritirato
+  umbrellaRetiredFrom?: string;   // D-055 (additivo): snapshot «Settore · Fila» al ritiro; solo se ritirato e noto
   seasonName?: string;            // Season che contiene startDate; assente se nessuna
   seniority?: number;             // SOLO subscription: lunghezza catena rinnovi (>=1)
   renewed?: boolean;              // SOLO subscription: esiste un rinnovo confermato

@@ -7,6 +7,8 @@ export interface CustomerBookingEnrichment {
   seasonName?: string;
   packageName?: string;
   sectorName?: string;
+  umbrellaRetiredAt?: string;
+  umbrellaRetiredFrom?: string;
   seniority?: number;
   renewed?: boolean;
   prelazione?: { destinationSeasonName: string; deadline: string };
@@ -43,6 +45,8 @@ export function toCustomerBookingDTO(b: Booking, e: CustomerBookingEnrichment): 
     umbrellaLabel: e.umbrellaLabel,
     packageName: e.packageName,
     sectorName: e.sectorName,
+    umbrellaRetiredAt: e.umbrellaRetiredAt,
+    umbrellaRetiredFrom: e.umbrellaRetiredFrom,
     seasonName: e.seasonName,
     seniority: e.seniority,
     renewed: e.renewed,

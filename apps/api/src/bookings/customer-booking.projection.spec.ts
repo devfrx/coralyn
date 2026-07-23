@@ -76,6 +76,23 @@ describe('toCustomerBookingDTO', () => {
     expect(dto.sectorName).toBe('Centro');
   });
 
+  it('copia umbrellaRetiredAt/umbrellaRetiredFrom (ombrellone ritirato, D-055); sectorName resta assente', () => {
+    const dto = toCustomerBookingDTO(bookingRow(), {
+      umbrellaLabel: '12',
+      umbrellaRetiredAt: '2026-07-01T10:00:00.000Z',
+      umbrellaRetiredFrom: 'Centro · Fila 1',
+    });
+    expect(dto.umbrellaRetiredAt).toBe('2026-07-01T10:00:00.000Z');
+    expect(dto.umbrellaRetiredFrom).toBe('Centro · Fila 1');
+    expect(dto.sectorName).toBeUndefined();
+  });
+
+  it('umbrellaRetiredAt/umbrellaRetiredFrom assenti per un ombrellone vivo', () => {
+    const dto = toCustomerBookingDTO(bookingRow(), { umbrellaLabel: 'A12', sectorName: 'Centro' });
+    expect(dto.umbrellaRetiredAt).toBeUndefined();
+    expect(dto.umbrellaRetiredFrom).toBeUndefined();
+  });
+
   it('mappa i campi disdetta (refundedAmount, terminatedAt ISO, terminationReason)', () => {
     const dto = toCustomerBookingDTO(
       bookingRow({
