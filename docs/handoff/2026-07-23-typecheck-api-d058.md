@@ -79,3 +79,39 @@ Pacchetti web non toccati (nessuna modifica fuori da `apps/api` + docs).
   ha un modello pronto: `rate-fk-restrict.e2e-spec.ts` è la stessa forma di test).
 - **D-059** (nuova, non bloccante): decidere se estendere Restrict a `Umbrella.umbrellaTypeId` e
   `Booking.packageId`, e ratificare (o correggere) il comportamento erasure↔noleggi.
+
+---
+
+## 5. Stato del repo a fine sessione (punto d'ingresso per il prossimo agente)
+
+**`origin/main = 3670e96`, working tree pulito, nessun branch di lavoro aperto.** Il merge è un
+fast-forward: `main` punta allo stesso commit verificato sul branch, quindi la verifica sopra **è**
+la verifica sul mergiato (nessun contenuto nuovo introdotto dal merge).
+
+**Baseline verde, una suite alla volta:**
+
+| Suite | Esito |
+|---|---|
+| api unit | **266/266** (48 suite) — invariata |
+| api e2e | **392/392** (35 suite) — era 387/34, +5 test/+1 suite per il canary D-058 |
+| `pnpm -r typecheck` | pulito (exit 0) — **ora include `apps/api`**, spec compresi |
+| web-staff · web-customer · web-platform | non toccati (533 · 25 · 17 dall'handoff precedente) |
+
+**Due comandi che cambiano rispetto agli handoff precedenti:**
+`pnpm -C apps/api typecheck` esiste (ed è dentro `pnpm -r typecheck`); le e2e **non** vogliono più
+`--runInBand` (sequenziali per config, §3). La regola «una suite alla volta» resta valida per le
+suite di **pacchetti diversi** lanciate in contemporanea su questo host.
+
+**Lavoro aperto, in ordine di valore** (nessuno bloccante):
+
+1. **Backlog D-055**: wiring di `retiredFrom` nello storico prenotazioni (oggi `sectorName` resta
+   assente per un ritirato) · reason `UMBRELLA_RETIRED` nel quote · guardia su `update`/`remove`
+   dei ritirati · **canary sull'indice unico parziale di `Umbrella`** — quest'ultimo ha ora un
+   modello pronto da copiare: `apps/api/test/rate-fk-restrict.e2e-spec.ts` è la stessa forma di
+   test (DB-level, raw, bypassa i service).
+2. **[D-059](../architecture/deferred.md)**: le due FK opzionali residue + la decisione esplicita
+   su erasure GDPR ↔ noleggi (`Rental.customerId`).
+
+**I due punti dove «oggi» è congelato restano invariati** e non vanno «aggiornati»:
+`apps/api/test/jest-frozen-calendar.setup.ts` (tutte le e2e api → 2026-07-15) e il `beforeAll` di
+`apps/web-customer/.../AbsenceReleaseModal.spec.ts` (stesso istante).
