@@ -51,4 +51,14 @@ describe('CustomerPaymentsCard — saldo/incassato (§4.3)', () => {
     expect(w.text()).toContain('2026-07-01');
     expect(w.text()).toContain('2026-07-14');
   });
+
+  it('riga su ombrellone ritirato: cella posizione con snapshot storico + «Ritirato» (D-055)', () => {
+    const retired: CustomerBookingDTO = {
+      ...base, id: 'b-retired', sectorName: undefined,
+      umbrellaRetiredAt: '2026-07-12T10:00:00.000Z', umbrellaRetiredFrom: 'Centro · Fila 1',
+    };
+    const w = mountApp(CustomerPaymentsCard, { props: { bookings: [retired] } });
+    expect(w.text()).toContain('Centro · Fila 1 · A12');
+    expect(w.text()).toContain('Ritirato');
+  });
 });

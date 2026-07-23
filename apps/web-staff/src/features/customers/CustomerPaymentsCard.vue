@@ -3,6 +3,7 @@ import { computed } from 'vue';
 import { SectionCard, StatTile, DataTable, Badge, formatEuro } from '@coralyn/ui-kit';
 import type { CustomerBookingDTO } from '@coralyn/contracts';
 import { PAY_LABEL, PAY_TONE, PAYMENT_METHOD_LABEL, TYPE_LABEL } from '@/lib/statusMaps';
+import { positionLabel } from './positionLabel';
 
 const props = defineProps<{ bookings: CustomerBookingDTO[] }>();
 const active = computed(() => props.bookings.filter((b) => b.status !== 'cancelled'));
@@ -41,7 +42,7 @@ const cols = [
       <DataTable :columns="cols" :rows="(active as unknown as Record<string, unknown>[])" :row-key="(r) => (r as unknown as CustomerBookingDTO).id" density="compact">
         <template #cell-period="{ row }">{{ periodLabel(row as unknown as CustomerBookingDTO) }}</template>
         <template #cell-type="{ row }">{{ TYPE_LABEL[(row as unknown as CustomerBookingDTO).type] }}</template>
-        <template #cell-umbrella="{ row }">{{ (row as unknown as CustomerBookingDTO).sectorName ?? '—' }} · {{ (row as unknown as CustomerBookingDTO).umbrellaLabel }}</template>
+        <template #cell-umbrella="{ row }">{{ positionLabel(row as unknown as CustomerBookingDTO) }} <Badge v-if="(row as unknown as CustomerBookingDTO).umbrellaRetiredAt" tone="neutral">Ritirato</Badge></template>
         <template #cell-amount="{ row }">{{ formatEuro((row as unknown as CustomerBookingDTO).totalPrice) }}</template>
         <template #cell-method="{ row }">{{ (row as unknown as CustomerBookingDTO).paymentMethod ? PAYMENT_METHOD_LABEL[(row as unknown as CustomerBookingDTO).paymentMethod!] : '—' }}</template>
         <template #cell-status="{ row }"><Badge :tone="PAY_TONE[(row as unknown as CustomerBookingDTO).paymentStatus]">{{ PAY_LABEL[(row as unknown as CustomerBookingDTO).paymentStatus] }}</Badge></template>

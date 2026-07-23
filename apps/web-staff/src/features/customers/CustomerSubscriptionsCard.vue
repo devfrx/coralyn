@@ -3,6 +3,7 @@ import { computed } from 'vue';
 import { SectionCard, Callout, Badge, Button, Icon, formatEuro } from '@coralyn/ui-kit';
 import type { CustomerBookingDTO, SuspensionDTO, CededSubscriptionDTO } from '@coralyn/contracts';
 import { todayIso } from '@/lib/dates';
+import { positionLabel } from './positionLabel';
 
 const props = defineProps<{ bookings: CustomerBookingDTO[]; ceded?: CededSubscriptionDTO[]; isAdmin: boolean }>();
 const emit = defineEmits<{
@@ -42,7 +43,8 @@ const hasTimeline = (b: CustomerBookingDTO): boolean =>
         <div class="flex items-start justify-between gap-3 p-3.5">
           <div class="min-w-0">
             <div class="flex flex-wrap items-center gap-1.5">
-              <span class="inline-flex items-center rounded-[var(--radius-sm)] bg-[var(--color-raised)] px-1.5 py-0.5 text-[11px] font-semibold text-[var(--color-text-2nd)]">{{ b.sectorName ?? '—' }} · {{ b.umbrellaLabel }}</span>
+              <span class="inline-flex items-center rounded-[var(--radius-sm)] bg-[var(--color-raised)] px-1.5 py-0.5 text-[11px] font-semibold text-[var(--color-text-2nd)]">{{ positionLabel(b) }}</span>
+              <Badge v-if="b.umbrellaRetiredAt" tone="neutral">Ritirato</Badge>
               <Badge v-if="b.packageName" tone="brand">{{ b.packageName }}</Badge>
               <Badge v-if="b.renewed" tone="success">Rinnovato</Badge>
             </div>
