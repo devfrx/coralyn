@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import { ref, computed, watch, nextTick, onUnmounted } from 'vue';
 import { useRouter } from 'vue-router';
-import { UmbrellaCell, SegmentedControl, Badge, Button, Drawer, ActionBar, Modal, Icon, Select, ModalFooter, formatEuro, HoverCard, Popover, Skeleton, useDelayedLoading } from '@coralyn/ui-kit';
+import { UmbrellaCell, SegmentedControl, Badge, Button, Drawer, ActionBar, Modal, Icon, Select, ModalFooter, formatEuro, HoverCard, Popover, Skeleton, EmptyState, useDelayedLoading } from '@coralyn/ui-kit';
 import type { UmbrellaDTO, SlotState, BookingDTO, BookingType } from '@coralyn/contracts';
+import { Role } from '@coralyn/contracts';
 import { PAY_LABEL, PAY_TONE } from '@/lib/statusMaps';
 import { useMediaQuery } from '@/lib/useMediaQuery';
 import { useDayMap } from './useDayMap';
@@ -21,6 +22,7 @@ const skeletonVisible = useDelayedLoading(() => isLoading.value);
 const router = useRouter();
 
 const session = useSessionStore();
+const isAdmin = computed(() => session.role === Role.Admin);
 const { activeDate } = storeToRefs(session);
 const { data: bookings } = useDayBookings(activeDate);
 const { data: customers } = useCustomers();
@@ -302,6 +304,15 @@ const freeSlotOptions = computed(() =>
     </div>
 
     <div v-else-if="!isLoading" class="map-stage min-w-0 flex-1">
+      <div v-if="sectors.length === 0" class="px-[26px] py-10">
+        <EmptyState data-testid="map-empty-onboarding" icon="umbrella" title="La spiaggia non è ancora configurata"
+          message="Qui vedrai la mappa degli ombrelloni: prima serve creare la struttura del lido.">
+          <template v-if="isAdmin" #action>
+            <Button data-testid="map-open-onboarding" @click="router.push('/onboarding')">Configura il tuo lido</Button>
+          </template>
+        </EmptyState>
+      </div>
+      <template v-else>
       <div class="map-scroll">
         <div class="map-sea">
           <div class="map-sea-veil"></div><div class="map-sea-veil"></div><div class="map-sea-veil"></div>
@@ -421,6 +432,7 @@ const freeSlotOptions = computed(() =>
           </div>
         </div>
       </div>
+      </template>
     </div>
 
     <Drawer :open="sel !== null" @update:open="(v: boolean) => { if (!v) close(); }"

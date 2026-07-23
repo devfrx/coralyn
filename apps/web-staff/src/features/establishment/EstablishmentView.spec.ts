@@ -249,4 +249,38 @@ describe('EstablishmentView', () => {
     await settle();
     expect(w.find('[data-testid="reset-user-password"]').exists()).toBe(false);
   });
+
+  it('admin con setup incompleto: Callout con CTA verso /onboarding', async () => {
+    server.use(http.get('/api/establishment/setup-status', () => HttpResponse.json({
+      structure: { sectors: 0, rows: 0, activeUmbrellas: 0, complete: false },
+      timeSlots: { count: 0, complete: false },
+      seasons: { usable: 0, complete: false },
+      rates: { count: 0, hasCatchAll: false, complete: false },
+      complete: false, firstIncompleteStep: 'structure',
+    })));
+    const w = mountApp(EstablishmentView);
+    const session = useSessionStore();
+    session.user = { id: 'u-1', email: 'admin@coralyn.dev', role: Role.Admin, establishmentId: 'e-1', establishmentName: 'Lido Maestrale' };
+    await settle();
+    expect(w.find('[data-testid="setup-callout"]').exists()).toBe(true);
+    expect(w.find('[data-testid="open-onboarding"]').exists()).toBe(true);
+  });
+
+  it('admin con setup completo: niente Callout, resta il link permanente', async () => {
+    const w = mountApp(EstablishmentView);
+    const session = useSessionStore();
+    session.user = { id: 'u-1', email: 'admin@coralyn.dev', role: Role.Admin, establishmentId: 'e-1', establishmentName: 'Lido Maestrale' };
+    await settle();
+    expect(w.find('[data-testid="setup-callout"]').exists()).toBe(false);
+    expect(w.find('[data-testid="open-onboarding"]').exists()).toBe(true);
+  });
+
+  it('staff: nessun elemento onboarding', async () => {
+    const w = mountApp(EstablishmentView);
+    const session = useSessionStore();
+    session.user = { id: 'u-2', email: 'marco@lidomaestrale.it', role: Role.Staff, establishmentId: 'e-1', establishmentName: 'Lido Maestrale' };
+    await settle();
+    expect(w.find('[data-testid="setup-callout"]').exists()).toBe(false);
+    expect(w.find('[data-testid="open-onboarding"]').exists()).toBe(false);
+  });
 });

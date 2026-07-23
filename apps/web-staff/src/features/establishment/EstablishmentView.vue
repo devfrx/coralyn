@@ -1,16 +1,18 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
 import { useRouter } from 'vue-router';
-import { Card, StatTile, Badge, Button, Avatar, Icon, Modal, Field, Input, Select, ConfirmDialog, ActionBar, SkeletonText, useDelayedLoading } from '@coralyn/ui-kit';
+import { Card, StatTile, Badge, Button, Avatar, Icon, Modal, Field, Input, Select, ConfirmDialog, ActionBar, SkeletonText, Callout, useDelayedLoading } from '@coralyn/ui-kit';
 import { Role } from '@coralyn/contracts';
 import { useSessionStore } from '@/stores/session';
 import { pushToast } from '@/lib/toasts';
+import { useSetupStatus } from '@/features/onboarding/useSetupStatus';
 import { useEstablishmentOverview, useRenameEstablishment, useCreateStaffUser, useSetStaffUserDisabled, useResetStaffPassword } from './useEstablishment';
 
 const session = useSessionStore();
 const router = useRouter();
 const { data, isPending, isError } = useEstablishmentOverview();
 const skeletonVisible = useDelayedLoading(() => isPending.value);
+const { data: setupStatus } = useSetupStatus();
 
 function signOut() {
   session.logout();
@@ -156,6 +158,19 @@ function onConfirmReset() {
         </div>
       </Card>
     </div>
+
+    <Card v-if="isAdmin" class="mb-4">
+      <div class="flex items-center justify-between gap-3 p-[22px]">
+        <div class="min-w-0">
+          <h3 class="text-[15px] font-bold text-[var(--color-text)]">Configurazione guidata</h3>
+          <p class="mt-1 text-[12.5px] text-[var(--color-text-muted)]">Il percorso passo-passo per preparare il lido: struttura, fasce, stagione e listino. Riapribile in ogni momento.</p>
+          <Callout v-if="setupStatus && !setupStatus.complete" tone="warm" class="mt-2.5" data-testid="setup-callout">
+            La configurazione non è completa: il lido non può ancora incassare una prenotazione.
+          </Callout>
+        </div>
+        <Button data-testid="open-onboarding" @click="router.push('/onboarding')">Apri</Button>
+      </div>
+    </Card>
 
     <Card class="mb-4">
       <div class="p-5">

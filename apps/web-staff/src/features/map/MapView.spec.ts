@@ -2,9 +2,11 @@ import { describe, it, expect, vi, afterEach } from 'vitest';
 import { nextTick } from 'vue';
 import { http, HttpResponse } from 'msw';
 import { flushPromises } from '@vue/test-utils';
+import { Role } from '@coralyn/contracts';
 import { mountApp } from '@/test/utils';
 import { server } from '@/mocks/server';
 import { useToasts } from '@/lib/toasts';
+import { useSessionStore } from '@/stores/session';
 import { mapSeed3 } from '@/mocks/data/seed';
 import MapView from './MapView.vue';
 
@@ -50,6 +52,31 @@ describe('MapView', () => {
     expect(w.text()).toContain('Speciali');
     // un paio di etichette dal seed
     expect(w.text()).toContain('P1');
+  });
+
+  it('admin: senza settori mostra l\'empty-state di onboarding con CTA verso /onboarding', async () => {
+    server.use(http.get('/api/map', () => HttpResponse.json({
+      date: '2026-06-27', umbrellaTypes: [], timeSlots: [], sectors: [],
+    })));
+    const w = mountApp(MapView, { attachTo: document.body });
+    const session = useSessionStore();
+    session.user = { id: 'u-1', email: 'admin@coralyn.dev', role: Role.Admin, establishmentId: 'e-1', establishmentName: 'Lido Maestrale' };
+    await flushPromises();
+    await new Promise((r) => setTimeout(r, 0));
+    await flushPromises();
+    expect(w.find('[data-testid="map-empty-onboarding"]').exists()).toBe(true);
+    expect(w.find('[data-testid="map-open-onboarding"]').exists()).toBe(true);
+    w.unmount();
+  });
+
+  it('staff: senza settori mostra l\'empty-state di onboarding senza CTA', async () => {
+    server.use(http.get('/api/map', () => HttpResponse.json({
+      date: '2026-06-27', umbrellaTypes: [], timeSlots: [], sectors: [],
+    })));
+    const w = await mountMap();
+    expect(w.find('[data-testid="map-empty-onboarding"]').exists()).toBe(true);
+    expect(w.find('[data-testid="map-open-onboarding"]').exists()).toBe(false);
+    w.unmount();
   });
 
   it('D-056: un settore kind=special è reso come blocco dedicato (non tab) qualunque sia il nome', async () => {
