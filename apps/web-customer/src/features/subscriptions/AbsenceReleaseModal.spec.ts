@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeAll, afterAll } from 'vitest';
 import { ref } from 'vue';
 import { flushPromises } from '@vue/test-utils';
 import { mountApp } from '@/test/utils';
@@ -18,6 +18,21 @@ const sub: CustomerBookingDTO = {
   umbrellaLabel: 'A12',
 };
 const tick = () => new Promise((r) => setTimeout(r, 0));
+
+// «Oggi» è parte della fixture, come per le e2e api (jest-frozen-calendar.setup.ts).
+// PERCHÉ: il modale valida contro oggi REALE (`minDate = max(todayIso(), startDate)`), ma la
+// storia di questi test vive sull'abbonamento `sub`, che ha un calendario ASSOLUTO
+// (2026-05-01…09-30). I due modelli sono incompatibili nel tempo: dal 2026-10-01 nessuna data
+// può essere insieme ≥ oggi e ≤ endDate, quindi anche una data «relativa» (`dateInput.min`)
+// marcirebbe — verificato con un probe a clock spostato. Congelando l'istante le date letterali
+// tornano leggibili e stabili per sempre. Solo `Date` è finto: i timer restano reali perché
+// `tick()` usa setTimeout. Stesso istante delle e2e api (09:00 a Roma), così il repo ha un solo
+// «oggi di test»: se un giorno cambia la stagione della fixture, ripassare questo istante.
+beforeAll(() => {
+  vi.useFakeTimers({ toFake: ['Date'] });
+  vi.setSystemTime(new Date('2026-07-15T07:00:00Z'));
+});
+afterAll(() => { vi.useRealTimers(); });
 
 function mutationStub(mutateAsync: (input: unknown) => Promise<unknown> = vi.fn().mockResolvedValue(undefined)) {
   return { mutate: vi.fn(), mutateAsync, isPending: ref(false), variables: ref(undefined) };
