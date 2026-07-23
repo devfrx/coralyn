@@ -82,8 +82,7 @@ function save() {
     </div>
 
     <Callout v-if="props.status.rates.count > 0 && !props.status.rates.hasCatchAll" tone="warm" data-testid="ob-no-catchall">
-      Non hai ancora una tariffa base che copra tutta la spiaggia: senza una tariffa applicabile, alcune
-      prenotazioni possono fallire.
+      Non c'è una tariffa base valida ovunque: alcune combinazioni potrebbero restare senza prezzo.
     </Callout>
 
     <div class="flex flex-col items-center gap-2.5 border-t border-[var(--color-border)] pt-4">
