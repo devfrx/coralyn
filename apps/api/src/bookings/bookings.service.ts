@@ -191,7 +191,12 @@ export class BookingsService {
     });
   }
 
-  /** Lancia il 422 di dominio col messaggio IT per un esito di pricing fallito. */
+  /** Lancia il 422 di dominio col messaggio IT per un esito di pricing fallito.
+   *
+   *  ⚠️ Questi 422 sono la definizione operativa di «lido non configurato»: l'onboarding li misura
+   *  in anticipo con `computeSetupStatus` (`establishment/setup-status.projection.ts`, ADR-0054).
+   *  Se qui nasce una nuova reason di configurazione mancante, la projection va estesa nello stesso
+   *  task — altrimenti il setup-status dichiara «completo» un lido che poi fallisce la prenotazione. */
   private throwPriceError(outcome: Extract<QuoteOutcome, { ok: false }>, type: BookingType): never {
     if (outcome.reason === 'UMBRELLA_NOT_FOUND')
       throw new UnprocessableEntityException('Ombrellone non valido');
