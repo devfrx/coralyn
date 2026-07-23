@@ -42,7 +42,8 @@ function signOut() { session.logout(); router.push('/login'); }
         <div class="text-[10.5px] font-medium uppercase tracking-[.08em] text-[var(--color-on-sidebar-muted)]">Gestionale lidi</div>
       </div>
     </div>
-    <button @click="router.push('/establishment')" title="Vai allo Stabilimento" aria-label="Vai allo Stabilimento" class="mb-[18px] flex w-full items-center gap-2.5 rounded-[11px] border border-[var(--color-sidebar-border)] bg-[var(--color-sidebar-raised)] px-2.5 py-2.5 text-left focus-visible:outline-none focus-visible:[box-shadow:var(--ring-focus)]">
+    <!-- Il nome visibile del lido resta nel nome accessibile (WCAG 2.5.3 Label in Name). -->
+    <button @click="router.push('/establishment')" title="Vai allo Stabilimento" :aria-label="`Vai allo Stabilimento: ${session.establishmentName}`" class="mb-[18px] flex w-full items-center gap-2.5 rounded-[11px] border border-[var(--color-sidebar-border)] bg-[var(--color-sidebar-raised)] px-2.5 py-2.5 text-left focus-visible:outline-none focus-visible:[box-shadow:var(--ring-focus)]">
       <span class="grid size-[30px] flex-none place-items-center rounded-lg text-white" style="background:linear-gradient(150deg,#85B4B2,#5E9AA6);"><Icon name="waves" :size="17" /></span>
       <span class="flex-1 leading-tight">
         <span class="block text-[13px] font-semibold text-[var(--color-on-sidebar-strong)]">{{ session.establishmentName }}</span>
