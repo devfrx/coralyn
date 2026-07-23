@@ -70,6 +70,10 @@ describe('BookingsView', () => {
     await flushPromises();
     expect(w.text()).toContain('Pacchetto'); // header colonna
     expect(w.text()).toContain('Standard'); // risolto per bk-1
+    // bk-2 non ha packageId: la cella Pacchetto rende il segnaposto '–'.
+    const bk2Row = w.findAll('tbody tr').find((r) => !r.text().includes('Standard'));
+    expect(bk2Row).toBeDefined();
+    expect(bk2Row!.text()).toContain('–');
   });
 
   it('ombrellone RITIRATO: label storica risolta dalla lista retired + badge "Ritirato" (D-060)', async () => {

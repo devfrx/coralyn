@@ -12,7 +12,7 @@ import { useRetiredUmbrellas } from '@/features/establishment/useEstablishmentSt
  * `usePackages()`: è un percorso di RISOLUZIONE, non un selettore di nuova prenotazione, quindi
  * deve restare in grado di mostrare il nome di un pacchetto archiviato sullo storico (spec
  * "Archiviazione pacchetti" §2/§5) — altrimenti le prenotazioni esistenti che referenziano un
- * pacchetto archiviato renderebbero "—" invece del nome.
+ * pacchetto archiviato renderebbero "–" invece del nome.
  * Per la stessa regola `umbrellaLabel` fonde gli ombrelloni RITIRATI (ADR-0053) nella mappa: un
  * ritirato non ha fila e non compare nella day-map, ma lo storico che lo referenzia deve mostrarne
  * la label (D-060, `GET establishment/umbrellas/retired` aperto anche allo staff proprio per questo).
