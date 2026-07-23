@@ -18,13 +18,19 @@ function makeTx() {
   };
 }
 
-function makeService(tx: ReturnType<typeof makeTx>, establishmentOverrides: Record<string, jest.Mock> = {}, userCount = 3) {
+function makeService(
+  tx: ReturnType<typeof makeTx>,
+  establishmentOverrides: Record<string, jest.Mock> = {},
+  userCount = 3,
+  setupComplete = true,
+) {
   const prisma = {
     forTenant: (_t: string, cb: (tx: unknown) => unknown) => cb(tx),
     user: { count: jest.fn().mockResolvedValue(userCount) },
     establishment: { findMany: jest.fn(), findUnique: jest.fn(), ...establishmentOverrides },
   } as any;
-  return { service: new PlatformMetricsService(prisma), prisma };
+  const setupStatus = { computeForTx: jest.fn().mockResolvedValue({ complete: setupComplete }) } as any;
+  return { service: new PlatformMetricsService(prisma, setupStatus), prisma, setupStatus };
 }
 
 describe('PlatformMetricsService', () => {
@@ -51,6 +57,7 @@ describe('PlatformMetricsService', () => {
       lastActivityAt: '2026-06-30T10:00:00.000Z',
       revenueSeasonTotal: 1234, activeSubscriptions: 4, bookingsThisSeason: 7,
       occupancyPctToday: 20, // 2 occupati / 10 ombrelloni
+      setupComplete: true,
     });
   });
 
@@ -60,13 +67,14 @@ describe('PlatformMetricsService', () => {
     tx.booking.aggregate.mockResolvedValueOnce({ _max: { createdAt: null } }); // lastActivity solo (no revenue call)
     tx.booking.count.mockResolvedValueOnce(1); // activeSubscriptions
     tx.bookingCoverage.findMany.mockResolvedValue([]);
-    const { service } = makeService(tx);
+    const { service } = makeService(tx, {}, 3, false);
 
     const dto = await service.metricsFor(EST);
     expect(dto.revenueSeasonTotal).toBe(0);
     expect(dto.bookingsThisSeason).toBe(0);
     expect(dto.lastActivityAt).toBeNull();
     expect(dto.occupancyPctToday).toBe(0);
+    expect(dto.setupComplete).toBe(false);
   });
 
   it('getOne: 404 se il lido non esiste', async () => {

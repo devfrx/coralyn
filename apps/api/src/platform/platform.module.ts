@@ -4,9 +4,10 @@ import { PlatformMetricsService } from './platform-metrics.service';
 import { PlatformProvisioningService } from './platform-provisioning.service';
 import { PasswordHasher } from '../identity/password-hasher';
 import { CredentialModule } from '../credential/credential.module';
+import { EstablishmentModule } from '../establishment/establishment.module';
 
 @Module({
-  imports: [CredentialModule],
+  imports: [CredentialModule, EstablishmentModule],
   controllers: [PlatformController],
   providers: [PlatformMetricsService, PlatformProvisioningService, PasswordHasher],
 })

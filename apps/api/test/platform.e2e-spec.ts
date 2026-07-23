@@ -84,8 +84,10 @@ describe('Platform Console (e2e)', () => {
 
   it('la lista mostra il lido creato con metriche PII-free', async () => {
     const res = await request(app.getHttpServer()).get('/api/platform/establishments').set(...bearer(superT)).expect(200);
+    expect(res.body[0]).toHaveProperty('setupComplete');
+    expect(typeof res.body[0].setupComplete).toBe('boolean');
     const item = res.body.find((e: { id: string }) => e.id === createdEstId);
-    expect(item).toEqual(expect.objectContaining({ name: 'Lido Nuovo', umbrellas: 0, staffUsersActive: 1, occupancyPctToday: 0 }));
+    expect(item).toEqual(expect.objectContaining({ name: 'Lido Nuovo', umbrellas: 0, staffUsersActive: 1, occupancyPctToday: 0, setupComplete: false }));
   });
 
   it('suspend → il nuovo admin non fa più login (401); reactivate → torna a fare login (200)', async () => {

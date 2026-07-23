@@ -9,6 +9,7 @@ function baseDto(over: Partial<PlatformEstablishmentDTO> & { id: string; name: s
     createdAt: '2026-01-01T00:00:00.000Z', suspendedAt: null,
     sectors: 0, rows: 0, umbrellas: 0, staffUsersActive: 1, lastActivityAt: null,
     revenueSeasonTotal: 0, activeSubscriptions: 0, bookingsThisSeason: 0, occupancyPctToday: 0,
+    setupComplete: true,
     ...over,
   };
 }

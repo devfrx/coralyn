@@ -3,13 +3,17 @@ import type { PlatformEstablishmentDTO } from '@coralyn/contracts';
 import { PrismaService } from '../prisma/prisma.service';
 import { todayInRome, toDbDate } from '../common/dates';
 import { occupancyPct } from '../reports/report.projection';
+import { SetupStatusService } from '../establishment/setup-status.service';
 
 type EstablishmentRow = { id: string; name: string; createdAt: Date; suspendedAt: Date | null };
 const EST_SELECT = { id: true, name: true, createdAt: true, suspendedAt: true } as const;
 
 @Injectable()
 export class PlatformMetricsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly setupStatus: SetupStatusService,
+  ) {}
 
   async list(): Promise<PlatformEstablishmentDTO[]> {
     const rows = await this.prisma.establishment.findMany({ select: EST_SELECT, orderBy: { createdAt: 'asc' } });
@@ -59,12 +63,14 @@ export class PlatformMetricsService {
         distinct: ['umbrellaId'],
         select: { umbrellaId: true },
       });
+      const setupComplete = (await this.setupStatus.computeForTx(tx)).complete;
 
       return {
         sectors, rows, umbrellas,
         lastActivityAt: lastBooking._max.createdAt,
         revenueSeasonTotal, bookingsThisSeason, activeSubscriptions,
         occupancyPctToday: occupancyPct(occupied.length, umbrellas),
+        setupComplete,
       };
     });
 
@@ -82,6 +88,7 @@ export class PlatformMetricsService {
       activeSubscriptions: agg.activeSubscriptions,
       bookingsThisSeason: agg.bookingsThisSeason,
       occupancyPctToday: agg.occupancyPctToday,
+      setupComplete: agg.setupComplete,
     };
   }
 }

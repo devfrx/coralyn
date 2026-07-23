@@ -659,6 +659,8 @@ export interface PlatformEstablishmentDTO {
   bookingsThisSeason: number;
   // operatività live
   occupancyPctToday: number; // 0..100 — quota ombrelloni con prenotazione confermata oggi
+  // configurazione
+  setupComplete: boolean; // SetupStatusDTO.complete del lido (ADR-0054) — PII-free
 }
 
 /** Input di provisioning di un nuovo lido (superuser). */
