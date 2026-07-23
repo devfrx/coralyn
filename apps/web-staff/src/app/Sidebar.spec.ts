@@ -47,6 +47,32 @@ describe('Sidebar', () => {
     expect(w.text()).not.toContain('Stagione 2026');
   });
 
+  it('il logout è un bottone con testo «Esci» che sgancia la sessione (5.1, allineato a web-platform)', async () => {
+    const w = mountApp(Sidebar);
+    const s = setUser('Lido Uno');
+    await w.vm.$nextTick();
+    const esci = w.findAll('button').find((b) => b.text() === 'Esci');
+    expect(esci).toBeDefined();
+    await esci!.trigger('click');
+    expect(s.user).toBeNull();
+  });
+
+  it('admin vede la sezione Amministrazione con la voce Struttura (5.1)', async () => {
+    const w = mountApp(Sidebar);
+    setUser('Lido Uno', Role.Admin);
+    await w.vm.$nextTick();
+    expect(w.text()).toContain('Amministrazione');
+    expect(w.text()).toContain('Struttura');
+  });
+
+  it('staff NON vede la sezione Amministrazione né Struttura (5.1)', async () => {
+    const w = mountApp(Sidebar);
+    setUser('Lido Uno', Role.Staff);
+    await w.vm.$nextTick();
+    expect(w.text()).not.toContain('Amministrazione');
+    expect(w.text()).not.toContain('Struttura');
+  });
+
   it('riflette reattivamente un cambio di nome', async () => {
     const w = mountApp(Sidebar);
     const s = setUser('Lido Uno');
