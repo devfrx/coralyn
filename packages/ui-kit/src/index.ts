@@ -25,6 +25,7 @@ export { default as DataTable } from './components/DataTable.vue';
 export type { DataTableColumn } from './tableData';
 export { default as EmptyState } from './components/EmptyState.vue';
 export { default as Select } from './components/Select.vue';
+export { default as Option } from './components/Option.vue';
 export { default as ModalFooter } from './components/ModalFooter.vue';
 export { default as PageToolbar } from './components/PageToolbar.vue';
 export { default as KpiCard } from './components/KpiCard.vue';
