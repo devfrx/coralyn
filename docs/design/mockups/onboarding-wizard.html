@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mockup — Onboarding di prima configurazione (ADR-0054), passo «Struttura»</title>
+<style>
+/* ============ TOKEN (estratto fedele da packages/ui-kit/src/styles/theme.css) ============ */
+:root{
+  --color-coral-500:#E0795A; --color-coral-600:#C9603F; --color-coral-700:#B65A38;
+  --color-coral-100:#FBE8DF; --color-coral-050:#FBF1EF;
+  --color-accent-500:#2F7281; --color-accent-100:#E6EFEC;
+  --color-warm-000:#FFFFFF; --color-warm-025:#FCFAF5; --color-warm-050:#FBF6EE;
+  --color-warm-075:#FBF4E6; --color-warm-100:#F4ECE0; --color-warm-150:#F6EAD3;
+  --color-warm-200:#ECE3D5;
+  --color-warm-border:#E7DCCB; --color-warm-border-input:#E0D5C3; --color-warm-border-row:#F1EADC;
+  --color-ink-900:#22303A; --color-ink-700:#5E5648; --color-ink-500:#978C7B; --color-ink-400:#B3A998;
+  --color-success-bg:#E3EFDD; --color-success-ink:#4C7A3B;
+  --color-danger:#C8503E; --color-danger-bg:#FBE3E0; --color-danger-ink:#A33A2C; --color-danger-border:#EBB7AF;
+  --color-canvas:var(--color-warm-200); --color-bg:var(--color-warm-100);
+  --color-surface:var(--color-warm-000); --color-raised:var(--color-warm-050);
+  --color-border:var(--color-warm-border); --color-border-input:var(--color-warm-border-input);
+  --color-border-row:var(--color-warm-border-row);
+  --color-text:var(--color-ink-900); --color-text-2nd:var(--color-ink-700); --color-text-muted:var(--color-ink-500);
+  --color-brand:var(--color-coral-500); --color-brand-hover:var(--color-coral-600);
+  --color-brand-ink:var(--color-coral-700); --color-brand-tint:var(--color-coral-100);
+  --color-accent:var(--color-accent-500); --color-accent-tint:var(--color-accent-100);
+  --radius-sm:9px; --radius-md:11px; --radius-lg:16px; --radius-full:999px;
+  --shadow-card:0 1px 3px rgba(15,60,73,.05); --shadow-soft:0 1px 2px rgba(15,60,73,.08);
+  --ring-focus:0 0 0 3px rgba(224,121,90,.16);
+  --ease-standard:cubic-bezier(.2,0,.2,1);
+}
+*{box-sizing:border-box} button{font:inherit;cursor:pointer}
+body{margin:0;font-family:'Inter',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;background:var(--color-canvas);color:var(--color-text);-webkit-font-smoothing:antialiased}
+
+/* ============ Intestazione del documento di mockup ============ */
+.doc{max-width:900px;margin:0 auto;padding:28px 22px 60px}
+.doc-head{margin-bottom:20px}
+.doc-eyebrow{font-size:11px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--color-accent)}
+.doc-title{font-size:22px;font-weight:800;letter-spacing:-.015em;margin:.2em 0 .3em}
+.doc-sub{font-size:13.5px;color:var(--color-text-2nd);max-width:72ch;line-height:1.55;margin:0}
+
+/* ============ Cornice "app": AppShell semplificata ============ */
+.frame{background:var(--color-bg);border:1px solid var(--color-border);border-radius:var(--radius-lg);overflow:hidden;box-shadow:var(--shadow-card)}
+.frame-head{padding:16px 26px;border-bottom:1px solid var(--color-border-row);background:var(--color-surface)}
+.frame-head h1{margin:0;font-size:15px;font-weight:800;letter-spacing:-.01em}
+.frame-head p{margin:2px 0 0;font-size:12px;color:var(--color-text-muted)}
+.section{max-width:860px;padding:22px 26px 30px}
+
+/* ============ Stepper ============ */
+.stepper{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-bottom:20px}
+.step-btn{display:flex;align-items:center;gap:8px;border-radius:var(--radius-md);border:1px solid var(--color-border);background:var(--color-surface);padding:8px 12px;text-align:left}
+.step-btn.active{border-color:var(--color-brand);background:var(--color-brand-tint)}
+.step-btn .n{display:grid;place-items:center;width:24px;height:24px;flex:none;border-radius:999px;font-size:11.5px;font-weight:800;background:var(--color-brand-tint);color:var(--color-brand-ink)}
+.step-btn.done .n{background:var(--color-success-bg);color:var(--color-success-ink)}
+.step-btn .label{font-size:12.5px;font-weight:600;color:var(--color-text)}
+
+/* ============ Card del passo ============ */
+.card{background:var(--color-surface);border:1px solid var(--color-border);border-radius:var(--radius-lg);box-shadow:var(--shadow-card)}
+.step-body{display:flex;flex-direction:column;gap:20px;padding:34px 30px}
+
+.intro{display:flex;flex-direction:column;gap:8px;text-align:center}
+.intro p{margin:0;font-size:13px;line-height:1.55;color:var(--color-text-2nd);max-width:60ch;margin:0 auto}
+.intro p strong{color:var(--color-text)}
+.why{margin:0 auto;max-width:52ch;text-align:left;font-size:12.5px;color:var(--color-text-muted)}
+.why summary{cursor:pointer;font-weight:700;color:var(--color-text)}
+.why[open] summary{margin-bottom:6px}
+
+.counts{margin:0;text-align:center;font-size:12.5px;color:var(--color-text-muted);font-variant-numeric:tabular-nums}
+
+form.grp{display:flex;flex-direction:column;gap:10px}
+.grp-label{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.09em;color:var(--color-text-muted)}
+.row2{display:grid;grid-template-columns:1fr auto;gap:8px}
+.row2.eq{grid-template-columns:1fr 1fr}
+.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+
+.field{display:flex;flex-direction:column;gap:5px}
+.field label{font-size:11.5px;font-weight:700;color:var(--color-text-2nd)}
+.field input,.field select{border:1.5px solid var(--color-border-input);background:var(--color-surface);border-radius:var(--radius-md);padding:9px 11px;font-size:13px;color:var(--color-text);font-family:inherit;width:100%}
+.field input:focus,.field select:focus{outline:none;box-shadow:var(--ring-focus);border-color:var(--color-brand)}
+
+.preview{display:flex;flex-wrap:wrap;gap:5px}
+.preview .p{font-size:11px;font-weight:600;font-variant-numeric:tabular-nums;background:var(--color-warm-100);border:1px solid var(--color-border-row);border-radius:7px;padding:3px 7px;color:var(--color-text-2nd)}
+.hint{margin:0;font-size:11.5px;color:var(--color-text-muted);line-height:1.5}
+
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;border-radius:var(--radius-md);padding:9px 16px;font-size:12.5px;font-weight:700;border:1.5px solid transparent;align-self:flex-start}
+.btn.primary{background:var(--color-brand);color:#fff;box-shadow:0 2px 8px rgba(224,121,90,.3)}
+.btn.primary:hover{background:var(--color-brand-hover)}
+.btn.primary:disabled{opacity:.45;cursor:not-allowed;box-shadow:none}
+
+.footer{display:flex;flex-direction:column;align-items:center;gap:10px;border-top:1px solid var(--color-border);padding-top:16px}
+.footer a{font-size:12.5px;font-weight:600;color:var(--color-brand-ink);text-decoration:underline;text-underline-offset:2px}
+
+.notes{margin-top:24px;font-size:13px;line-height:1.6;color:var(--color-text-2nd);max-width:78ch}
+.notes h2{font-size:14px;font-weight:800;color:var(--color-text);margin:20px 0 6px}
+.notes ul{margin:6px 0;padding-left:20px}
+.notes li{margin:4px 0}
+</style>
+</head>
+<body>
+<div class="doc">
+  <header class="doc-head">
+    <div class="doc-eyebrow">Mockup · 2026-07-23 · onboarding di prima configurazione (ADR-0054)</div>
+    <h1 class="doc-title">Wizard «/onboarding» — passo 2 «Struttura»</h1>
+    <p class="doc-sub">Sei passi, stepper riavviabile posizionato su <code>firstIncompleteStep</code> (letto da
+    <code>GET /establishment/setup-status</code>). Ogni passo è intro didattica + dettaglio «Perché serve?»
+    richiuso + form reali riusati dall'editor completo. Struttura e intenzione, non pixel-perfection.</p>
+  </header>
+
+  <div class="frame">
+    <div class="frame-head">
+      <h1>Configurazione guidata</h1>
+      <p>Prepara il lido a incassare la prima prenotazione</p>
+    </div>
+    <div class="section">
+      <!-- ==================== STEPPER (6 voci) ==================== -->
+      <nav class="stepper" aria-label="Passi della configurazione guidata">
+        <div class="step-btn done"><span class="n">✓</span><span class="label">Benvenuto</span></div>
+        <div class="step-btn active" aria-current="step"><span class="n">2</span><span class="label">Struttura</span></div>
+        <div class="step-btn"><span class="n">3</span><span class="label">Fasce orarie</span></div>
+        <div class="step-btn"><span class="n">4</span><span class="label">Stagione</span></div>
+        <div class="step-btn"><span class="n">5</span><span class="label">Listino</span></div>
+        <div class="step-btn"><span class="n">6</span><span class="label">Riepilogo</span></div>
+      </nav>
+
+      <!-- ==================== CARD del passo «Struttura» ==================== -->
+      <div class="card">
+        <div class="step-body">
+
+          <div class="intro">
+            <p>
+              <strong>La struttura è la tua spiaggia dentro Coralyn.</strong>
+              Un <em>settore</em> è una zona («Centro», «Zona nord»); ogni settore ha delle <em>file</em>, dalla più vicina
+              al mare in giù; ogni fila contiene gli <em>ombrelloni</em>, che sono ciò che i clienti prenotano.
+            </p>
+            <details class="why">
+              <summary>Perché serve?</summary>
+              Una prenotazione è sempre su un ombrellone specifico: senza almeno un ombrellone il sistema risponde
+              «Ombrellone non valido» e la mappa resta vuota. Potrai sempre aggiungere, rinominare e riorganizzare
+              tutto dal Cantiere.
+            </details>
+          </div>
+
+          <p class="counts">0 settori · 0 file · 0 ombrelloni</p>
+
+          <!-- Form 1: nuovo settore -->
+          <form class="grp">
+            <span class="grp-label">Nuovo settore</span>
+            <div class="row2">
+              <div class="field"><label>Nome del settore</label><input placeholder="es. Centro"></div>
+              <div class="field"><label>Disposizione</label>
+                <select>
+                  <option>Griglia — file regolari</option>
+                  <option>Speciali — posti fuori schema</option>
+                </select>
+              </div>
+            </div>
+            <button type="button" class="btn primary">Crea settore</button>
+          </form>
+
+          <!-- Form 2: nuova fila (visibile solo con settori esistenti) -->
+          <form class="grp">
+            <span class="grp-label">Nuova fila</span>
+            <div class="row2 eq">
+              <div class="field"><label>Settore</label>
+                <select><option>Centro</option></select>
+              </div>
+              <div class="field"><label>Etichetta</label><input placeholder="es. Fila 1"></div>
+            </div>
+            <button type="button" class="btn primary">Crea fila</button>
+          </form>
+
+          <!-- Form 3: genera ombrelloni (visibile solo con file esistenti) -->
+          <form class="grp">
+            <span class="grp-label">Genera ombrelloni</span>
+            <div class="field"><label>Fila</label><select><option>Fila 1</option></select></div>
+            <div class="grid3">
+              <div class="field"><label>Prefisso</label><input value="A"></div>
+              <div class="field"><label>Da numero</label><input type="number" value="1"></div>
+              <div class="field"><label>Quantità</label><input type="number" value="10"></div>
+            </div>
+            <div class="field"><label>Tipologia</label><select><option>Normale</option></select></div>
+            <p class="hint">Anteprima: A1, A2, A3, A4, A5, A6… (10). Le etichette già esistenti vengono saltate.</p>
+            <button type="button" class="btn primary">Genera 10 ombrelloni</button>
+          </form>
+
+          <!-- Footer: link Cantiere + Continua disabilitato -->
+          <div class="footer">
+            <a href="#">Apri il Cantiere per l'editor completo</a>
+            <button type="button" class="btn primary" disabled>Continua</button>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <section class="notes">
+    <h2>Cosa mostra questo mockup</h2>
+    <ul>
+      <li><b>Stepper riavviabile</b>: «Benvenuto» spuntato, «Struttura» attivo — riflette
+        <code>firstIncompleteStep</code> di <code>SetupStatusDTO</code>, non un ordine fisso lato client.</li>
+      <li><b>Intro didattica + «Perché serve?»</b> richiuso: spiega il dominio prima di chiedere dati, senza
+        occupare spazio di default.</li>
+      <li><b>Tre form reali</b> (settore → fila → generatore), stessa copy e stessi campi del componente
+        <code>StepStructure.vue</code> — nessun dato inventato per il mockup.</li>
+      <li><b>Continua disabilitato</b> finché <code>status.structure.complete</code> non è vero: il passo non si
+        supera «a vista», solo quando il server conferma almeno un ombrellone attivo.</li>
+      <li><b>Nessuna promessa di reset</b>: il link «Cantiere» è l'unica via per operazioni che il dominio vieta al
+        wizard (ritiro, guardie 409 — ADR-0053).</li>
+    </ul>
+  </section>
+</div>
+</body>
+</html>

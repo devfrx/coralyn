@@ -454,3 +454,25 @@ admin-only) e le azioni **Genera**/**Rigenera** (chiama `POST /bookings/:id/cust
 PIN **una volta** in un modale di reveal, con copia) e **Revoca** (chiama `POST /bookings/:id/customer-access/revoke`,
 dietro conferma). Nessuna nuova macchina a stati: la card riflette 1:1 quella di `CustomerEnrollmentToken` sopra.
 
+## 10. Onboarding di prima configurazione (ADR-0054)
+
+Il wizard `/onboarding` in `web-staff` orchestra le mutation per-entità esistenti; la posizione dello
+stepper e la ripresa sono una **proiezione** dello stato misurato server-side da `GET /establishment/setup-status`.
+
+```mermaid
+stateDiagram-v2
+    [*] --> Benvenuto
+    Benvenuto --> Struttura
+    Struttura --> FasceOrarie : structure.complete
+    FasceOrarie --> Stagione : timeSlots.complete
+    Stagione --> Listino : seasons.complete
+    Listino --> Riepilogo : rates.complete
+    Riepilogo --> [*]
+    note right of Struttura
+        Ripresa: a ogni ingresso il wizard
+        interroga GET /establishment/setup-status
+        e parte da firstIncompleteStep.
+        I passi completati restano visitabili.
+    end note
+```
+
