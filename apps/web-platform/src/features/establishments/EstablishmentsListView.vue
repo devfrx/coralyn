@@ -95,7 +95,10 @@ const cols: DataTableColumn[] = [
       <template #cell-occupancyPctToday="{ row }">{{ (row as unknown as PlatformEstablishmentDTO).occupancyPctToday }}%</template>
       <template #cell-lastActivityAt="{ row }">{{ fmtDate((row as unknown as PlatformEstablishmentDTO).lastActivityAt) }}</template>
       <template #cell-suspendedAt="{ row }">
-        <Badge :tone="(row as unknown as PlatformEstablishmentDTO).suspendedAt ? 'neutral' : 'success'">{{ (row as unknown as PlatformEstablishmentDTO).suspendedAt ? 'Sospeso' : 'Attivo' }}</Badge>
+        <span class="inline-flex items-center gap-1.5">
+          <Badge :tone="(row as unknown as PlatformEstablishmentDTO).suspendedAt ? 'neutral' : 'success'">{{ (row as unknown as PlatformEstablishmentDTO).suspendedAt ? 'Sospeso' : 'Attivo' }}</Badge>
+          <Badge v-if="!(row as unknown as PlatformEstablishmentDTO).suspendedAt && !(row as unknown as PlatformEstablishmentDTO).setupComplete" tone="neutral" data-testid="setup-incomplete">Da configurare</Badge>
+        </span>
       </template>
       <template #cell-actions="{ row }">
         <ActionBar gap="sm" align="end">
