@@ -13,6 +13,7 @@ import { RowsController } from './rows.controller';
 import { RowsService } from './rows.service';
 import { UmbrellasController } from './umbrellas.controller';
 import { UmbrellasService } from './umbrellas.service';
+import { SetupStatusService } from './setup-status.service';
 import { PasswordHasher } from '../identity/password-hasher';
 import { CredentialModule } from '../credential/credential.module';
 
@@ -35,7 +36,9 @@ import { CredentialModule } from '../credential/credential.module';
     SectorsService,
     RowsService,
     UmbrellasService,
+    SetupStatusService,
     PasswordHasher,
   ],
+  exports: [SetupStatusService],
 })
 export class EstablishmentModule {}
