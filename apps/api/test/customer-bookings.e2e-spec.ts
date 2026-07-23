@@ -243,7 +243,7 @@ describe('Customer bookings (e2e)', () => {
       .get(`/api/customers/${c.id}/bookings`).set(...bearer(t1)).expect(200);
     const retired = res.body.find((b: { id: string }) => b.id === past.body.id);
     expect(retired.umbrellaRetiredFrom).toBe('Centro · Fila 1'); // snapshot seed-map: settore Centro, fila «Fila 1»
-    expect(typeof retired.umbrellaRetiredAt).toBe('string');
+    expect(retired.umbrellaRetiredAt).toMatch(/^\d{4}-\d{2}-\d{2}T/);
     expect(retired.sectorName).toBeUndefined();
     expect(retired.umbrellaLabel).toBe('RT-CB');
     const aliveDto = res.body.find((b: { id: string }) => b.id === alive.body.id);

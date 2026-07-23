@@ -97,15 +97,6 @@ describe('CustomerSubscriptionsCard — disdetta (D-013)', () => {
     expect(w.emitted('reactivate')?.[0]?.[0]).toMatchObject({ booking: { id: 'sub-3' }, suspension: { id: 'sus-1' } });
   });
 
-  it('abbonamento su ombrellone ritirato: chip con snapshot storico + badge «Ritirato» (D-055)', () => {
-    const retiredSub: CustomerBookingDTO = {
-      ...activeSub, id: 'sub-retired', sectorName: undefined,
-      umbrellaRetiredAt: '2026-07-12T10:00:00.000Z', umbrellaRetiredFrom: 'Centro · Fila 1',
-    };
-    const w = mountApp(CustomerSubscriptionsCard, { props: { bookings: [retiredSub], isAdmin: true } });
-    expect(w.text()).toContain('Centro · Fila 1');
-    expect(w.text()).toContain('Ritirato');
-  });
 });
 
 describe('CustomerSubscriptionsCard — cessione (D-013)', () => {
@@ -264,5 +255,17 @@ describe('CustomerSubscriptionsCard — hardening macchina a stati', () => {
   it('C1: disdetto → niente toggle consenso', () => {
     const w = mountApp(CustomerSubscriptionsCard, { props: { bookings: [terminatedSub], isAdmin: true } });
     expect(w.find('[data-testid="absence-consent-sub-2"]').exists()).toBe(false);
+  });
+});
+
+describe('CustomerSubscriptionsCard — ombrellone ritirato (D-055)', () => {
+  it('abbonamento su ombrellone ritirato: chip con snapshot storico + badge «Ritirato» (D-055)', () => {
+    const retiredSub: CustomerBookingDTO = {
+      ...activeSub, id: 'sub-retired', sectorName: undefined,
+      umbrellaRetiredAt: '2026-07-12T10:00:00.000Z', umbrellaRetiredFrom: 'Centro · Fila 1',
+    };
+    const w = mountApp(CustomerSubscriptionsCard, { props: { bookings: [retiredSub], isAdmin: true } });
+    expect(w.text()).toContain('Centro · Fila 1');
+    expect(w.text()).toContain('Ritirato');
   });
 });
