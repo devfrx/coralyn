@@ -145,6 +145,8 @@ export class BookingsService {
           umbrellaLabel: b.umbrella.label,
           packageName: b.package?.name ?? undefined,
           sectorName: b.umbrella.row?.sector.name, // umbrella ritirato (D-055): rowId null, niente sector name live
+          umbrellaRetiredAt: b.umbrella.retiredAt?.toISOString(),
+          umbrellaRetiredFrom: b.umbrella.retiredAt ? (b.umbrella.retiredFrom ?? undefined) : undefined,
           seasonName: resolveSeasonName(seasons, b.startDate),
           seniority: isSub ? (seniorityById.get(b.id) ?? 1) : undefined,
           renewed: isSub ? b.renewals.some((r) => r.status === 'confirmed') : undefined,

@@ -223,4 +223,32 @@ describe('Customer bookings (e2e)', () => {
     expect(dto.absenceReleases).toHaveLength(1);
     expect(dto.absenceReleases[0].resold).toBe(true);
   });
+
+  it('espone umbrellaRetiredAt/umbrellaRetiredFrom per un ombrellone ritirato; sectorName assente; i vivi invariati (D-055)', async () => {
+    const c = await prisma.forTenant(s1, (tx) =>
+      tx.customer.create({ data: { establishmentId: s1, firstName: 'Ritiro', lastName: 'Test' } }));
+    const u = await prisma.forTenant(s1, (tx) =>
+      tx.umbrella.create({ data: { establishmentId: s1, rowId: ids.rowId, umbrellaTypeId: null, label: 'RT-CB', logicalOrder: 97 } }));
+
+    // daily CONCLUSO rispetto all'oggi congelato (2026-07-15) → il retire non è bloccato.
+    const past = await request(app.getHttpServer()).post('/api/bookings').set(...bearer(t1))
+      .send({ customerId: c.id, umbrellaId: u.id, timeSlotId: ids.slotMorning, type: 'daily', startDate: '2026-07-05' }).expect(201);
+    // daily su ombrellone VIVO per il controllo negativo.
+    const alive = await request(app.getHttpServer()).post('/api/bookings').set(...bearer(t1))
+      .send({ customerId: c.id, umbrellaId: ids.u1, timeSlotId: ids.slotMorning, type: 'daily', startDate: '2026-07-06' }).expect(201);
+
+    await request(app.getHttpServer()).post(`/api/establishment/umbrellas/${u.id}/retire`).set(...bearer(t1)).expect(201);
+
+    const res = await request(app.getHttpServer())
+      .get(`/api/customers/${c.id}/bookings`).set(...bearer(t1)).expect(200);
+    const retired = res.body.find((b: { id: string }) => b.id === past.body.id);
+    expect(retired.umbrellaRetiredFrom).toBe('Centro · Fila 1'); // snapshot seed-map: settore Centro, fila «Fila 1»
+    expect(typeof retired.umbrellaRetiredAt).toBe('string');
+    expect(retired.sectorName).toBeUndefined();
+    expect(retired.umbrellaLabel).toBe('RT-CB');
+    const aliveDto = res.body.find((b: { id: string }) => b.id === alive.body.id);
+    expect(aliveDto.sectorName).toBe('Centro');
+    expect(aliveDto.umbrellaRetiredAt).toBeUndefined();
+    expect(aliveDto.umbrellaRetiredFrom).toBeUndefined();
+  });
 });
