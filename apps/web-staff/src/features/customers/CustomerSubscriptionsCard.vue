@@ -48,7 +48,7 @@ const hasTimeline = (b: CustomerBookingDTO): boolean =>
               <Badge v-if="b.packageName" tone="brand">{{ b.packageName }}</Badge>
               <Badge v-if="b.renewed" tone="success">Rinnovato</Badge>
             </div>
-            <div class="mt-1.5 text-[13px] font-semibold text-[var(--color-text)]">{{ b.seasonName ?? '—' }} · posto riservato</div>
+            <div class="mt-1.5 text-[13px] font-semibold text-[var(--color-text)]">{{ b.seasonName ?? '–' }} · posto riservato</div>
           </div>
           <div class="shrink-0 rounded-[var(--radius-sm)] bg-[var(--color-brand-tint)] px-3.5 py-2 text-center">
             <div class="text-[26px] font-bold leading-none tabular-nums text-[var(--color-brand-ink)]">{{ b.seniority ?? 1 }}</div>

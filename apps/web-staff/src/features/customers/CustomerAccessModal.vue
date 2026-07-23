@@ -12,7 +12,7 @@ const copied = ref<'link' | 'pin' | null>(null);
 
 const EXPIRES_FMT = new Intl.DateTimeFormat('it-IT', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Rome' });
 function fmtExpires(iso: string | undefined): string {
-  return iso ? EXPIRES_FMT.format(new Date(iso)) : '—';
+  return iso ? EXPIRES_FMT.format(new Date(iso)) : '–';
 }
 
 watch(

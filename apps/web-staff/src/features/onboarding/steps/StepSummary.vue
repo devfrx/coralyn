@@ -51,7 +51,7 @@ function goToMap() {
       <RouterLink
         to="/rentals/catalogo"
         class="text-[12.5px] font-semibold text-[var(--color-accent)] underline-offset-2 hover:underline"
-      >Vuoi noleggiare pedalò e attrezzatura? Configura il catalogo noleggio — facoltativo.</RouterLink>
+      >Vuoi noleggiare pedalò e attrezzatura? Configura il catalogo noleggio (facoltativo).</RouterLink>
     </div>
   </div>
 </template>

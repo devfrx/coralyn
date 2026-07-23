@@ -100,7 +100,7 @@ const archivedTariffs = computed(() => (tariffsData.value ?? []).filter((t) => t
 const archivedTariffsOpen = ref(false);
 
 function durationLabel(minutes: number | null): string {
-  return minutes == null ? '—' : `${minutes} min`;
+  return minutes == null ? '–' : `${minutes} min`;
 }
 
 const tariffCols: DataTableColumn[] = [

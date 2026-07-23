@@ -23,6 +23,6 @@ describe('CustomerHistoryCard — chip posizione (D-055)', () => {
     const w = mountApp(CustomerHistoryCard, { props: { bookings: [retired] } });
     expect(w.text()).toContain('Centro · Fila 1 · 12');
     expect(w.text()).toContain('Ritirato');
-    expect(w.text()).not.toContain('— ·');
+    expect(w.text()).not.toContain('– ·');
   });
 });

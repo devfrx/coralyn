@@ -11,7 +11,7 @@ const establishments = computed(() => data.value ?? []);
 
 const DATE_FMT = new Intl.DateTimeFormat('it-IT', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' });
 function fmtDate(iso: string | null): string {
-  return iso ? DATE_FMT.format(new Date(iso)) : '—';
+  return iso ? DATE_FMT.format(new Date(iso)) : '–';
 }
 
 const createOpen = ref(false);

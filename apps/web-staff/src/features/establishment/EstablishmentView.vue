@@ -27,7 +27,7 @@ const seasonLabel = computed(() => {
   return s ? `${s.name} · ${fmtDay(s.startDate)} – ${fmtDay(s.endDate)}` : 'Nessuna stagione attiva';
 });
 const seasonName = computed(() => data.value?.activeSeason?.name ?? 'Nessuna stagione attiva');
-const slotsLabel = computed(() => (data.value?.timeSlots ?? []).map((t) => t.name).join(' · ') || '—');
+const slotsLabel = computed(() => (data.value?.timeSlots ?? []).map((t) => t.name).join(' · ') || '–');
 const structureTiles = computed(() => {
   const s = data.value?.structure;
   return [

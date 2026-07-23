@@ -111,7 +111,7 @@ function onTabKeydown(e: KeyboardEvent, i: number) {
         <button v-if="isAdmin" type="button" class="st-ghost-row focus-visible:outline-none focus-visible:[box-shadow:var(--ring-focus)]"
           data-testid="ghost-row" @click="emit('create-row', current.id)">
           <span class="grid size-6 place-items-center rounded-[8px] border-[1.5px] border-dashed border-current text-sm">+</span>
-          Nuova fila — etichetta e, se vuoi, genera subito gli ombrelloni
+          Nuova fila: etichetta e, se vuoi, genera subito gli ombrelloni
         </button>
       </template>
     </div>

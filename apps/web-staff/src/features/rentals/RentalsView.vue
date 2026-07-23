@@ -68,10 +68,10 @@ function onConfirmCancel(): void {
   cancelTarget.value = null;
 }
 
-// --- Disponibilità: "Disponibili: X" per gli articoli con noleggi attivi in giornata, "—" se illimitata ---
+// --- Disponibilità: "Disponibili: X" per gli articoli con noleggi attivi in giornata, "–" se illimitata ---
 function availabilityLabel(rentalItemId: string): string {
   const a = availability.value.find((x) => x.rentalItemId === rentalItemId);
-  if (!a || a.available === null) return '—';
+  if (!a || a.available === null) return '–';
   return `Disponibili: ${a.available}`;
 }
 const activeItemIds = computed(() => new Set(rentals.value.filter((r) => r.status === 'active').map((r) => r.rentalItemId)));
@@ -139,7 +139,7 @@ function confirmCheckout(): void {
     >
       <template #cell-articolo="{ row }"><span class="font-semibold text-[var(--color-text)]">{{ (row as unknown as RentalDTO).rentalItemName }}</span></template>
       <template #cell-tariffa="{ row }"><span class="text-[var(--color-text-2nd)]">{{ (row as unknown as RentalDTO).tariffLabel }}</span></template>
-      <template #cell-cliente="{ row }"><span class="text-[var(--color-text-2nd)]">{{ (row as unknown as RentalDTO).customerName ?? '—' }}</span></template>
+      <template #cell-cliente="{ row }"><span class="text-[var(--color-text-2nd)]">{{ (row as unknown as RentalDTO).customerName ?? '–' }}</span></template>
       <template #cell-unita="{ row }"><span class="text-[var(--color-text-2nd)]">{{ (row as unknown as RentalDTO).units }}</span></template>
       <template #cell-stato="{ row }">
         <Badge :tone="RENTAL_STATUS_TONE[(row as unknown as RentalDTO).status]">{{ RENTAL_STATUS_LABEL[(row as unknown as RentalDTO).status] }}</Badge>
@@ -175,7 +175,7 @@ function confirmCheckout(): void {
         <Field label="Tariffa">
           <Select v-model="tariffId" data-test="new-rental-tariff" :disabled="!itemId">
             <option value="" disabled>Seleziona una tariffa…</option>
-            <option v-for="t in tariffs" :key="t.id" :value="t.id">{{ t.label }} — {{ formatEuro(t.price) }}</option>
+            <option v-for="t in tariffs" :key="t.id" :value="t.id">{{ t.label }} · {{ formatEuro(t.price) }}</option>
           </Select>
           <p v-if="itemId && tariffs.length === 0" class="mt-1.5 text-[11.5px] text-[var(--color-text-muted)]">
             Nessuna tariffa per questo articolo nella stagione attiva.

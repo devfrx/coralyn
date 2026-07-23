@@ -14,7 +14,7 @@ const skeletonVisible = useDelayedLoading(() => isLoading.value);
 
 const DATE_FMT = new Intl.DateTimeFormat('it-IT', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' });
 function fmtDate(iso: string | null | undefined): string {
-  return iso ? DATE_FMT.format(new Date(iso)) : '—';
+  return iso ? DATE_FMT.format(new Date(iso)) : '–';
 }
 
 // Sorgente unica delle metriche: lo skeleton e i tile reali derivano da qui, così label/testid/ordine non driftano.

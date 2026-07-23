@@ -76,8 +76,8 @@ function ini(c: { firstName: string; lastName: string }) { return ((c.firstName[
           >{{ (row as unknown as CustomerDTO).firstName }} {{ (row as unknown as CustomerDTO).lastName }}</RouterLink>
         </div>
       </template>
-      <template #cell-phone="{ row }"><span class="tabular-nums text-[var(--color-text-2nd)]">{{ (row as unknown as CustomerDTO).phone ?? '—' }}</span></template>
-      <template #cell-email="{ row }"><span class="text-[var(--color-text-2nd)]">{{ (row as unknown as CustomerDTO).email ?? '—' }}</span></template>
+      <template #cell-phone="{ row }"><span class="tabular-nums text-[var(--color-text-2nd)]">{{ (row as unknown as CustomerDTO).phone ?? '–' }}</span></template>
+      <template #cell-email="{ row }"><span class="text-[var(--color-text-2nd)]">{{ (row as unknown as CustomerDTO).email ?? '–' }}</span></template>
       <template #cell-notes="{ row }"><span class="text-[var(--color-text-muted)]" :title="(row as unknown as CustomerDTO).notes ?? ''">{{ (row as unknown as CustomerDTO).notes ?? '' }}</span></template>
     </DataTable>
 

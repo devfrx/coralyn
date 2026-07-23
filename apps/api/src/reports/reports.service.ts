@@ -102,7 +102,7 @@ export class ReportsService {
       return open.map((w) => ({
         customerId: w.customerId,
         customerName: cById.get(w.customerId) ?? w.customerId,
-        umbrellaLabel: uById.get(w.umbrellaId) ?? '—',
+        umbrellaLabel: uById.get(w.umbrellaId) ?? '–',
         seniority: w.seniority,
         deadline: campaign.deadline,
       }));

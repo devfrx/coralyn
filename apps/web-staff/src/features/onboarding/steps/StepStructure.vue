@@ -69,8 +69,8 @@ watch(rows, (list) => {
         <Field label="Nome del settore"><Input name="ob-sector-name" data-testid="ob-sector-name" v-model="sectorName" placeholder="es. Centro" /></Field>
         <Field label="Disposizione">
           <Select v-model="sectorKind" data-testid="ob-sector-kind">
-            <option value="grid">Griglia — file regolari</option>
-            <option value="special">Speciali — posti fuori schema</option>
+            <option value="grid">Griglia: file regolari</option>
+            <option value="special">Speciali: posti fuori schema</option>
           </Select>
         </Field>
       </div>

@@ -44,7 +44,7 @@ describe('BookingsView', () => {
     expect(w.text()).toContain('Da incassare');
   });
 
-  it('colonna Pacchetto: nome risolto da packageId, "—" se assente', async () => {
+  it('colonna Pacchetto: nome risolto da packageId, "–" se assente', async () => {
     server.use(
       http.get('/api/packages', () =>
         HttpResponse.json([{ id: 'pkg-1', name: 'Standard', equipment: [{ equipmentTypeId: 'eq-1', name: 'Lettino', quantity: 2 }] }]),

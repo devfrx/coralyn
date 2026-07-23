@@ -43,8 +43,8 @@ const seats = computed(() => props.sector.rows.reduce((n, r) => n + r.umbrellas.
         <Field label="Nome"><Input name="sector-name" data-testid="sector-name" v-model="name" /></Field>
         <Field label="Disposizione">
           <Select v-model="kind" data-testid="sector-kind">
-            <option value="grid">Griglia — file regolari verso il mare</option>
-            <option value="special">Speciali — posti fuori griglia</option>
+            <option value="grid">Griglia: file regolari verso il mare</option>
+            <option value="special">Speciali: posti fuori griglia</option>
           </Select>
         </Field>
         <Button type="submit" data-testid="sector-save" :loading="update.isPending.value">Salva settore</Button>

@@ -285,7 +285,7 @@ const matchedRateLabel = computed<string>(() => {
   // Il suffisso deriva dal TIPO CORRENTE della prenotazione (non da `r.type`): il calcolo del prezzo è
   // funzione del tipo scelto, non della tariffa matchata (un abbonamento può vincere una catch-all → forfait).
   const suffix = bookingType.value === 'subscription' ? ' forfait stagione' : '/g';
-  return `${dims} — ${formatEuro(r.price)}${suffix}`;
+  return `${dims} · ${formatEuro(r.price)}${suffix}`;
 });
 
 const settleOpen = ref(false);
@@ -349,7 +349,7 @@ const freeSlotOptions = computed(() =>
               <div data-test="legend-panel" class="flex flex-col gap-3 text-[11.5px] text-[var(--color-text-2nd)]">
                 <div>
                   <div class="mb-1.5 text-[10px] font-semibold uppercase tracking-[.09em] text-[var(--color-stage-3)]">Stato</div>
-                  <div class="flex items-center gap-1.5"><i class="size-[11px] flex-none rounded-full" style="background:conic-gradient(from 0deg,var(--color-state-booked) 0 33.333%,var(--color-state-daily) 33.333% 66.666%,var(--color-state-free) 66.666% 100%)"></i>Stato misto — un colore per fascia</div>
+                  <div class="flex items-center gap-1.5"><i class="size-[11px] flex-none rounded-full" style="background:conic-gradient(from 0deg,var(--color-state-booked) 0 33.333%,var(--color-state-daily) 33.333% 66.666%,var(--color-state-free) 66.666% 100%)"></i>Stato misto: un colore per fascia</div>
                   <div class="mt-1.5 flex items-center gap-1.5 text-[var(--color-text-muted)]"><Icon name="clock" :size="13" class="text-[var(--color-accent)]" />Ogni cella mostra lo stato per fascia</div>
                   <div class="mt-1 text-[10.5px] text-[var(--color-placeholder)]">I chip nella barra filtrano: clic per evidenziare, di nuovo per tutto.</div>
                 </div>
@@ -473,7 +473,7 @@ const freeSlotOptions = computed(() =>
             <div class="mb-1.5 text-center text-[13px] font-semibold text-[var(--color-text)]">Non disponibile</div>
             <ul class="space-y-1">
               <li v-for="(c, i) in coveringInfo(selectedSlotId)" :key="i">
-                coperta da <span class="font-semibold text-[var(--color-text-2nd)]">{{ c.slotName }}</span><template v-if="c.customer"> — {{ c.customer }}<template v-if="c.amount !== null"> · € {{ c.amount }}</template></template>
+                coperta da <span class="font-semibold text-[var(--color-text-2nd)]">{{ c.slotName }}</span><template v-if="c.customer"> · {{ c.customer }}<template v-if="c.amount !== null"> · € {{ c.amount }}</template></template>
               </li>
             </ul>
           </template>

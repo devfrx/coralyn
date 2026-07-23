@@ -6,5 +6,5 @@ export function positionLabel(
   b: Pick<CustomerBookingDTO, 'sectorName' | 'umbrellaLabel' | 'umbrellaRetiredAt' | 'umbrellaRetiredFrom'>,
 ): string {
   const place = b.umbrellaRetiredAt ? b.umbrellaRetiredFrom : b.sectorName;
-  return `${place ?? '—'} · ${b.umbrellaLabel}`;
+  return `${place ?? '–'} · ${b.umbrellaLabel}`;
 }
