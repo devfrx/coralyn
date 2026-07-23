@@ -1,6 +1,13 @@
-# Handoff di chiusura sessione 2026-07-23 — punto d'ingresso per il prossimo agente
+# Handoff di chiusura sessione 2026-07-23 (mattina) — superato
 
-> **Leggi questo per primo.** Contiene: stato del repo, baseline verde, i gotcha che costano ore,
+> ⚠️ **NON è più il punto d'ingresso.** Il punto d'ingresso corrente è
+> [2026-07-23-onboarding-mergiato-e-prossimi-lavori-ui.md](2026-07-23-onboarding-mergiato-e-prossimi-lavori-ui.md),
+> che riporta i gotcha in forma cumulativa e aggiornata. Questo documento resta come **storia**: la sua
+> §5 descriveva l'onboarding guidato quando non era ancora progettato, ed è stato poi realizzato e
+> mergiato ([ADR-0054](../architecture/decisions/0054-onboarding-incrementale-setup-status.md)); la
+> baseline della §2 è superata da quella del nuovo handoff.
+
+> Contiene: stato del repo, baseline verde, i gotcha che costano ore,
 > il metodo atteso e il **prossimo lavoro** (onboarding guidato di prima configurazione).
 > I due handoff di dettaglio delle feature di oggi sono linkati dove servono.
 
