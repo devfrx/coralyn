@@ -5,6 +5,7 @@ import { Card, SkeletonText, useDelayedLoading } from '@coralyn/ui-kit';
 import { useSetupStatus } from './useSetupStatus';
 import OnboardingStepper from './OnboardingStepper.vue';
 import StepWelcome from './steps/StepWelcome.vue';
+import StepStructure from './steps/StepStructure.vue';
 import StepSummary from './steps/StepSummary.vue';
 
 const STEP_ORDER = ['welcome', 'structure', 'timeSlots', 'seasons', 'rates', 'summary'] as const;
@@ -55,6 +56,9 @@ function selectStep(key: string) {
       <Card>
         <div v-if="current === 'welcome'" data-testid="ob-step-welcome">
           <StepWelcome @next="goNext" />
+        </div>
+        <div v-else-if="current === 'structure'" data-testid="ob-step-structure">
+          <StepStructure :status="status" @next="goNext" />
         </div>
         <div v-else-if="current === 'summary'" data-testid="ob-step-summary">
           <StepSummary :status="status" />
