@@ -304,7 +304,7 @@ const freeSlotOptions = computed(() =>
     </div>
 
     <div v-else-if="!isLoading" class="map-stage min-w-0 flex-1">
-      <div v-if="sectors.length === 0" class="px-[26px] py-10">
+      <div v-if="map && sectors.length === 0" class="px-[26px] py-10">
         <EmptyState data-testid="map-empty-onboarding" icon="umbrella" title="La spiaggia non è ancora configurata"
           message="Qui vedrai la mappa degli ombrelloni: prima serve creare la struttura del lido.">
           <template v-if="isAdmin" #action>

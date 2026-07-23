@@ -79,6 +79,13 @@ describe('MapView', () => {
     w.unmount();
   });
 
+  it('fix post-review: se la day-map fallisce NON mostra l\'empty-state di onboarding (evita il claim falso "spiaggia non configurata")', async () => {
+    server.use(http.get('/api/map', () => HttpResponse.error()));
+    const w = await mountMap();
+    expect(w.find('[data-testid="map-empty-onboarding"]').exists()).toBe(false);
+    w.unmount();
+  });
+
   it('D-056: un settore kind=special è reso come blocco dedicato (non tab) qualunque sia il nome', async () => {
     const mapKind = {
       date: '2026-06-27',
