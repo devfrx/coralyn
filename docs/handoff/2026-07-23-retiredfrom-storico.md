@@ -8,7 +8,7 @@
 > primo giro) → **review finale whole-branch (fable): READY TO MERGE, 0 Critical / 0 Important** →
 > 2 Minor cosmetici chiusi. Verde di prima mano: api unit **268/268** · api e2e **393/393** ·
 > web-staff **541/541** · web-customer 25/25 · web-platform 17/17 · `pnpm -r typecheck` 0.
-> **NON mergiato: in attesa di ok esplicito.**
+> **MERGIATO FF su `main` (`0bb8d9e`) e pushato con ok esplicito**, branch eliminato.
 
 ## 1. La decisione (e le due alternative scartate)
 
@@ -75,8 +75,12 @@ dichiarato di questo branch (solo Scheda cliente).
 
 ## 5. Stato e prossimi passi
 
-- Branch `feat/retiredfrom-storico-d055` (6 commit), working tree pulito, **non mergiato** — serve
-  l'ok esplicito dell'utente. `main` è a `4a71738`.
+- **`origin/main = 0bb8d9e`** (FF di 7 commit da `4a71738`, pushato con ok esplicito; branch
+  eliminato, working tree pulito). Prima del merge le due suite dei pacchetti toccati dal commit di
+  rifinitura `d5e6372` sono state rilanciate **intere** sull'head reale (api e2e 393/393,
+  web-staff 541/541): il fix subagent aveva girato solo quelle focalizzate.
+- Baseline sul mergiato: api unit **268** · api e2e **393** (35 suite) · web-staff **541** (84 file) ·
+  web-customer 25 · web-platform 17 · `pnpm -r typecheck` 0.
 - Backlog D-055 rimanente: reason `UMBRELLA_RETIRED` nel quote · guardia su `update`/`remove` dei
   ritirati · canary sull'indice unico parziale di `Umbrella` (modello pronto:
   `apps/api/test/rate-fk-restrict.e2e-spec.ts`).
