@@ -19,7 +19,7 @@ export function useCreateRate(getSeasonId: () => string) {
   return mutationResource({
     mutationFn: (input: CreateRateInput) =>
       apiFetch<RateDTO>('/rates', { method: 'POST', body: JSON.stringify(input) }),
-    invalidates: () => [queryKeys.rates(session.establishmentId, getSeasonId())],
+    invalidates: () => [queryKeys.rates(session.establishmentId, getSeasonId()), queryKeys.setupStatus(session.establishmentId)],
   });
 }
 
@@ -28,7 +28,7 @@ export function useUpdateRate(getSeasonId: () => string) {
   return mutationResource({
     mutationFn: (vars: { id: string; input: UpdateRateInput }) =>
       apiFetch<RateDTO>(`/rates/${vars.id}`, { method: 'PATCH', body: JSON.stringify(vars.input) }),
-    invalidates: () => [queryKeys.rates(session.establishmentId, getSeasonId())],
+    invalidates: () => [queryKeys.rates(session.establishmentId, getSeasonId()), queryKeys.setupStatus(session.establishmentId)],
   });
 }
 
@@ -36,6 +36,6 @@ export function useDeleteRate(getSeasonId: () => string) {
   const session = useSessionStore();
   return mutationResource({
     mutationFn: (id: string) => apiFetch<RateDTO>(`/rates/${id}`, { method: 'DELETE' }),
-    invalidates: () => [queryKeys.rates(session.establishmentId, getSeasonId())],
+    invalidates: () => [queryKeys.rates(session.establishmentId, getSeasonId()), queryKeys.setupStatus(session.establishmentId)],
   });
 }

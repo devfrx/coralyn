@@ -14,7 +14,11 @@ export function useTimeSlots() {
 }
 
 function invalidateSlotsAndMap(session: ReturnType<typeof useSessionStore>) {
-  return [queryKeys.timeSlots(session.establishmentId), ['map', session.establishmentId]];
+  return [
+    queryKeys.timeSlots(session.establishmentId),
+    ['map', session.establishmentId],
+    queryKeys.setupStatus(session.establishmentId),
+  ];
 }
 
 export function useCreateTimeSlot() {

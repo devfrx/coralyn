@@ -500,6 +500,17 @@ export const server = setupServer(
     const body = (await request.json()) as { name: string };
     return HttpResponse.json({ id: 'e-1', name: body.name });
   }),
+  // Setup status (ADR-0054): default "configurato" cosi i test esistenti non cambiano
+  // comportamento; i test del wizard useranno server.use con stati parziali.
+  http.get('/api/establishment/setup-status', () =>
+    HttpResponse.json({
+      structure: { sectors: 3, rows: 6, activeUmbrellas: 41, complete: true },
+      timeSlots: { count: 3, complete: true },
+      seasons: { usable: 1, complete: true },
+      rates: { count: 4, hasCatchAll: true, complete: true },
+      complete: true,
+      firstIncompleteStep: null,
+    })),
   http.get('/api/establishment/structure', () =>
     HttpResponse.json({
       sectors: [

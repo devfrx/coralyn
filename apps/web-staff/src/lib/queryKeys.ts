@@ -23,4 +23,5 @@ export const queryKeys = {
   establishmentOverview: (tenantId: string) => ['establishment', tenantId, 'overview'] as const,
   establishmentStructure: (tenantId: string) => ['establishment', tenantId, 'structure'] as const,
   retiredUmbrellas: (tenantId: string) => ['establishment', tenantId, 'retired-umbrellas'] as const,
+  setupStatus: (tenantId: string) => ['establishment', tenantId, 'setup-status'] as const,
 };

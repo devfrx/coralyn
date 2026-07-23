@@ -4,8 +4,13 @@ import { queryKeys } from '@/lib/queryKeys';
 import { useSessionStore } from '@/stores/session';
 import { queryResource, mutationResource } from '@/lib/useQueryResource';
 
+// setupStatus: ogni mutazione di struttura può cambiare lo stato dell'onboarding.
 function structureKeys(establishmentId: string) {
-  return [queryKeys.establishmentStructure(establishmentId), queryKeys.establishmentOverview(establishmentId)];
+  return [
+    queryKeys.establishmentStructure(establishmentId),
+    queryKeys.establishmentOverview(establishmentId),
+    queryKeys.setupStatus(establishmentId),
+  ];
 }
 
 export function useEstablishmentStructure() {

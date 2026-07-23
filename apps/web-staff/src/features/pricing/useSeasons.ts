@@ -17,7 +17,7 @@ export function useCreateSeason() {
   return mutationResource({
     mutationFn: (input: CreateSeasonInput) =>
       apiFetch<SeasonDTO>('/seasons', { method: 'POST', body: JSON.stringify(input) }),
-    invalidates: () => [queryKeys.seasons(session.establishmentId)],
+    invalidates: () => [queryKeys.seasons(session.establishmentId), queryKeys.setupStatus(session.establishmentId)],
   });
 }
 
@@ -25,6 +25,6 @@ export function useDeleteSeason() {
   const session = useSessionStore();
   return mutationResource({
     mutationFn: (id: string) => apiFetch<SeasonDTO>(`/seasons/${id}`, { method: 'DELETE' }),
-    invalidates: () => [queryKeys.seasons(session.establishmentId)],
+    invalidates: () => [queryKeys.seasons(session.establishmentId), queryKeys.setupStatus(session.establishmentId)],
   });
 }
