@@ -65,6 +65,16 @@ describe('Sidebar', () => {
     expect(w.text()).toContain('Struttura');
   });
 
+  it('la voce Struttura punta a /establishment/structure (5.1)', async () => {
+    // Stub locale che espone `to` nel DOM: quello di default non lo rende osservabile.
+    const w = mountApp(Sidebar, { global: { stubs: { RouterLink: { props: ['to'], template: '<a :data-to="to"><slot /></a>' } } } });
+    setUser('Lido Uno', Role.Admin);
+    await w.vm.$nextTick();
+    const link = w.findAll('a').find((a) => a.attributes('data-to') === '/establishment/structure');
+    expect(link).toBeDefined();
+    expect(link!.text()).toContain('Struttura');
+  });
+
   it('staff NON vede la sezione Amministrazione né Struttura (5.1)', async () => {
     const w = mountApp(Sidebar);
     setUser('Lido Uno', Role.Staff);

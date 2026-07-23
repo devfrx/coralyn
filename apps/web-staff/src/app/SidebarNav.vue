@@ -32,7 +32,9 @@ const initials = computed(() => session.userEmail.slice(0, 2).toUpperCase());
 function signOut() { session.logout(); router.push('/login'); }
 </script>
 <template>
-  <div class="flex h-full flex-col px-3.5 pb-3.5 pt-[18px] text-[var(--color-on-sidebar)]">
+  <!-- overflow-y-auto: su viewport bassi (laptop 768p, drawer mobile fixed) il contenuto admin
+       supera l'altezza disponibile e senza scroll interno «Esci» diventerebbe irraggiungibile. -->
+  <div class="flex h-full flex-col overflow-y-auto px-3.5 pb-3.5 pt-[18px] text-[var(--color-on-sidebar)]">
     <div class="flex items-center gap-2.5 px-1.5 pb-[18px] pt-1">
       <img src="/coralyn-logo.png" alt="Coralyn" class="size-[38px] rounded-[11px] object-cover" style="box-shadow:0 2px 8px rgba(0,0,0,.22);" />
       <div class="leading-tight">
@@ -40,7 +42,7 @@ function signOut() { session.logout(); router.push('/login'); }
         <div class="text-[10.5px] font-medium uppercase tracking-[.08em] text-[var(--color-on-sidebar-muted)]">Gestionale lidi</div>
       </div>
     </div>
-    <button @click="router.push('/establishment')" class="mb-[18px] flex w-full items-center gap-2.5 rounded-[11px] border border-[var(--color-sidebar-border)] bg-[var(--color-sidebar-raised)] px-2.5 py-2.5 text-left focus-visible:outline-none focus-visible:[box-shadow:var(--ring-focus)]">
+    <button @click="router.push('/establishment')" title="Vai allo Stabilimento" aria-label="Vai allo Stabilimento" class="mb-[18px] flex w-full items-center gap-2.5 rounded-[11px] border border-[var(--color-sidebar-border)] bg-[var(--color-sidebar-raised)] px-2.5 py-2.5 text-left focus-visible:outline-none focus-visible:[box-shadow:var(--ring-focus)]">
       <span class="grid size-[30px] flex-none place-items-center rounded-lg text-white" style="background:linear-gradient(150deg,#85B4B2,#5E9AA6);"><Icon name="waves" :size="17" /></span>
       <span class="flex-1 leading-tight">
         <span class="block text-[13px] font-semibold text-[var(--color-on-sidebar-strong)]">{{ session.establishmentName }}</span>
@@ -49,7 +51,7 @@ function signOut() { session.logout(); router.push('/login'); }
     </button>
     <template v-for="(sec, i) in sections" :key="sec.eyebrow">
       <div class="px-2 pb-2 text-[10px] font-semibold uppercase tracking-[.1em] text-[var(--color-on-teal-eyebrow)]" :class="i > 0 ? 'pt-4' : ''">{{ sec.eyebrow }}</div>
-      <nav class="flex flex-col gap-[3px]">
+      <nav class="flex flex-col gap-[3px]" :aria-label="sec.eyebrow">
         <RouterLink v-for="it in sec.items" :key="it.to" :to="it.to" custom v-slot="{ isActive, navigate }">
           <button @click="navigate" :aria-current="isActive ? 'page' : undefined"
             class="flex items-center gap-2.5 rounded-[10px] px-2.5 py-2.5 text-sm focus-visible:outline-none focus-visible:[box-shadow:var(--ring-focus)]"
