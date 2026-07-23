@@ -1,5 +1,6 @@
 import { Test } from '@nestjs/testing';
 import { INestApplication } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { AppModule } from '../src/app.module';
 import { PrismaService } from '../src/prisma/prisma.service';
 
@@ -21,21 +22,24 @@ describe('Rate FK ON DELETE RESTRICT (e2e, DB-level)', () => {
   let s1: string;
 
   let bareSectorId: string; // referenziato solo da rateSector
-  let rowSectorId: string; // contenitore di bareRow, mai cancellato
-  let bareRowId: string; // referenziato solo da rateRow
+  let bareRowId: string; // referenziato solo da rateRow (il suo settore contenitore non si cancella mai)
   let barePackageId: string; // referenziato solo da ratePackage
   let bareSlotId: string; // referenziato solo da rateSlot
   let rateSectorId: string;
 
-  const expectP2003 = async (op: Promise<unknown>) => {
+  // Asserisce anche QUALE FK è scattata (meta.field_name, es. "Rate_sectorId_fkey (index)"):
+  // se una fixture smettesse di essere "nuda", il test fallisce invece di passare per la FK sbagliata.
+  const expectP2003 = async (op: Promise<unknown>, constraint: string) => {
     let caught: unknown;
     try {
       await op;
     } catch (e) {
       caught = e;
     }
-    expect(caught).toBeDefined();
-    expect((caught as { code?: string }).code).toBe('P2003');
+    expect(caught).toBeInstanceOf(Prisma.PrismaClientKnownRequestError);
+    const err = caught as Prisma.PrismaClientKnownRequestError;
+    expect(err.code).toBe('P2003');
+    expect(String(err.meta?.field_name)).toContain(constraint);
   };
 
   beforeAll(async () => {
@@ -87,7 +91,6 @@ describe('Rate FK ON DELETE RESTRICT (e2e, DB-level)', () => {
       });
 
       bareSectorId = bareSector.id;
-      rowSectorId = rowSector.id;
       bareRowId = bareRow.id;
       barePackageId = pkg.id;
       bareSlotId = slot.id;
@@ -110,7 +113,10 @@ describe('Rate FK ON DELETE RESTRICT (e2e, DB-level)', () => {
   });
 
   it('delete raw di un Settore referenziato da una Rate → P2003, la Rate conserva sectorId', async () => {
-    await expectP2003(prisma.forTenant(s1, (tx) => tx.sector.delete({ where: { id: bareSectorId } })));
+    await expectP2003(
+      prisma.forTenant(s1, (tx) => tx.sector.delete({ where: { id: bareSectorId } })),
+      'Rate_sectorId_fkey',
+    );
     const rate = await prisma.forTenant(s1, (tx) =>
       tx.rate.findFirstOrThrow({ where: { sectorId: bareSectorId } }),
     );
@@ -118,13 +124,19 @@ describe('Rate FK ON DELETE RESTRICT (e2e, DB-level)', () => {
   });
 
   it('delete raw di una Fila referenziata da una Rate → P2003, la Rate conserva rowId', async () => {
-    await expectP2003(prisma.forTenant(s1, (tx) => tx.row.delete({ where: { id: bareRowId } })));
+    await expectP2003(
+      prisma.forTenant(s1, (tx) => tx.row.delete({ where: { id: bareRowId } })),
+      'Rate_rowId_fkey',
+    );
     const rate = await prisma.forTenant(s1, (tx) => tx.rate.findFirstOrThrow({ where: { rowId: bareRowId } }));
     expect(rate.rowId).toBe(bareRowId);
   });
 
   it('delete raw di un Pacchetto referenziato da una Rate → P2003, la Rate conserva packageId', async () => {
-    await expectP2003(prisma.forTenant(s1, (tx) => tx.package.delete({ where: { id: barePackageId } })));
+    await expectP2003(
+      prisma.forTenant(s1, (tx) => tx.package.delete({ where: { id: barePackageId } })),
+      'Rate_packageId_fkey',
+    );
     const rate = await prisma.forTenant(s1, (tx) =>
       tx.rate.findFirstOrThrow({ where: { packageId: barePackageId } }),
     );
@@ -132,7 +144,10 @@ describe('Rate FK ON DELETE RESTRICT (e2e, DB-level)', () => {
   });
 
   it('delete raw di una Fascia referenziata da una Rate → P2003, la Rate conserva timeSlotId', async () => {
-    await expectP2003(prisma.forTenant(s1, (tx) => tx.timeSlot.delete({ where: { id: bareSlotId } })));
+    await expectP2003(
+      prisma.forTenant(s1, (tx) => tx.timeSlot.delete({ where: { id: bareSlotId } })),
+      'Rate_timeSlotId_fkey',
+    );
     const rate = await prisma.forTenant(s1, (tx) =>
       tx.rate.findFirstOrThrow({ where: { timeSlotId: bareSlotId } }),
     );
