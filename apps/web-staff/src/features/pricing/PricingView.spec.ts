@@ -1,7 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import { http, HttpResponse } from 'msw';
 import { flushPromises } from '@vue/test-utils';
-import { mountApp } from '@/test/utils';
+import { nextTick } from 'vue';
+import { mountApp, selectOption } from '@/test/utils';
 import { server } from '@/mocks/server';
 import { useToasts } from '@/lib/toasts';
 import PricingView from './PricingView.vue';
@@ -48,8 +49,8 @@ describe('PricingView', () => {
     // aggiungi una riga voce e scegli 'Lettino' (eq-1) qty 3
     (document.querySelector('[data-test="add-equipment-row"]') as HTMLButtonElement).click();
     await flushPromises();
-    const typeSel = document.querySelector('[data-test="equip-row-0"] select') as HTMLSelectElement;
-    typeSel.value = 'eq-1'; typeSel.dispatchEvent(new Event('change', { bubbles: true }));
+    const typeTrigger = document.querySelector('[data-test="equip-row-0"] [role="combobox"]') as HTMLElement;
+    await selectOption(typeTrigger, 'Lettino');
     const qtyEl = document.querySelector('[data-test="equip-row-0"] input[name="quantity"]') as HTMLInputElement;
     qtyEl.value = '3'; qtyEl.dispatchEvent(new Event('input', { bubbles: true }));
     (document.querySelector('[data-test="form-package"]') as HTMLFormElement)
@@ -69,15 +70,15 @@ describe('PricingView', () => {
     // Riga 0: Sdraio (eq-2) qty 1 — inserita PRIMA di Lettino, quindi in ordine non alfabetico.
     (document.querySelector('[data-test="add-equipment-row"]') as HTMLButtonElement).click();
     await flushPromises();
-    const typeSel0 = document.querySelector('[data-test="equip-row-0"] select') as HTMLSelectElement;
-    typeSel0.value = 'eq-2'; typeSel0.dispatchEvent(new Event('change', { bubbles: true }));
+    const typeTrigger0 = document.querySelector('[data-test="equip-row-0"] [role="combobox"]') as HTMLElement;
+    await selectOption(typeTrigger0, 'Sdraio');
     const qtyEl0 = document.querySelector('[data-test="equip-row-0"] input[name="quantity"]') as HTMLInputElement;
     qtyEl0.value = '1'; qtyEl0.dispatchEvent(new Event('input', { bubbles: true }));
     // Riga 1: Lettino (eq-1) qty 2 — inserita DOPO Sdraio.
     (document.querySelector('[data-test="add-equipment-row"]') as HTMLButtonElement).click();
     await flushPromises();
-    const typeSel1 = document.querySelector('[data-test="equip-row-1"] select') as HTMLSelectElement;
-    typeSel1.value = 'eq-1'; typeSel1.dispatchEvent(new Event('change', { bubbles: true }));
+    const typeTrigger1 = document.querySelector('[data-test="equip-row-1"] [role="combobox"]') as HTMLElement;
+    await selectOption(typeTrigger1, 'Lettino');
     const qtyEl1 = document.querySelector('[data-test="equip-row-1"] input[name="quantity"]') as HTMLInputElement;
     qtyEl1.value = '2'; qtyEl1.dispatchEvent(new Event('input', { bubbles: true }));
     (document.querySelector('[data-test="form-package"]') as HTMLFormElement)
@@ -169,9 +170,8 @@ describe('PricingView', () => {
     await w.get('[data-test="new-rate"]').trigger('click');
     await flushPromises();
     const form = document.querySelector('[data-test="form-rate"]') as HTMLFormElement;
-    const packageSelect = form.querySelectorAll('select')[2] as HTMLSelectElement; // Tipo, Settore, Pacchetto, Fascia
-    packageSelect.value = 'pkg-1';
-    packageSelect.dispatchEvent(new Event('change', { bubbles: true }));
+    const packageTrigger = document.querySelector('[data-test="rate-package"]') as HTMLElement;
+    await selectOption(packageTrigger, 'Standard');
     const priceInput = form.querySelector('input[name="price"]') as HTMLInputElement;
     priceInput.value = '60';
     priceInput.dispatchEvent(new Event('input', { bubbles: true }));
@@ -189,10 +189,9 @@ describe('PricingView', () => {
     await w.get(`[data-test="edit-rate-${rateId}"]`).trigger('click');
     await flushPromises();
     const editForm = document.querySelector('[data-test="form-rate"]') as HTMLFormElement;
-    const editPackageSelect = editForm.querySelectorAll('select')[2] as HTMLSelectElement;
-    expect(editPackageSelect.value).toBe('pkg-1'); // precompilato correttamente
-    editPackageSelect.value = '';
-    editPackageSelect.dispatchEvent(new Event('change', { bubbles: true }));
+    const editPackageTrigger = document.querySelector('[data-test="rate-package"]') as HTMLElement;
+    expect(editPackageTrigger.textContent).toContain('Standard'); // precompilato correttamente
+    await selectOption(editPackageTrigger, 'Nessuno');
     editForm.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
     await settle();
 
@@ -281,9 +280,11 @@ describe('PricingView', () => {
       await settle();
       await w.get('[data-test="new-rate"]').trigger('click');
       await settle();
-      const form = document.querySelector('[data-test="form-rate"]') as HTMLElement;
-      const packageSelect = form.querySelectorAll('select')[2] as HTMLSelectElement; // Tipo, Settore, Pacchetto, Fascia
-      expect(Array.from(packageSelect.options).some((o) => o.textContent?.includes('Standard'))).toBe(false);
+      const packageTrigger = document.querySelector('[data-test="rate-package"]') as HTMLElement;
+      packageTrigger.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, button: 0, pointerId: 1 }));
+      await nextTick(); await nextTick();
+      const packageOptionsEls = Array.from(document.body.querySelectorAll('[role="option"]'));
+      expect(packageOptionsEls.some((o) => o.textContent?.includes('Standard'))).toBe(false);
       w.unmount();
     });
   });

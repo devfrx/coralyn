@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, ref, watchEffect } from 'vue';
-import { Button, Card, DataTable, EmptyState, Modal, ConfirmDialog, Field, Input, Select, Icon, IconButton, ActionBar, formatEuro } from '@coralyn/ui-kit';
+import { Button, Card, DataTable, EmptyState, Modal, ConfirmDialog, Field, Input, Select, Option, Icon, IconButton, ActionBar, formatEuro } from '@coralyn/ui-kit';
 import type { DataTableColumn } from '@coralyn/ui-kit';
 import type { BookingType, PackageEquipmentDTO, RateDTO, TimeSlotDTO } from '@coralyn/contracts';
 import { useSeasons, useCreateSeason, useDeleteSeason } from './useSeasons';
@@ -398,7 +398,7 @@ const rateCols: DataTableColumn[] = [
     <div class="mb-[18px] flex flex-wrap items-center gap-3">
       <div class="flex items-center gap-2.5">
         <Select v-model="activeSeasonId" data-test="season-select" class="min-w-[150px] font-semibold">
-          <option v-for="o in seasonOptions" :key="o.value" :value="o.value">{{ o.label }}</option>
+          <Option v-for="o in seasonOptions" :key="o.value" :value="o.value">{{ o.label }}</Option>
         </Select>
         <span v-if="seasonRange" class="whitespace-nowrap text-[12px] tabular-nums text-[var(--color-text-muted)]">{{ seasonRange }}</span>
       </div>
@@ -586,9 +586,9 @@ const rateCols: DataTableColumn[] = [
                 :model-value="row.equipmentTypeId"
                 @update:model-value="(v) => onRowTypeChange(i, v as string)"
               >
-                <option value="" disabled>Seleziona un tipo</option>
-                <option v-for="o in equipmentTypeOptions" :key="o.value" :value="o.value">{{ o.label }}</option>
-                <option :value="NEW_TYPE_OPTION">+ Crea nuovo tipo…</option>
+                <Option value="" disabled>Seleziona un tipo</Option>
+                <Option v-for="o in equipmentTypeOptions" :key="o.value" :value="o.value">{{ o.label }}</Option>
+                <Option :value="NEW_TYPE_OPTION">+ Crea nuovo tipo…</Option>
               </Select>
             </div>
             <div class="w-20"><Input name="quantity" v-model="row.quantity" type="number" min="1" /></div>
@@ -655,17 +655,17 @@ const rateCols: DataTableColumn[] = [
         <div class="flex gap-3.5">
           <div class="flex-1">
             <Field label="Tipo (opz.)">
-              <Select v-model="rType">
-                <option value="">Tutti</option>
-                <option v-for="o in TYPE_OPTIONS" :key="o.value" :value="o.value">{{ o.label }}</option>
+              <Select v-model="rType" data-test="rate-type">
+                <Option value="">Tutti</Option>
+                <Option v-for="o in TYPE_OPTIONS" :key="o.value" :value="o.value">{{ o.label }}</Option>
               </Select>
             </Field>
           </div>
           <div class="flex-1">
             <Field label="Settore (opz.)">
-              <Select v-model="rSector">
-                <option value="">Tutti</option>
-                <option v-for="o in sectorOptions" :key="o.value" :value="o.value">{{ o.label }}</option>
+              <Select v-model="rSector" data-test="rate-sector">
+                <Option value="">Tutti</Option>
+                <Option v-for="o in sectorOptions" :key="o.value" :value="o.value">{{ o.label }}</Option>
               </Select>
             </Field>
           </div>
@@ -673,17 +673,17 @@ const rateCols: DataTableColumn[] = [
         <div class="flex gap-3.5">
           <div class="flex-1">
             <Field label="Pacchetto (opz.)">
-              <Select v-model="rPackage">
-                <option value="">Nessuno</option>
-                <option v-for="o in packageOptions" :key="o.value" :value="o.value">{{ o.label }}</option>
+              <Select v-model="rPackage" data-test="rate-package">
+                <Option value="">Nessuno</Option>
+                <Option v-for="o in packageOptions" :key="o.value" :value="o.value">{{ o.label }}</Option>
               </Select>
             </Field>
           </div>
           <div class="flex-1">
             <Field label="Fascia (opz.)">
-              <Select v-model="rSlot">
-                <option value="">Tutte</option>
-                <option v-for="o in timeSlotOptions" :key="o.value" :value="o.value">{{ o.label }}</option>
+              <Select v-model="rSlot" data-test="rate-slot">
+                <Option value="">Tutte</Option>
+                <Option v-for="o in timeSlotOptions" :key="o.value" :value="o.value">{{ o.label }}</Option>
               </Select>
             </Field>
           </div>
