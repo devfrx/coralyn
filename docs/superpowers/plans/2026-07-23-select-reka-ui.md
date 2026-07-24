@@ -498,17 +498,32 @@ Cantiere che tocca i select (grep `HTMLSelectElement` sotto `features/establishm
 completo prima di iniziare).
 Commit: `refactor(web-staff): 5.2 Cantiere sul nuovo Select`
 
-### Task 9: TransferSubscriptionModal (nativo fuori ui-kit → Select)
+### Task 9: i tre `<select>` nativi fuori ui-kit → Select
 
-**Files:** Modify `apps/web-staff/src/features/customers/TransferSubscriptionModal.vue` (riga ~87:
-`<select v-model="newCustomerId" data-testid="transfer-new-customer" :class="inputClass">` con
-`<option>` → `Select`+`Option` di ui-kit; rimuovere `inputClass` se resta inutilizzata), Modify
-`TransferSubscriptionModal.spec.ts` (righe ~46-95: 4 lookup `select[data-testid=…]` → trigger
-`[data-testid="transfer-new-customer"]` in `document.body` — il componente è dentro Modal portalato —
-+ `selectOption`).
-Questa era un'incoerenza pre-esistente (select nativo con classi locali), inclusa a perimetro
-dichiarato in spec §4.
-Commit: `refactor(web-staff): 5.2 TransferSubscriptionModal dal select nativo al Select ui-kit`
+Nota di scoping (emersa durante il Task 6): l'audit `grep '<select' apps/web-staff/src` ha trovato
+**tre** select nativi con `inputClass`, non uno solo. L'inventario della spec §4 citava solo
+`TransferSubscriptionModal`; gli altri due (i selettori del metodo di incasso) erano sfuggiti. Il
+gate di completezza del Task 10 pretende zero select nativi, quindi vanno migrati tutti e tre — è lo
+stesso identico pattern (native `<select>` con `inputClass` → `Select`+`Option` di ui-kit).
+
+**Files:**
+- Modify `apps/web-staff/src/features/customers/TransferSubscriptionModal.vue` (riga ~87:
+  `<select v-model="newCustomerId" data-testid="transfer-new-customer" :class="inputClass">` con
+  `<option>` → `Select`+`Option`; rimuovere `inputClass` se resta inutilizzata), Modify
+  `TransferSubscriptionModal.spec.ts` (righe ~46-95: 4 lookup `select[data-testid=…]` → trigger
+  `[data-testid="transfer-new-customer"]` in `document.body` — Modal portalato — + `selectOption`).
+- Modify `apps/web-staff/src/features/bookings/SettlePaymentModal.vue` (riga ~85:
+  `<select v-model="method" :class="inputClass">` con le option metodo incasso → `Select`+`Option`;
+  AGGIUNGERE `data-test="settle-method"` per de-posizionalizzare lo spec). Migrare
+  `SettlePaymentModal.spec.ts` se interagisce col select (grep prima; il modale è portalato →
+  `document.body` + `selectOption`; le label dei metodi vengono da `PAYMENT_METHOD_LABEL` in
+  `@/lib/statusMaps` — leggere le label reali).
+- Modify `apps/web-staff/src/features/rentals/SettleRentalPaymentModal.vue` (riga ~86: idem, gemello
+  del precedente; `data-test="settle-method"` locale al suo modale) e il relativo spec se tocca il
+  select.
+Questi erano incoerenze pre-esistenti (select nativi con classi locali). `inputClass` va rimossa da
+ciascun file se non resta usata da altri campi.
+Commit: `refactor(web-staff): 5.2 i tre select nativi dei modali al Select ui-kit`
 
 ---
 
@@ -521,9 +536,10 @@ se durante la migrazione emergono rinvii consapevoli (altrimenti non toccarlo).
 - [ ] **Step 1: completezza** — questi grep devono dare zero risultati nei sorgenti (spec esclusi):
 ```bash
 grep -rn "<option" apps/web-staff/src --include=*.vue
+grep -rn "<select" apps/web-staff/src --include=*.vue
 grep -rn "HTMLSelectElement" apps/web-staff/src
 ```
-(l'unico `<select>` nativo residuo ammesso: nessuno).
+(nessun `<select>`/`<option>` nativo residuo: i tre modali del Task 9 inclusi).
 - [ ] **Step 2: design-system.md** §10 aggiornata (2-4 frasi, stile delle voci esistenti).
 - [ ] **Step 3: suite complete, una alla volta** — `corepack pnpm -C apps/web-staff test` (TUTTO
 verde, nessun rosso residuo), poi `corepack pnpm -r typecheck` (exit 0). Le app web-platform e
