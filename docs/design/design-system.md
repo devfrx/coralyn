@@ -450,6 +450,13 @@ interattivi: **default / hover / active / focus-visible / disabled**; focus = `-
   disabilita insieme a `submitDisabled` (`:disabled="submitDisabled || submitLoading"` —
   necessario per il fallthrough attributi di Vue). La classe `pt-1` di default è sovrascrivibile
   dal chiamante (`class="pt-2"`) dove serve.
+- **Modal / ConfirmDialog** — su primitivo `Dialog` Reka UI: header (titolo + eyebrow + X), **body =
+  contenuto** (slot), footer (`ModalFooter`). Convenzione: la prosa descrittiva va nel **body**, non
+  come sottotitolo header — `ConfirmDialog` rende la sua `description` nel body (un header con
+  descrizione e body vuoto lasciava una banda di padding vuota). Per l'a11y, `Modal.ariaDescription`
+  tiene la `DialogDescription` sr-only col testo reale, così `aria-describedby` non ricade sul titolo.
+  `ConfirmDialog` è riservato alle azioni **distruttive/di conferma** (`tone="danger"` colora la
+  conferma); ogni chiusura diversa dal bottone Conferma (Annulla/X/Esc/overlay) emette `cancel`.
 - **PageToolbar** — header di lista: slot `#left` + spacer `flex-1` + slot `#right`/`#actions`.
   Wrapper `mb-4 flex flex-wrap items-center gap-3`. Per Prenotazioni/Clienti (non adottato dove
   il contenitore ha classi di padding incompatibili, es. Mappa).
@@ -736,8 +743,9 @@ confermato) — cambia dove vivono i form (in scena, non modali), non il modello
 - **Fila** (`StructureRow`): rail sinistro cliccabile (`FILA n`, conteggio ombrelloni), azioni
   rapide **su hover/selezione** — genera ⚡ (`IconButton variant="ghost"`) e svuota/elimina 🗑
   (`IconButton variant="danger"`, [ADR-0044](../architecture/decisions/0044-iconbutton-variante-danger.md)) —
-  scorciatoie delle stesse azioni del pannello Fila; celle al centro; **ghost «+»** in coda alla fila
-  per aggiungere un ombrellone.
+  che **aprono il pannello Fila portando alla sezione corrispondente** (⚡ al generatore, 🗑 alla zona
+  rischiosa: `Selection.row.focus`, `RowPanel` scorre ed evidenzia); celle al centro; **ghost «+»** in
+  coda alla fila per aggiungere un ombrellone.
 - **Tessera «a riposo»**: `UmbrellaCell` in resa **rest** (§14.1) — stessa anatomia della cella
   Mappa, nessuna occupazione da mostrare.
 - **Selezione visiva**: cella → stesso anello coral della Mappa (§14.4); fila → inset ring sul
