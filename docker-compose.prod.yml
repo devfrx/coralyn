@@ -9,9 +9,14 @@
 #     i 3 sottodomini ai 3 container web. L'API resta interna: ogni web-app la
 #     raggiunge via il proprio nginx (proxy /api -> api:3000), come in dev.
 #
-# Avvio:   docker compose -f docker-compose.prod.yml up -d --build
+# Avvio:   docker compose --env-file .env.prod -f docker-compose.prod.yml up -d --build
 # Log:     docker compose -f docker-compose.prod.yml logs -f api
 # Stop:    docker compose -f docker-compose.prod.yml down
+#
+# `--env-file .env.prod` serve all'AVVIO/BUILD: le voci `env_file:` dei servizi impostano le
+# variabili dentro i container, ma NON alimentano la sostituzione ${VAR} in questo file. Senza il
+# flag, l'arg di build VITE_WEB_CUSTOMER_URL arriva vuoto e il link all'anteprima informativa non
+# compare nel gestionale. Per i soli comandi di lettura (logs, ps) il flag e' superfluo.
 #
 # NB: usando -f esplicito, docker-compose.override.yml (dev, gitignored) NON viene
 #     caricato: la produzione è isolata dalle personalizzazioni della tua macchina.
@@ -56,6 +61,11 @@ services:
     build:
       context: .
       dockerfile: apps/web-staff/Dockerfile
+      args:
+        # Riusa CUSTOMER_APP_URL da .env.prod: e' lo stesso origin che l'API mette nei link di
+        # attivazione, quindi una sola fonte di verita'. Variabile di BUILD, non di runtime:
+        # cambiarla richiede un rebuild dell'immagine web (`--build`).
+        VITE_WEB_CUSTOMER_URL: ${CUSTOMER_APP_URL}
     container_name: coralyn-web
     restart: unless-stopped
     depends_on:

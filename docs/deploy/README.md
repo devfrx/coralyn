@@ -230,8 +230,16 @@ finiscono in spam).
 
 Sul VPS, nella root del repo:
 ```bash
-docker compose -f docker-compose.prod.yml up -d --build
+docker compose --env-file .env.prod -f docker-compose.prod.yml up -d --build
 ```
+
+> **`--env-file .env.prod` non è opzionale.** Le voci `env_file:` dei servizi impostano le variabili
+> *dentro* i container, ma **non** alimentano la sostituzione `${VAR}` dentro il file compose. Quella
+> legge il `.env` della root, che in produzione non esiste. Senza questo flag,
+> `VITE_WEB_CUSTOMER_URL` arriva **vuota** alla build di `web`, e il link all'anteprima
+> dell'informativa non comparirà mai nel gestionale (degradazione silenziosa e voluta, ma non è ciò
+> che vuoi in produzione).
+
 La prima volta builda le immagini (qualche minuto). Cosa succede in automatico:
 - `db` parte e l'init crea il ruolo RLS `coralyn_app`;
 - `api` aspetta il DB, poi **applica le migrazioni Prisma** (`migrate deploy`) e avvia;
