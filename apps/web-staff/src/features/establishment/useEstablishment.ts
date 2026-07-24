@@ -5,6 +5,8 @@ import type {
   UpdateStaffUserInput,
   EstablishmentMemberDTO,
   ResetStaffPasswordResponse,
+  EstablishmentLegalProfileDTO,
+  UpdateEstablishmentLegalProfileInput,
 } from '@coralyn/contracts';
 import { apiFetch } from '@/lib/http';
 import { queryKeys } from '@/lib/queryKeys';
@@ -52,5 +54,25 @@ export function useResetStaffPassword() {
       apiFetch<ResetStaffPasswordResponse>(`/establishment/users/${id}/reset-password`, { method: 'POST' }),
     // Il reset non modifica l'overview: nessuna query da invalidare.
     invalidates: () => [],
+  });
+}
+
+export function useLegalProfile() {
+  const session = useSessionStore();
+  return queryResource({
+    queryKey: () => queryKeys.legalProfile(session.establishmentId),
+    queryFn: () => apiFetch<EstablishmentLegalProfileDTO>('/establishment/legal-profile'),
+  });
+}
+
+export function useUpdateLegalProfile() {
+  const session = useSessionStore();
+  return mutationResource({
+    mutationFn: (input: UpdateEstablishmentLegalProfileInput) =>
+      apiFetch<EstablishmentLegalProfileDTO>('/establishment/legal-profile', {
+        method: 'PUT',
+        body: JSON.stringify(input),
+      }),
+    invalidates: () => [queryKeys.legalProfile(session.establishmentId)],
   });
 }
