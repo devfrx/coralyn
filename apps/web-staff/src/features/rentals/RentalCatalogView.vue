@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, ref, watchEffect } from 'vue';
-import { Button, Card, DataTable, EmptyState, Modal, ConfirmDialog, Field, Input, Select, Icon, IconButton, ActionBar, formatEuro } from '@coralyn/ui-kit';
+import { Button, Card, DataTable, EmptyState, Modal, ConfirmDialog, Field, Input, Select, Option, Icon, IconButton, ActionBar, formatEuro } from '@coralyn/ui-kit';
 import type { DataTableColumn } from '@coralyn/ui-kit';
 import type { RentalItemDTO, RentalTariffDTO } from '@coralyn/contracts';
 import { useSeasons } from '@/features/pricing/useSeasons';
@@ -257,7 +257,7 @@ function onConfirmDelete() {
       <div class="mb-3 flex flex-wrap items-center gap-3">
         <span class="text-[13px] font-semibold text-[var(--color-text-2nd)]">Tariffe · {{ selectedItem.name }}</span>
         <Select v-model="activeSeasonId" data-test="season-select" class="min-w-[150px]">
-          <option v-for="o in seasonOptions" :key="o.value" :value="o.value">{{ o.label }}</option>
+          <Option v-for="o in seasonOptions" :key="o.value" :value="o.value">{{ o.label }}</Option>
         </Select>
         <div class="flex-1"></div>
         <Button variant="secondary" size="sm" data-test="new-tariff" :disabled="!activeSeasonId" @click="openCreateTariff">

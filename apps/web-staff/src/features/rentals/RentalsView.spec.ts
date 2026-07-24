@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { http, HttpResponse } from 'msw';
 import { flushPromises } from '@vue/test-utils';
-import { mountApp } from '@/test/utils';
+import { mountApp, selectOption } from '@/test/utils';
 import { server } from '@/mocks/server';
 import { useToasts } from '@/lib/toasts';
 import { todayIso, addDays } from '@/lib/dates';
@@ -18,11 +18,11 @@ const settle = async () => {
 const dialogBtn = (label: string) =>
   Array.from(document.body.querySelectorAll('button')).find((b) => b.textContent?.trim() === label);
 
-const setSelect = (selector: string, val: string) => {
-  const el = document.querySelector(selector) as HTMLSelectElement;
-  el.value = val;
-  el.dispatchEvent(new Event('change', { bubbles: true }));
-};
+// Label reali dal seed rentals (mocks/server.ts): articolo ri-1 = "SUP", tariffa rt-1 = "Mezza
+// giornata" a € 15.00 (Option mostra "label · prezzo", vedi RentalsView.vue).
+const ITEM_LABEL = 'SUP';
+const TARIFF_LABEL = 'Mezza giornata · € 15.00';
+
 const setInput = (selector: string, val: string) => {
   const el = document.querySelector(selector) as HTMLInputElement;
   el.value = val;
@@ -34,9 +34,9 @@ const setInput = (selector: string, val: string) => {
 async function checkoutSup(w: ReturnType<typeof mountApp>, units = 1) {
   await w.get('[data-test="new-rental"]').trigger('click');
   await settle();
-  setSelect('[data-test="new-rental-item"]', 'ri-1');
+  await selectOption(document.querySelector('[data-test="new-rental-item"]')!, ITEM_LABEL);
   await settle();
-  setSelect('[data-test="new-rental-tariff"]', 'rt-1');
+  await selectOption(document.querySelector('[data-test="new-rental-tariff"]')!, TARIFF_LABEL);
   await settle();
   if (units !== 1) setInput('[data-test="new-rental-units"]', String(units));
   await settle();
@@ -71,9 +71,9 @@ describe('RentalsView', () => {
     await settle();
     await w.get('[data-test="new-rental"]').trigger('click');
     await settle();
-    setSelect('[data-test="new-rental-item"]', 'ri-1');
+    await selectOption(document.querySelector('[data-test="new-rental-item"]')!, ITEM_LABEL);
     await settle();
-    setSelect('[data-test="new-rental-tariff"]', 'rt-1');
+    await selectOption(document.querySelector('[data-test="new-rental-tariff"]')!, TARIFF_LABEL);
     await settle();
     // Anteprima client-side: 15 € (tariffa) × 1 unità (default) = 15.00, NESSUNA chiamata quote.
     expect(document.querySelector('[data-test="new-rental-preview"]')?.textContent).toContain('15.00');

@@ -2,7 +2,7 @@
 import { computed, ref, watch } from 'vue';
 import { storeToRefs } from 'pinia';
 import {
-  Button, Badge, DataTable, Modal, ConfirmDialog, Field, Select, Icon, ActionBar,
+  Button, Badge, DataTable, Modal, ConfirmDialog, Field, Select, Option, Icon, ActionBar,
   PageToolbar, ModalFooter, formatEuro,
 } from '@coralyn/ui-kit';
 import type { DataTableColumn } from '@coralyn/ui-kit';
@@ -168,14 +168,14 @@ function confirmCheckout(): void {
       <div class="flex flex-col gap-[18px]">
         <Field label="Articolo">
           <Select v-model="itemId" data-test="new-rental-item">
-            <option value="" disabled>Seleziona un articolo…</option>
-            <option v-for="i in (items ?? [])" :key="i.id" :value="i.id">{{ i.name }}</option>
+            <Option value="" disabled>Seleziona un articolo…</Option>
+            <Option v-for="i in (items ?? [])" :key="i.id" :value="i.id">{{ i.name }}</Option>
           </Select>
         </Field>
         <Field label="Tariffa">
           <Select v-model="tariffId" data-test="new-rental-tariff" :disabled="!itemId">
-            <option value="" disabled>Seleziona una tariffa…</option>
-            <option v-for="t in tariffs" :key="t.id" :value="t.id">{{ t.label }} · {{ formatEuro(t.price) }}</option>
+            <Option value="" disabled>Seleziona una tariffa…</Option>
+            <Option v-for="t in tariffs" :key="t.id" :value="t.id">{{ t.label }} · {{ formatEuro(t.price) }}</Option>
           </Select>
           <p v-if="itemId && tariffs.length === 0" class="mt-1.5 text-[11.5px] text-[var(--color-text-muted)]">
             Nessuna tariffa per questo articolo nella stagione attiva.
@@ -183,8 +183,8 @@ function confirmCheckout(): void {
         </Field>
         <Field label="Cliente (opzionale)">
           <Select v-model="customerId" data-test="new-rental-customer">
-            <option value="">Nessun cliente</option>
-            <option v-for="c in (customers ?? [])" :key="c.id" :value="c.id">{{ c.firstName }} {{ c.lastName }}</option>
+            <Option value="">Nessun cliente</Option>
+            <Option v-for="c in (customers ?? [])" :key="c.id" :value="c.id">{{ c.firstName }} {{ c.lastName }}</Option>
           </Select>
         </Field>
         <Field label="Unità">
