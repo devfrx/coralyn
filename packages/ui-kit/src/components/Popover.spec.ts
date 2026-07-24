@@ -48,6 +48,7 @@ describe('Popover', () => {
     await w.setProps({ open: false });
     await flushPromises();
     expect(document.body.textContent).not.toContain('Stato misto');
+    w.unmount();
   });
   it('v-model:open: chiudendo dall’esterno il Popover emette update:open=false', async () => {
     const w = mount(Popover, { props: { open: true }, slots, attachTo: document.body });

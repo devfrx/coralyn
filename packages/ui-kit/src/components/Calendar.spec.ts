@@ -47,6 +47,7 @@ describe('Calendar (reka-ui, v-model ISO)', () => {
     await nextTick(); await nextTick();
     const emits = w.emitted('update:modelValue') ?? [];
     expect(emits.every((e) => e[0] !== '')).toBe(true);
+    expect(cell(w, 15).hasAttribute('data-selected')).toBe(true); // la selezione resta (prevent-deselect ha davvero effetto)
   });
 
   it('senza v-model mostra comunque una griglia col giorno di oggi marcato', async () => {
