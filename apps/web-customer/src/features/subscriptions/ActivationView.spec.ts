@@ -36,6 +36,13 @@ describe('ActivationView', () => {
     w.unmount();
   });
 
+  it('mostra un link all\'informativa privacy', async () => {
+    const w = mountApp(ActivationView, { attachTo: document.body });
+    await settle();
+    expect(w.find('[data-testid="privacy-link"]').exists()).toBe(true);
+    w.unmount();
+  });
+
   it('su fallimento mostra un messaggio generico (nessun dettaglio d\'auth) e non naviga', async () => {
     const w = mountApp(ActivationView, { attachTo: document.body });
     const session = useSessionStore();

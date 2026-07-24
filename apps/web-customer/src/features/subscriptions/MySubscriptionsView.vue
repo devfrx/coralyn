@@ -2,6 +2,7 @@
 // Vista "I miei abbonamenti" (D-035 S4): lista read-only degli abbonamenti del cliente
 // autenticato + canale assenze comunicate (segnalazione/annullo self-service).
 import { computed, ref } from 'vue';
+import { RouterLink } from 'vue-router';
 import { Badge, Button, EmptyState, SectionCard, SkeletonText, dateRange, useDelayedLoading } from '@coralyn/ui-kit';
 import type { AbsenceReleaseDTO, CustomerBookingDTO } from '@coralyn/contracts';
 import { useSessionStore } from '@/stores/session';
@@ -111,5 +112,9 @@ function releasesFor(sub: CustomerBookingDTO): AbsenceReleaseDTO[] {
     </div>
 
     <AbsenceReleaseModal v-model:open="modalOpen" :booking="selectedBooking" />
+
+    <footer class="mt-8 border-t border-[var(--color-border)] pt-4 text-center">
+      <RouterLink to="/privacy" data-testid="privacy-link" class="text-xs text-[var(--color-text-muted)] underline">Informativa privacy</RouterLink>
+    </footer>
   </section>
 </template>

@@ -101,4 +101,12 @@ describe('MySubscriptionsView', () => {
     expect(w.find('[data-test="empty-state"]').exists()).toBe(true);
     w.unmount();
   });
+
+  it('mostra un link all\'informativa privacy nel footer', async () => {
+    vi.mocked(useMySubscriptions).mockReturnValue({ data: ref([makeSub()]), isLoading: ref(false) } as any);
+    const w = mountApp(MySubscriptionsView, { attachTo: document.body });
+    await settle();
+    expect(w.find('[data-testid="privacy-link"]').exists()).toBe(true);
+    w.unmount();
+  });
 });

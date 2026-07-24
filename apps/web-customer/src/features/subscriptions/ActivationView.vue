@@ -4,7 +4,7 @@
 // d'auth è mai mostrato (token invalido, PIN errato, token scaduto → stesso messaggio generico):
 // l'endpoint /customer/activate è l'unica autorità sulla validazione.
 import { computed, ref } from 'vue';
-import { useRoute, useRouter } from 'vue-router';
+import { RouterLink, useRoute, useRouter } from 'vue-router';
 import { Field, Input, Button, Callout } from '@coralyn/ui-kit';
 import { useSessionStore } from '@/stores/session';
 
@@ -58,5 +58,13 @@ async function onSubmit(): Promise<void> {
         <Button type="submit" class="w-full" :loading="loading" data-testid="activation-submit">Attiva</Button>
       </form>
     </template>
+
+    <RouterLink
+      to="/privacy"
+      data-testid="privacy-link"
+      class="mt-6 block text-center text-xs text-[var(--color-text-muted)] underline"
+    >
+      Informativa privacy
+    </RouterLink>
   </div>
 </template>
