@@ -15,6 +15,7 @@ import { EstablishmentModule } from './establishment/establishment.module';
 import { PlatformModule } from './platform/platform.module';
 import { CustomerAuthModule } from './customer-auth/customer-auth.module';
 import { RentalsModule } from './rentals/rentals.module';
+import { InformativaModule } from './informativa/informativa.module';
 import { PrismaExceptionFilter } from './common/prisma-exception.filter';
 
 @Module({
@@ -40,6 +41,7 @@ import { PrismaExceptionFilter } from './common/prisma-exception.filter';
     PlatformModule,
     CustomerAuthModule,
     RentalsModule,
+    InformativaModule,
   ],
   controllers: [HealthController],
   providers: [{ provide: APP_FILTER, useClass: PrismaExceptionFilter }],
