@@ -83,7 +83,7 @@ async function confirm(): Promise<void> {
       </div>
 
       <Field v-if="amount > 0" label="Metodo">
-        <Select v-model="method" data-test="settle-method" :class="inputClass">
+        <Select v-model="method" data-test="settle-method">
           <Option v-for="m in METHODS" :key="m.value" :value="m.value">{{ m.label }}</Option>
         </Select>
       </Field>

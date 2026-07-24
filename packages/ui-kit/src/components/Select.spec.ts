@@ -80,6 +80,22 @@ describe('Select (reka-ui)', () => {
     expect(w.get('[role="combobox"]').text()).toContain('Nessun pacchetto');
   });
 
+  it('round-trip del valore vuoto anche via prop options (non solo via slot Option)', async () => {
+    const withEmpty = [
+      { value: '', label: 'Tutte' },
+      { value: 's1', label: 'Fascia 1' },
+    ];
+    const w = current = mount(Select, { props: { options: withEmpty, modelValue: 's1' } });
+    await nextTick();
+    expect(w.get('[role="combobox"]').text()).toContain('Fascia 1');
+    await open(w);
+    await pick('Tutte');
+    expect(w.emitted('update:modelValue')?.at(-1)).toEqual(['']);
+    await w.setProps({ modelValue: '' });
+    await nextTick();
+    expect(w.get('[role="combobox"]').text()).toContain('Tutte');
+  });
+
   it('emette le classi standard del trigger stilizzato (dichiarazione della resa 5.2)', () => {
     const w = current = mount(Select, { props: { modelValue: '' } });
     expect(w.get('[role="combobox"]').classes()).toEqual(

@@ -421,7 +421,9 @@ interattivi: **default / hover / active / focus-visible / disabled**; focus = `-
   `value=""` resta selezionabile come stato reale («Scegli…», «Tutte»): reka-ui vieta l'item a
   stringa vuota, quindi ui-kit mappa `''` a una **sentinella interna** trasparente ai consumatori.
   Nei test l'interazione passa dall'helper `selectOption(trigger, label)` (il menu vive in
-  `document.body` solo da aperto).
+  `document.body` solo da aperto). Nota di contratto rispetto al `<select>` nativo: un `v-model`
+  che non corrisponde ad alcuna `Option` mostra un trigger **vuoto** (non la prima opzione, come
+  faceva il nativo) — quindi inizializza sempre il modello a `''` o a un valore valido.
 - **Skeleton / SkeletonText** — placeholder di caricamento: `variant: line | block | circle`
   (default `line`), `width`/`height` (default per variante: line `100%`×`0.75em`, block
   `100%`×`64px`, circle `32px`×`32px`); shimmer `skeleton-sheen` sui token

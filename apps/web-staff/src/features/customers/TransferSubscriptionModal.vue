@@ -84,7 +84,7 @@ async function confirm(): Promise<void> {
   <Modal v-model:open="open" title="Cedi abbonamento" eyebrow="Subentro">
     <div v-if="booking" class="flex flex-col gap-[18px]">
       <Field label="Cliente subentrante">
-        <Select v-model="newCustomerId" data-testid="transfer-new-customer" :class="inputClass">
+        <Select v-model="newCustomerId" data-testid="transfer-new-customer">
           <Option value="" disabled>Seleziona…</Option>
           <Option v-for="c in candidates" :key="c.id" :value="c.id">{{ c.firstName }} {{ c.lastName }}</Option>
         </Select>
