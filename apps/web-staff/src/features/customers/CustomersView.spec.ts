@@ -79,4 +79,17 @@ describe('CustomersView', () => {
     expect(w.text()).toContain('Nessun cliente trovato');
     expect(w.text()).toContain('0 clienti');
   });
+
+  it('mostra il promemoria informativa con link anteprima nel form nuovo cliente', async () => {
+    const w = mountApp(CustomersView, { attachTo: document.body });
+    await flushPromises();
+    await w.get('[data-test="new-customer"]').trigger('click');
+    await flushPromises();
+    // Il Modal usa DialogPortal (reka-ui): il contenuto vive in document.body a modal aperto,
+    // fuori dal sottoalbero DOM del wrapper (stesso pattern delle altre .spec.ts di questa cartella).
+    const link = document.body.querySelector('[data-test="privacy-reminder-link"]');
+    expect(link).not.toBeNull();
+    expect(link?.getAttribute('href')).toContain('/privacy?e=');
+    w.unmount();
+  });
 });

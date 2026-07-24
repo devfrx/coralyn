@@ -5,8 +5,11 @@ import { Button, Avatar, DataTable, Modal, Field, Input, Textarea, Icon, PageToo
 import type { DataTableColumn } from '@coralyn/ui-kit';
 import type { CustomerDTO } from '@coralyn/contracts';
 import { useCustomers, useCreateCustomer } from './useCustomers';
+import { privacyPreviewUrl } from '@/lib/privacyPreview';
+import { useSessionStore } from '@/stores/session';
 
 const router = useRouter();
+const session = useSessionStore();
 const { data: customers, isLoading } = useCustomers();
 const create = useCreateCustomer();
 
@@ -90,6 +93,16 @@ function ini(c: { firstName: string; lastName: string }) { return ((c.firstName[
         <Field label="Telefono"><Input name="phone" v-model="phone" placeholder="+39 ___ ___ ____" /></Field>
         <Field label="Email"><Input name="email" v-model="email" type="email" placeholder="nome@email.it" /></Field>
         <Field label="Note"><Textarea name="notes" v-model="notes" placeholder="Preferenze, recapiti aggiuntivi…" /></Field>
+        <p class="text-xs leading-relaxed text-[var(--color-text-muted)]">
+          Informa il cliente e forniscigli l'informativa privacy:
+          <a
+            :href="privacyPreviewUrl(session.establishmentId)"
+            target="_blank"
+            rel="noopener"
+            data-test="privacy-reminder-link"
+            class="underline"
+          >apri anteprima</a>.
+        </p>
       </form>
       <template #footer>
         <div class="flex justify-end gap-2.5">

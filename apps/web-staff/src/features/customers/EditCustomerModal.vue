@@ -3,10 +3,13 @@ import { ref, watch } from 'vue';
 import { Modal, Field, Input, Textarea, Button } from '@coralyn/ui-kit';
 import type { CustomerDTO } from '@coralyn/contracts';
 import { useUpdateCustomer } from './useCustomers';
+import { privacyPreviewUrl } from '@/lib/privacyPreview';
+import { useSessionStore } from '@/stores/session';
 
 const props = defineProps<{ customer: CustomerDTO }>();
 const open = defineModel<boolean>('open', { required: true });
 const update = useUpdateCustomer(props.customer.id);
+const session = useSessionStore();
 
 const firstName = ref('');
 const lastName = ref('');
@@ -52,6 +55,16 @@ function submit() {
       <Field label="Telefono"><Input name="phone" v-model="phone" placeholder="+39 ___ ___ ____" /></Field>
       <Field label="Email"><Input name="email" v-model="email" type="email" placeholder="nome@email.it" /></Field>
       <Field label="Note"><Textarea name="notes" v-model="notes" placeholder="Preferenze, recapiti aggiuntivi…" /></Field>
+      <p class="text-xs leading-relaxed text-[var(--color-text-muted)]">
+        Informa il cliente e forniscigli l'informativa privacy:
+        <a
+          :href="privacyPreviewUrl(session.establishmentId)"
+          target="_blank"
+          rel="noopener"
+          data-test="privacy-reminder-link"
+          class="underline"
+        >apri anteprima</a>.
+      </p>
     </form>
     <template #footer>
       <div class="flex justify-end gap-2.5">
