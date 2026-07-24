@@ -36,6 +36,7 @@ model Establishment {
   rentalItems        RentalItem[]
   rentalTariffs      RentalTariff[]
   rentals            Rental[]
+  legalProfile       EstablishmentLegalProfile?
 }
 
 model Customer {
@@ -597,4 +598,21 @@ model CredentialSetupToken {
 
   @@index([userId])
   @@index([expiresAt])
+}
+
+/// Dati del titolare del trattamento per l'informativa privacy Art. 13 mostrata al bagnante
+/// (5.6a). 1:1 con Establishment; tutti i campi nullable finché il lido non compila (→ [COMPILARE]).
+model EstablishmentLegalProfile {
+  establishmentId     String        @id @db.Uuid
+  establishment       Establishment @relation(fields: [establishmentId], references: [id], onDelete: Cascade)
+  legalName           String?
+  registeredAddress   String?
+  vatOrTaxId          String?
+  contactEmail        String?
+  pec                 String?
+  legalRepresentative String?
+  dataRightsContact   String?
+  dpoNominated        Boolean       @default(false)
+  dpoContact          String?
+  updatedAt           DateTime      @updatedAt
 }
