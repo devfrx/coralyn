@@ -103,16 +103,20 @@ Tutti sotto `apps/api`, contratti in `packages/contracts`.
 - `PUT /establishment/legal-profile` (upsert) → valida i campi (email/PEC ben formate se presenti; tutti
   opzionali), crea o aggiorna il profilo del tenant corrente.
 
-**Pubblico (nessuna auth, per il render dell'informativa):**
-- `GET /public/informativa/:establishmentId` → `PublicTitolareDTO` (solo i campi del titolare + `name` del
-  lido + `dpoNominated`/`dpoContact`; **nessuna PII di interessati**, sono dati societari pubblici per
-  natura — è ciò che l'informativa pubblica per definizione). Ritorna i campi mancanti come `null`
-  (il FE mostra `[COMPILARE]`). Nuovo modulo/route `public` in `apps/api`, **fuori dal `CustomerJwtGuard`**.
-  **RLS mantenuta**: a differenza dei token del canale cliente (dove il tenant è ignoto finché non si
-  risolve il token → tabelle fuori-RLS), qui l'`establishmentId` è **già noto dall'URL**, quindi
-  l'endpoint imposta il contesto tenant (`forTenant(establishmentId)`) e legge il record **dentro RLS
-  FORCE** — nessuna deroga alla RLS. Espone solo il profilo del lido richiesto (dati pubblici); UUID non
-  praticamente enumerabile e nessun dato sensibile esposto → accettato.
+**Lettura del titolare per il render dell'informativa** — un solo `PublicTitolareDTO` (solo campi del
+titolare + `establishmentName` + `dpoNominated`/`dpoContact`; **nessuna PII di interessati**, sono dati
+societari pubblici per natura), campi mancanti come `null` (il FE mostra `[COMPILARE]`). Un solo metodo di
+service condiviso `getTitolare(establishmentId)` (dentro `forTenant`, RLS mantenuta), esposto da **due**
+controller:
+- `GET /public/informativa/:establishmentId` → pubblico (nuovo modulo `public`, **fuori dal
+  `CustomerJwtGuard`**). Usato dal **deep-link operatore** (`?e=<id>`, web-staff *ha* `establishmentId`
+  nella sua `UserDTO`). **RLS mantenuta**: l'id è noto dall'URL → l'endpoint imposta il contesto tenant
+  (`forTenant(establishmentId)`) e legge dentro RLS FORCE — nessuna deroga. UUID non praticamente
+  enumerabile, nessun dato sensibile esposto → accettato.
+- `GET /customer/me/informativa` → **autenticato** (`CustomerJwtGuard`), tenant dal JWT
+  (`customer.establishmentId`, ADR-0026). Usato dal **bagnante autenticato** — necessario perché
+  `CustomerMeDTO` **non** espone `establishmentId` al FE (solo `establishmentName`). Passa
+  `customer.establishmentId` allo stesso `getTitolare`.
 
 ## 6. web-staff — form titolare + touchpoint di raccolta + anteprima
 
@@ -139,19 +143,24 @@ valutata in 5.6b, quando gli operatori avranno la *loro* informativa).
 
 ## 7. web-customer — informativa accessibile all'interessato
 
-**Rotta pubblica `/privacy`** (`meta.public: true`), `PrivacyView.vue`. Risoluzione del contesto lido:
-- **post-auth**: dalla sessione (`establishmentId` noto — il bagnante è autenticato).
-- **pre-auth / operatore**: da query param. Due sorgenti possibili — `?e=<establishmentId>` (deep-link
-  operatore) oppure `?token=<enrollmentToken>` (link di attivazione). Il token risolve il lido lato server
-  (già fatto in [customer-token.service.ts](../../../apps/api/src/customer-auth/customer-token.service.ts));
-  per `?e=` si usa direttamente l'id. In entrambi i casi il FE chiama `GET /public/informativa/:id`.
+**Rotta pubblica `/privacy`** (`meta.public: true`), `PrivacyView.vue`. Risoluzione del contesto lido, in
+ordine di priorità:
+- **`?e=<establishmentId>`** presente → `GET /public/informativa/:id` (deep-link operatore da web-staff).
+- altrimenti **autenticato** → `GET /customer/me/informativa` (tenant dal JWT; il FE non ha l'id).
+- altrimenti (primo contatto, nessun contesto) → **solo sezioni fisse** con blocco titolare generico
+  ("lo stabilimento presso cui ti sei registrato") — l'informativa parametrizzata compare post-attivazione
+  e, al momento della raccolta, lato operatore via deep-link. Nessuna risoluzione `?token=` (evita un
+  endpoint pubblico di risoluzione token; il primo contatto non è il momento di raccolta, che è
+  operator-side).
 
-**Contenuto** (§8): sezioni fisse renderizzate sempre; il **blocco titolare** interpolato dai dati
-pubblici, con `[COMPILARE]` sui campi `null`.
+**Contenuto** (§8): sezioni fisse renderizzate sempre; il **blocco titolare** interpolato dai dati del
+titolare, con `[COMPILARE]` sui campi `null`.
 
-**Link all'informativa:**
-- Footer persistente nello shell ([CustomerShell.vue](../../../apps/web-customer/src/app/CustomerShell.vue)).
-- Nella `ActivationView` (primo contatto), sotto il form: "Informativa privacy" → `/privacy?token=<token>`.
+**Link all'informativa** (niente footer globale in `CustomerShell`: le viste usano `min-h-dvh` centrato →
+un footer globale finirebbe sotto la piega; placement per-vista):
+- In `ActivationView` (primo contatto), sotto il form: "Informativa privacy" → `/privacy`.
+- In `MySubscriptionsView` (post-auth), footer di sezione: "Informativa privacy" → `/privacy`
+  (risolve via endpoint autenticato).
 
 **Cookie/tracker**: verificato 2026-07-24 — **nessun SDK analytics/tracking** nelle tre app, nessuno script
 esterno negli `index.html`, **nessun cookie**; solo `localStorage` per i token di sessione = **strumento
