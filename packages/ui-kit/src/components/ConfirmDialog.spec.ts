@@ -34,6 +34,12 @@ describe('ConfirmDialog', () => {
     expect(body!.textContent).toContain('Operazione irreversibile.');
   });
 
+  it('mantiene la description come DialogDescription sr-only (aria-describedby = testo reale)', async () => {
+    await mountDialog({ description: 'Operazione irreversibile.' });
+    const srOnly = Array.from(document.body.querySelectorAll('.sr-only')).find((e) => e.textContent?.includes('Operazione irreversibile.'));
+    expect(srOnly).toBeTruthy();
+  });
+
   it('emette "confirm" al click sul bottone di conferma', async () => {
     const w = await mountDialog({});
     confirmBtn()!.click();

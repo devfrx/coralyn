@@ -35,10 +35,11 @@ function onCancelButton(): void {
 }
 </script>
 <template>
-  <Modal v-model:open="open" :title="title">
+  <Modal v-model:open="open" :title="title" :aria-description="description">
     <!-- La descrizione vive nel BODY (convenzione delle altre modali: header = titolo, body =
          contenuto). Passarla come `description` di Modal la metteva nell'header e lasciava lo slot
-         body vuoto → una banda di padding vuota tra header e footer. -->
+         body vuoto → una banda di padding vuota tra header e footer. `aria-description` la tiene
+         come DialogDescription sr-only, così l'aria-describedby resta il testo reale. -->
     <p v-if="description" class="text-[13px] leading-relaxed text-[var(--color-text-2nd)]">{{ description }}</p>
     <slot />
     <template #footer>
