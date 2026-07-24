@@ -63,4 +63,12 @@ describe('EditCustomerModal', () => {
     expect(called).toBe(false);
     w.unmount();
   });
+
+  it('mostra il link anteprima informativa nel form', async () => {
+    const w = mountApp(EditCustomerModal, { attachTo: document.body, props: { customer: CUSTOMER, open: true } });
+    await flushPromises(); await tick();
+    const link = document.querySelector('[data-test="privacy-reminder-link"]') as HTMLAnchorElement | null;
+    expect(link?.getAttribute('href')).toContain('/privacy?e=');
+    w.unmount();
+  });
 });
