@@ -27,7 +27,7 @@ describe('pannelli form — sync per id, non per identità oggetto', () => {
     expect(input(w, 'umbrella-label')).toBe('A1-bozza');
     await w.setProps({ umbrella: { id: 'u-2', label: 'A2', umbrellaTypeId: 'typ-1' } }); // entità diversa
     expect(input(w, 'umbrella-label')).toBe('A2');
-    expect((w.find('[data-testid="umbrella-type"]').element as HTMLSelectElement).value).toBe('typ-1');
+    expect(w.get('[data-testid="umbrella-type"]').text()).toContain('Gazebo');
   });
 
   it('RowPanel: refetch stesso id → bozza preservata; id diverso → form resettato', async () => {
@@ -51,6 +51,6 @@ describe('pannelli form — sync per id, non per identità oggetto', () => {
     expect(input(w, 'sector-name')).toBe('Centro-bozza');
     await w.setProps({ sector: { id: 's-2', name: 'Speciali', sortOrder: 2, kind: 'special', rows: [] } });
     expect(input(w, 'sector-name')).toBe('Speciali');
-    expect((w.find('[data-testid="sector-kind"]').element as HTMLSelectElement).value).toBe('special');
+    expect(w.get('[data-testid="sector-kind"]').text()).toContain('Speciali: posti fuori griglia');
   });
 });

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref } from 'vue';
-import { Button, Field, Select, ConfirmDialog } from '@coralyn/ui-kit';
+import { Button, Field, Select, Option, ConfirmDialog } from '@coralyn/ui-kit';
 import type { UmbrellaTypeDTO } from '@coralyn/contracts';
 import { pushToast } from '@/lib/toasts';
 import { useBulkAssignUmbrellaType, useBulkDeleteUmbrellas } from '../useEstablishmentStructure';
@@ -40,9 +40,9 @@ function onDelete() {
       <template v-if="isAdmin">
         <Field label="Tipologia">
           <Select v-model="umbrellaTypeId" data-testid="multi-type">
-            <option value="">Scegli…</option>
-            <option value="__none__">Normale</option>
-            <option v-for="t in types" :key="t.id" :value="t.id">{{ t.name }}</option>
+            <Option value="">Scegli…</Option>
+            <Option value="__none__">Normale</Option>
+            <Option v-for="t in types" :key="t.id" :value="t.id">{{ t.name }}</Option>
           </Select>
         </Field>
         <Button data-testid="multi-assign" :disabled="umbrellaTypeId === '' || bulkAssign.isPending.value" :loading="bulkAssign.isPending.value" @click="assign">

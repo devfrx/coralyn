@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, watch, computed } from 'vue';
-import { Button, Field, Input, Select, ConfirmDialog } from '@coralyn/ui-kit';
+import { Button, Field, Input, Select, Option, ConfirmDialog } from '@coralyn/ui-kit';
 import type { StructureSectorDTO, SectorKind } from '@coralyn/contracts';
 import { pushToast } from '@/lib/toasts';
 import { useUpdateSector, useDeleteSector } from '../useEstablishmentStructure';
@@ -43,8 +43,8 @@ const seats = computed(() => props.sector.rows.reduce((n, r) => n + r.umbrellas.
         <Field label="Nome"><Input name="sector-name" data-testid="sector-name" v-model="name" /></Field>
         <Field label="Disposizione">
           <Select v-model="kind" data-testid="sector-kind">
-            <option value="grid">Griglia: file regolari verso il mare</option>
-            <option value="special">Speciali: posti fuori griglia</option>
+            <Option value="grid">Griglia: file regolari verso il mare</Option>
+            <Option value="special">Speciali: posti fuori griglia</Option>
           </Select>
         </Field>
         <Button type="submit" data-testid="sector-save" :loading="update.isPending.value">Salva settore</Button>

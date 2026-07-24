@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { http, HttpResponse } from 'msw';
 import { flushPromises, enableAutoUnmount } from '@vue/test-utils';
 import { Role } from '@coralyn/contracts';
-import { mountApp } from '@/test/utils';
+import { mountApp, selectOption } from '@/test/utils';
 import { server } from '@/mocks/server';
 import { useSessionStore } from '@/stores/session';
 import EstablishmentStructureView from './EstablishmentStructureView.vue';
@@ -416,7 +416,8 @@ describe('EstablishmentStructureView — shell Cantiere', () => {
     await w.findAll('[data-testid="scene-cell"] button')[1].trigger('click', { shiftKey: true });
     const insp = w.find('[data-testid="inspector"]');
     expect(insp.text()).toContain('2 ombrelloni');
-    await insp.find('[data-testid="multi-type"]').setValue('typ-1');
+    await selectOption(insp.get('[data-testid="multi-type"]'), 'Gazebo');
+    await settle();
     await insp.find('[data-testid="multi-assign"]').trigger('click');
     await settle();
     expect(assigned).toEqual({ ids: ['u-1', 'u-2'], umbrellaTypeId: 'typ-1' });
@@ -523,7 +524,8 @@ describe('EstablishmentStructureView — shell Cantiere', () => {
     await w.findAll('[data-testid="scene-cell"] button')[0].trigger('click');
     await w.findAll('[data-testid="scene-cell"] button')[1].trigger('click', { shiftKey: true });
     const insp = w.find('[data-testid="inspector"]');
-    await insp.find('[data-testid="multi-type"]').setValue('__none__');
+    await selectOption(insp.get('[data-testid="multi-type"]'), 'Normale');
+    await settle();
     await insp.find('[data-testid="multi-assign"]').trigger('click');
     await settle();
     expect(assigned).toEqual({ ids: ['u-1', 'u-2'], umbrellaTypeId: null });
@@ -574,7 +576,8 @@ describe('EstablishmentStructureView — shell Cantiere', () => {
     const session = useSessionStore();
     session.user = { id: 'u-1', email: 'admin@coralyn.dev', role: Role.Admin, establishmentId: 'e-1', establishmentName: 'Lido Maestrale' };
     await settle();
-    await w.find('[data-testid="retired-restore-row"]').setValue('r-1');
+    await selectOption(w.get('[data-testid="retired-restore-row"]'), 'Centro · Fila 1');
+    await settle();
     await w.find('[data-testid="retired-restore"]').trigger('click');
     await settle();
     expect(restoredId).toBe('u-r');

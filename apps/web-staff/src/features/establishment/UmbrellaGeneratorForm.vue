@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
-import { Button, Field, Input, Select } from '@coralyn/ui-kit';
+import { Button, Field, Input, Select, Option } from '@coralyn/ui-kit';
 import type { UmbrellaTypeDTO } from '@coralyn/contracts';
 import { pushToast } from '@/lib/toasts';
 import { GENERATE_MAX } from './structureSelection';
@@ -42,8 +42,8 @@ function doGenerate() {
     </div>
     <Field label="Tipologia">
       <Select v-model="genTypeId" data-testid="gen-type">
-        <option value="">Normale</option>
-        <option v-for="t in types" :key="t.id" :value="t.id">{{ t.name }}</option>
+        <Option value="">Normale</Option>
+        <Option v-for="t in types" :key="t.id" :value="t.id">{{ t.name }}</Option>
       </Select>
     </Field>
     <p v-if="!genCountOverMax" class="text-[11.5px] text-[var(--color-text-muted)]">Anteprima: {{ genPreview.slice(0, 6).join(', ') }}{{ genPreview.length > 6 ? '…' : '' }} ({{ genPreview.length }}). Le etichette già esistenti vengono saltate.</p>

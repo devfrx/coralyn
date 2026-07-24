@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
-import { Button, IconButton, Icon, Field, Input, Select, ConfirmDialog } from '@coralyn/ui-kit';
+import { Button, IconButton, Icon, Field, Input, Select, Option, ConfirmDialog } from '@coralyn/ui-kit';
 import type { EstablishmentStructureDTO, UmbrellaTypeDTO } from '@coralyn/contracts';
 import { pushToast } from '@/lib/toasts';
 import { useCreateUmbrellaType, useUpdateUmbrellaType, useDeleteUmbrellaType, useRetiredUmbrellas, useRestoreUmbrella } from '../useEstablishmentStructure';
@@ -77,7 +77,7 @@ function onRestore(id: string) {
           <Field label="Nome"><Input name="type-name" data-testid="type-name" v-model="name" placeholder="es. Gazebo" /></Field>
           <Field label="Icona sulla mappa">
             <Select v-model="icon" data-testid="type-icon">
-              <option value="umbrella">Ombrellone</option><option value="leaf">Paglia</option><option value="palmtree">Palma</option>
+              <Option value="umbrella">Ombrellone</Option><Option value="leaf">Paglia</Option><Option value="palmtree">Palma</Option>
             </Select>
           </Field>
           <div class="flex justify-end gap-2">
@@ -109,8 +109,8 @@ function onRestore(id: string) {
             </div>
             <div v-if="isAdmin" class="mt-1.5 flex items-center gap-2">
               <Select v-model="restoreRowByUmbrella[u.id]" data-testid="retired-restore-row" class="flex-1">
-                <option value="" disabled>Fila di destinazione…</option>
-                <option v-for="r in allRows" :key="r.id" :value="r.id">{{ r.sectorName }} · {{ r.label }}</option>
+                <Option value="" disabled>Fila di destinazione…</Option>
+                <Option v-for="r in allRows" :key="r.id" :value="r.id">{{ r.sectorName }} · {{ r.label }}</Option>
               </Select>
               <Button size="sm" data-testid="retired-restore" :disabled="!restoreRowByUmbrella[u.id] || restore.isPending.value"
                 :loading="restore.isPending.value" @click="onRestore(u.id)">Ripristina</Button>

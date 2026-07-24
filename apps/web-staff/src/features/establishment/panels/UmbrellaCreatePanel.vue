@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref } from 'vue';
-import { Button, Field, Input, Select } from '@coralyn/ui-kit';
+import { Button, Field, Input, Select, Option } from '@coralyn/ui-kit';
 import type { UmbrellaTypeDTO } from '@coralyn/contracts';
 import { pushToast } from '@/lib/toasts';
 import { useCreateUmbrella } from '../useEstablishmentStructure';
@@ -36,8 +36,8 @@ function submit() {
         <p class="-mt-2 text-[11.5px] text-[var(--color-text-muted)]">Numero fisico reale, unico in tutta la spiaggia</p>
         <Field label="Tipologia">
           <Select v-model="umbrellaTypeId" data-testid="umbrella-type">
-            <option value="">Normale</option>
-            <option v-for="t in types" :key="t.id" :value="t.id">{{ t.name }}</option>
+            <Option value="">Normale</Option>
+            <Option v-for="t in types" :key="t.id" :value="t.id">{{ t.name }}</Option>
           </Select>
         </Field>
         <Button type="submit" data-testid="umbrella-save" :loading="create.isPending.value">Salva</Button>

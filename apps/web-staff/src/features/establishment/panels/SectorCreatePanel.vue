@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref } from 'vue';
-import { Button, Field, Input, Select } from '@coralyn/ui-kit';
+import { Button, Field, Input, Select, Option } from '@coralyn/ui-kit';
 import type { SectorKind, StructureSectorDTO } from '@coralyn/contracts';
 import { pushToast } from '@/lib/toasts';
 import { useCreateSector } from '../useEstablishmentStructure';
@@ -35,8 +35,8 @@ function submit() {
         <Field label="Nome"><Input name="sector-name" data-testid="sector-name" v-model="name" placeholder="es. Nord" /></Field>
         <Field label="Disposizione">
           <Select v-model="kind" data-testid="sector-kind">
-            <option value="grid">Griglia: file regolari verso il mare</option>
-            <option value="special">Speciali: posti fuori griglia</option>
+            <Option value="grid">Griglia: file regolari verso il mare</Option>
+            <Option value="special">Speciali: posti fuori griglia</Option>
           </Select>
         </Field>
         <Button type="submit" data-testid="sector-save" :loading="create.isPending.value">Crea settore</Button>
