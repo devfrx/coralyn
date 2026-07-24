@@ -11,8 +11,15 @@ fornisce un servizio della società dell'informazione di rendere accessibili **i
 permanente** alcune informazioni identificative. Coralyn, come SaaS erogato a distanza per via
 elettronica e dietro corrispettivo, vi rientra.
 
-L'omissione è punita con **sanzione amministrativa da 103 a 10.000 euro** (art. 21 D.Lgs. 70/2003),
-che copre l'art. 7 per intero, lettera h compresa.
+L'omissione è punita con **sanzione amministrativa da 103 a 10.000 euro** (art. 21 D.Lgs. 70/2003).
+`[DA VERIFICARE ALLA FONTE: che il richiamo dell'art. 21 copra l'art. 7 per intero, lettera h
+compresa]` ⚖️-17
+
+## Come va pubblicato
+
+Le informazioni vanno rese accessibili **in modo diretto e permanente**: in pratica un collegamento
+nel **piè di pagina** di ogni schermata, che punta a una **pagina dedicata** con il testo completo.
+Non è sufficiente inserirle solo nei termini di servizio o in un documento scaricabile.
 
 ⚖️-16 **Da validare, il perimetro.** L'obbligo riguarda le superfici pubbliche del servizio. Vanno
 confermati: (a) se comprenda un'applicazione accessibile **solo previa autenticazione**, caso meno

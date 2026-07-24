@@ -192,8 +192,10 @@ silenzio è irreversibile e può interferire con gli obblighi di conservazione d
 Restano salvi gli obblighi di conservazione imposti dalla legge, per il tempo da essa previsto: in
 particolare la documentazione contabile va conservata **10 anni** (art. 2220 Cod. Civ.).
 
-I backup seguono un proprio ciclo di rotazione: la cancellazione dai backup si completa entro
-**14 giorni** dalla cancellazione dai sistemi attivi, coerentemente con la ritenzione dell'Allegato A.
+`[COMPILARE: termine entro cui la cancellazione si completa anche sui backup]` ⚖️-10 — lo script di
+backup prevede una ritenzione di 14 giorni, ma la **schedulazione non è versionata** (vedi Allegato
+A): finché non è documentata e verificabile, un termine contrattuale su questo punto non è
+sostenibile.
 
 ## Art. 11 — Trasferimenti fuori dallo Spazio Economico Europeo
 
@@ -223,7 +225,7 @@ documentazione o certificazioni di terza parte, se soddisfano ragionevolmente la
 
 | Ambito | Misura |
 |---|---|
-| **Separazione tra clienti** **[V]** | Row-Level Security PostgreSQL con policy di isolamento per tenant in `ENABLE` + `FORCE` su **tutte e 22 le tabelle di dominio tenant-scoped**; il ruolo applicativo è non-superuser e non può aggirare le policy in lettura o scrittura ordinaria ([ADR-0010](../architecture/decisions/0010-isolamento-multi-tenant.md)). **Restano fuori RLS 6 tabelle** di identità, pre-tenant e credenziali del canale cliente, il cui isolamento è garantito dal filtro applicativo. Per le 22 tabelle di dominio, un difetto del solo codice applicativo non basta a esporre i dati di un altro Lido; per le altre 6, sì. ⚖️-09 |
+| **Separazione tra clienti** **[V]** | Row-Level Security PostgreSQL con policy di isolamento per tenant in `ENABLE` + `FORCE` su **22 tabelle di dominio**; il ruolo applicativo è non-superuser e non può aggirare le policy in lettura o scrittura ordinaria ([ADR-0010](../architecture/decisions/0010-isolamento-multi-tenant.md)). **Restano fuori RLS 6 tabelle, nominatamente:** `User`, `Establishment`, `CredentialSetupToken`, `PlatformAuditLog` (identità e pre-tenant) e `CustomerEnrollmentToken`, `CustomerSession` (credenziali del canale cliente). Per le 22 tabelle di dominio, un difetto del solo codice applicativo non basta a esporre i dati di un altro Lido; **per le altre 6, sì**, perché il loro isolamento è garantito dal filtro applicativo. ⚖️-09 |
 | **Password** **[V]** | Hashing argon2id; mai memorizzate, trasmesse o registrate in chiaro. Credenziali consegnate via link monouso a scadenza, mai per email in chiaro ([ADR-0042](../architecture/decisions/0042-trasporto-email-e-consegna-credenziali.md)). |
 | **Controllo degli accessi** **[V]** | Autenticazione obbligatoria su ogni endpoint applicativo, con guardia globale. Sono pubbliche per necessità funzionale le sole rotte di autenticazione, il controllo di stato del servizio e l'endpoint che espone i dati del titolare per l'informativa art. 13 (dati destinati per definizione alla pubblicazione verso l'interessato). Le azioni amministrative sono riservate al ruolo amministratore. |
 | **Durata delle sessioni** **[V]** | JWT di accesso con scadenza configurabile: 8 ore per lo staff, 30 minuti per il canale cliente. Non esiste revoca del JWT staff prima della scadenza. |
@@ -232,10 +234,11 @@ documentazione o certificazioni di terza parte, se soddisfano ragionevolmente la
 | **Cancellazione** **[V]** | Cancellazione reale quando il cliente non ha prenotazioni; in presenza di prenotazioni passate, anonimizzazione irreversibile in place che preserva la sola storia contabile in forma anonima; in presenza di prenotazioni attive o future, o di prelazione aperta, operazione bloccata fino alla chiusura del rapporto ([ADR-0043](../architecture/decisions/0043-erasure-e-retention-cliente-gdpr.md)). **Limiti noti**: il conteggio non considera i noleggi, e l'anonimizzazione non revoca le sessioni del canale cliente. ⚖️-11 |
 | **Parete verso la piattaforma** **[V]** | La console espone metriche aggregate e nessun dato dei bagnanti; tratta il solo indirizzo email dell'amministratore del Lido ([ADR-0040](../architecture/decisions/0040-lettura-aggregata-cross-tenant.md)). |
 | **Cifratura in transito** **[V]** | HTTPS terminato dal reverse proxy Caddy con certificati Let's Encrypt a rinnovo automatico; tratta interna in HTTP sulla rete privata dei container. |
-| **Backup** **[V] + ⚖️-10** | `pg_dump` notturno compresso, ritenzione **14 giorni**. I backup **non sono cifrati** e la **copia offsite non è attiva**; il test di ripristino non è documentato. Sono limiti dichiarati, non omessi. |
+| **Backup** **[V] sullo script, [P] sulla schedulazione** — ⚖️-10 | Esiste uno script di `pg_dump` compresso con ritenzione **14 giorni** (`deploy/backup-db.sh`). ⚠️ La **schedulazione notturna non è versionata**: il cron è solo suggerito in un commento, quindi che il backup giri davvero ogni notte è un impegno organizzativo, non un fatto verificabile. I backup **non sono cifrati**, la **copia offsite non è attiva** (riga commentata) e il **test di ripristino non è documentato**. Limiti dichiarati, non omessi. |
 | **Separazione degli ambienti** **[P]** | Database di sviluppo, test e produzione distinti; seed spento in produzione. L'assenza di dati reali fuori dalla produzione è un impegno organizzativo, da supportare con procedura scritta. |
 | **Riservatezza del personale** **[P]** | `[COMPILARE: forma dell'impegno di riservatezza]` |
 | **Continuità operativa** **[P]** | `[COMPILARE: obiettivi di ripristino]` |
+| **Limiti dichiarati** | Per trasparenza verso il Titolare, che su queste misure fonda la propria valutazione ex artt. 28.1 e 32: (a) **non esiste un registro delle azioni compiute dallo staff del Lido** sui dati dei propri bagnanti ([D-047](../architecture/deferred.md)) — il Titolare non dispone quindi di una traccia applicativa di chi ha letto o modificato cosa; (b) il **login degli operatori non è soggetto a limite di frequenza** ([D-027](../architecture/deferred.md)); (c) i **registri tecnici** conservano l'indirizzo email del destinatario in caso di errore di invio, con retention da definire. |
 
 ---
 

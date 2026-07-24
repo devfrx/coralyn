@@ -51,8 +51,16 @@ Per qualsiasi questione relativa ai tuoi dati puoi scrivere a `[COMPILARE: email
 
 Il tuo indirizzo email non lo raccogliamo da te: ci viene comunicato dallo stabilimento presso cui
 lavori, oppure dall'amministratore della piattaforma, nel momento in cui chiede l'apertura del tuo
-accesso. Ti rendiamo questa informativa insieme all'email con cui ti invitiamo ad attivare
-l'account.
+accesso.
+
+`[COMPILARE: modalità e momento in cui questa informativa ti viene resa]`
+
+> ⚠️ **Nota per chi implementa, da risolvere prima della pubblicazione.** L'art. 14.3(a) impone di
+> rendere l'informativa entro un mese dalla raccolta. Il veicolo naturale è l'email di invito, ma
+> **oggi quel template non contiene alcun rinvio all'informativa** (`credential-setup.email.ts`), e
+> nelle app non esiste ancora una rotta che la pubblichi. Finché una delle due cose non è vera,
+> questa sezione non può dichiarare una modalità di consegna: dichiararla sarebbe falso proprio
+> sull'adempimento che deve documentare.
 
 ## Quali dati trattiamo e perché
 
@@ -77,6 +85,15 @@ con un link personale, valido una sola volta e a scadenza. Del link conserviamo 
 cifrata, mai il link in chiaro, insieme alla data di scadenza e al momento in cui lo hai usato.
 
 Non ti inviamo mai una password in chiaro per email.
+
+### I registri tecnici del servizio
+
+Il funzionamento del servizio produce registri tecnici. In caso di errore nell'invio di un'email di
+servizio, il registro conserva l'indirizzo email a cui era diretta, per permetterci di capire cosa
+non ha funzionato. La base giuridica è il nostro legittimo interesse a diagnosticare e correggere i
+malfunzionamenti. ⚖️-04
+
+`[COMPILARE: per quanto tempo conserviamo i registri tecnici]` ⚖️-05
 
 ### Le azioni amministrative sulla piattaforma
 

@@ -64,7 +64,7 @@ qualificazione giuridica da confermare.
 | **Finalità** | Tracciare le azioni amministrative del superuser di piattaforma (creazione lido, reset password amministratore, sospensione/riattivazione) per accountability e sicurezza. |
 | **Base giuridica** | **Legittimo interesse** (art. 6.1.f) alla sicurezza e alla tracciabilità delle azioni amministrative, con test di bilanciamento da documentare. Gli artt. 5.2 e 32 sono la *fonte dell'obbligo di accountability* che alimenta l'interesse, **non una base di liceità autonoma**: le basi sono tassativamente quelle dell'art. 6.1. ⚖️-04 |
 | **Categorie di interessati** | Amministratori di piattaforma (personale Coralyn) **e amministratori dei lidi clienti**. |
-| **Categorie di dati** | Id dell'attore; tipo di azione; lido destinatario; timestamp; **metadati contenenti l'indirizzo email dell'amministratore destinatario** (verificato: `platform-provisioning.service.ts:35` e `:70`). **Mai dati dei bagnanti**, per costruzione. |
+| **Categorie di dati** | Id dell'attore; tipo di azione; lido destinatario; timestamp; **metadati contenenti l'indirizzo email dell'amministratore destinatario** (verificato: `platform-provisioning.service.ts:35` e `:70`). **Mai dati dei bagnanti**: il campo `metadata` è però un JSON libero, quindi il vincolo è una **convenzione rispettata dai tre soli writer attuali**, non una garanzia strutturale. |
 | **Destinatari** | Fornitore di hosting `[COMPILARE]`, sub-responsabile. |
 | **Trasferimenti extra-SEE** | `[COMPILARE]` ⚖️-06 |
 | **Conservazione** | `[COMPILARE: periodo di retention del log]` ⚖️-05 — un audit trail conservato indefinitamente è difficile da giustificare. |
@@ -94,6 +94,20 @@ qualificazione giuridica da confermare.
 | **Destinatari** | `[COMPILARE: canale/strumento di ticketing, se diverso dall'email]` |
 | **Trasferimenti extra-SEE** | `[COMPILARE]` ⚖️-06 |
 | **Conservazione** | `[COMPILARE]` ⚖️-05 |
+| **Misure di sicurezza** (art. 30.1.g) | Vedi §C. |
+
+## A6. Registri tecnici applicativi
+
+| Voce | Contenuto |
+|---|---|
+| **Finalità** | Diagnosticare malfunzionamenti del servizio. |
+| **Base giuridica** | Legittimo interesse (art. 6.1.f) alla diagnosi e correzione dei guasti, con bilanciamento da documentare. ⚖️-04 |
+| **Categorie di interessati** | Operatori e amministratori destinatari di email di servizio. |
+| **Categorie di dati** | Messaggi di diagnostica che includono l'**indirizzo email del destinatario** in caso di fallimento dell'invio (verificato: `credential-setup.service.ts:50`). |
+| **Destinatari** | Fornitore di hosting `[COMPILARE]`, sub-responsabile. |
+| **Trasferimenti extra-SEE** | `[COMPILARE]` ⚖️-06 |
+| **Conservazione** | `[COMPILARE: retention dei log applicativi]` ⚖️-05 — oggi non definita. |
+| **Misure di sicurezza** (art. 30.1.g) | Vedi §C. |
 
 ---
 
@@ -126,6 +140,7 @@ documentata, formalizzata nel [DPA](dpa-coralyn-lido.md).
 | **Sub-responsabili** | Hosting `[COMPILARE]`. |
 | **Trasferimenti extra-SEE** | `[COMPILARE]` ⚖️-06 |
 | **Conservazione** | Enrollment valido `CUSTOMER_ENROLLMENT_TTL_HOURS`, **90 giorni** predefiniti; sessioni fino a revoca o scadenza (`CUSTOMER_REFRESH_TTL_DAYS`, **120 giorni** predefiniti). ⚠️ **L'anonimizzazione del bagnante non revoca le sessioni attive**: vedi §C. |
+| **Misure di sicurezza** (art. 30.2.d) | Vedi §C. ⚠️ Queste due tabelle sono **fuori RLS**: il loro isolamento è applicativo, non di database. |
 | **Note** | L'accesso è **provisionato dall'operatore**, non esiste autoregistrazione ([ADR-0049](../architecture/decisions/0049-auth-cliente-provisioned-tenant-pubblico.md)). |
 
 ## B3. Intervento tecnico eccezionale sui dati
@@ -136,6 +151,7 @@ documentata, formalizzata nel [DPA](dpa-coralyn-lido.md).
 | **Categorie di trattamento** | Accesso diretto ai dati per diagnosi o ripristino, **solo su richiesta del titolare** e da documentare (art. 5 del [DPA](dpa-coralyn-lido.md)). Non esiste alcuna funzione applicativa di lettura puntuale dei dati di un bagnante ([D-042](../architecture/deferred.md)). |
 | **Categorie di dati** | Potenzialmente tutte quelle di B1. |
 | **Conservazione** | Nessuna copia conservata oltre l'intervento. `[COMPILARE: procedura di registrazione degli accessi eccezionali]` ⚖️-12 |
+| **Misure di sicurezza** (art. 30.2.d) | Vedi §C. |
 
 ---
 
@@ -148,12 +164,12 @@ Descrizione generale. Le misure marcate **[V]** sono **verificate sul codice**; 
 |---|---|
 | **Isolamento multi-tenant** **[V]** | Row-Level Security PostgreSQL con policy `tenant_isolation` in `ENABLE` + `FORCE` su **tutte e 22 le tabelle di dominio tenant-scoped**. Il ruolo applicativo è **non-superuser e `NOBYPASSRLS`**: non può aggirare le policy in lettura o scrittura ordinaria ([ADR-0010](../architecture/decisions/0010-isolamento-multi-tenant.md)). **Restano deliberatamente fuori RLS 6 tabelle**: identità e pre-tenant (`User`, `Establishment`, `CredentialSetupToken`, `PlatformAuditLog`) e credenziali del canale cliente (`CustomerEnrollmentToken`, `CustomerSession`); per queste l'isolamento è **applicativo**, non di database. ⚠️ Il ruolo applicativo è anche **proprietario dello schema**, quindi in linea teorica potrebbe alterare le policy con SQL grezzo: è il compromesso necessario a far girare le migration. ⚖️-09 |
 | **Password** **[V]** | Hashing **argon2id**; mai memorizzate, trasmesse o registrate in chiaro. Consegna via link monouso a scadenza. |
-| **Autenticazione** **[V]** | Guardia globale su ogni endpoint applicativo, con `@Public()` come sola eccezione esplicita: rotte di autenticazione, controllo di stato del servizio e l'endpoint che espone i dati del titolare per l'informativa art. 13 (dati destinati per definizione alla pubblicazione). Autorizzazione per ruolo sulle azioni amministrative. |
+| **Autenticazione** **[V]** | Guardia globale su ogni endpoint applicativo. Il marcatore `@Public()` **scavalca la guardia staff, non l'autenticazione in sé**: dei 13 handler che lo usano, 5 sono endpoint di dominio del canale cliente, autenticati dal `CustomerJwtGuard`. Restano **effettivamente non autenticati** solo: le rotte di autenticazione, il controllo di stato del servizio e l'endpoint che espone i dati del titolare per l'informativa art. 13 (dati destinati per definizione alla pubblicazione verso l'interessato). Autorizzazione per ruolo sulle azioni amministrative. |
 | **Durata delle sessioni** **[V]** | JWT di accesso con scadenza configurabile: **8 ore** per lo staff, **30 minuti** per il canale cliente. ⚠️ Non esiste revoca del JWT staff: disabilitare un operatore non invalida il token già emesso fino a scadenza ([D-026](../architecture/deferred.md)). |
 | **Canale cliente** **[V]** | Token di attivazione e PIN entrambi solo-hash; refresh rotante legato al dispositivo con **rilevamento del riuso** (un token riusato revoca l'intera catena). |
 | **Limite di frequenza** **[V]** | Attivo per IP sugli endpoint di **autenticazione** del canale cliente (10 richieste/60s predefinite) e blocco a soglia sui tentativi di PIN errato (5 predefiniti). ⚠️ Gli endpoint **di dominio** del canale cliente e il **login staff** non sono soggetti a limite di frequenza ([D-027](../architecture/deferred.md)). |
 | **Minimizzazione** **[V]** | Nessun campo per documenti d'identità né per categorie particolari; contatti facoltativi; account operatore privo di dati anagrafici. |
-| **Cancellazione** **[V]** | Cancellazione reale quando il cliente **non ha prenotazioni**; in presenza di prenotazioni passate, **anonimizzazione irreversibile in place** (nome e cognome sostituiti da segnaposto, telefono, email e note azzerati). In presenza di prenotazioni attive o future, o di una prelazione di rinnovo aperta, l'operazione è **bloccata** finché il rapporto non si chiude (oblio differito, non negato) — [ADR-0043](../architecture/decisions/0043-erasure-e-retention-cliente-gdpr.md). ⚠️ **Due limiti noti:** (a) il conteggio considera **solo le prenotazioni**, non i noleggi, quindi un cliente con soli noleggi viene cancellato davvero e i noleggi restano orfani; (b) l'anonimizzazione **non revoca** enrollment e sessioni del canale cliente. ⚖️-11 |
+| **Cancellazione** **[V]** | Cancellazione reale quando il cliente **non ha prenotazioni**; in presenza di prenotazioni passate, **anonimizzazione irreversibile in place** (nome e cognome sostituiti da segnaposto, telefono, email e note azzerati). In presenza di prenotazioni attive o future, o di una prelazione di rinnovo aperta, l'operazione è **bloccata** finché il rapporto non si chiude (oblio differito, non negato) — [ADR-0043](../architecture/decisions/0043-erasure-e-retention-cliente-gdpr.md). ⚠️ **Due limiti noti:** (a) il blocco a tutela del rapporto in corso considera **solo le prenotazioni**, non i noleggi: un cliente con un **noleggio aperto** (non ancora reso né annullato) è rimovibile mentre il rapporto è attivo. Il distacco del noleggio (`Rental.customerId` → `NULL`) di per sé **realizza** la cancellazione preservando la storia contabile in forma anonima, quindi non è il difetto: il difetto è l'assenza del blocco. (b) L'anonimizzazione **non revoca** enrollment e sessioni del canale cliente. ⚖️-11 |
 | **Parete verso la piattaforma** **[V]** | La console espone **metriche aggregate** dei lidi e **nessun dato dei bagnanti** ([ADR-0040](../architecture/decisions/0040-lettura-aggregata-cross-tenant.md)). L'unico dato personale che tratta è l'**email dell'amministratore** del lido, necessaria a provisioning e reset. |
 | **Cifratura in transito** **[V]** | HTTPS terminato dal reverse proxy Caddy con certificati Let's Encrypt a rinnovo automatico; tratta interna in HTTP sulla rete Docker privata (`deploy/Caddyfile`). |
 | **Backup** **[V] + ⚖️-10** | `pg_dump` notturno compresso con **ritenzione 14 giorni** (`deploy/backup-db.sh`). ⚠️ I backup **non sono cifrati** e la **copia offsite è disattivata** (riga commentata): sono temi di art. 32.1(b)-(c) da portare al legale, non da nascondere. Il **test di ripristino** non è documentato. |

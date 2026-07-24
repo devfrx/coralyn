@@ -78,9 +78,10 @@ occorrenze di `document.cookie` o `Set-Cookie` in tutto il repo. Nel codice **ap
 né risorse da rete di distribuzione esterna; i caratteri tipografici sono un pacchetto npm locale,
 quindi **nessuna chiamata verso gli Stati Uniti** al caricamento della pagina.
 
-Le memorizzazioni sul dispositivo sono **due**, non una:
+Le memorizzazioni sul dispositivo sono **due categorie**, non una:
 
-- il **token di sessione** in `localStorage`;
+- i **token di sessione** in `localStorage`: uno in `web-staff` e `web-platform`, **due** in
+  `web-customer` (accesso e rinnovo, quest'ultimo valido fino a 120 giorni);
 - la **cache degli asset applicativi** del service worker (tutte e tre le app sono PWA installabili
   con precaching Workbox).
 
@@ -127,18 +128,21 @@ ambiguità.
 | ⚖️-14 | **Termini contrattuali del DPA**: preavviso sub-responsabili, finestra breach, audit, gerarchia contrattuale, cancellazione per silenzio | [DPA](dpa-coralyn-lido.md) |
 | ⚖️-15 | **Campi liberi** (`Customer.notes`, `Booking.extras`): rischio di dati eccedenti | [DPA art. 3](dpa-coralyn-lido.md) |
 | ⚖️-16 | **Perimetro dell'imprint**: app dietro autenticazione, e imprint **del lido** su `web-customer` | [imprint](imprint.md) |
-| ⚖️-17 | **Prezzi e tariffe** (art. 7.1.h) e capitale sociale: dipendono da modello commerciale e forma societaria | [imprint](imprint.md) |
+| ⚖️-17 | **Prezzi e tariffe** (art. 7.1.h), capitale sociale, e portata del richiamo sanzionatorio dell'art. 21 | [imprint](imprint.md) |
+| ⚖️-18 | **Consegna dell'informativa agli operatori** (art. 14.3.a): oggi l'email di invito non vi rinvia e non esiste una rotta che la pubblichi | [policy operatori](privacy-policy-operatori.md) |
 
 ## Difetti di prodotto emersi dalla revisione (non si risolvono scrivendo)
 
 La review tecnica avversariale ha trovato due comportamenti che **contraddicono** ciò che i documenti
 promettono. Vanno corretti nel codice, non giustificati qui. ⚖️-11
 
-1. **La cancellazione GDPR non considera i noleggi.** Il conteggio dello storico guarda solo le
-   prenotazioni (`customers.service.ts:73`): un cliente con soli noleggi viene **cancellato davvero**
-   e i suoi noleggi restano **orfani** (`Rental.customerId` è `ON DELETE SET NULL`). La storia
-   contabile viene sganciata invece che anonimizzata, contro quanto promesso dal DPA. Ricade nella
-   famiglia di [D-059](../architecture/deferred.md).
+1. **La cancellazione GDPR non guarda i noleggi aperti.** Le guardie a tutela del rapporto in corso
+   contano solo le prenotazioni (`customers.service.ts:73-86`): un cliente con un **noleggio aperto**
+   (non reso né annullato) è rimovibile **mentre il rapporto è attivo**, cosa che per le prenotazioni
+   è invece bloccata con un 409. Il distacco del noleggio (`Rental.customerId` → `NULL`) **non** è il
+   difetto: realizza la cancellazione preservando la storia contabile in forma anonima, ed è
+   plausibilmente desiderabile ([D-059](../architecture/deferred.md)). Il difetto è l'**assenza del
+   blocco**.
 2. **L'anonimizzazione non revoca l'accesso del canale cliente.** Enrollment e sessioni restano
    validi fino a scadenza (fino a 120 giorni): un bagnante anonimizzato conserva una sessione
    funzionante. Indebolisce l'esercizio del diritto alla cancellazione.
