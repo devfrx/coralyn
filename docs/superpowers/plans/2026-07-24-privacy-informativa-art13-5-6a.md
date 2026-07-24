@@ -1303,11 +1303,20 @@ git commit -m "feat(web-customer): hook useMyInformativa/usePublicInformativa"
 
 **Files:**
 - Create: `apps/web-customer/src/features/legal/PrivacyView.vue`
+- Modify: `apps/web-customer/src/router/index.ts` (registrare la rotta `/privacy` — spostata qui da T11
+  perché la rotta e la view devono nascere insieme, altrimenti `vue-tsc` va rosso su un componente
+  inesistente; l'app non ha lo shim `declare module '*.vue'`).
 - Test: `apps/web-customer/src/features/legal/PrivacyView.spec.ts`
 
 **Interfaces:**
 - Consumes: `INFORMATIVA_SECTIONS`, `INFORMATIVA_VERSION`, `INFORMATIVA_UPDATED`, `useMyInformativa`,
   `usePublicInformativa`, `useSessionStore`, `useRoute`.
+
+**Registrazione rotta** (dopo aver creato la view, prima del typecheck finale): in
+`apps/web-customer/src/router/index.ts` aggiungere all'array `routes`:
+```ts
+{ path: '/privacy', name: 'privacy', component: () => import('@/features/legal/PrivacyView.vue'), meta: { public: true, title: 'Informativa privacy' } },
+```
 
 - [ ] **Step 1: Scrivere lo spec (risoluzione + [COMPILARE])**
 
