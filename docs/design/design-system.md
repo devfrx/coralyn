@@ -412,9 +412,16 @@ interattivi: **default / hover / active / focus-visible / disabled**; focus = `-
   (guida alla selezione in Rinnovi/Catalogo noleggi, entità di dominio assenti in
   Listino/Catalogo, errore nel dettaglio Lido, abbonamenti in web-customer); per le tabelle
   con 0 righe il pattern è `emptyMessage` del DataTable (EmptyState in-card, vedi sopra).
-- **Select** — `<select>` stilizzato gemello di `Input.vue` (stesso raggio/bordo/focus),
-  usabile dentro `Field`. `v-model` + `props.options` **o** slot `#default` per `<option>`
-  custom (gruppi, opzioni disabilitate). Passthrough attributi nativi.
+- **Select** — componente **composto su reka-ui** (dietro ui-kit, come `Modal`/`Popover`):
+  trigger stilato gemello di `Input.vue` (stesso raggio/bordo/focus) con **chevron staccata dal
+  bordo**, e menu **popper** portalato a larghezza del trigger con option stilate e indicatore
+  `check` sull'opzione attiva. Si usa dentro `Field`. `v-model` (stringa) + `props.options` **o**
+  slot `#default` col componente dedicato **`Option`** (`value` + label via slot, `disabled`
+  opzionale). Attributi (`data-test*`, `class`, `disabled`) inoltrati al trigger. Una `Option` con
+  `value=""` resta selezionabile come stato reale («Scegli…», «Tutte»): reka-ui vieta l'item a
+  stringa vuota, quindi ui-kit mappa `''` a una **sentinella interna** trasparente ai consumatori.
+  Nei test l'interazione passa dall'helper `selectOption(trigger, label)` (il menu vive in
+  `document.body` solo da aperto).
 - **Skeleton / SkeletonText** — placeholder di caricamento: `variant: line | block | circle`
   (default `line`), `width`/`height` (default per variante: line `100%`×`0.75em`, block
   `100%`×`64px`, circle `32px`×`32px`); shimmer `skeleton-sheen` sui token
