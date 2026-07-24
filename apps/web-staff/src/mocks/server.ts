@@ -500,6 +500,14 @@ export const server = setupServer(
     const body = (await request.json()) as { name: string };
     return HttpResponse.json({ id: 'e-1', name: body.name });
   }),
+  // Informativa privacy (5.6a): profilo del titolare, default vuoto così le viste che montano
+  // l'establishment (es. EstablishmentView) non falliscono senza un server.use dedicato.
+  http.get('/api/establishment/legal-profile', () =>
+    HttpResponse.json({
+      legalName: null, registeredAddress: null, vatOrTaxId: null, contactEmail: null, pec: null,
+      legalRepresentative: null, dataRightsContact: null, dpoNominated: false, dpoContact: null,
+      updatedAt: null,
+    })),
   // Setup status (ADR-0054): default "configurato" cosi i test esistenti non cambiano
   // comportamento; i test del wizard useranno server.use con stati parziali.
   http.get('/api/establishment/setup-status', () =>

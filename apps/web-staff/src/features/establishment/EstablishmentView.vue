@@ -7,6 +7,7 @@ import { useSessionStore } from '@/stores/session';
 import { pushToast } from '@/lib/toasts';
 import { useSetupStatus } from '@/features/onboarding/useSetupStatus';
 import { useEstablishmentOverview, useRenameEstablishment, useCreateStaffUser, useSetStaffUserDisabled, useResetStaffPassword } from './useEstablishment';
+import LegalProfileModal from './LegalProfileModal.vue';
 
 const session = useSessionStore();
 const router = useRouter();
@@ -55,6 +56,7 @@ const team = computed(() =>
 );
 
 const isAdmin = computed(() => session.role === Role.Admin);
+const legalOpen = ref(false);
 const renameOpen = ref(false);
 const nameDraft = ref('');
 const rename = useRenameEstablishment();
@@ -172,6 +174,16 @@ function onConfirmReset() {
       </div>
     </Card>
 
+    <Card v-if="isAdmin" class="mb-4">
+      <div class="flex items-center justify-between gap-3 p-[22px]">
+        <div>
+          <h3 class="text-sm font-semibold text-[var(--color-text)]">Informativa privacy</h3>
+          <p class="text-xs text-[var(--color-text-muted)]">Dati del titolare mostrati ai clienti.</p>
+        </div>
+        <Button variant="secondary" data-test="edit-legal-profile" @click="legalOpen = true">Compila</Button>
+      </div>
+    </Card>
+
     <Card class="mb-4">
       <div class="p-5">
         <div class="mb-1.5 flex items-center justify-between">
@@ -255,5 +267,7 @@ function onConfirmReset() {
       confirm-label="Invia link di reset"
       @confirm="onConfirmReset"
     />
+
+    <LegalProfileModal v-model:open="legalOpen" />
   </section>
 </template>
