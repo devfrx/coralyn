@@ -1,6 +1,14 @@
 # Piano — package `@coralyn/legal` e pubblicazione policy/imprint (D-061, 5.6b)
 
-**Data:** 2026-07-24 · **Branch:** `feat/legal-d061-d062` · **ADR:** 0056 (da scrivere, task 5)
+**Data:** 2026-07-24 · **Branch:** `feat/legal-d061-d062` · **ADR:** [0056](../../architecture/decisions/0056-package-legale-condiviso.md)
+
+> ⚠️ **Piano ESEGUITO, con una correzione successiva.** Il T4 qui sotto prescrive le rotte
+> `/privacy` e `/note-legali`: **è la scelta sbagliata**, ed è stata corretta il 2026-07-25. `/privacy`
+> collideva col path dell'informativa al bagnante servita da `web-customer`, e insieme al fallback
+> relativo di `privacyPreviewUrl` faceva comparire la policy operatori al posto dell'informativa del
+> cliente, senza alcun errore. Le rotte reali sono **`/legale/informativa`** e **`/legale/note`**.
+> Il piano resta com'era scritto come storia; la decisione corretta è in
+> [ADR-0056](../../architecture/decisions/0056-package-legale-condiviso.md) §3-bis.
 
 ## Perché un package e non testo duplicato
 

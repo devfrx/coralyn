@@ -171,9 +171,9 @@ promettono. Vanno corretti nel codice, non giustificati qui. ⚖️-11
 4. **Correzione dei due difetti di prodotto** qui sopra.
 5. ~~**Pubblicazione** di policy e imprint nelle app interne~~ — **FATTO** (2026-07-24,
    [ADR-0056](../architecture/decisions/0056-package-legale-condiviso.md)): package condiviso
-   `@coralyn/legal`, rotte pubbliche `/privacy` e `/note-legali` in `web-staff` e `web-platform`,
-   link nel piè di pagina del login, **e rinvio all'informativa nelle email di invito e reset**
-   (art. 14.3.a assolto, ⚖️-18 chiuso).
+   `@coralyn/legal`, rotte pubbliche **`/legale/informativa`** e **`/legale/note`** in `web-staff` e
+   `web-platform`, link nel piè di pagina del login, **e rinvio all'informativa nelle email di invito
+   e reset** (art. 14.3.a assolto, ⚖️-18 chiuso).
 
 > **Attenzione al doppio artefatto.** Il testo pubblicato vive in
 > `packages/legal/src/*.content.ts` ed è un **porting fedele** di questi documenti. I due vanno
