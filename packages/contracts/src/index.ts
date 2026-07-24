@@ -730,3 +730,44 @@ export interface RentalDTO {
 export interface RentalAvailabilityDTO { rentalItemId: string; stock: number | null; out: number; available: number | null; }
 export interface RentalsDayDTO { rentals: RentalDTO[]; availability: RentalAvailabilityDTO[]; }
 export interface CheckoutRentalInput { rentalItemId: string; rentalTariffId: string; customerId?: string | null; units?: number; }
+
+/** Dati del titolare del trattamento del lido (form staff dell'informativa, 5.6a). */
+export interface EstablishmentLegalProfileDTO {
+  legalName: string | null;
+  registeredAddress: string | null;
+  vatOrTaxId: string | null;
+  contactEmail: string | null;
+  pec: string | null;
+  legalRepresentative: string | null;
+  dataRightsContact: string | null;
+  dpoNominated: boolean;
+  dpoContact: string | null;
+  updatedAt: string | null; // ISO; null se il profilo non è mai stato salvato
+}
+
+/** Upsert del profilo legale (tutti i campi opzionali; assenti = invariati). */
+export interface UpdateEstablishmentLegalProfileInput {
+  legalName?: string | null;
+  registeredAddress?: string | null;
+  vatOrTaxId?: string | null;
+  contactEmail?: string | null;
+  pec?: string | null;
+  legalRepresentative?: string | null;
+  dataRightsContact?: string | null;
+  dpoNominated?: boolean;
+  dpoContact?: string | null;
+}
+
+/** Dati del titolare esposti per il render dell'informativa (pubblici per natura). */
+export interface PublicTitolareDTO {
+  establishmentName: string;
+  legalName: string | null;
+  registeredAddress: string | null;
+  vatOrTaxId: string | null;
+  contactEmail: string | null;
+  pec: string | null;
+  legalRepresentative: string | null;
+  dataRightsContact: string | null;
+  dpoNominated: boolean;
+  dpoContact: string | null;
+}
