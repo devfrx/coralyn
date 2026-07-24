@@ -1,9 +1,8 @@
 # Privacy policy operatori (Coralyn titolare)
 
-> ⚠️ **Bozza di lavoro, non un parere legale.** Vedi [README.md](README.md) per il riepilogo dei
-> punti ⚖️ e la raccomandazione di revisione.
+> ⚠️ **Bozza di lavoro, non un parere legale.** Riepilogo dei punti ⚖️ in [README.md](README.md).
 >
-> **Versione:** 0.1 (bozza) · **Data:** 2026-07-24 · **Slice:** D-061 (5.6b)
+> **Versione:** 0.2 (bozza, post-review) · **Data:** 2026-07-24 · **Slice:** D-061 (5.6b)
 
 ## Nota per chi implementa (non fa parte del testo pubblicato)
 
@@ -13,14 +12,18 @@ usa `web-staff` o `web-platform`, il titolare del trattamento è **Coralyn**, no
 mescolato con l'informativa al bagnante (piano A, già realizzata in `web-customer`), dove il titolare
 è il lido.
 
-**Dove vivrà questo testo è una decisione ancora aperta** (testo duplicato nelle due app, oppure
-estratto in un package condiviso). Finché non è presa, il contenuto vive qui in forma
-rivedibile. Il corpo della policy è scritto **senza trattini lunghi**, per essere portabile
-direttamente in-app senza violare le convenzioni sul testo utente.
+**Si applicano gli artt. 13 E 14 GDPR.** L'email dell'operatore non è mai conferita
+dall'interessato: la inserisce l'amministratore del lido o il superuser di piattaforma. Quando i dati
+non sono raccolti presso l'interessato, l'art. 14.2(f) impone di indicarne la **fonte** e l'art.
+14.3(a) di rendere l'informativa entro un mese. Di qui la sezione «Da dove arrivano i tuoi dati».
 
-Riferimenti di fatto verificati sul codice e riusabili: le misure di sicurezza sono le stesse
-elencate nell'[Allegato A del DPA](dpa-coralyn-lido.md) e in
-[§C del registro](registro-trattamenti.md).
+**Il testo copre due popolazioni distinte** (operatori di lido e amministratori di piattaforma) i cui
+trattamenti non coincidono: le sezioni lo dicono esplicitamente invece di generalizzare.
+
+**Dove vivrà questo testo:** package condiviso `@coralyn/legal`, consumato da `web-staff` e
+`web-platform`, così i due testi non possono divergere. Implementazione da fare. Il corpo della
+policy è scritto **senza trattini lunghi**, per essere portabile in-app senza violare le convenzioni
+sul testo utente.
 
 ---
 
@@ -32,24 +35,31 @@ Ultimo aggiornamento: `[COMPILARE: data di pubblicazione]`
 
 ## Chi tratta i tuoi dati
 
-Il titolare del trattamento è `[COMPILARE: ragione sociale di Coralyn]`, con sede in
-`[COMPILARE: indirizzo]`, P. IVA `[COMPILARE]`.
+Il titolare del trattamento è `[COMPILARE: ragione sociale]`, con sede in `[COMPILARE: indirizzo]`,
+P. IVA `[COMPILARE]`.
 
 Per qualsiasi questione relativa ai tuoi dati puoi scrivere a `[COMPILARE: email privacy]`.
 
-`[COMPILARE: se nominato, contatti del Responsabile della protezione dei dati]` ⚖️
+`[COMPILARE: se nominato, contatti del Responsabile della protezione dei dati]` ⚖️-01
 
 > **Attenzione a non confondere due cose diverse.** Questa informativa riguarda **te che usi il
 > gestionale come operatore**. I dati dei bagnanti che inserisci lavorando sono invece trattati dallo
 > stabilimento presso cui lavori, che ne è il titolare: per quelli, Coralyn agisce solo come
 > responsabile del trattamento, su istruzione dello stabilimento.
 
+## Da dove arrivano i tuoi dati
+
+Il tuo indirizzo email non lo raccogliamo da te: ci viene comunicato dallo stabilimento presso cui
+lavori, oppure dall'amministratore della piattaforma, nel momento in cui chiede l'apertura del tuo
+accesso. Ti rendiamo questa informativa insieme all'email con cui ti invitiamo ad attivare
+l'account.
+
 ## Quali dati trattiamo e perché
 
 ### Il tuo account
 
-Trattiamo la tua **email**, la tua **password in forma protetta**, il tuo **ruolo** (amministratore o
-staff), lo **stato del tuo accesso** e il riferimento allo **stabilimento** per cui lavori.
+Trattiamo la tua **email**, la tua **password in forma protetta**, il tuo **ruolo**, lo **stato del
+tuo accesso** e, se lavori per uno stabilimento, il riferimento allo stabilimento.
 
 Ci servono per creare il tuo accesso, verificare la tua identità quando entri e stabilire cosa puoi
 fare dentro il gestionale.
@@ -58,7 +68,7 @@ Non raccogliamo il tuo nome, il tuo cognome, il tuo numero di telefono né altri
 l'account è volutamente ridotto al minimo indispensabile.
 
 La base giuridica è l'esecuzione del contratto tra Coralyn e lo stabilimento presso cui lavori, di
-cui il tuo accesso è lo strumento. ⚖️
+cui il tuo accesso è lo strumento. ⚖️-03
 
 ### L'attivazione e il recupero della password
 
@@ -68,26 +78,39 @@ cifrata, mai il link in chiaro, insieme alla data di scadenza e al momento in cu
 
 Non ti inviamo mai una password in chiaro per email.
 
-### La sicurezza del servizio
+### Le azioni amministrative sulla piattaforma
 
-Registriamo le operazioni amministrative svolte sulla piattaforma, per poter ricostruire chi ha fatto
-cosa in caso di problemi o contestazioni. La base giuridica e' il nostro legittimo interesse a
-mantenere il servizio sicuro e a rendere conto del suo funzionamento. ⚖️
+Registriamo le operazioni amministrative svolte **sulla piattaforma** dal fornitore del servizio:
+l'apertura di un nuovo stabilimento, la reimpostazione della password di un amministratore, la
+sospensione o riattivazione di uno stabilimento. Di queste operazioni conserviamo chi le ha
+compiute, che cosa ha fatto, quando, e l'indirizzo email dell'amministratore interessato.
+
+Ti riguarda **solo se sei un amministratore di stabilimento**, perché in quel caso il tuo indirizzo
+compare in questa registrazione. Le operazioni che svolgi tu dentro il gestionale del tuo
+stabilimento non sono oggetto di questa registrazione.
+
+La base giuridica è il nostro legittimo interesse a mantenere il servizio sicuro e a rendere conto
+del suo funzionamento. ⚖️-04
 
 ## Cosa NON facciamo
 
-- Non usiamo cookie di profilazione ne' strumenti di analisi o tracciamento.
+- Non usiamo cookie, di nessun tipo.
+- Non usiamo strumenti di analisi, statistica o tracciamento.
 - Non ti profiliamo e non prendiamo decisioni automatizzate che ti riguardano.
-- Non vendiamo i tuoi dati e non li comunichiamo a terzi per finalita' di marketing.
+- Non vendiamo i tuoi dati e non li comunichiamo a terzi per finalità di marketing.
 
-## Memoria tecnica del tuo dispositivo
+## Cosa viene salvato sul tuo dispositivo
 
 Per farti restare autenticato dopo il login, il gestionale salva nella memoria locale del tuo browser
-un identificativo di sessione. E' necessario al funzionamento del servizio che stai usando, quindi
-non richiede il tuo consenso. Si cancella quando esci dal tuo account.
+un identificativo di sessione. Si cancella quando esci dal tuo account.
 
-Non usiamo nessun altro strumento di memorizzazione o tracciamento sul tuo dispositivo. Per questo
-non trovi un banner di consenso: non c'e' nulla da consentire.
+Il gestionale è inoltre un'applicazione installabile: il tuo browser conserva localmente una copia
+dei file che la compongono (pagine, stili, immagini, caratteri) per farla partire rapidamente e
+funzionare anche quando la rete è assente o instabile.
+
+Sono entrambi strumenti necessari al funzionamento del servizio che hai richiesto, quindi non
+richiedono il tuo consenso, e non servono a riconoscerti né a seguirti su altri siti. Per questo non
+trovi un banner: non c'è nulla da consentire.
 
 ## A chi comunichiamo i tuoi dati
 
@@ -99,23 +122,27 @@ Fornitore di infrastruttura e ubicazione dei server: `[COMPILARE]`
 Fornitore del servizio email: `[COMPILARE]`
 
 Non diffondiamo i tuoi dati e non li comunichiamo ad altri soggetti, salvo obblighi di legge o
-richieste dell'autorita' giudiziaria.
+richieste dell'autorità giudiziaria.
 
 ## Trasferimenti fuori dall'Unione Europea
 
-`[COMPILARE: dipende dai fornitori sopra. Se sono tutti nel SEE, la formulazione corretta e' una
-negazione esplicita: "Non trasferiamo i tuoi dati fuori dallo Spazio Economico Europeo."]` ⚖️
+`[COMPILARE]` ⚖️-06
+
+> Nota per chi compila: se tutti i fornitori sono nel SEE, la formulazione corretta è una negazione
+> esplicita («Non trasferiamo i tuoi dati fuori dallo Spazio Economico Europeo»). Se invece un
+> trasferimento esiste, gli artt. 13.1(f) e 14.1(f) impongono di indicare **anche** verso quale
+> paese, quale garanzia adeguata è applicata (decisione di adeguatezza, Clausole Contrattuali
+> Standard) e **come ottenerne copia**. La sola negazione o il solo nome del paese non bastano.
 
 ## Per quanto tempo li conserviamo
 
-Il tuo account resta attivo finche' dura il rapporto tra Coralyn e lo stabilimento presso cui lavori,
-o finche' lo stabilimento non lo disattiva. Alla cessazione del rapporto l'account viene disattivato e
+Il tuo account resta attivo finché dura il rapporto tra Coralyn e lo stabilimento presso cui lavori,
+o finché lo stabilimento non lo disattiva. Alla cessazione del rapporto l'account viene disattivato e
 poi cancellato.
 
-I link di attivazione e recupero password scadono dopo `[COMPILARE: 72 ore per impostazione
-predefinita]` e non sono piu' utilizzabili.
+I link di attivazione e recupero password scadono dopo **72 ore** e non sono più utilizzabili.
 
-`[COMPILARE: termine di conservazione dei registri di sicurezza]` ⚖️
+`[COMPILARE: termine di conservazione dei registri di sicurezza]` ⚖️-05
 
 ## I tuoi diritti
 
@@ -127,12 +154,13 @@ Regolamento europeo sulla protezione dei dati.
 Per esercitarli scrivi a `[COMPILARE: email privacy]`. Ti rispondiamo entro un mese.
 
 Se ritieni che il trattamento dei tuoi dati violi la normativa, puoi proporre reclamo al Garante per
-la protezione dei dati personali (www.garanteprivacy.it) o rivolgerti all'autorita' giudiziaria.
+la protezione dei dati personali (www.garanteprivacy.it) o rivolgerti all'autorità giudiziaria.
 
-## Se non fornisci i tuoi dati
+## Se i tuoi dati non vengono forniti
 
-Il conferimento della tua email e' necessario per creare il tuo accesso: senza, non e' tecnicamente
-possibile darti un account sul gestionale.
+Il tuo indirizzo email è necessario per creare il tuo accesso: senza, non è tecnicamente possibile
+darti un account sul gestionale. Se preferisci non averlo, puoi chiederlo allo stabilimento presso
+cui lavori, che valuterà come organizzare diversamente il tuo lavoro.
 
 ## Modifiche a questa informativa
 
@@ -142,18 +170,23 @@ vigore.
 
 ---
 
-## Riepilogo dei punti da validare ⚖️
+## Punti da validare ⚖️
 
-1. **Base giuridica dell'account operatore.** Contratto (art. 6.1.b) o legittimo interesse
-   (art. 6.1.f)? L'operatore persona fisica non e' parte del contratto, che e' tra Coralyn e il lido.
-   La scelta ha effetti concreti: col legittimo interesse serve il bilanciamento documentato e
-   l'operatore acquista il diritto di opposizione.
-2. **Legittimo interesse sui log di sicurezza**: va formalizzato un test di bilanciamento.
-3. **Nomina del DPO**: vedi §D del [registro](registro-trattamenti.md).
-4. **Trasferimenti extra-SEE**: dipendono dai fornitori, non ancora scelti.
-5. **Termini di conservazione** dei log e dei token consumati: oggi non definiti.
-6. **Nessun banner di consenso.** Verificato sul codice: nessun cookie, nessun analytics, nessuno
-   script di terze parti; i font sono inclusi nel pacchetto applicativo e non richiamati da una rete
-   di distribuzione esterna. L'unica memorizzazione sul dispositivo e' il token di sessione, coperto
-   dall'esenzione per gli strumenti strettamente necessari. **La conclusione regge finche' lo stack
-   resta questo**: basta aggiungere uno strumento di analisi e l'obbligo di banner ricompare.
+Identificatori stabili, condivisi con [README](README.md) e
+[registro §D](registro-trattamenti.md#d--punti-aperti-da-validare-con-un-legale-).
+
+| ID | Punto |
+|---|---|
+| ⚖️-01 | Nomina del DPO |
+| ⚖️-03 | Base giuridica dell'account operatore: contratto o legittimo interesse? La scelta ha effetti concreti: col legittimo interesse serve il bilanciamento documentato e l'operatore acquista il diritto di opposizione. |
+| ⚖️-04 | Legittimo interesse sui log di piattaforma: serve il test di bilanciamento |
+| ⚖️-05 | Termini di conservazione dei registri di sicurezza |
+| ⚖️-06 | Trasferimenti extra-SEE e relative garanzie |
+
+**Nessun banner di consenso — verificato sul codice.** Nessun cookie, nessun analytics, nessuno
+script di terze parti; i caratteri tipografici sono inclusi nel pacchetto applicativo e non richiamati
+da una rete di distribuzione esterna. Le uniche memorizzazioni sul dispositivo sono il token di
+sessione e la cache degli asset dell'applicazione installabile: entrambe ricadono nell'art. 5(3)
+ePrivacy, ed entrambe sono strettamente necessarie. **La conclusione regge finché lo stack resta
+questo**: basta aggiungere uno strumento di analisi, una mappa, un video incorporato o un carattere
+tipografico da rete esterna perché l'obbligo di banner ricompaia.
