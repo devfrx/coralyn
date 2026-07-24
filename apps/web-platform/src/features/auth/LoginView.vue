@@ -36,5 +36,6 @@ async function accedi(): Promise<void> {
       <Field label="Password"><Input v-model="password" type="password" data-testid="login-password" placeholder="••••••••" /></Field>
       <Button type="submit" class="w-full" :loading="loading" data-testid="login-submit">Accedi</Button>
     </form>
+    <p data-testid="legal-links" class="mt-6 text-center text-[12px] text-[var(--color-text-muted)]"><RouterLink :to="{ name: 'privacy' }" class="underline">Informativa privacy</RouterLink> · <RouterLink :to="{ name: 'imprint' }" class="underline">Note legali</RouterLink></p>
   </AuthLayout>
 </template>

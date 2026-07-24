@@ -1,0 +1,13 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "jsx": "preserve",
+    "noEmit": true,
+    // Libreria di componenti browser: gli spec usano `document`/`HTMLElement` → serve la lib DOM
+    // (la base ha solo ES2022), altrimenti `vue-tsc --noEmit` fallisce. Stesso motivo di ui-kit.
+    "lib": ["ES2022", "DOM", "DOM.Iterable"]
+  },
+  "include": ["src"]
+}

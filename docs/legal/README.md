@@ -156,7 +156,15 @@ promettono. Vanno corretti nel codice, non giustificati qui. ⚖️-11
    bagnante di 5.6a.
 3. **Revisione legale** dei 17 punti ⚖️.
 4. **Correzione dei due difetti di prodotto** qui sopra.
-5. **Pubblicazione** di policy e imprint nelle app interne, tramite il package condiviso
-   `@coralyn/legal` (decisione presa; implementazione da fare, con ADR dedicato).
+5. ~~**Pubblicazione** di policy e imprint nelle app interne~~ — **FATTO** (2026-07-24,
+   [ADR-0056](../architecture/decisions/0056-package-legale-condiviso.md)): package condiviso
+   `@coralyn/legal`, rotte pubbliche `/privacy` e `/note-legali` in `web-staff` e `web-platform`,
+   link nel piè di pagina del login. ⚠️ **⚖️-18 resta a metà**: l'email di invito non rinvia ancora
+   all'informativa, quindi l'art. 14.3(a) non è pienamente assolto.
+
+> **Attenzione al doppio artefatto.** Il testo pubblicato vive in
+> `packages/legal/src/*.content.ts` ed è un **porting fedele** di questi documenti. I due vanno
+> aggiornati **insieme**: una divergenza tra ciò che legge il legale e ciò che legge l'utente è
+> esattamente il difetto che il package esiste per prevenire.
 
 **Nessuno di questi documenti è pronto alla pubblicazione. Sono pronti alla revisione legale.**

@@ -6,3 +6,5 @@
 @import "@coralyn/ui-kit/styles/theme.css";
 /* Tailwind v4 deve scansionare anche i componenti del ui-kit per le classi usate */
 @source "../../../../packages/ui-kit/src";
+/* Idem per le pagine legali condivise (@coralyn/legal): senza, escono senza stili */
+@source "../../../../packages/legal/src";

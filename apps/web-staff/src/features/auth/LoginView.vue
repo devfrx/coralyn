@@ -52,5 +52,6 @@ async function accedi() {
     </form>
     <div class="my-6 flex items-center gap-3"><span class="h-px flex-1 bg-[var(--color-border)]"></span><span class="text-[10.5px] font-semibold uppercase tracking-[.1em] text-[var(--color-placeholder)]">oppure</span><span class="h-px flex-1 bg-[var(--color-border)]"></span></div>
     <p class="text-center text-[13.5px] text-[var(--color-text-2nd)]">Non hai un account? <RouterLink :to="{ name: 'register' }" class="font-semibold text-[var(--color-brand-ink)]">Registra il tuo stabilimento</RouterLink></p>
+    <p data-testid="legal-links" class="mt-6 text-center text-[12px] text-[var(--color-text-muted)]"><RouterLink :to="{ name: 'privacy' }" class="underline">Informativa privacy</RouterLink> · <RouterLink :to="{ name: 'imprint' }" class="underline">Note legali</RouterLink></p>
   </AuthLayout>
 </template>
