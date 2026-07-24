@@ -14,6 +14,9 @@ Thumbs.db
 # File di lavoro del companion visivo (brainstorming)
 .superpowers/
 
+# Runbook locale della macchina (porte, credenziali dev, comandi): non versionato
+RUNBOOK.local.md
+
 # Dipendenze / build — monorepo pnpm (@coralyn/*), vedi ADR-0008
 node_modules/
 **/dist/
