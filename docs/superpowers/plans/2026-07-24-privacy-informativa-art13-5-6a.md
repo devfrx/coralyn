@@ -1306,6 +1306,11 @@ git commit -m "feat(web-customer): hook useMyInformativa/usePublicInformativa"
 - Modify: `apps/web-customer/src/router/index.ts` (registrare la rotta `/privacy` — spostata qui da T11
   perché la rotta e la view devono nascere insieme, altrimenti `vue-tsc` va rosso su un componente
   inesistente; l'app non ha lo shim `declare module '*.vue'`).
+- Modify: `apps/web-customer/src/features/legal/useInformativa.ts` — aggiungere un parametro opzionale
+  `enabled?: () => boolean` a **entrambi** gli hook e passarlo a `queryResource` (che lo supporta), così
+  la view può gateare quale fonte fetcha (vedi il commento nel codice `PrivacyView` sotto: evita il
+  401→refresh→logout da sloggati e il 400 su id vuoto). Firme risultanti:
+  `useMyInformativa(enabled?: () => boolean)` e `usePublicInformativa(establishmentId: string, enabled?: () => boolean)`.
 - Test: `apps/web-customer/src/features/legal/PrivacyView.spec.ts`
 
 **Interfaces:**
@@ -1381,8 +1386,11 @@ const session = useSessionStore();
 const eid = computed(() => (typeof route.query.e === 'string' ? route.query.e : ''));
 
 // Priorità: ?e=<id> (deep-link) → pubblico; altrimenti autenticato; altrimenti solo testo fisso.
-const publicRes = usePublicInformativa(eid.value);
-const myRes = useMyInformativa();
+// Gating (queryResource.enabled): parte SOLO la fonte pertinente. Senza gating, un /privacy da
+// sloggati farebbe partire /customer/me/informativa → 401 → l'interceptor tenta un refresh → logout
+// + redirect a /attiva (bug), e /public/informativa/ con id vuoto → 400. Il gating lo evita.
+const publicRes = usePublicInformativa(eid.value, () => eid.value.length > 0);
+const myRes = useMyInformativa(() => eid.value.length === 0 && session.authenticated);
 const titolare = computed<PublicTitolareDTO | null>(() => {
   if (eid.value) return publicRes.data.value ?? null;
   if (session.authenticated) return myRes.data.value ?? null;
