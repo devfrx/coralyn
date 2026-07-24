@@ -36,3 +36,18 @@ export async function selectOption(trigger: { element: Element } | Element, opti
   await nextTick(); await nextTick();
   await flushPromises();
 }
+
+/** Apre il Popover-calendario (click sul trigger) e clicca il giorno indicato del mese mostrato.
+ *  Il contenuto del Popover è portalato: le celle vivono in document.body SOLO a popover aperto.
+ *  Le celle fuori-mese (data-outside-view) sono escluse per non colpire numeri di mesi adiacenti. */
+export async function pickCalendarDay(trigger: { element: Element } | Element, day: number): Promise<void> {
+  const el = (trigger instanceof Element ? trigger : trigger.element) as HTMLElement;
+  el.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+  await nextTick(); await nextTick();
+  const cells = Array.from(document.body.querySelectorAll('[data-reka-calendar-cell-trigger]:not([data-outside-view])'));
+  const target = cells.find((c) => c.textContent?.trim() === String(day));
+  if (!target) throw new Error(`pickCalendarDay: giorno ${day} non trovato. Presenti: ${cells.map((c) => c.textContent?.trim()).join(' ')}`);
+  target.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+  await nextTick(); await nextTick();
+  await flushPromises();
+}

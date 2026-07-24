@@ -1,9 +1,10 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { mount } from '@vue/test-utils';
 import { createPinia, setActivePinia } from 'pinia';
 import { createRouter, createMemoryHistory, type Router } from 'vue-router';
 import Topbar from './Topbar.vue';
 import { useSessionStore } from '@/stores/session';
+import { pickCalendarDay } from '@/test/utils';
 
 const Blank = { template: '<div />' };
 
@@ -18,13 +19,16 @@ function makeRouter(): Router {
   });
 }
 
+let current: ReturnType<typeof mount> | undefined;
+afterEach(() => { current?.unmount(); current = undefined; document.body.innerHTML = ''; });
+
 async function mountAt(path: string) {
   setActivePinia(createPinia());
   const router = makeRouter();
   router.push(path);
   await router.isReady();
-  const w = mount(Topbar, { global: { plugins: [router] } });
-  return w;
+  current = mount(Topbar, { global: { plugins: [router] } });
+  return current;
 }
 
 describe('Topbar — navigazione data', () => {
@@ -57,15 +61,15 @@ describe('Topbar — navigazione data', () => {
     expect(s.activeDate).toBe('2026-07-05');
   });
 
-  it('il picker imposta activeDate alla data scelta (salto arbitrario)', async () => {
+  it('il picker calendario imposta activeDate alla data scelta e si chiude', async () => {
     const w = await mountAt('/map');
     const s = useSessionStore();
     s.activeDate = '2026-07-06';
     await w.vm.$nextTick();
-    const input = w.find('input[type="date"]');
-    await input.setValue('2026-09-20');
-    await input.trigger('change');
-    expect(s.activeDate).toBe('2026-09-20');
+    const trigger = w.get('[data-testid="date-picker-trigger"]');
+    await pickCalendarDay(trigger, 20); // il mese mostrato segue activeDate → luglio 2026
+    expect(s.activeDate).toBe('2026-07-20');
+    expect(trigger.attributes('aria-expanded')).toBe('false'); // popover chiuso
   });
 
   it('su /customers (senza usesDate) il navigatore data è NASCOSTO', async () => {
