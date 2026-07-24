@@ -90,9 +90,10 @@ per il prodotto. Ogni divergenza tra i due è un difetto, e i due vanno aggiorna
 - **La divergenza tra le due app diventa impossibile**, non solo sconsigliata: c'è una sola fonte.
 - **Perimetro esplicito**: il criterio «titolare = Coralyn» dice senza ambiguità cosa entra nel
   package e cosa no, e mantiene visibile la separazione dei piani di ADR-0055.
-- **Le rotte pubbliche sbloccano ⚖️-18 a metà**: l'informativa ora *esiste* a un indirizzo
-  raggiungibile, che è il presupposto per potervi rinviare.
-- Additivo: nessuna modifica al backend, allo schema o ai contratti.
+- **Le rotte pubbliche chiudono ⚖️-18** insieme al rinvio aggiunto nel template email: l'informativa
+  esiste a un indirizzo raggiungibile **ed** è resa all'interessato al primo contatto (art. 14.3.a).
+- Additivo: nessuna modifica allo schema né ai contratti. L'unico tocco al backend è una riga nel
+  template email, senza nuove variabili d'ambiente.
 
 ### Negative / Trade-off
 
@@ -100,9 +101,10 @@ per il prodotto. Ogni divergenza tra i due è un difetto, e i due vanno aggiorna
 - **Tailwind v4 non scansiona i package per default**: serve `@source` in `main.css` di ogni app
   consumatrice. È un passo facile da dimenticare aggiungendo una terza app, e il sintomo (pagina
   senza stili) non è immediato da diagnosticare. Già presente per `ui-kit`, quindi il pattern è noto.
-- **⚖️-18 resta parzialmente aperto**: l'email di invito continua a **non** rinviare all'informativa,
-  quindi l'adempimento dell'art. 14.3(a) non è completo. Il rinvio è un cambio al template dell'API,
-  deliberatamente fuori dallo scope di questa slice.
+- ~~**⚖️-18 resta parzialmente aperto**~~ — **chiuso nella stessa slice** (2026-07-24): il template
+  email rinvia all'informativa in testo e HTML, per invito e reset, sulla stessa origin del link di
+  set-password. Le rotte pubbliche erano il presupposto; il rinvio le rende il veicolo
+  dell'adempimento dell'art. 14.3(a).
 - **Il doppio artefatto va tenuto allineato**: `docs/legal/*.md` (per il legale) e
   `packages/legal/src/*.content.ts` (per il prodotto). È il prezzo di avere documenti rivedibili da
   un professionista *e* pagine servite dall'app; mitigato dalla nota in testa a ogni file di

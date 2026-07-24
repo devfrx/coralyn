@@ -129,7 +129,7 @@ ambiguità.
 | ⚖️-15 | **Campi liberi** (`Customer.notes`, `Booking.extras`): rischio di dati eccedenti | [DPA art. 3](dpa-coralyn-lido.md) |
 | ⚖️-16 | **Perimetro dell'imprint**: app dietro autenticazione, e imprint **del lido** su `web-customer` | [imprint](imprint.md) |
 | ⚖️-17 | **Prezzi e tariffe** (art. 7.1.h), capitale sociale, e portata del richiamo sanzionatorio dell'art. 21 | [imprint](imprint.md) |
-| ⚖️-18 | **Consegna dell'informativa agli operatori** (art. 14.3.a): oggi l'email di invito non vi rinvia e non esiste una rotta che la pubblichi | [policy operatori](privacy-policy-operatori.md) |
+| ~~⚖️-18~~ | ~~**Consegna dell'informativa agli operatori** (art. 14.3.a)~~ **CHIUSO** 2026-07-24: rotte pubbliche `/privacy` in entrambe le app ([ADR-0056](../architecture/decisions/0056-package-legale-condiviso.md)) **e** rinvio nell'email di invito e di reset, in testo e HTML, vincolato da test | [policy operatori](privacy-policy-operatori.md) |
 
 ## Difetti di prodotto emersi dalla revisione (non si risolvono scrivendo)
 
@@ -159,8 +159,8 @@ promettono. Vanno corretti nel codice, non giustificati qui. ⚖️-11
 5. ~~**Pubblicazione** di policy e imprint nelle app interne~~ — **FATTO** (2026-07-24,
    [ADR-0056](../architecture/decisions/0056-package-legale-condiviso.md)): package condiviso
    `@coralyn/legal`, rotte pubbliche `/privacy` e `/note-legali` in `web-staff` e `web-platform`,
-   link nel piè di pagina del login. ⚠️ **⚖️-18 resta a metà**: l'email di invito non rinvia ancora
-   all'informativa, quindi l'art. 14.3(a) non è pienamente assolto.
+   link nel piè di pagina del login, **e rinvio all'informativa nelle email di invito e reset**
+   (art. 14.3.a assolto, ⚖️-18 chiuso).
 
 > **Attenzione al doppio artefatto.** Il testo pubblicato vive in
 > `packages/legal/src/*.content.ts` ed è un **porting fedele** di questi documenti. I due vanno

@@ -2,7 +2,7 @@
 
 > ⚠️ **Bozza di lavoro, non un parere legale.** Riepilogo dei punti ⚖️ in [README.md](README.md).
 >
-> **Versione:** 0.2 (bozza, post-review) · **Data:** 2026-07-24 · **Slice:** D-061 (5.6b)
+> **Versione:** 0.3 (bozza) · **Data:** 2026-07-24 · **Slice:** D-061 (5.6b)
 
 ## Nota per chi implementa (non fa parte del testo pubblicato)
 
@@ -20,10 +20,14 @@ non sono raccolti presso l'interessato, l'art. 14.2(f) impone di indicarne la **
 **Il testo copre due popolazioni distinte** (operatori di lido e amministratori di piattaforma) i cui
 trattamenti non coincidono: le sezioni lo dicono esplicitamente invece di generalizzare.
 
-**Dove vivrà questo testo:** package condiviso `@coralyn/legal`, consumato da `web-staff` e
-`web-platform`, così i due testi non possono divergere. Implementazione da fare. Il corpo della
-policy è scritto **senza trattini lunghi**, per essere portabile in-app senza violare le convenzioni
-sul testo utente.
+**Dove vive questo testo:** package condiviso **`@coralyn/legal`**, consumato da `web-staff` e
+`web-platform`, così i due testi non possono divergere
+([ADR-0056](../architecture/decisions/0056-package-legale-condiviso.md)). **Implementato.** Il corpo
+della policy è scritto **senza trattini lunghi**, per essere portabile in-app senza violare le
+convenzioni sul testo utente.
+
+⚠️ **Doppio artefatto.** Il testo pubblicato vive in `packages/legal/src/privacy.content.ts` ed è un
+porting fedele di questo documento: i due vanno aggiornati **insieme**.
 
 ---
 
@@ -53,14 +57,16 @@ Il tuo indirizzo email non lo raccogliamo da te: ci viene comunicato dallo stabi
 lavori, oppure dall'amministratore della piattaforma, nel momento in cui chiede l'apertura del tuo
 accesso.
 
-`[COMPILARE: modalità e momento in cui questa informativa ti viene resa]`
+Per questo ti rendiamo questa informativa insieme all'email con cui ti invitiamo ad attivare
+l'account, e insieme a quella di reimpostazione della password: sono il primo contatto che abbiamo
+con te. La trovi anche in fondo alla schermata di accesso, in qualsiasi momento.
 
-> ⚠️ **Nota per chi implementa, da risolvere prima della pubblicazione.** L'art. 14.3(a) impone di
-> rendere l'informativa entro un mese dalla raccolta. Il veicolo naturale è l'email di invito, ma
-> **oggi quel template non contiene alcun rinvio all'informativa** (`credential-setup.email.ts`), e
-> nelle app non esiste ancora una rotta che la pubblichi. Finché una delle due cose non è vera,
-> questa sezione non può dichiarare una modalità di consegna: dichiararla sarebbe falso proprio
-> sull'adempimento che deve documentare.
+> ✅ **Verificato sul codice (2026-07-24).** L'affermazione qui sopra è vera, non un proposito:
+> `credential-setup.email.ts` include il rinvio a `/privacy` in **entrambe** le versioni del
+> messaggio (testo e HTML) e per **entrambi** gli scopi (invito e reset), sulla stessa origin del
+> link di set-password; la rotta `/privacy` è pubblica in `web-staff` e `web-platform`
+> ([ADR-0056](../architecture/decisions/0056-package-legale-condiviso.md)). Quattro test la
+> vincolano — se il rinvio sparisse, l'adempimento dell'art. 14.3(a) salterebbe in silenzio.
 
 ## Quali dati trattiamo e perché
 

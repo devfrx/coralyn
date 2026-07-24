@@ -21,4 +21,27 @@ describe('buildCredentialSetupEmail', () => {
     expect(m.subject).toMatch(/reimposta|reset/i);
     expect(m.text).toContain('RAW-TOKEN-123');
   });
+
+  // Art. 14.3(a) GDPR: i dati dell'operatore li comunica il suo datore di lavoro, non lui, quindi
+  // l'informativa va RESA entro un mese dalla raccolta. Questa email e' il primo contatto con
+  // l'interessato, quindi e' il veicolo dell'adempimento: se il rinvio sparisce, l'adempimento
+  // salta in silenzio. Vale per entrambi gli scopi, non solo per l'invito.
+  it.each(['invite', 'reset'] as const)('%s: rinvia all informativa privacy (art. 14.3.a)', (purpose) => {
+    const m = buildCredentialSetupEmail({ ...base, purpose });
+    expect(m.text).toContain('http://localhost:8080/privacy');
+    expect(m.html).toContain('href="http://localhost:8080/privacy"');
+  });
+
+  it('il link privacy sta sulla stessa origin del link di set-password', () => {
+    const m = buildCredentialSetupEmail({ ...base, purpose: 'invite', webStaffUrl: 'https://app.esempio.it' });
+    expect(m.text).toContain('https://app.esempio.it/privacy');
+    expect(m.text).not.toContain('localhost');
+  });
+
+  it('non introduce trattamenti nascosti: nessuna immagine, quindi nessun pixel di tracciamento', () => {
+    // Provv. Garante n. 284 del 17/04/2026 sui tracking pixel nelle email. Il template deve restare
+    // testo + link: e' cio' che i documenti in docs/legal/ dichiarano verificato.
+    const m = buildCredentialSetupEmail({ ...base, purpose: 'invite' });
+    expect(m.html).not.toMatch(/<img/i);
+  });
 });

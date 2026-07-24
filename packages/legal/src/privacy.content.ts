@@ -15,7 +15,7 @@ import type { LegalSection } from './types';
  *
  * Bozza tecnica, non parere legale.
  */
-export const PRIVACY_OPERATORI_VERSION = '0.2';
+export const PRIVACY_OPERATORI_VERSION = '0.3';
 export const PRIVACY_OPERATORI_UPDATED = '2026-07-24';
 
 export const PRIVACY_OPERATORI_SECTIONS: LegalSection[] = [
@@ -35,9 +35,8 @@ export const PRIVACY_OPERATORI_SECTIONS: LegalSection[] = [
     heading: 'Da dove arrivano i tuoi dati',
     paragraphs: [
       'Il tuo indirizzo email non lo raccogliamo da te: ci viene comunicato dallo stabilimento presso cui lavori, oppure dall’amministratore della piattaforma, nel momento in cui chiede l’apertura del tuo accesso.',
-      '[COMPILARE: modalità e momento in cui questa informativa ti viene resa]',
+      'Per questo ti rendiamo questa informativa insieme all’email con cui ti invitiamo ad attivare l’account, e insieme a quella di reimpostazione della password: sono il primo contatto che abbiamo con te. La trovi anche in fondo alla schermata di accesso, in qualsiasi momento.',
     ],
-    legalReview: true,
   },
   {
     id: 'account',
