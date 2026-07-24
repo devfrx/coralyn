@@ -7,11 +7,15 @@ import type { CustomerDTO } from '@coralyn/contracts';
 import { useCustomers, useCreateCustomer } from './useCustomers';
 import { privacyPreviewUrl } from '@/lib/privacyPreview';
 import { useSessionStore } from '@/stores/session';
+// Vuota se `VITE_WEB_CUSTOMER_URL` non e' configurata: in quel caso il promemoria resta come testo
+// SENZA link. L'anteprima vive su web-customer, non qui: un link relativo porterebbe all'informativa
+// operatori (documento diverso, ADR-0056).
 
 const router = useRouter();
 const session = useSessionStore();
 const { data: customers, isLoading } = useCustomers();
 const create = useCreateCustomer();
+const privacyUrl = computed(() => privacyPreviewUrl(session.establishmentId));
 
 const search = ref('');
 const filtered = computed(() => {
@@ -94,14 +98,14 @@ function ini(c: { firstName: string; lastName: string }) { return ((c.firstName[
         <Field label="Email"><Input name="email" v-model="email" type="email" placeholder="nome@email.it" /></Field>
         <Field label="Note"><Textarea name="notes" v-model="notes" placeholder="Preferenze, recapiti aggiuntivi…" /></Field>
         <p class="text-xs leading-relaxed text-[var(--color-text-muted)]">
-          Informa il cliente e forniscigli l'informativa privacy:
+          Informa il cliente e forniscigli l'informativa privacy<template v-if="privacyUrl">:
           <a
-            :href="privacyPreviewUrl(session.establishmentId)"
+            :href="privacyUrl"
             target="_blank"
             rel="noopener"
             data-test="privacy-reminder-link"
             class="underline"
-          >apri anteprima</a>.
+          >apri anteprima</a></template>.
         </p>
       </form>
       <template #footer>

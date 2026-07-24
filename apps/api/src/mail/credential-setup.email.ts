@@ -20,7 +20,7 @@ export function buildCredentialSetupEmail(m: CredentialSetupEmailModel): { subje
   // lavoro, quindi si applica l'art. 14 GDPR e il comma 3(a) impone di rendere l'informativa entro
   // un mese dalla raccolta. Questa email è il primo contatto con l'interessato: è il veicolo
   // naturale. Stessa origin del link di set-password, nessuna env aggiuntiva.
-  const privacyLink = `${m.webStaffUrl}/privacy`;
+  const privacyLink = `${m.webStaffUrl}/legale/informativa`;
   const scad = DATE_FMT.format(m.expiresAt);
   const isReset = m.purpose === 'reset';
   const subject = isReset ? 'Reimposta la tua password Coralyn' : 'Attiva il tuo accesso a Coralyn';

@@ -36,6 +36,7 @@ export const PRIVACY_OPERATORI_SECTIONS: LegalSection[] = [
     paragraphs: [
       'Il tuo indirizzo email non lo raccogliamo da te: ci viene comunicato dallo stabilimento presso cui lavori, oppure dall’amministratore della piattaforma, nel momento in cui chiede l’apertura del tuo accesso.',
       'Per questo ti rendiamo questa informativa insieme all’email con cui ti invitiamo ad attivare l’account, e insieme a quella di reimpostazione della password: sono il primo contatto che abbiamo con te. La trovi anche in fondo alla schermata di accesso, in qualsiasi momento.',
+      'Questo documento riguarda te come utente del gestionale. È diverso dall’informativa che lo stabilimento consegna ai propri clienti, che riguarda loro e di cui il titolare è lo stabilimento stesso.',
     ],
   },
   {

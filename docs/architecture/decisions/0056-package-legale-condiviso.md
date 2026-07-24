@@ -47,7 +47,7 @@ dimenticanza: accorpare i due testi ricreerebbe nello stesso artefatto la confus
 al package è **«titolare = Coralyn»**, non «documento legale».
 
 **3. Le rotte legali sono PUBBLICHE** (`meta: { public: true, bare: true }`), in entrambe le app, a
-`/privacy` e `/note-legali`. Non è una comodità, discende da due obblighi:
+**`/legale/informativa`** e **`/legale/note`**. Non è una comodità, discende da due obblighi:
 - l'imprint va reso accessibile **«in modo diretto e permanente»** (art. 7 D.Lgs. 70/2003), quindi
   non può stare dietro un login;
 - l'informativa va resa a chi **non ha ancora un account** (art. 14.3(a) GDPR: i dati dell'operatore
@@ -55,6 +55,34 @@ al package è **«titolare = Coralyn»**, non «documento legale».
 
 Un test per app (`legal-routes.spec.ts`) vincola questa proprietà: il routing è l'unico punto in cui
 le due app possono ancora divergere, quindi va bloccato in entrambe.
+
+**3-bis. Il path `/privacy` è RISERVATO all'informativa del bagnante e non esiste in `web-staff` né
+in `web-platform`.** Questa è una correzione a caldo della prima stesura di questo ADR, che aveva
+messo la policy operatori proprio su `/privacy`: la scelta ha prodotto un difetto reale, osservato in
+uso. Tre app avevano lo stesso path con due significati opposti, e il deep-link operatore verso
+l'anteprima del bagnante ripiegava, in assenza di `VITE_WEB_CUSTOMER_URL`, su un **percorso relativo**
+(`/privacy?e=<id>`) che restava sull'origin di `web-staff`. Risultato: l'operatore cliccava «apri
+anteprima» convinto di vedere ciò che legge il suo cliente, e vedeva la policy che riguarda sé stesso,
+con `?e=` ignorato e **nessun segnale d'errore**. Prima dell'introduzione della rotta quel link
+relativo non risolveva a nulla, quindi falliva in modo visibile: la rotta ha trasformato un errore
+rumoroso in uno silenzioso.
+
+Rimedi, tutti e tre necessari perché nessuno da solo chiude il buco:
+- **path distinti** (`/legale/*` per gli operatori): rende la collisione strutturalmente impossibile,
+  e due test per app vietano la ricomparsa di `/privacy`;
+- **niente fallback relativo**: `privacyPreviewUrl` restituisce stringa vuota senza
+  `VITE_WEB_CUSTOMER_URL`, e il promemoria resta come **testo senza link**. L'informativa del bagnante
+  vive su un'altra app: senza il suo origin non è linkabile, e fingere il contrario è peggio che non
+  offrire il link;
+- **`strictPort`** nei tre `vite.config.ts`: senza, Vite scivolava sulla prima porta libera dalla
+  5173 in poi, quindi era l'ordine di avvio a decidere quale app stesse dove, e nessun valore fisso
+  di `VITE_WEB_CUSTOMER_URL` poteva essere corretto in sviluppo.
+
+**3-ter. I due documenti si raggiungono da punti diversi, perché servono a cose diverse.** La policy
+operatori è una **tutela personale** di chi usa il gestionale: sta nel piè di pagina del login. L'
+informativa al bagnante è uno **strumento di lavoro**: sta nel promemoria del flusso Clienti, e punta
+sempre fuori, all'app clienti. Averle messe entrambe a portata dello stesso punto è ciò che ha reso
+la confusione possibile.
 
 **4. I `[COMPILARE]` restano letterali nel testo pubblicato.** Come nel piano A: un lido — qui,
 Coralyn — che non ha ancora dati societari produce un documento con segnaposto **visibili**, non un
@@ -101,6 +129,11 @@ per il prodotto. Ogni divergenza tra i due è un difetto, e i due vanno aggiorna
 - **Tailwind v4 non scansiona i package per default**: serve `@source` in `main.css` di ogni app
   consumatrice. È un passo facile da dimenticare aggiungendo una terza app, e il sintomo (pagina
   senza stili) non è immediato da diagnosticare. Già presente per `ui-kit`, quindi il pattern è noto.
+- **Due documenti privacy convivono nel prodotto**, per interessati diversi. La confusione è un
+  rischio permanente, non un incidente: è già costata un difetto (punto 3-bis). I presidi sono i path
+  distinti, i test che li vincolano, e la versione visibile in testa a ogni documento (l'informativa
+  al bagnante è 1.x, quella operatori 0.x). Chi aggiunge una terza superficie legale deve chiedersi
+  **prima** a quale piano appartiene.
 - ~~**⚖️-18 resta parzialmente aperto**~~ — **chiuso nella stessa slice** (2026-07-24): il template
   email rinvia all'informativa in testo e HTML, per invito e reset, sulla stessa origin del link di
   set-password. Le rotte pubbliche erano il presupposto; il rinvio le rende il veicolo

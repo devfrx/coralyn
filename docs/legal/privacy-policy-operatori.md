@@ -61,6 +61,10 @@ Per questo ti rendiamo questa informativa insieme all'email con cui ti invitiamo
 l'account, e insieme a quella di reimpostazione della password: sono il primo contatto che abbiamo
 con te. La trovi anche in fondo alla schermata di accesso, in qualsiasi momento.
 
+Questo documento riguarda te come utente del gestionale. È diverso dall'informativa che lo
+stabilimento consegna ai propri clienti, che riguarda loro e di cui il titolare è lo stabilimento
+stesso.
+
 > ✅ **Verificato sul codice (2026-07-24).** L'affermazione qui sopra è vera, non un proposito:
 > `credential-setup.email.ts` include il rinvio a `/privacy` in **entrambe** le versioni del
 > messaggio (testo e HTML) e per **entrambi** gli scopi (invito e reset), sulla stessa origin del

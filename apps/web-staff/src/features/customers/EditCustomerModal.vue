@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, watch } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { Modal, Field, Input, Textarea, Button } from '@coralyn/ui-kit';
 import type { CustomerDTO } from '@coralyn/contracts';
 import { useUpdateCustomer } from './useCustomers';
@@ -10,6 +10,8 @@ const props = defineProps<{ customer: CustomerDTO }>();
 const open = defineModel<boolean>('open', { required: true });
 const update = useUpdateCustomer(props.customer.id);
 const session = useSessionStore();
+// Vuota se `VITE_WEB_CUSTOMER_URL` non e' configurata → promemoria senza link (vedi privacyPreview).
+const privacyUrl = computed(() => privacyPreviewUrl(session.establishmentId));
 
 const firstName = ref('');
 const lastName = ref('');
@@ -56,14 +58,14 @@ function submit() {
       <Field label="Email"><Input name="email" v-model="email" type="email" placeholder="nome@email.it" /></Field>
       <Field label="Note"><Textarea name="notes" v-model="notes" placeholder="Preferenze, recapiti aggiuntivi…" /></Field>
       <p class="text-xs leading-relaxed text-[var(--color-text-muted)]">
-        Informa il cliente e forniscigli l'informativa privacy:
+        Informa il cliente e forniscigli l'informativa privacy<template v-if="privacyUrl">:
         <a
-          :href="privacyPreviewUrl(session.establishmentId)"
+          :href="privacyUrl"
           target="_blank"
           rel="noopener"
           data-test="privacy-reminder-link"
           class="underline"
-        >apri anteprima</a>.
+        >apri anteprima</a></template>.
       </p>
     </form>
     <template #footer>

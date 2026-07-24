@@ -12,14 +12,27 @@
 
 | Documento | Obbligo | Destinazione | Slice |
 |---|---|---|---|
-| [privacy-policy-operatori.md](privacy-policy-operatori.md) | artt. 13 **e 14** GDPR | pubblicazione in `web-staff` / `web-platform` | D-061 (5.6b) |
-| [imprint.md](imprint.md) | art. 7 D.Lgs. 70/2003 | pubblicazione, piè di pagina | D-061 (5.6b) |
+| [privacy-policy-operatori.md](privacy-policy-operatori.md) | artt. 13 **e 14** GDPR | `web-staff` / `web-platform`, `/legale/informativa` | D-061 (5.6b) |
+| [imprint.md](imprint.md) | art. 7 D.Lgs. 70/2003 | `web-staff` / `web-platform`, `/legale/note` | D-061 (5.6b) |
 | [dpa-coralyn-lido.md](dpa-coralyn-lido.md) | art. 28 GDPR | allegato contrattuale | D-062 (5.6c) |
 | [registro-trattamenti.md](registro-trattamenti.md) | art. 30 GDPR | interno, esibito su richiesta | D-062 (5.6c) |
 
 L'**informativa al bagnante** (art. 13, piano A) non sta qui: è già realizzata come codice versionato
 in `apps/web-customer/src/features/legal/informativa.content.ts`, parametrizzata per lido
 ([ADR-0055](../architecture/decisions/0055-informativa-art13-multi-tenant.md)).
+
+> ⚠️ **Non confondere le due superfici privacy.** Sono documenti diversi per interessati diversi, e
+> scambiarli è già successo in uso ([ADR-0056](../architecture/decisions/0056-package-legale-condiviso.md) §3-bis).
+>
+> | | Informativa **bagnante** | Policy **operatori** |
+> |---|---|---|
+> | App e path | `web-customer`, **`/privacy?e=<id>`** | `web-staff`/`web-platform`, **`/legale/informativa`** |
+> | Titolare | **il lido** (varia per tenant) | **Coralyn** (uno solo) |
+> | Versione in testa | **1.x** | **0.x** |
+> | Da dove ci si arriva | promemoria nel flusso **Clienti**, link esterno | piè di pagina del **login** |
+>
+> Il path `/privacy` è **riservato** al bagnante e non deve mai comparire in `web-staff` o
+> `web-platform`: due test per app lo vietano.
 
 ## I tre piani, per non confonderli mai
 

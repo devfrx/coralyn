@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi, afterEach } from 'vitest';
 import { flushPromises } from '@vue/test-utils';
 import { http, HttpResponse } from 'msw';
 import type { CustomerDTO } from '@coralyn/contracts';
@@ -23,6 +23,8 @@ function submitForm() {
 }
 
 describe('EditCustomerModal', () => {
+  afterEach(() => vi.unstubAllEnvs());
+
   it('precompila i campi dal cliente all apertura', async () => {
     const w = mountApp(EditCustomerModal, { attachTo: document.body, props: { customer: CUSTOMER, open: true } });
     await flushPromises(); await tick();
@@ -65,10 +67,22 @@ describe('EditCustomerModal', () => {
   });
 
   it('mostra il link anteprima informativa nel form', async () => {
+    vi.stubEnv('VITE_WEB_CUSTOMER_URL', 'https://clienti.coralyn.it');
     const w = mountApp(EditCustomerModal, { attachTo: document.body, props: { customer: CUSTOMER, open: true } });
     await flushPromises(); await tick();
     const link = document.querySelector('[data-test="privacy-reminder-link"]') as HTMLAnchorElement | null;
-    expect(link?.getAttribute('href')).toContain('/privacy?e=');
+    // Assoluto, sull'origin dell'app CLIENTI: un href relativo resterebbe su web-staff, dove
+    // `/legale/informativa` e' la policy OPERATORI, un documento diverso (ADR-0056).
+    expect(link?.getAttribute('href')).toContain('https://clienti.coralyn.it/privacy?e=');
+    w.unmount();
+  });
+
+  it('senza VITE_WEB_CUSTOMER_URL il promemoria resta, ma SENZA link', async () => {
+    vi.stubEnv('VITE_WEB_CUSTOMER_URL', '');
+    const w = mountApp(EditCustomerModal, { attachTo: document.body, props: { customer: CUSTOMER, open: true } });
+    await flushPromises(); await tick();
+    expect(document.body.textContent).toContain("Informa il cliente e forniscigli l'informativa privacy");
+    expect(document.querySelector('[data-test="privacy-reminder-link"]')).toBeNull();
     w.unmount();
   });
 });

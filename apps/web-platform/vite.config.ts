@@ -35,6 +35,12 @@ export default defineConfig({
   // in ESM ed espone gli export nominati a runtime (es. l'enum `Ruolo`, importato come valore).
   optimizeDeps: { include: ['@coralyn/contracts'] },
   server: {
+    // Porta FISSA. Senza strictPort, Vite scivola sulla prima porta libera partendo
+    // dalla 5173: l ordine di avvio decideva quale app finiva dove, e VITE_WEB_CUSTOMER_URL
+    // (che punta a web-customer) diventava inaffidabile in sviluppo. Meglio fallire in avvio
+    // che avere due app che si scambiano di posto in silenzio.
+    port: 5174,
+    strictPort: true,
     proxy: {
       // FE -> API reale senza CORS. In dev non c'è MSW nel browser: tutte le /api vanno al backend.
       // Nessun rewrite: il backend monta tutto sotto /api (ADR-0022), quindi /api/customers va

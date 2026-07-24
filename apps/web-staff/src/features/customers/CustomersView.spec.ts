@@ -1,9 +1,11 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi, afterEach } from 'vitest';
 import { flushPromises } from '@vue/test-utils';
 import { mountApp } from '@/test/utils';
 import CustomersView from './CustomersView.vue';
 
 describe('CustomersView', () => {
+  afterEach(() => vi.unstubAllEnvs());
+
   it('mostra i clienti dal mock', async () => {
     const w = mountApp(CustomersView);
     await flushPromises();
@@ -81,6 +83,7 @@ describe('CustomersView', () => {
   });
 
   it('mostra il promemoria informativa con link anteprima nel form nuovo cliente', async () => {
+    vi.stubEnv('VITE_WEB_CUSTOMER_URL', 'https://clienti.coralyn.it');
     const w = mountApp(CustomersView, { attachTo: document.body });
     await flushPromises();
     await w.get('[data-test="new-customer"]').trigger('click');
@@ -89,7 +92,22 @@ describe('CustomersView', () => {
     // fuori dal sottoalbero DOM del wrapper (stesso pattern delle altre .spec.ts di questa cartella).
     const link = document.body.querySelector('[data-test="privacy-reminder-link"]');
     expect(link).not.toBeNull();
-    expect(link?.getAttribute('href')).toContain('/privacy?e=');
+    // Assoluto, sull'origin dell'app CLIENTI: l'anteprima e' l'informativa del bagnante, che vive
+    // su web-customer. Un href relativo resterebbe su web-staff, dove c'e' un documento diverso.
+    expect(link?.getAttribute('href')).toContain('https://clienti.coralyn.it/privacy?e=');
+    expect(link?.getAttribute('href')?.startsWith('/')).toBe(false);
+    w.unmount();
+  });
+
+  it('senza VITE_WEB_CUSTOMER_URL il promemoria resta, ma SENZA link', async () => {
+    vi.stubEnv('VITE_WEB_CUSTOMER_URL', '');
+    const w = mountApp(CustomersView);
+    await flushPromises();
+    await w.get('[data-test="new-customer"]').trigger('click');
+    await flushPromises();
+    const body = document.body.textContent ?? '';
+    expect(body).toContain("Informa il cliente e forniscigli l'informativa privacy");
+    expect(document.body.querySelector('[data-test="privacy-reminder-link"]')).toBeNull();
     w.unmount();
   });
 });
