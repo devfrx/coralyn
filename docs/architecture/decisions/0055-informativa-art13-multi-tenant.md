@@ -2,7 +2,7 @@
 
 - **Status:** Accepted
 - **Data:** 2026-07-24
-- **ADR correlati:** [0009](0009-metodo-decisionale.md), [0026](0026-identita-rls-utente.md), [0028](0028-provisioning-tenant.md), [0043](0043-erasure-e-retention-cliente-gdpr.md)
+- **ADR correlati:** [0009](0009-documentazione-di-design.md), [0026](0026-identita-rls-utente.md), [0028](0028-provisioning-tenant.md), [0043](0043-erasure-e-retention-cliente-gdpr.md)
 - **Spec:** [2026-07-24-privacy-informativa-art13-5-6a-design.md](../../superpowers/specs/2026-07-24-privacy-informativa-art13-5-6a-design.md)
 - **Deferred:** [D-024](../deferred.md)
 
@@ -65,7 +65,7 @@ all'anteprima**, **senza** persistere alcun flag "informato": salvarlo implicher
 **4. Testo dell'informativa come codice versionato, titolare come dato.** Il testo fisso
 (sezioni tecniche, diritti, misure di sicurezza, cookie) vive come **costante versionata in git** in
 `web-customer` (`INFORMATIVA_VERSION` + data), non nel DB: la policy è codice, il DB porta solo i
-dati per-lido del titolare. Coerente con [ADR-0009](0009-metodo-decisionale.md) (design docs vivono
+dati per-lido del titolare. Coerente con [ADR-0009](0009-documentazione-di-design.md) (design docs vivono
 col codice, non a parte).
 
 **5. Lettura del titolare: endpoint pubblico dentro RLS (id dall'URL) + endpoint customer via JWT.**
