@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
 import { useRouter } from 'vue-router';
-import { Card, StatTile, Badge, Button, Avatar, Icon, Modal, Field, Input, Select, ConfirmDialog, ActionBar, SkeletonText, Callout, useDelayedLoading } from '@coralyn/ui-kit';
+import { Card, StatTile, Badge, Button, Avatar, Icon, Modal, Field, Input, Select, Option, ConfirmDialog, ActionBar, SkeletonText, Callout, useDelayedLoading } from '@coralyn/ui-kit';
 import { Role } from '@coralyn/contracts';
 import { useSessionStore } from '@/stores/session';
 import { pushToast } from '@/lib/toasts';
@@ -234,8 +234,8 @@ function onConfirmReset() {
         </Field>
         <Field label="Ruolo">
           <Select v-model="newRole" data-testid="new-user-role">
-            <option value="staff">Staff</option>
-            <option value="admin">Amministratore</option>
+            <Option value="staff">Staff</Option>
+            <Option value="admin">Amministratore</Option>
           </Select>
         </Field>
         <p class="text-xs leading-relaxed text-[var(--color-text-muted)]">Riceverà un'email per impostare la propria password.</p>

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue';
 import type { SectorKind, SetupStatusDTO } from '@coralyn/contracts';
-import { Button, Field, Input, Select } from '@coralyn/ui-kit';
+import { Button, Field, Input, Select, Option } from '@coralyn/ui-kit';
 import { useCreateRow, useCreateSector, useEstablishmentStructure } from '@/features/establishment/useEstablishmentStructure';
 import UmbrellaGeneratorForm from '@/features/establishment/UmbrellaGeneratorForm.vue';
 
@@ -69,8 +69,8 @@ watch(rows, (list) => {
         <Field label="Nome del settore"><Input name="ob-sector-name" data-testid="ob-sector-name" v-model="sectorName" placeholder="es. Centro" /></Field>
         <Field label="Disposizione">
           <Select v-model="sectorKind" data-testid="ob-sector-kind">
-            <option value="grid">Griglia: file regolari</option>
-            <option value="special">Speciali: posti fuori schema</option>
+            <Option value="grid">Griglia: file regolari</Option>
+            <Option value="special">Speciali: posti fuori schema</Option>
           </Select>
         </Field>
       </div>
@@ -82,7 +82,7 @@ watch(rows, (list) => {
       <div class="grid grid-cols-[1fr_1fr] gap-2">
         <Field label="Settore">
           <Select v-model="rowSectorId" data-testid="ob-row-sector">
-            <option v-for="s in sectors" :key="s.id" :value="s.id">{{ s.name }}</option>
+            <Option v-for="s in sectors" :key="s.id" :value="s.id">{{ s.name }}</Option>
           </Select>
         </Field>
         <Field label="Etichetta"><Input name="ob-row-label" data-testid="ob-row-label" v-model="rowLabel" placeholder="es. Fila 1" /></Field>
@@ -94,7 +94,7 @@ watch(rows, (list) => {
       <span class="text-[10px] font-extrabold uppercase tracking-[.09em] text-[var(--color-text-muted)]">Genera ombrelloni</span>
       <Field label="Fila">
         <Select v-model="selectedRowId" data-testid="ob-gen-row">
-          <option v-for="r in rows" :key="r.id" :value="r.id">{{ r.label }}</option>
+          <Option v-for="r in rows" :key="r.id" :value="r.id">{{ r.label }}</Option>
         </Select>
       </Field>
       <UmbrellaGeneratorForm v-if="selectedRowId" :row-id="selectedRowId" :types="structure?.umbrellaTypes ?? []" />

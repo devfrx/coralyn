@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue';
 import type { SetupStatusDTO } from '@coralyn/contracts';
-import { Button, Callout, Field, Input, Select, formatEuro } from '@coralyn/ui-kit';
+import { Button, Callout, Field, Input, Select, Option, formatEuro } from '@coralyn/ui-kit';
 import { useSeasons } from '@/features/pricing/useSeasons';
 import { useCreateRate, useRates } from '@/features/pricing/useRates';
 
@@ -56,7 +56,7 @@ function save() {
       <div class="grid gap-2" :class="usableSeasons.length > 1 ? 'grid-cols-[1fr_auto]' : 'grid-cols-1'">
         <Field v-if="usableSeasons.length > 1" label="Stagione">
           <Select v-model="selectedSeasonId" data-testid="ob-rate-season">
-            <option v-for="s in usableSeasons" :key="s.id" :value="s.id">{{ s.name }}</option>
+            <Option v-for="s in usableSeasons" :key="s.id" :value="s.id">{{ s.name }}</Option>
           </Select>
         </Field>
         <Field label="Prezzo al giorno (€)">
