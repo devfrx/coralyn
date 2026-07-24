@@ -27,6 +27,13 @@ describe('ConfirmDialog', () => {
     expect(document.body.textContent).toContain('Operazione irreversibile.');
   });
 
+  it('rende la description nel BODY del Modal, non nell’header (convenzione: niente banda vuota)', async () => {
+    await mountDialog({ description: 'Operazione irreversibile.' });
+    const body = document.body.querySelector('[data-test="modal-body"]');
+    expect(body).not.toBeNull();
+    expect(body!.textContent).toContain('Operazione irreversibile.');
+  });
+
   it('emette "confirm" al click sul bottone di conferma', async () => {
     const w = await mountDialog({});
     confirmBtn()!.click();

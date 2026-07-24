@@ -35,7 +35,11 @@ function onCancelButton(): void {
 }
 </script>
 <template>
-  <Modal v-model:open="open" :title="title" :description="description">
+  <Modal v-model:open="open" :title="title">
+    <!-- La descrizione vive nel BODY (convenzione delle altre modali: header = titolo, body =
+         contenuto). Passarla come `description` di Modal la metteva nell'header e lasciava lo slot
+         body vuoto → una banda di padding vuota tra header e footer. -->
+    <p v-if="description" class="text-[13px] leading-relaxed text-[var(--color-text-2nd)]">{{ description }}</p>
     <slot />
     <template #footer>
       <ModalFooter
