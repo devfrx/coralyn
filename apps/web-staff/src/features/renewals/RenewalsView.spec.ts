@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { http, HttpResponse } from 'msw';
 import { flushPromises } from '@vue/test-utils';
-import { mountApp } from '@/test/utils';
+import { mountApp, selectOption } from '@/test/utils';
 import { server } from '@/mocks/server';
 import { useToasts } from '@/lib/toasts';
 import type { RenewalCampaignDetailDTO } from '@coralyn/contracts';
@@ -35,10 +35,11 @@ describe('RenewalsView', () => {
     expect(renewBtn?.attributes('disabled')).toBeUndefined();
   });
 
+  // Label delle stagioni nel seed MSW (mocks/server.ts): se-1 → Estate 2026, se-2 → Estate 2027.
+  const SEASON_LABELS: Record<string, string> = { 'se-1': 'Estate 2026', 'se-2': 'Estate 2027' };
+
   async function setDestination(w: ReturnType<typeof mountApp>, seasonId: string) {
-    const sel = w.get('[data-test="destination-season"]').element as HTMLSelectElement;
-    sel.value = seasonId;
-    sel.dispatchEvent(new Event('change'));
+    await selectOption(w.get('[data-test="destination-season"]'), SEASON_LABELS[seasonId]);
     await flushPromises();
     await tick();
     await flushPromises();

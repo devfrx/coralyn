@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, watchEffect } from 'vue';
-import { Button, Badge, DataTable, Avatar, EmptyState, Select, ConfirmDialog, initials } from '@coralyn/ui-kit';
+import { Button, Badge, DataTable, Avatar, EmptyState, Select, Option, ConfirmDialog, initials } from '@coralyn/ui-kit';
 import type { RenewalWindowItemDTO, RenewalWindowState, SubscriptionListItemDTO } from '@coralyn/contracts';
 import { storeToRefs } from 'pinia';
 import { useSessionStore } from '@/stores/session';
@@ -88,14 +88,14 @@ function stateBadge(s: RenewalWindowState): { tone: 'success' | 'warning' | 'neu
       <label class="flex flex-col gap-1.5">
         <span class="text-[12.5px] font-semibold text-[var(--color-text-2nd)]">Stagione di origine</span>
         <Select v-model="originSeasonId" data-test="origin-season" class="min-w-[170px]">
-          <option v-for="o in seasonOptions" :key="o.value" :value="o.value">{{ o.label }}</option>
+          <Option v-for="o in seasonOptions" :key="o.value" :value="o.value">{{ o.label }}</Option>
         </Select>
       </label>
       <label class="flex flex-col gap-1.5">
         <span class="text-[12.5px] font-semibold text-[var(--color-text-2nd)]">Stagione di destinazione</span>
         <Select v-model="destinationSeasonId" data-test="destination-season" class="min-w-[170px]">
-          <option value="">Scegli…</option>
-          <option v-for="o in seasonOptions" :key="o.value" :value="o.value">{{ o.label }}</option>
+          <Option value="">Scegli…</Option>
+          <Option v-for="o in seasonOptions" :key="o.value" :value="o.value">{{ o.label }}</Option>
         </Select>
       </label>
     </div>
