@@ -53,4 +53,17 @@ describe('Calendar (reka-ui, v-model ISO)', () => {
     await nextTick();
     expect(w.element.querySelector('[data-today]')).toBeTruthy();
   });
+
+  it('un giorno che è oggi ED è selezionato mantiene lo stato selezionato (nessuna collisione oggi/selezionato)', async () => {
+    const todayIso = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Rome', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
+    const w = current = mount(Calendar, { props: { modelValue: todayIso } });
+    await nextTick();
+    const day = Number(todayIso.slice(8, 10));
+    const c = cell(w, day);
+    expect(c.hasAttribute('data-selected')).toBe(true);
+    expect(c.hasAttribute('data-today')).toBe(true);
+    // il colore "oggi" è gated su :not([data-selected]) così il selezionato (text-white) vince sempre.
+    // (letto dall'attributo class, non da w.html(), perché la serializzazione HTML esegue l'escape di "&" in "&amp;")
+    expect(c.getAttribute('class')).toContain('[&[data-today]:not([data-selected])]:text-[var(--color-brand)]');
+  });
 });

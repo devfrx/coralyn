@@ -47,7 +47,7 @@ const inner = computed<DateValue | undefined>({
             <CalendarCellTrigger
               :day="date"
               :month="month.value"
-              class="mx-auto grid size-8 place-items-center rounded-full text-[13px] tabular-nums text-[var(--color-text)] outline-none hover:bg-[var(--color-raised)] focus-visible:[box-shadow:var(--ring-focus)] data-[outside-view]:text-[var(--color-text-muted)] data-[today]:font-semibold data-[today]:text-[var(--color-brand)] data-[selected]:bg-[var(--color-brand)] data-[selected]:font-semibold data-[selected]:text-white data-[disabled]:pointer-events-none data-[disabled]:opacity-50 data-[unavailable]:pointer-events-none data-[unavailable]:opacity-50"
+              class="mx-auto grid size-8 place-items-center rounded-full text-[13px] tabular-nums text-[var(--color-text)] outline-none hover:bg-[var(--color-raised)] focus-visible:[box-shadow:var(--ring-focus)] data-[outside-view]:text-[var(--color-text-muted)] data-[today]:font-semibold [&[data-today]:not([data-selected])]:text-[var(--color-brand)] data-[selected]:bg-[var(--color-brand)] data-[selected]:font-semibold data-[selected]:text-white data-[disabled]:pointer-events-none data-[disabled]:opacity-50 data-[unavailable]:pointer-events-none data-[unavailable]:opacity-50"
             />
           </CalendarCell>
         </CalendarGridRow>
