@@ -14,6 +14,7 @@ import { RowsService } from './rows.service';
 import { UmbrellasController } from './umbrellas.controller';
 import { UmbrellasService } from './umbrellas.service';
 import { SetupStatusService } from './setup-status.service';
+import { LegalProfileService } from './legal-profile.service';
 import { PasswordHasher } from '../identity/password-hasher';
 import { CredentialModule } from '../credential/credential.module';
 
@@ -37,8 +38,9 @@ import { CredentialModule } from '../credential/credential.module';
     RowsService,
     UmbrellasService,
     SetupStatusService,
+    LegalProfileService,
     PasswordHasher,
   ],
-  exports: [SetupStatusService],
+  exports: [SetupStatusService, LegalProfileService],
 })
 export class EstablishmentModule {}
