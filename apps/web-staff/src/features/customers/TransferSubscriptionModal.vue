@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, watch, computed } from 'vue';
-import { Modal, Field, Button, formatEuro } from '@coralyn/ui-kit';
+import { Modal, Field, Button, Select, Option, formatEuro } from '@coralyn/ui-kit';
 import type { CustomerBookingDTO } from '@coralyn/contracts';
 import { ApiError } from '@/lib/http';
 import { useSessionStore } from '@/stores/session';
@@ -84,10 +84,10 @@ async function confirm(): Promise<void> {
   <Modal v-model:open="open" title="Cedi abbonamento" eyebrow="Subentro">
     <div v-if="booking" class="flex flex-col gap-[18px]">
       <Field label="Cliente subentrante">
-        <select v-model="newCustomerId" data-testid="transfer-new-customer" :class="inputClass">
-          <option value="" disabled>Seleziona…</option>
-          <option v-for="c in candidates" :key="c.id" :value="c.id">{{ c.firstName }} {{ c.lastName }}</option>
-        </select>
+        <Select v-model="newCustomerId" data-testid="transfer-new-customer" :class="inputClass">
+          <Option value="" disabled>Seleziona…</Option>
+          <Option v-for="c in candidates" :key="c.id" :value="c.id">{{ c.firstName }} {{ c.lastName }}</Option>
+        </Select>
       </Field>
 
       <Field label="Data effettiva del subentro">

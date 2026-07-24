@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, watch, computed } from 'vue';
-import { Modal, Field, Button, ModalFooter, formatEuro } from '@coralyn/ui-kit';
+import { Modal, Field, Button, ModalFooter, Select, Option, formatEuro } from '@coralyn/ui-kit';
 import type { BookingDTO, PaymentMethod } from '@coralyn/contracts';
 import { ApiError } from '@/lib/http';
 import { useSettlePayment } from './useBookings';
@@ -82,9 +82,9 @@ async function confirm(): Promise<void> {
       </div>
 
       <Field v-if="amount > 0" label="Metodo">
-        <select v-model="method" :class="inputClass">
-          <option v-for="m in METHODS" :key="m.value" :value="m.value">{{ m.label }}</option>
-        </select>
+        <Select v-model="method" data-test="settle-method" :class="inputClass">
+          <Option v-for="m in METHODS" :key="m.value" :value="m.value">{{ m.label }}</Option>
+        </Select>
       </Field>
 
       <Field v-if="amount > 0" label="Data incasso">

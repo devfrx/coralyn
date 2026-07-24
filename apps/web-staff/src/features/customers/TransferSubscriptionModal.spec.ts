@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { http, HttpResponse } from 'msw';
 import { flushPromises } from '@vue/test-utils';
-import { mountApp } from '@/test/utils';
+import { mountApp, selectOption } from '@/test/utils';
 import { server } from '@/mocks/server';
 import { Role, type CustomerBookingDTO } from '@coralyn/contracts';
 import { useSessionStore } from '@/stores/session';
@@ -43,10 +43,12 @@ describe('TransferSubscriptionModal', () => {
 
   it('il selettore subentrante NON include il titolare attuale', async () => {
     const w = await mount();
-    const select = document.querySelector('select[data-testid="transfer-new-customer"]') as HTMLSelectElement;
-    const values = Array.from(select.options).map((o) => o.value);
-    expect(values).not.toContain('c-1');
-    expect(values).toContain('c-2');
+    const trigger = document.querySelector('[data-testid="transfer-new-customer"]') as HTMLElement;
+    trigger.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, button: 0, pointerId: 1 }));
+    await tick(); await tick();
+    const labels = Array.from(document.body.querySelectorAll('[role="option"]')).map((o) => o.textContent?.trim());
+    expect(labels).not.toContain('Mario Rossi');
+    expect(labels).toContain('Luca Bianchi');
     w.unmount();
   });
 
@@ -57,10 +59,7 @@ describe('TransferSubscriptionModal', () => {
       return HttpResponse.json({ ...sub, customerId: 'c-2' });
     }));
     const w = await mount();
-    const select = document.querySelector('select[data-testid="transfer-new-customer"]') as HTMLSelectElement;
-    select.value = 'c-2';
-    select.dispatchEvent(new Event('change'));
-    await tick();
+    await selectOption(document.querySelector('[data-testid="transfer-new-customer"]')!, 'Luca Bianchi');
     (document.querySelector('[data-testid="transfer-confirm"]') as HTMLButtonElement).click();
     await flushPromises();
     await tick();
@@ -78,10 +77,7 @@ describe('TransferSubscriptionModal', () => {
   it('409 dal server -> messaggio "Sospensione aperta..." inline', async () => {
     server.use(http.post('/api/bookings/:id/transfer', () => new HttpResponse(null, { status: 409 })));
     const w = await mount();
-    const select = document.querySelector('select[data-testid="transfer-new-customer"]') as HTMLSelectElement;
-    select.value = 'c-2';
-    select.dispatchEvent(new Event('change'));
-    await tick();
+    await selectOption(document.querySelector('[data-testid="transfer-new-customer"]')!, 'Luca Bianchi');
     (document.querySelector('[data-testid="transfer-confirm"]') as HTMLButtonElement).click();
     await flushPromises();
     await tick();
@@ -92,10 +88,7 @@ describe('TransferSubscriptionModal', () => {
   it('422 dal server -> "Dati non validi." inline', async () => {
     server.use(http.post('/api/bookings/:id/transfer', () => new HttpResponse(null, { status: 422 })));
     const w = await mount();
-    const select = document.querySelector('select[data-testid="transfer-new-customer"]') as HTMLSelectElement;
-    select.value = 'c-2';
-    select.dispatchEvent(new Event('change'));
-    await tick();
+    await selectOption(document.querySelector('[data-testid="transfer-new-customer"]')!, 'Luca Bianchi');
     (document.querySelector('[data-testid="transfer-confirm"]') as HTMLButtonElement).click();
     await flushPromises();
     await tick();
