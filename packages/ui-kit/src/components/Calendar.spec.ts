@@ -1,6 +1,7 @@
 import { describe, it, expect, afterEach, vi } from 'vitest';
 import { mount } from '@vue/test-utils';
 import { nextTick } from 'vue';
+import { today, getLocalTimeZone } from '@internationalized/date';
 import Calendar from './Calendar.vue';
 
 // reka-ui usa ResizeObserver/pointer-capture, assenti in jsdom (additivi, come Select.spec).
@@ -55,7 +56,7 @@ describe('Calendar (reka-ui, v-model ISO)', () => {
   });
 
   it('un giorno che è oggi ED è selezionato mantiene lo stato selezionato (nessuna collisione oggi/selezionato)', async () => {
-    const todayIso = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Rome', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
+    const todayIso = today(getLocalTimeZone()).toString(); // stessa fonte di reka-ui (isToday usa getLocalTimeZone): niente time-bomb TZ
     const w = current = mount(Calendar, { props: { modelValue: todayIso } });
     await nextTick();
     const day = Number(todayIso.slice(8, 10));
