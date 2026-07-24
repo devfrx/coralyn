@@ -3,7 +3,7 @@ import { nextTick } from 'vue';
 import { http, HttpResponse } from 'msw';
 import { flushPromises } from '@vue/test-utils';
 import { Role } from '@coralyn/contracts';
-import { mountApp } from '@/test/utils';
+import { mountApp, selectOption } from '@/test/utils';
 import { server } from '@/mocks/server';
 import { useToasts } from '@/lib/toasts';
 import { useSessionStore } from '@/stores/session';
@@ -202,28 +202,22 @@ describe('MapView', () => {
     await flushPromises();
     expect(document.body.textContent).toContain('28');
 
-    // Il selettore Pacchetto è presente con l'opzione di default e quella del MSW.
-    const select = Array.from(document.body.querySelectorAll('select')).find((s) =>
-      s.textContent?.includes('Nessun pacchetto'),
-    ) as HTMLSelectElement | undefined;
-    expect(select).toBeTruthy();
-    expect(select!.textContent).toContain('Standard');
+    // Il selettore Pacchetto è presente con l'opzione di default; il trigger vive in document.body (portal).
+    const packageTrigger = document.body.querySelector('[data-test="booking-package"]') as HTMLElement | null;
+    expect(packageTrigger).toBeTruthy();
+    expect(packageTrigger!.textContent).toContain('Nessun pacchetto');
 
-    // Scegliendo il pacchetto, il prezzo si ricalcola (MSW: 35 col pacchetto).
-    select!.value = 'pkg-1';
-    select!.dispatchEvent(new Event('change'));
+    // Scegliendo il pacchetto (label MSW: "Standard"), il prezzo si ricalcola (35 col pacchetto).
+    await selectOption(packageTrigger!, 'Standard');
     await flushPromises();
     await new Promise((r) => setTimeout(r, 0));
     await flushPromises();
     expect(document.body.textContent).toContain('35');
 
     // Cambiando il Tipo in Abbonamento, il prezzo si ricalcola (MSW: 800 per subscription).
-    const typeSelect = Array.from(document.body.querySelectorAll('select')).find((s) =>
-      s.textContent?.includes('Abbonamento'),
-    ) as HTMLSelectElement | undefined;
-    expect(typeSelect).toBeTruthy();
-    typeSelect!.value = 'subscription';
-    typeSelect!.dispatchEvent(new Event('change'));
+    const typeTrigger = document.body.querySelector('[data-test="booking-type"]') as HTMLElement | null;
+    expect(typeTrigger).toBeTruthy();
+    await selectOption(typeTrigger!, 'Abbonamento');
     await flushPromises();
     await new Promise((r) => setTimeout(r, 0));
     await flushPromises();
@@ -339,11 +333,8 @@ describe('MapView', () => {
     await flushPromises();
 
     // Scegli un cliente (necessario perché confirmBooking esce se customerId è vuoto).
-    const custSelect = Array.from(document.body.querySelectorAll('select')).find((s) =>
-      s.textContent?.includes('Seleziona un cliente'),
-    ) as HTMLSelectElement;
-    custSelect.value = 'c-1';
-    custSelect.dispatchEvent(new Event('change'));
+    const custTrigger = document.body.querySelector('[data-test="booking-customer"]') as HTMLElement;
+    await selectOption(custTrigger, 'Mario Rossi');
     await flushPromises();
     await new Promise((r) => setTimeout(r, 0));
     await flushPromises();
@@ -477,20 +468,17 @@ describe('MapView', () => {
     drawerButtons().find((b) => b.textContent?.includes('Nuova prenotazione'))!.click();
     await flushPromises();
 
-    // Il modale è teleportato (DialogPortal): il primo <select> in document.body è il Tipo.
-    const typeSelect = document.body.querySelectorAll('select')[0] as HTMLSelectElement;
-    typeSelect.value = 'subscription';
-    typeSelect.dispatchEvent(new Event('change'));
+    // Il modale è teleportato (DialogPortal): il Tipo si cerca per data-test in document.body.
+    const typeTrigger = document.body.querySelector('[data-test="booking-type"]') as HTMLElement;
+    await selectOption(typeTrigger, 'Abbonamento');
     await flushPromises();
     expect(document.body.textContent).toContain('Tutta la stagione, prezzo forfait.');
 
-    typeSelect.value = 'periodic';
-    typeSelect.dispatchEvent(new Event('change'));
+    await selectOption(typeTrigger, 'Periodica');
     await flushPromises();
     expect(document.body.textContent).toContain('paghi a giornata');
 
-    typeSelect.value = 'daily';
-    typeSelect.dispatchEvent(new Event('change'));
+    await selectOption(typeTrigger, 'Giornaliera');
     await flushPromises();
     expect(document.body.textContent).toContain('Un giorno.');
     w.unmount();
@@ -510,9 +498,8 @@ describe('MapView', () => {
     await flushPromises();
     drawerButtons().find((b) => b.textContent?.includes('Nuova prenotazione'))!.click();
     await flushPromises();
-    const typeSelect = document.body.querySelectorAll('select')[0] as HTMLSelectElement;
-    typeSelect.value = 'subscription';
-    typeSelect.dispatchEvent(new Event('change'));
+    const typeTrigger = document.body.querySelector('[data-test="booking-type"]') as HTMLElement;
+    await selectOption(typeTrigger, 'Abbonamento');
     await flushPromises();
     await new Promise((r) => setTimeout(r, 0));
     await flushPromises();
@@ -645,11 +632,11 @@ describe('MapView', () => {
     await new Promise((r) => setTimeout(r, 0));
     await flushPromises();
 
-    // Modale aperto e Tipo preimpostato su Abbonamento (help text specifico + valore del select).
+    // Modale aperto e Tipo preimpostato su Abbonamento (help text specifico + label nel trigger).
     expect(document.body.textContent).toContain('Conferma prenotazione');
     expect(document.body.textContent).toContain('Tutta la stagione, prezzo forfait.');
-    const typeSelect = document.body.querySelectorAll('select')[0] as HTMLSelectElement;
-    expect(typeSelect.value).toBe('subscription');
+    const typeTrigger = document.body.querySelector('[data-test="booking-type"]') as HTMLElement;
+    expect(typeTrigger.textContent).toContain('Abbonamento');
 
     w.unmount();
   });

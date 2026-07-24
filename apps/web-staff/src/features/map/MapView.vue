@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, watch, nextTick, onUnmounted } from 'vue';
 import { useRouter } from 'vue-router';
-import { UmbrellaCell, SegmentedControl, Badge, Button, Drawer, ActionBar, Modal, Icon, Select, ModalFooter, formatEuro, HoverCard, Popover, Skeleton, EmptyState, useDelayedLoading } from '@coralyn/ui-kit';
+import { UmbrellaCell, SegmentedControl, Badge, Button, Drawer, ActionBar, Modal, Icon, Select, Option, ModalFooter, formatEuro, HoverCard, Popover, Skeleton, EmptyState, useDelayedLoading } from '@coralyn/ui-kit';
 import type { UmbrellaDTO, SlotState, BookingDTO, BookingType } from '@coralyn/contracts';
 import { Role } from '@coralyn/contracts';
 import { PAY_LABEL, PAY_TONE } from '@/lib/statusMaps';
@@ -492,18 +492,18 @@ const freeSlotOptions = computed(() =>
       <div class="flex flex-col gap-[18px]">
         <div>
           <label class="mb-1.5 block text-[12.5px] font-semibold text-[var(--color-text-2nd)]">Tipo</label>
-          <Select v-model="bookingType">
-            <option value="daily">Giornaliera</option>
-            <option value="periodic">Periodica</option>
-            <option value="subscription">Abbonamento</option>
+          <Select v-model="bookingType" data-test="booking-type">
+            <Option value="daily">Giornaliera</Option>
+            <Option value="periodic">Periodica</Option>
+            <Option value="subscription">Abbonamento</Option>
           </Select>
           <p class="mt-1.5 text-[11.5px] text-[var(--color-text-muted)]">{{ TYPE_HELP[bookingType] }}</p>
         </div>
         <div>
           <label class="mb-1.5 block text-[12.5px] font-semibold text-[var(--color-text-2nd)]">Cliente</label>
-          <Select v-model="customerId">
-            <option value="" disabled>Seleziona un cliente…</option>
-            <option v-for="c in (customers ?? [])" :key="c.id" :value="c.id">{{ c.firstName }} {{ c.lastName }}</option>
+          <Select v-model="customerId" data-test="booking-customer">
+            <Option value="" disabled>Seleziona un cliente…</Option>
+            <Option v-for="c in (customers ?? [])" :key="c.id" :value="c.id">{{ c.firstName }} {{ c.lastName }}</Option>
           </Select>
           <p v-if="(customers ?? []).length === 0" class="mt-1.5 text-[11.5px] text-[var(--color-text-muted)]">
             Nessun cliente. <router-link to="/customers" class="font-semibold text-[var(--color-accent)]">Crea un cliente</router-link>.
@@ -519,9 +519,9 @@ const freeSlotOptions = computed(() =>
         </div>
         <div>
           <label class="mb-1.5 block text-[12.5px] font-semibold text-[var(--color-text-2nd)]">Pacchetto</label>
-          <Select v-model="packageId">
-            <option value="">Nessun pacchetto</option>
-            <option v-for="p in (packages ?? [])" :key="p.id" :value="p.id">{{ p.name }}</option>
+          <Select v-model="packageId" data-test="booking-package">
+            <Option value="">Nessun pacchetto</Option>
+            <Option v-for="p in (packages ?? [])" :key="p.id" :value="p.id">{{ p.name }}</Option>
           </Select>
         </div>
         <div>
