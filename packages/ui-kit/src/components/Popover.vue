@@ -5,18 +5,20 @@ withDefaults(defineProps<{
   side?: 'top' | 'right' | 'bottom' | 'left';
   align?: 'start' | 'center' | 'end';
   defaultOpen?: boolean;
-}>(), { side: 'bottom', align: 'end', defaultOpen: false });
+  open?: boolean;
+}>(), { side: 'bottom', align: 'end', defaultOpen: false, open: undefined });
 
-// Open controllato opzionale: se il consumatore non usa v-model:open, il model resta undefined
-// e PopoverRoot ricade su defaultOpen (uncontrolled) — retro-compatibile.
-// NB: `default: undefined` esplicito è necessario — senza, Vue applica la sua regola
-// "prop Boolean assente → false" (nessuna `default` key nelle props compilate da
-// defineModel), e un `open` non bindato diventerebbe `false` anziché `undefined`,
-// forzando PopoverRoot in modalità controllata chiusa (rompe defaultOpen).
-const open = defineModel<boolean>('open', { default: undefined });
+// Open controllato opzionale: props + emit espliciti invece di defineModel.
+// Se il consumatore non binda `open`, la prop resta undefined e PopoverRoot ricade
+// su defaultOpen (uncontrolled) — retro-compatibile. `open: undefined` esplicito in
+// withDefaults è necessario — senza, Vue applica la sua regola "prop Boolean assente →
+// false" (nessuna `default` key nelle props compilate), e un `open` non bindato
+// diventerebbe `false` anziché `undefined`, forzando PopoverRoot in modalità
+// controllata chiusa (rompe defaultOpen).
+const emit = defineEmits<{ 'update:open': [boolean] }>();
 </script>
 <template>
-  <PopoverRoot v-model:open="open" :default-open="defaultOpen">
+  <PopoverRoot :open="open" :default-open="defaultOpen" @update:open="(v) => emit('update:open', v)">
     <PopoverTrigger as-child><slot name="trigger" /></PopoverTrigger>
     <PopoverPortal>
       <PopoverContent :side="side" :align="align" :side-offset="8"
