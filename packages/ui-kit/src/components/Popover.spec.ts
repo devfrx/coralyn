@@ -1,5 +1,5 @@
 import { describe, it, expect, afterEach, vi } from 'vitest';
-import { mount } from '@vue/test-utils';
+import { mount, flushPromises } from '@vue/test-utils';
 import { nextTick } from 'vue';
 import Popover from './Popover.vue';
 
@@ -32,10 +32,28 @@ describe('Popover', () => {
     await w.get('button').trigger('click');
     await nextTick();
     expect(document.body.textContent).toContain('Stato misto — metà per fascia');
+    w.unmount(); // ferma l'autoUpdate di floating-ui (reka-ui); orfano altrimenti,
+    // riemerge come rifiuto async non gestito quando un test successivo tocca il DOM.
   });
   it('defaultOpen: contenuto montato subito', async () => {
-    mount(Popover, { props: { defaultOpen: true }, slots, attachTo: document.body });
+    const w = mount(Popover, { props: { defaultOpen: true }, slots, attachTo: document.body });
     await nextTick();
     expect(document.body.textContent).toContain('Stato misto — metà per fascia');
+    w.unmount();
+  });
+  it('v-model:open controllato: aperto mostra il contenuto, chiuso lo nasconde', async () => {
+    const w = mount(Popover, { props: { open: true }, slots, attachTo: document.body });
+    await nextTick();
+    expect(document.body.textContent).toContain('Stato misto');
+    await w.setProps({ open: false });
+    await flushPromises();
+    expect(document.body.textContent).not.toContain('Stato misto');
+  });
+  it('v-model:open: chiudendo dall’esterno il Popover emette update:open=false', async () => {
+    const w = mount(Popover, { props: { open: true }, slots, attachTo: document.body });
+    await nextTick();
+    await w.get('button').trigger('click'); // il trigger fa toggle
+    expect(w.emitted('update:open')?.some((e) => e[0] === false)).toBe(true);
+    w.unmount();
   });
 });
