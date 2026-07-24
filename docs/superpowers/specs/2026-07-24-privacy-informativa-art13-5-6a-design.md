@@ -108,7 +108,7 @@ titolare + `establishmentName` + `dpoNominated`/`dpoContact`; **nessuna PII di i
 societari pubblici per natura), campi mancanti come `null` (il FE mostra `[COMPILARE]`). Un solo metodo di
 service condiviso `getTitolare(establishmentId)` (dentro `forTenant`, RLS mantenuta), esposto da **due**
 controller:
-- `GET /public/informativa/:establishmentId` → pubblico (nuovo modulo `public`, **fuori dal
+- `GET /public/informativa/:establishmentId` → pubblico (nuovo modulo `informativa`, **fuori dal
   `CustomerJwtGuard`**). Usato dal **deep-link operatore** (`?e=<id>`, web-staff *ha* `establishmentId`
   nella sua `UserDTO`). **RLS mantenuta**: l'id è noto dall'URL → l'endpoint imposta il contesto tenant
   (`forTenant(establishmentId)`) e legge dentro RLS FORCE — nessuna deroga. UUID non praticamente
