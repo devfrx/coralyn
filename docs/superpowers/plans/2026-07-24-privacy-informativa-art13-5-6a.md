@@ -45,16 +45,22 @@ in web-customer).
 
 ## File Structure
 
-**apps/api**
+**apps/api** — *coerenza (dev-discipline §3): la form legal-profile è una sotto-feature establishment-admin
+come `establishment-users`, quindi vive in `EstablishmentModule` (stesso precedente: `establishment-users.controller.ts`
+sta in `src/establishment/`). Solo la lettura informativa (route diverse `/public/*` e `/customer/*`) sta in
+un modulo `informativa` dedicato che riusa il service condiviso (DRY).*
 - `prisma/schema.prisma` — Modify: nuovo model `EstablishmentLegalProfile` + relation su `Establishment`.
 - `prisma/migrations/<ts>_add_establishment_legal_profile/migration.sql` — Create.
-- `src/legal/legal.module.ts` — Create: modulo che raggruppa service + 3 controller.
-- `src/legal/legal-profile.service.ts` — Create: `getForTenant()`, `upsert()`, `getTitolare(id)`.
-- `src/legal/legal-profile.controller.ts` — Create: staff `GET`/`PUT /establishment/legal-profile`.
-- `src/legal/public-informativa.controller.ts` — Create: `GET /public/informativa/:establishmentId`.
-- `src/legal/customer-informativa.controller.ts` — Create: `GET /customer/me/informativa`.
-- `src/legal/dto/update-legal-profile.dto.ts` — Create: validazione body.
-- `src/app.module.ts` — Modify: importare `LegalModule`.
+- `src/establishment/legal-profile.service.ts` — Create: `getForTenant()`, `upsert()`, `getTitolare(id)`
+  (in `EstablishmentModule`, **esportato**).
+- `src/establishment/legal-profile.controller.ts` — Create: staff `GET`/`PUT /establishment/legal-profile`.
+- `src/establishment/dto/update-legal-profile.dto.ts` — Create: validazione body.
+- `src/establishment/establishment.module.ts` — Modify: `providers += LegalProfileService` (+ `exports`),
+  `controllers += LegalProfileController`.
+- `src/informativa/informativa.module.ts` — Create: `imports: [EstablishmentModule, CustomerAuthModule]`.
+- `src/informativa/public-informativa.controller.ts` — Create: `GET /public/informativa/:establishmentId`.
+- `src/informativa/customer-informativa.controller.ts` — Create: `GET /customer/me/informativa`.
+- `src/app.module.ts` — Modify: importare `InformativaModule` (`EstablishmentModule` è già importato).
 - `src/customer-auth/customer-auth.module.ts` — Modify (se serve): esportare `CustomerJwtGuard`.
 - `test/legal-profile.e2e-spec.ts`, `test/public-informativa.e2e-spec.ts`,
   `test/customer-informativa.e2e-spec.ts` — Create.
@@ -233,13 +239,12 @@ git commit -m "feat(contracts): DTO informativa/legal-profile 5.6a"
 
 ---
 
-## Task 3: `LegalProfileService` + `LegalModule`
+## Task 3: `LegalProfileService` (in EstablishmentModule)
 
 **Files:**
-- Create: `apps/api/src/legal/legal-profile.service.ts`
-- Create: `apps/api/src/legal/legal.module.ts`
-- Modify: `apps/api/src/app.module.ts`
-- Test: `apps/api/src/legal/legal-profile.service.spec.ts`
+- Create: `apps/api/src/establishment/legal-profile.service.ts`
+- Modify: `apps/api/src/establishment/establishment.module.ts`
+- Test: `apps/api/src/establishment/legal-profile.service.spec.ts`
 
 **Interfaces:**
 - Consumes: `PrismaService.forTenant`, `TenantContext.require()`.
@@ -249,7 +254,7 @@ git commit -m "feat(contracts): DTO informativa/legal-profile 5.6a"
 
 - [ ] **Step 1: Scrivere i test del service**
 
-Create `apps/api/src/legal/legal-profile.service.spec.ts`:
+Create `apps/api/src/establishment/legal-profile.service.spec.ts`:
 ```ts
 import { Test } from '@nestjs/testing';
 import { LegalProfileService } from './legal-profile.service';
@@ -317,12 +322,12 @@ describe('LegalProfileService', () => {
 
 - [ ] **Step 2: Eseguire i test (falliscono)**
 
-Run: `corepack pnpm -C apps/api exec jest src/legal/legal-profile.service.spec.ts`
+Run: `corepack pnpm -C apps/api exec jest src/establishment/legal-profile.service.spec.ts`
 Expected: FAIL — `Cannot find module './legal-profile.service'`.
 
 - [ ] **Step 3: Implementare il service**
 
-Create `apps/api/src/legal/legal-profile.service.ts`:
+Create `apps/api/src/establishment/legal-profile.service.ts`:
 ```ts
 import { Injectable } from '@nestjs/common';
 import type {
@@ -400,32 +405,23 @@ export class LegalProfileService {
 }
 ```
 
-- [ ] **Step 4: Creare il modulo e registrarlo**
+- [ ] **Step 4: Registrare il service in EstablishmentModule (con export)**
 
-Create `apps/api/src/legal/legal.module.ts`:
-```ts
-import { Module } from '@nestjs/common';
-import { LegalProfileService } from './legal-profile.service';
-
-@Module({
-  providers: [LegalProfileService],
-  exports: [LegalProfileService],
-})
-export class LegalModule {}
-```
-In `apps/api/src/app.module.ts` aggiungere `LegalModule` all'array `imports` (con l'import in testa).
+In `apps/api/src/establishment/establishment.module.ts`: importare `LegalProfileService`, aggiungerlo
+all'array `providers` **e** `exports` (l'export serve al futuro `InformativaModule`, T5/T6). Nessun nuovo
+modulo: il service vive nel modulo establishment come gli altri service establishment-admin.
 
 - [ ] **Step 5: Eseguire i test (passano) e il typecheck**
 
-Run: `corepack pnpm -C apps/api exec jest src/legal/legal-profile.service.spec.ts`
+Run: `corepack pnpm -C apps/api exec jest src/establishment/legal-profile.service.spec.ts`
 Expected: PASS (3 test).
 Run: `corepack pnpm -C apps/api exec tsc -p tsconfig.json --noEmit` (o `corepack pnpm -C apps/api typecheck`)
 Expected: exit 0 (dopo `prisma generate` del Task 1).
 
 - [ ] **Step 6: Commit**
 ```bash
-git add apps/api/src/legal apps/api/src/app.module.ts
-git commit -m "feat(api): LegalProfileService (get/upsert/getTitolare) + LegalModule"
+git add apps/api/src/establishment/legal-profile.service.ts apps/api/src/establishment/legal-profile.service.spec.ts apps/api/src/establishment/establishment.module.ts
+git commit -m "feat(api): LegalProfileService (get/upsert/getTitolare) in EstablishmentModule"
 ```
 
 ---
@@ -433,9 +429,9 @@ git commit -m "feat(api): LegalProfileService (get/upsert/getTitolare) + LegalMo
 ## Task 4: Staff controller `GET`/`PUT /establishment/legal-profile`
 
 **Files:**
-- Create: `apps/api/src/legal/dto/update-legal-profile.dto.ts`
-- Create: `apps/api/src/legal/legal-profile.controller.ts`
-- Modify: `apps/api/src/legal/legal.module.ts` (registrare il controller)
+- Create: `apps/api/src/establishment/dto/update-legal-profile.dto.ts`
+- Create: `apps/api/src/establishment/legal-profile.controller.ts`
+- Modify: `apps/api/src/establishment/establishment.module.ts` (registrare il controller)
 - Test: `apps/api/test/legal-profile.e2e-spec.ts`
 
 **Interfaces:**
@@ -445,8 +441,10 @@ git commit -m "feat(api): LegalProfileService (get/upsert/getTitolare) + LegalMo
 
 - [ ] **Step 1: Scrivere la e2e (admin salva e rilegge; staff riceve 403)**
 
-Create `apps/api/test/legal-profile.e2e-spec.ts` seguendo lo stile delle e2e esistenti (bootstrap app +
-login admin/staff; riusa gli helper del repo per ottenere i token — vedi `test/helpers`). Asserzioni:
+Create `apps/api/test/legal-profile.e2e-spec.ts`. **Per il bootstrap app + login**: apri prima
+`apps/api/test/establishment-users.e2e-spec.ts` (o `customers.e2e-spec.ts`) e riusa **lo stesso** helper di
+setup che già producono un token admin e uno staff nello stesso tenant (non reinventare il seed/login).
+Asserzioni:
 ```ts
 // admin: PUT poi GET round-trip
 const put = await request(app.getHttpServer())
@@ -484,7 +482,7 @@ Expected: FAIL — 404 sulle rotte (controller assente).
 
 - [ ] **Step 3: Scrivere il DTO di validazione**
 
-Create `apps/api/src/legal/dto/update-legal-profile.dto.ts`:
+Create `apps/api/src/establishment/dto/update-legal-profile.dto.ts`:
 ```ts
 import { IsBoolean, IsEmail, IsOptional, IsString, MaxLength, ValidateIf } from 'class-validator';
 import type { UpdateEstablishmentLegalProfileInput } from '@coralyn/contracts';
@@ -507,7 +505,7 @@ export class UpdateLegalProfileDto implements UpdateEstablishmentLegalProfileInp
 
 - [ ] **Step 4: Scrivere il controller**
 
-Create `apps/api/src/legal/legal-profile.controller.ts`:
+Create `apps/api/src/establishment/legal-profile.controller.ts`:
 ```ts
 import { Body, Controller, Get, Put } from '@nestjs/common';
 import type { EstablishmentLegalProfileDTO } from '@coralyn/contracts';
@@ -533,7 +531,7 @@ export class LegalProfileController {
   }
 }
 ```
-In `legal.module.ts` aggiungere `controllers: [LegalProfileController]`.
+In `establishment.module.ts` aggiungere `LegalProfileController` all'array `controllers`.
 
 - [ ] **Step 5: Eseguire la e2e (passa) + l'intera suite e2e**
 
@@ -544,22 +542,23 @@ Expected: tutte verdi (baseline + la nuova suite).
 
 - [ ] **Step 6: Commit**
 ```bash
-git add apps/api/src/legal apps/api/test/legal-profile.e2e-spec.ts
+git add apps/api/src/establishment/legal-profile.controller.ts apps/api/src/establishment/dto/update-legal-profile.dto.ts apps/api/src/establishment/establishment.module.ts apps/api/test/legal-profile.e2e-spec.ts
 git commit -m "feat(api): staff GET/PUT /establishment/legal-profile (admin-only)"
 ```
 
 ---
 
-## Task 5: Public controller `GET /public/informativa/:establishmentId`
+## Task 5: `InformativaModule` + public controller `GET /public/informativa/:establishmentId`
 
 **Files:**
-- Create: `apps/api/src/legal/public-informativa.controller.ts`
-- Modify: `apps/api/src/legal/legal.module.ts`
+- Create: `apps/api/src/informativa/informativa.module.ts`
+- Create: `apps/api/src/informativa/public-informativa.controller.ts`
+- Modify: `apps/api/src/app.module.ts` (importare `InformativaModule`)
 - Test: `apps/api/test/public-informativa.e2e-spec.ts`
 
 **Interfaces:**
-- Consumes: `LegalProfileService.getTitolare`, `@Public()`.
-- Produces: `GET /public/informativa/:establishmentId` → `PublicTitolareDTO` (nessuna auth).
+- Consumes: `LegalProfileService.getTitolare` (esportato da `EstablishmentModule`), `@Public()`.
+- Produces: `InformativaModule`; `GET /public/informativa/:establishmentId` → `PublicTitolareDTO` (nessuna auth).
 
 - [ ] **Step 1: Scrivere la e2e (pubblico, senza token)**
 ```ts
@@ -580,14 +579,14 @@ await request(app.getHttpServer())
 Run: `corepack pnpm -C apps/api exec jest --config test/jest-e2e.json public-informativa`
 Expected: FAIL — 404 su rotta assente / oppure 401 (guard globale) se il `@Public()` mancasse.
 
-- [ ] **Step 3: Scrivere il controller**
+- [ ] **Step 3: Scrivere il controller e il modulo**
 
-Create `apps/api/src/legal/public-informativa.controller.ts`:
+Create `apps/api/src/informativa/public-informativa.controller.ts`:
 ```ts
 import { Controller, Get, Param, ParseUUIDPipe } from '@nestjs/common';
 import type { PublicTitolareDTO } from '@coralyn/contracts';
 import { Public } from '../identity/public.decorator';
-import { LegalProfileService } from './legal-profile.service';
+import { LegalProfileService } from '../establishment/legal-profile.service';
 
 @Controller('public/informativa')
 export class PublicInformativaController {
@@ -600,7 +599,19 @@ export class PublicInformativaController {
   }
 }
 ```
-In `legal.module.ts` aggiungere `PublicInformativaController` ai `controllers`.
+Create `apps/api/src/informativa/informativa.module.ts`:
+```ts
+import { Module } from '@nestjs/common';
+import { EstablishmentModule } from '../establishment/establishment.module';
+import { PublicInformativaController } from './public-informativa.controller';
+
+@Module({
+  imports: [EstablishmentModule],
+  controllers: [PublicInformativaController],
+})
+export class InformativaModule {}
+```
+In `apps/api/src/app.module.ts` aggiungere `InformativaModule` all'array `imports` (import in testa).
 
 - [ ] **Step 4: Eseguire la e2e (passa) + suite e2e completa**
 
@@ -611,7 +622,7 @@ Expected: tutte verdi.
 
 - [ ] **Step 5: Commit**
 ```bash
-git add apps/api/src/legal apps/api/test/public-informativa.e2e-spec.ts
+git add apps/api/src/informativa apps/api/src/app.module.ts apps/api/test/public-informativa.e2e-spec.ts
 git commit -m "feat(api): GET /public/informativa/:id (pubblico, dentro RLS via id)"
 ```
 
@@ -620,8 +631,8 @@ git commit -m "feat(api): GET /public/informativa/:id (pubblico, dentro RLS via 
 ## Task 6: Customer endpoint `GET /customer/me/informativa`
 
 **Files:**
-- Create: `apps/api/src/legal/customer-informativa.controller.ts`
-- Modify: `apps/api/src/legal/legal.module.ts` (import `CustomerAuthModule`, registrare controller)
+- Create: `apps/api/src/informativa/customer-informativa.controller.ts`
+- Modify: `apps/api/src/informativa/informativa.module.ts` (import `CustomerAuthModule`, registrare controller)
 - Modify: `apps/api/src/customer-auth/customer-auth.module.ts` (esportare `CustomerJwtGuard` se non già)
 - Test: `apps/api/test/customer-informativa.e2e-spec.ts`
 
@@ -653,11 +664,11 @@ Expected: FAIL — 404/route assente.
 - [ ] **Step 3: Assicurare l'export di `CustomerJwtGuard`**
 
 In `apps/api/src/customer-auth/customer-auth.module.ts`, verificare che `CustomerJwtGuard` sia nei
-`providers` e aggiungerlo agli `exports` se assente (serve a `LegalModule` per `@UseGuards`).
+`providers` e aggiungerlo agli `exports` se assente (serve a `InformativaModule` per `@UseGuards`).
 
 - [ ] **Step 4: Scrivere il controller**
 
-Create `apps/api/src/legal/customer-informativa.controller.ts`:
+Create `apps/api/src/informativa/customer-informativa.controller.ts`:
 ```ts
 import { Controller, Get, UseGuards } from '@nestjs/common';
 import type { PublicTitolareDTO } from '@coralyn/contracts';
@@ -665,7 +676,7 @@ import { Public } from '../identity/public.decorator';
 import { CustomerJwtGuard } from '../customer-auth/customer-jwt.guard';
 import { CurrentCustomer } from '../customer-auth/current-customer.decorator';
 import type { CustomerPrincipal } from '../customer-auth/customer-principal';
-import { LegalProfileService } from './legal-profile.service';
+import { LegalProfileService } from '../establishment/legal-profile.service';
 
 @Controller('customer/me')
 export class CustomerInformativaController {
@@ -679,8 +690,8 @@ export class CustomerInformativaController {
   }
 }
 ```
-In `legal.module.ts`: aggiungere `imports: [CustomerAuthModule]` e `CustomerInformativaController` ai
-`controllers`.
+In `informativa.module.ts`: aggiungere `CustomerAuthModule` agli `imports` e
+`CustomerInformativaController` ai `controllers`.
 
 - [ ] **Step 5: Eseguire la e2e (passa) + suite e2e completa**
 
@@ -691,7 +702,7 @@ Expected: e2e + unit tutte verdi.
 
 - [ ] **Step 6: Commit**
 ```bash
-git add apps/api/src/legal apps/api/src/customer-auth/customer-auth.module.ts apps/api/test/customer-informativa.e2e-spec.ts
+git add apps/api/src/informativa apps/api/src/customer-auth/customer-auth.module.ts apps/api/test/customer-informativa.e2e-spec.ts
 git commit -m "feat(api): GET /customer/me/informativa (customer JWT)"
 ```
 
@@ -1539,8 +1550,10 @@ git commit -m "docs: ADR informativa Art. 13 multi-tenant + deferred 5.6b/5.6c +
 - **e2e**: riusa gli helper di bootstrap/login esistenti (non reinventare il seed); il calendario è
   congelato al 2026-07-15 ma qui non c'è logica temporale. Gira le e2e in sequenza (`maxWorkers: 1` già
   in config). Dopo la migration, `migrate deploy` su `coralyn_test` (T1 Step 5) o le e2e falliscono.
-- **Wiring Nest**: se `@UseGuards(CustomerJwtGuard)` in `LegalModule` non risolve, verifica che
-  `CustomerAuthModule` **esporti** `CustomerJwtGuard` (T6 Step 3) e sia negli `imports` di `LegalModule`.
+- **Wiring Nest**: se `@UseGuards(CustomerJwtGuard)` in `InformativaModule` non risolve, verifica che
+  `CustomerAuthModule` **esporti** `CustomerJwtGuard` (T6 Step 3) e sia negli `imports` di
+  `InformativaModule`. `EstablishmentModule` deve **esportare** `LegalProfileService` (T3 Step 4) perché
+  `InformativaModule` lo consumi.
 - **MSW web-staff**: l'handler di default `GET /establishment/legal-profile` (T9 Step 2) evita che gli
   spec di `EstablishmentView` esistenti si rompano quando la card monta il modal.
 - **Reinstall host**: se `pnpm` re-triggera il wipe di node_modules, rigira `prisma generate` prima del
