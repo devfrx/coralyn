@@ -92,6 +92,18 @@
 > Vedi [ADR-0049](../architecture/decisions/0049-auth-cliente-provisioned-tenant-pubblico.md) e la spec
 > [2026-07-10-canale-cliente-self-service-d035-s3-s4-design.md](../superpowers/specs/2026-07-10-canale-cliente-self-service-d035-s3-s4-design.md).
 > S4 (feature release `source='customer'` + app `web-customer`) è un piano separato.
+>
+> **Slice 5.6a (informativa privacy Art. 13 al bagnante, implementata, [ADR-0055](../architecture/decisions/0055-informativa-art13-multi-tenant.md)):**
+> nuova entità **`EstablishmentLegalProfile`** (1:1 con `Establishment`, RLS `ENABLE`+`FORCE`) porta i
+> dati societari del **titolare del trattamento verso il bagnante** — che è **il lido**, non Coralyn
+> (Coralyn è il responsabile ex Art. 28). Tutti i campi sono nullable: finché il lido non li compila,
+> l'informativa renderizzata mostra `[COMPILARE]`, ma il meccanismo è reale fin da subito. Il testo
+> fisso dell'informativa vive come costante versionata in `web-customer` (**non** nel DB): il DB porta
+> solo il titolare per-lido. Nessun campo qui è consenso: la base giuridica dei trattamenti coperti è
+> il contratto/obbligo legale (D-024, piano A ora fatto), non il consenso — nessuna colonna/flag di
+> "acconsento". Risolve il residuo piano A di [D-024](../architecture/deferred.md); restano deferiti i
+> piani B (privacy operatori, Coralyn titolare) e C (DPA/registro Coralyn↔lido), tracciati come
+> **5.6b**/**5.6c**.
 
 Fonte di verità del modello dati del Core operativo. Decisioni:
 [mappa](../architecture/decisions/0005-modello-mappa.md),
@@ -110,6 +122,7 @@ erDiagram
     ESTABLISHMENT ||--o{ UMBRELLA_TYPE : "definisce"
     ESTABLISHMENT ||--o{ AUDIT_LOG : "registra"
     ESTABLISHMENT ||--o{ RENEWAL_CAMPAIGN : "apre"
+    ESTABLISHMENT ||--o| ESTABLISHMENT_LEGAL_PROFILE : "titolare via (1:1)"
     USER ||--o{ AUDIT_LOG : "genera"
     TIME_SLOT ||--o{ RATE : "qualifica"
     TIME_SLOT ||--o{ BOOKING : "slot di"
@@ -148,6 +161,19 @@ erDiagram
         uuid id PK
         string name
         json config
+    }
+    ESTABLISHMENT_LEGAL_PROFILE {
+        uuid establishmentId PK "FK 1:1; onDelete Cascade"
+        string legalName "nullable; denominazione/ragione sociale del titolare"
+        string registeredAddress "nullable; sede legale"
+        string vatOrTaxId "nullable; P.IVA / Codice Fiscale"
+        string contactEmail "nullable"
+        string pec "nullable"
+        string legalRepresentative "nullable"
+        string dataRightsContact "nullable; email esercizio diritti"
+        boolean dpoNominated "default false"
+        string dpoContact "nullable"
+        datetime updatedAt
     }
     SECTOR {
         uuid id PK
@@ -496,8 +522,18 @@ erDiagram
   (non un `json contatti`), `notes` è un `text` libero di servizio; l'`email` è validata
   server-side (`@IsEmail`). Scelta motivata in
   [ADR-0023](../architecture/decisions/0023-contatti-cliente-colonne-tipizzate.md);
-  cancellazione/anonimizzazione del Customer (GDPR) rimandata a
-  [D-024](../architecture/deferred.md).
+  cancellazione/anonimizzazione del Customer (GDPR) implementata
+  ([ADR-0043](../architecture/decisions/0043-erasure-e-retention-cliente-gdpr.md)); il residuo
+  informativa Art. 13 alla raccolta è ora **fatto per il piano A** (bagnante, vedi punto sotto),
+  restano i piani B/C ([D-024](../architecture/deferred.md)).
+- **Informativa privacy Art. 13 al bagnante (5.6a, [ADR-0055](../architecture/decisions/0055-informativa-art13-multi-tenant.md))**:
+  `EstablishmentLegalProfile` porta i dati del **titolare** (il **lido**, non Coralyn) per-tenant,
+  1:1 con `Establishment`, RLS `ENABLE`+`FORCE`. Letto da un solo `LegalProfileService.getTitolare(establishmentId)`
+  condiviso, dentro `forTenant`/RLS, esposto sia dall'endpoint pubblico (`GET /public/informativa/:id`,
+  id dall'URL) sia da quello customer (`GET /customer/me/informativa`, tenant dal claim JWT). Nessun
+  campo è un flag di consenso: la base giuridica è il contratto/obbligo legale, non il consenso. Il
+  testo fisso dell'informativa **non** è nel DB (costante versionata in `web-customer`); campi
+  mancanti → `[COMPILARE]` nel render, non un fallback silenzioso.
 - **Identità & RLS**: `User` porta `establishmentId` **nullable** (null = superuser di
   piattaforma) e il `role` è un **enum DB** (`admin|staff|superuser`). A differenza delle altre
   tabelle tenant-scoped, `User` **non** abilita la policy RLS `tenant_isolation`: il login è

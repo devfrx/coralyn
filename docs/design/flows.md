@@ -476,3 +476,45 @@ stateDiagram-v2
     end note
 ```
 
+## 11. Informativa privacy Art. 13 al bagnante (5.6a, implementata)
+
+Il **titolare** del trattamento verso il bagnante è **il lido**, non Coralyn (che è il responsabile,
+Art. 28) — [ADR-0055](../architecture/decisions/0055-informativa-art13-multi-tenant.md). L'informativa
+è **parametrizzata per-lido** (`EstablishmentLegalProfile`, 1:1 RLS): il testo fisso vive come
+costante versionata in `web-customer`, il DB porta solo i dati del titolare. Nessuna cattura di
+consenso: il touchpoint di raccolta è un promemoria + link, non un flag persistito.
+
+**Dove il bagnante/operatore raggiungono l'informativa** (tre punti d'ingresso, nessuna duplicazione
+del testo):
+
+```mermaid
+flowchart TD
+    subgraph "web-staff (operatore)"
+        FORM["Form crea/modifica Cliente<br/>promemoria: 'Informa il cliente...' + Apri anteprima"]
+        FORM -->|"privacyPreviewUrl(establishmentId)<br/>VITE_WEB_CUSTOMER_URL/privacy?e=&lt;id&gt;"| DL[Deep-link, nuova scheda]
+    end
+    subgraph "web-customer (bagnante)"
+        ACT["ActivationView (primo contatto)<br/>link 'Informativa privacy' sotto il form"]
+        SUB["MySubscriptionsView (post-auth)<br/>footer di sezione 'Informativa privacy'"]
+        PV["/privacy → PrivacyView.vue"]
+        ACT --> PV
+        SUB --> PV
+        DL --> PV
+    end
+    PV --> RES{Risoluzione titolare}
+    RES -->|"?e=&lt;establishmentId&gt; in query<br/>(deep-link operatore)"| PUB["GET /public/informativa/:id<br/>pubblico, dentro RLS (forTenant dall'id URL)"]
+    RES -->|"nessun ?e, sessione autenticata"| ME["GET /customer/me/informativa<br/>CustomerJwtGuard, tenant dal claim JWT"]
+    RES -->|"nessun ?e, non autenticato<br/>(primo contatto anonimo)"| FIX["Solo sezioni fisse<br/>blocco titolare generico, nessuna chiamata API"]
+    PUB --> RENDER["Blocco titolare interpolato<br/>campi null → [COMPILARE]"]
+    ME --> RENDER
+```
+
+> **Invarianti chiave** ([ADR-0055](../architecture/decisions/0055-informativa-art13-multi-tenant.md)):
+> priorità di risoluzione `?e=` (deep-link) → sessione autenticata (JWT) → sezioni fisse (primo
+> contatto); **nessun** endpoint pubblico di risoluzione `?token=` (il primo contatto non è il momento
+> di raccolta, che è operator-side). Un solo service condiviso `LegalProfileService.getTitolare(establishmentId)`
+> dietro entrambi gli endpoint autenticati/pubblici: **RLS mantenuta anche sul pubblico** (l'id
+> dall'URL imposta comunque `forTenant`, nessuna deroga). Il testo legale vive in un solo posto
+> (`web-customer`): l'anteprima operatore è un deep-link alla stessa pagina, non una copia. Nessuna
+> checkbox di consenso in nessuno dei tre punti d'ingresso — solo promemoria/link.
+
