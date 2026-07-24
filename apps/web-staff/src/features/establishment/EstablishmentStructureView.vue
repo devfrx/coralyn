@@ -144,7 +144,7 @@ onUnmounted(() => window.removeEventListener('keydown', onKeydown));
         @select-row="(id) => selection = { kind: 'row', id }" @create-row="(sid) => selection = { kind: 'create-row', sectorId: sid }"
         @select-umbrella="onSelectUmbrella" @create-umbrella="(rid) => selection = { kind: 'create-umbrella', rowId: rid }"
         @select-beach="reset" @toggle-select-mode="toggleSelectMode"
-        @row-generate="(id) => selection = { kind: 'row', id }" @row-danger="(id) => selection = { kind: 'row', id }" />
+        @row-generate="(id) => selection = { kind: 'row', id, focus: 'generate' }" @row-danger="(id) => selection = { kind: 'row', id, focus: 'danger' }" />
 
       <aside v-if="isDesktop" data-testid="inspector" class="min-w-0 overflow-auto border-l border-[var(--color-border)] bg-[var(--color-raised)]" aria-label="Ispettore">
         <InspectorPanels :data="data" :selection="selection" :is-admin="isAdmin"

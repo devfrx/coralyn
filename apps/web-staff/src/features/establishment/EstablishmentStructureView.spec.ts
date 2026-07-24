@@ -597,4 +597,23 @@ describe('EstablishmentStructureView — shell Cantiere', () => {
     expect(w.find('[data-testid="retired-restore-row"]').exists()).toBe(false);
     expect(w.find('[data-testid="retired-restore"]').exists()).toBe(false);
   });
+
+  it('rail fila: ⚡ Genera e 🗑 Svuota/elimina portano a sezioni DIVERSE del pannello (non fanno la stessa cosa)', async () => {
+    useFixture();
+    const w = mountApp(EstablishmentStructureView);
+    const session = useSessionStore();
+    session.user = { id: 'u-1', email: 'admin@coralyn.dev', role: Role.Admin, establishmentId: 'e-1', establishmentName: 'Lido Maestrale' };
+    await settle();
+    const insp = () => w.get('[data-testid="inspector"]');
+    // ⚡ Genera → pannello fila con il generatore evidenziato, zona rischiosa no.
+    await w.findAll('[data-testid="rail-generate"]')[0].trigger('click');
+    await settle();
+    expect(insp().get('[data-testid="row-generate-section"]').attributes('data-focus')).toBe('on');
+    expect(insp().get('[data-testid="row-danger-section"]').attributes('data-focus')).toBeUndefined();
+    // 🗑 Svuota/elimina → stessa fila, ma ora è evidenziata la zona rischiosa, non il generatore.
+    await w.findAll('[data-testid="rail-danger"]')[0].trigger('click');
+    await settle();
+    expect(insp().get('[data-testid="row-danger-section"]').attributes('data-focus')).toBe('on');
+    expect(insp().get('[data-testid="row-generate-section"]').attributes('data-focus')).toBeUndefined();
+  });
 });

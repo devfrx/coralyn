@@ -1,13 +1,26 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue';
+import { computed, ref, watch, onMounted, nextTick } from 'vue';
 import { Button, Field, Input, ConfirmDialog } from '@coralyn/ui-kit';
 import type { StructureRowDTO, UmbrellaTypeDTO } from '@coralyn/contracts';
 import { pushToast } from '@/lib/toasts';
 import { useUpdateRow, useDeleteRow, useBulkDeleteUmbrellas } from '../useEstablishmentStructure';
 import UmbrellaGeneratorForm from '../UmbrellaGeneratorForm.vue';
 
-const props = defineProps<{ row: StructureRowDTO; sectorName: string; types: UmbrellaTypeDTO[]; isAdmin: boolean }>();
+const props = defineProps<{ row: StructureRowDTO; sectorName: string; types: UmbrellaTypeDTO[]; isAdmin: boolean; focus?: 'generate' | 'danger' }>();
 const emit = defineEmits<{ close: [] }>();
+
+// Intent dal rail della fila: ⚡ «Genera» porta al generatore, 🗑 «Svuota o elimina» alla zona
+// rischiosa. Entrambi aprono QUESTO pannello (che contiene tutto); l'intent scorre alla sezione
+// giusta e la fa lampeggiare. Prima i due handler erano cablati identici, quindi i pulsanti
+// facevano la stessa cosa (aprire il pannello in cima). Senza focus (click sul nome fila) non scorre.
+const generatorRef = ref<HTMLElement | null>(null);
+const dangerRef = ref<HTMLElement | null>(null);
+function scrollToFocus() {
+  const el = props.focus === 'generate' ? generatorRef.value : props.focus === 'danger' ? dangerRef.value : null;
+  el?.scrollIntoView({ block: 'nearest' });
+}
+onMounted(scrollToFocus);
+watch(() => [props.row.id, props.focus], () => nextTick(scrollToFocus));
 const update = useUpdateRow();
 const removeRow = useDeleteRow();
 const bulkDelete = useBulkDeleteUmbrellas();
@@ -48,8 +61,12 @@ const confirmCopy = computed(() => confirm.value === 'clear'
         <Button type="submit" size="sm" data-testid="row-save" :loading="update.isPending.value">Salva</Button>
       </form>
       <hr class="border-0 border-t border-[var(--color-border-row)]">
-      <UmbrellaGeneratorForm :row-id="row.id" :types="types" />
-      <div class="rounded-[var(--radius-md)] border border-[var(--color-danger-border)] bg-[color-mix(in_srgb,var(--color-danger-bg)_45%,transparent)] p-3">
+      <div ref="generatorRef" data-testid="row-generate-section" :data-focus="focus === 'generate' ? 'on' : null"
+        class="rounded-[var(--radius-md)] data-[focus=on]:[animation:cell-found_.7s_var(--ease-standard)]">
+        <UmbrellaGeneratorForm :row-id="row.id" :types="types" />
+      </div>
+      <div ref="dangerRef" data-testid="row-danger-section" :data-focus="focus === 'danger' ? 'on' : null"
+        class="rounded-[var(--radius-md)] border border-[var(--color-danger-border)] bg-[color-mix(in_srgb,var(--color-danger-bg)_45%,transparent)] p-3 data-[focus=on]:[animation:cell-found_.7s_var(--ease-standard)]">
         <p class="mb-1.5 text-[11.5px] font-extrabold text-[var(--color-danger-ink)]">Zona rischiosa</p>
         <p class="mb-2 text-[11.5px] leading-relaxed text-[var(--color-text-muted)]">«Svuota» elimina in blocco gli ombrelloni senza prenotazioni; quelli con prenotazioni restano.</p>
         <div class="flex gap-2">

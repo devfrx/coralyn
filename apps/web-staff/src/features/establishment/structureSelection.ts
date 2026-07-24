@@ -8,7 +8,7 @@ export const GENERATE_MAX = 500;
 export type Selection =
   | { kind: 'beach' }
   | { kind: 'sector'; id: string }
-  | { kind: 'row'; id: string }
+  | { kind: 'row'; id: string; focus?: 'generate' | 'danger' }
   | { kind: 'umbrella'; id: string }
   | { kind: 'multi'; ids: string[] }
   | { kind: 'create-sector' }
