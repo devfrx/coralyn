@@ -86,6 +86,21 @@ describe('MapView', () => {
     w.unmount();
   });
 
+  it('se la day-map fallisce mostra lo stato di ERRORE con «Riprova», non una spiaggia vuota', async () => {
+    // Il complemento del test qui sopra, e l'esempio di punta dell'audit (AUD-012): quello
+    // asseriva solo ciò che NON deve comparire, e una vista che non rende nulla lo superava
+    // comunque. Ciò che l'operatore VEDE non era asserito da niente — e ciò che vedeva era una
+    // spiaggia senza ombrelloni occupati, cioè posti liberi da rivendere.
+    server.use(http.get('/api/map', () => HttpResponse.error()));
+    const w = await mountMap();
+    expect(w.find('[data-test="error-state"]').exists()).toBe(true);
+    expect(w.find('[data-test="error-retry"]').exists()).toBe(true);
+    expect(w.text()).toContain('Mappa non disponibile');
+    // e nessuna cella ombrellone: la spiaggia non deve apparire, tanto meno libera.
+    expect(w.find('[aria-label^="Ombrellone "]').exists()).toBe(false);
+    w.unmount();
+  });
+
   it('D-056: un settore kind=special è reso come blocco dedicato (non tab) qualunque sia il nome', async () => {
     const mapKind = {
       date: '2026-06-27',

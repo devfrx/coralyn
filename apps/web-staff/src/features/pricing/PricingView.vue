@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, ref, watchEffect } from 'vue';
-import { Button, Card, DataTable, EmptyState, Modal, ConfirmDialog, Field, Input, Select, Option, Icon, IconButton, ActionBar, formatEuro } from '@coralyn/ui-kit';
+import { Button, Card, DataTable, QueryBoundary, EmptyState, Modal, ConfirmDialog, Field, Input, Select, Option, Icon, IconButton, ActionBar, formatEuro } from '@coralyn/ui-kit';
 import type { DataTableColumn } from '@coralyn/ui-kit';
 import type { BookingType, PackageEquipmentDTO, RateDTO, TimeSlotDTO } from '@coralyn/contracts';
 import { useSeasons, useCreateSeason, useDeleteSeason } from './useSeasons';
@@ -75,7 +75,7 @@ const archivedEqtOpen = ref(false);
 const { data: equipmentTypesActive } = useEquipmentTypes();
 
 // --- Tariffe ---
-const { data: rates, isLoading: ratesLoading } = useRates(getSeasonId);
+const { data: rates, isLoading: ratesLoading, error: ratesError, refetch: refetchRates } = useRates(getSeasonId);
 const createRate = useCreateRate(getSeasonId);
 const updateRate = useUpdateRate(getSeasonId);
 const deleteRate = useDeleteRate(getSeasonId);
@@ -537,6 +537,7 @@ const rateCols: DataTableColumn<RateDTO>[] = [
     <p class="mb-2 text-[12px] text-[var(--color-text-muted)]">
       Quando più tariffe si applicano, vince la più specifica: periodo › fila › settore › pacchetto › fascia › tipo.
     </p>
+    <QueryBoundary :error="ratesError" error-title="Tariffe non disponibili" @retry="refetchRates">
     <DataTable :columns="rateCols" :rows="sortedRates" :row-key="(r) => r.id" :loading="ratesLoading">
       <template #cell-position="{ row }"><span class="font-semibold text-[var(--color-text)]">{{ positionLabel(row) }}</span></template>
       <template #cell-package="{ row }"><span class="text-[var(--color-text-2nd)]">{{ pkgName(row.packageId) }}</span></template>
@@ -555,6 +556,7 @@ const rateCols: DataTableColumn<RateDTO>[] = [
         </ActionBar>
       </template>
     </DataTable>
+    </QueryBoundary>
     <EmptyState v-if="activeSeasonId && (rates?.length ?? 0) === 0" class="mt-3" message="Nessuna tariffa per questa stagione. Aggiungine una con «Nuova tariffa»." />
 
     <!-- Modale stagione -->

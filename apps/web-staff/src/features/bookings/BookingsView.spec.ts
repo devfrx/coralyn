@@ -126,3 +126,26 @@ describe('BookingsView', () => {
     expect(w.text()).toContain('2026-07-24 → 2026-07-26'); // range periodica
   });
 });
+
+describe('BookingsView — guasto del caricamento (AUD-012)', () => {
+  it('un 500 mostra lo stato di ERRORE, non «Nessuna prenotazione»', async () => {
+    // Il difetto originale: `error` non era destrutturato da useDayBookings, quindi un guasto
+    // arrivava a DataTable come 0 righe e l'operatore leggeva un messaggio di vuoto. Le due cose
+    // vanno distinte: «non ce ne sono» è un fatto, «non sono riuscito a chiedertelo» è un guasto.
+    server.use(http.get('/api/bookings', () => new HttpResponse(null, { status: 500 })));
+    const w = mountApp(BookingsView);
+    await flushPromises();
+    await tick();
+    expect(w.find('[data-test="error-state"]').exists()).toBe(true);
+    expect(w.text()).not.toContain('Nessuna prenotazione');
+    expect(w.find('tbody').exists()).toBe(false);
+  });
+
+  it('lo stato di errore offre «Riprova» (il retry è cablato, non decorativo)', async () => {
+    server.use(http.get('/api/bookings', () => new HttpResponse(null, { status: 500 })));
+    const w = mountApp(BookingsView);
+    await flushPromises();
+    await tick();
+    expect(w.find('[data-test="error-retry"]').exists()).toBe(true);
+  });
+});

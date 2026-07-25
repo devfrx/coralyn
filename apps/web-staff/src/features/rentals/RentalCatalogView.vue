@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, ref, watchEffect } from 'vue';
-import { Button, Card, DataTable, EmptyState, Modal, ConfirmDialog, Field, Input, Select, Option, Icon, IconButton, ActionBar, formatEuro } from '@coralyn/ui-kit';
+import { Button, Card, DataTable, QueryBoundary, EmptyState, Modal, ConfirmDialog, Field, Input, Select, Option, Icon, IconButton, ActionBar, formatEuro } from '@coralyn/ui-kit';
 import type { DataTableColumn } from '@coralyn/ui-kit';
 import type { RentalItemDTO, RentalTariffDTO } from '@coralyn/contracts';
 import { useSeasons } from '@/features/pricing/useSeasons';
@@ -89,7 +89,7 @@ function submitItem() {
 // --- Editor tariffe stagionali per l'articolo selezionato ---
 const getItemId = () => selectedItemId.value ?? '';
 const getSeasonId = () => activeSeasonId.value;
-const { data: tariffsData, isLoading: tariffsLoading } = useRentalTariffs(getItemId, getSeasonId);
+const { data: tariffsData, isLoading: tariffsLoading, error: tariffsError, refetch: refetchTariffs } = useRentalTariffs(getItemId, getSeasonId);
 const createTariff = useCreateRentalTariff(getItemId, getSeasonId);
 const updateTariff = useUpdateRentalTariff(getItemId, getSeasonId);
 const archiveTariff = useArchiveRentalTariff(getItemId, getSeasonId);
@@ -265,6 +265,7 @@ function onConfirmDelete() {
         </Button>
       </div>
 
+    <QueryBoundary :error="tariffsError" error-title="Tariffe non disponibili" @retry="refetchTariffs">
       <DataTable :columns="tariffCols" :rows="activeTariffs" :row-key="(r) => r.id" :loading="tariffsLoading">
         <template #cell-label="{ row }"><span class="font-semibold text-[var(--color-text)]">{{ row.label }}</span></template>
         <template #cell-duration="{ row }"><span class="text-[var(--color-text-2nd)]">{{ durationLabel(row.durationMinutes) }}</span></template>
@@ -278,6 +279,7 @@ function onConfirmDelete() {
           </ActionBar>
         </template>
       </DataTable>
+    </QueryBoundary>
       <EmptyState v-if="activeSeasonId && activeTariffs.length === 0" class="mt-3" message="Nessuna tariffa per questa stagione. Aggiungine una con «Nuova tariffa»." />
 
       <!-- Tariffe archiviate (a scomparsa, chiusa di default) -->

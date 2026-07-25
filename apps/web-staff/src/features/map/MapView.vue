@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, watch, nextTick, onUnmounted } from 'vue';
 import { useRouter } from 'vue-router';
-import { UmbrellaCell, SegmentedControl, Badge, Button, Drawer, ActionBar, Modal, Icon, Select, Option, ModalFooter, formatEuro, HoverCard, Popover, Skeleton, EmptyState, useDelayedLoading } from '@coralyn/ui-kit';
+import { UmbrellaCell, SegmentedControl, Badge, Button, Drawer, ActionBar, Modal, Icon, Select, Option, ModalFooter, formatEuro, HoverCard, Popover, Skeleton, EmptyState, ErrorState, useDelayedLoading } from '@coralyn/ui-kit';
 import type { UmbrellaDTO, SlotState, BookingDTO, BookingType } from '@coralyn/contracts';
 import { Role } from '@coralyn/contracts';
 import { PAY_LABEL, PAY_TONE } from '@/lib/statusMaps';
@@ -16,7 +16,10 @@ import { useCustomers } from '@/features/customers/useCustomers';
 import { useSessionStore } from '@/stores/session';
 import { storeToRefs } from 'pinia';
 
-const { data: map, isLoading } = useDayMap();
+// `error`/`refetch` non erano destrutturati, ed è l'esempio di punta dell'audit: se /map fallisce,
+// `sectors` resta [] e la vista rende una spiaggia VUOTA — cioè posti liberi che l'operatore può
+// rivendere. L'unico `isError` di questo file era (ed è) quello del PREVENTIVO, non della mappa.
+const { data: map, isLoading, error: mapError, refetch: refetchMap } = useDayMap();
 const skeletonVisible = useDelayedLoading(() => isLoading.value);
 
 const router = useRouter();
@@ -300,7 +303,19 @@ const freeSlotOptions = computed(() =>
 
 <template>
   <section class="flex h-full min-h-[560px] flex-col">
-    <div v-if="skeletonVisible" aria-busy="true" class="min-w-0 flex-1 px-[26px] py-6">
+    <!-- Il guasto viene PRIMA dell'attesa e del vuoto: una mappa che non si è caricata non deve mai
+         somigliare a una spiaggia libera. Qui si usa ErrorState e non QueryBoundary perché questa
+         vista possiede già un proprio gate anti-flicker e un vuoto di dominio (l'onboarding della
+         struttura): le mancava soltanto questo stato, non tutti e tre. -->
+    <div v-if="mapError" class="min-w-0 flex-1 px-[26px] py-6">
+      <ErrorState
+        title="Mappa non disponibile"
+        :message="mapError instanceof Error ? mapError.message : undefined"
+        @retry="refetchMap"
+      />
+    </div>
+
+    <div v-else-if="skeletonVisible" aria-busy="true" class="min-w-0 flex-1 px-[26px] py-6">
       <Skeleton variant="block" height="420px" />
     </div>
 

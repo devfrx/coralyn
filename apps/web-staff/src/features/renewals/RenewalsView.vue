@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, watchEffect } from 'vue';
-import { Button, Badge, DataTable, Avatar, EmptyState, Select, Option, ConfirmDialog, initials } from '@coralyn/ui-kit';
+import { Button, Badge, DataTable, QueryBoundary, Avatar, EmptyState, Select, Option, ConfirmDialog, initials } from '@coralyn/ui-kit';
 // RenewalWindowItemDTO e SubscriptionListItemDTO non si importano più: le due tabelle di questa
 // vista li INFERISCONO da `rows`. `cols` è condiviso fra le due proprio perché nessuna colonna
 // dichiara `sortValue` — l'unico punto in cui DataTableColumn<T> vincola la riga. Se un domani
@@ -30,8 +30,8 @@ watchEffect(() => {
   }
 });
 
-const { data: subs, isLoading: subsLoading } = useSubscriptions(originSeasonId);
-const { data: campaign, isLoading: campaignLoading } = useRenewalCampaign(destinationSeasonId);
+const { data: subs, isLoading: subsLoading, error: subsError, refetch: refetchSubs } = useSubscriptions(originSeasonId);
+const { data: campaign, isLoading: campaignLoading, error: campaignError, refetch: refetchCampaign } = useRenewalCampaign(destinationSeasonId);
 const renew = useRenewBooking();
 const openCampaign = useOpenCampaign();
 const closeCampaign = useCloseCampaign();
@@ -124,7 +124,17 @@ function stateBadge(s: RenewalWindowState): { tone: 'success' | 'warning' | 'neu
       <span class="inline-flex items-center gap-1.5"><Badge tone="warning">Scaduta</Badge> finestra chiusa</span>
     </div>
 
-    <DataTable v-if="campaign || campaignLoading" :columns="cols" :rows="windowRows" :row-key="(r) => r.sourceBookingId" :loading="campaignLoading" empty-message="Nessuna finestra di prelazione per questa campagna.">
+    <!-- Il v-if sta sul boundary, non sulla tabella: il suo `v-else` è un fratello, e separarli
+         rompeva la compilazione del template. `campaignError` è nella condizione perché su guasto
+         `campaign` è undefined e `campaignLoading` false — senza, un errore cadrebbe nel ramo
+         v-else e tornerebbe a essere reso come «scegli una stagione». -->
+    <QueryBoundary
+      v-if="campaign || campaignLoading || campaignError"
+      :error="campaignError"
+      error-title="Campagna non disponibile"
+      @retry="refetchCampaign"
+    >
+    <DataTable :columns="cols" :rows="windowRows" :row-key="(r) => r.sourceBookingId" :loading="campaignLoading" empty-message="Nessuna finestra di prelazione per questa campagna.">
       <template #cell-cliente="{ row }">
         <div class="flex items-center gap-2.5">
           <Avatar :initials="initials(customerName(row.customerId))" size="sm" />
@@ -142,10 +152,12 @@ function stateBadge(s: RenewalWindowState): { tone: 'success' | 'warning' | 'neu
           @click="doRenew(row.sourceBookingId)">Rinnova</Button>
       </template>
     </DataTable>
+    </QueryBoundary>
 
     <template v-else>
       <EmptyState v-if="!destinationSeasonId" message="Scegli una stagione di destinazione per gestire i rinnovi." />
       <template v-else>
+        <QueryBoundary :error="subsError" error-title="Abbonati non disponibili" @retry="refetchSubs">
         <DataTable :columns="cols" :rows="rows" :row-key="(r) => r.id" :loading="subsLoading" empty-message="Nessun abbonato nella stagione di origine.">
           <template #cell-cliente="{ row }">
             <div class="flex items-center gap-2.5">
@@ -164,6 +176,7 @@ function stateBadge(s: RenewalWindowState): { tone: 'success' | 'warning' | 'neu
               @click="doRenew(row.id)">Rinnova</Button>
           </template>
         </DataTable>
+        </QueryBoundary>
       </template>
     </template>
 

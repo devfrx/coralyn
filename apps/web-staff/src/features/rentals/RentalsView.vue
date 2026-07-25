@@ -18,7 +18,7 @@ import SettleRentalPaymentModal from './SettleRentalPaymentModal.vue';
 
 const session = useSessionStore();
 const { activeDate } = storeToRefs(session);
-const { data: day, isLoading: dayLoading } = useRentals(activeDate);
+const { data: day, isLoading: dayLoading, error: dayError, refetch: refetchDay } = useRentals(activeDate);
 const rentals = computed<RentalDTO[]>(() => day.value?.rentals ?? []);
 const availability = computed(() => day.value?.availability ?? []);
 
@@ -130,6 +130,7 @@ function confirmCheckout(): void {
       </Badge>
     </div>
 
+    <QueryBoundary :error="dayError" error-title="Noleggi non disponibili" @retry="refetchDay">
     <DataTable
       :columns="cols"
       :rows="rentals"
@@ -162,6 +163,7 @@ function confirmCheckout(): void {
         </ActionBar>
       </template>
     </DataTable>
+    </QueryBoundary>
 
     <!-- Modale Nuovo noleggio -->
     <Modal v-model:open="modalOpen" title="Nuovo noleggio" eyebrow="Banco noleggi">

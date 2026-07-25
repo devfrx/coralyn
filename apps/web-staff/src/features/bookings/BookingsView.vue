@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue';
 import { useRouter } from 'vue-router';
-import { SegmentedControl, Button, Badge, Avatar, DataTable, Icon, PageToolbar, formatEuro, initials, dateRange } from '@coralyn/ui-kit';
+import { SegmentedControl, Button, Badge, Avatar, DataTable, QueryBoundary, Icon, PageToolbar, formatEuro, initials, dateRange } from '@coralyn/ui-kit';
 import type { DataTableColumn } from '@coralyn/ui-kit';
 import type { BookingDTO, PaymentStatus } from '@coralyn/contracts';
 import { storeToRefs } from 'pinia';
@@ -14,7 +14,9 @@ import SettlePaymentModal from './SettlePaymentModal.vue';
 const router = useRouter();
 const session = useSessionStore();
 const { activeDate } = storeToRefs(session);
-const { data: bookings, isLoading: bookingsLoading } = useDayBookings(activeDate);
+// `error`/`refetch` non erano destrutturati: senza, un guasto di rete arrivava a DataTable come
+// «0 righe» e l'operatore leggeva «Nessuna prenotazione per questa data» (AUD-012).
+const { data: bookings, isLoading: bookingsLoading, error: bookingsError, refetch: refetchBookings } = useDayBookings(activeDate);
 
 const filtro = ref<'all' | PaymentStatus>('all');
 const filtri = [
@@ -57,6 +59,10 @@ function openSettle(b: BookingDTO): void {
       <template #right><Button @click="router.push('/map')"><Icon name="plus" :size="16" />Nuova prenotazione</Button></template>
     </PageToolbar>
 
+    <!-- Solo l'ERRORE passa da QueryBoundary: attesa e vuoto restano di DataTable, che li possiede
+         già bene (scheletro in-card, EmptyState dentro la cornice). L'unico stato che mancava era
+         il guasto, ed è l'unico che si aggiunge. -->
+    <QueryBoundary :error="bookingsError" error-title="Prenotazioni non disponibili" @retry="refetchBookings">
     <DataTable :columns="cols" :rows="rows" :row-key="(r) => r.id" :loading="bookingsLoading" empty-message="Nessuna prenotazione per questa data.">
       <template #cell-cliente="{ row }">
         <div class="flex items-center gap-2.5">
@@ -77,6 +83,7 @@ function openSettle(b: BookingDTO): void {
         >{{ formatEuro(row.amountCollected) }} / {{ formatEuro(row.totalPrice) }}</button>
       </template>
     </DataTable>
+    </QueryBoundary>
 
     <SettlePaymentModal v-model="modalOpen" :booking="selected" />
   </section>

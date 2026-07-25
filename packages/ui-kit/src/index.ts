@@ -24,6 +24,8 @@ export { default as ConfirmDialog } from './components/ConfirmDialog.vue';
 export { default as DataTable } from './components/DataTable.vue';
 export type { DataTableColumn } from './tableData';
 export { default as EmptyState } from './components/EmptyState.vue';
+export { default as ErrorState } from './components/ErrorState.vue';
+export { default as QueryBoundary } from './components/QueryBoundary.vue';
 export { default as Select } from './components/Select.vue';
 export { default as Option } from './components/Option.vue';
 export { default as Calendar } from './components/Calendar.vue';

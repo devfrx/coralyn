@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue';
 import { useRouter } from 'vue-router';
-import { Button, Avatar, DataTable, Modal, Field, Input, Textarea, Icon, PageToolbar, SearchInput } from '@coralyn/ui-kit';
+import { Button, Avatar, DataTable, QueryBoundary, Modal, Field, Input, Textarea, Icon, PageToolbar, SearchInput } from '@coralyn/ui-kit';
 import type { DataTableColumn } from '@coralyn/ui-kit';
 import type { CustomerDTO } from '@coralyn/contracts';
 import { useCustomers, useCreateCustomer } from './useCustomers';
@@ -13,7 +13,7 @@ import { useSessionStore } from '@/stores/session';
 
 const router = useRouter();
 const session = useSessionStore();
-const { data: customers, isLoading } = useCustomers();
+const { data: customers, isLoading, error: customersError, refetch: refetchCustomers } = useCustomers();
 const create = useCreateCustomer();
 const privacyUrl = computed(() => privacyPreviewUrl(session.establishmentId));
 
@@ -64,6 +64,7 @@ function ini(c: { firstName: string; lastName: string }) { return ((c.firstName[
       </template>
     </PageToolbar>
 
+    <QueryBoundary :error="customersError" error-title="Anagrafica non disponibile" @retry="refetchCustomers">
     <DataTable
       :columns="cols"
       :rows="filtered"
@@ -87,6 +88,7 @@ function ini(c: { firstName: string; lastName: string }) { return ((c.firstName[
       <template #cell-email="{ row }"><span class="text-[var(--color-text-2nd)]">{{ row.email ?? '–' }}</span></template>
       <template #cell-notes="{ row }"><span class="text-[var(--color-text-muted)]" :title="row.notes ?? ''">{{ row.notes ?? '' }}</span></template>
     </DataTable>
+    </QueryBoundary>
 
     <Modal v-model:open="open" title="Nuovo cliente">
       <form id="form-new-customer" data-test="form-new-customer" class="flex flex-col gap-4" @submit.prevent="submit">

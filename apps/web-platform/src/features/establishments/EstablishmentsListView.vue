@@ -1,12 +1,12 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
-import { Button, ActionBar, Badge, ConfirmDialog, DataTable, PageToolbar, Icon, formatEuro } from '@coralyn/ui-kit';
+import { Button, ActionBar, Badge, ConfirmDialog, DataTable, QueryBoundary, PageToolbar, Icon, formatEuro } from '@coralyn/ui-kit';
 import type { DataTableColumn } from '@coralyn/ui-kit';
 import type { PlatformEstablishmentDTO } from '@coralyn/contracts';
 import { useEstablishmentsList, useSuspendEstablishment, useReactivateEstablishment } from './usePlatformEstablishments';
 import CreateEstablishmentModal from './CreateEstablishmentModal.vue';
 
-const { data, isLoading } = useEstablishmentsList();
+const { data, isLoading, error: listError, refetch: refetchList } = useEstablishmentsList();
 const establishments = computed(() => data.value ?? []);
 
 const DATE_FMT = new Intl.DateTimeFormat('it-IT', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' });
@@ -80,6 +80,7 @@ const cols: DataTableColumn<PlatformEstablishmentDTO>[] = [
       </template>
     </PageToolbar>
 
+    <QueryBoundary :error="listError" error-title="Elenco lidi non disponibile" @retry="refetchList">
     <DataTable
       :columns="cols"
       :rows="establishments"
@@ -124,6 +125,7 @@ const cols: DataTableColumn<PlatformEstablishmentDTO>[] = [
         </ActionBar>
       </template>
     </DataTable>
+    </QueryBoundary>
 
     <CreateEstablishmentModal v-model:open="createOpen" />
 
