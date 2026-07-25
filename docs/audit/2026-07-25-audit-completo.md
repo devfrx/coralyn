@@ -300,9 +300,30 @@ sarebbe passato per il constraint sbagliato (entrambi 23514), e quello del trigg
 ora collide davvero con `coverage_no_overlap` — prima passava solo perché la chiave di partizionamento
 restava stantia, cioè l'occupazione fantasma in persona.
 
-### Fase F — API dei moduli condivisi *(chiude R-D/R-E; ⚠️ decisioni strutturali)*
-19. Allargare `useActiveSeason`, `statusMaps`, `queryKeys`, `lib/dates` · `crypto.module.ts` `@Global`
-20. `DataTable` generico · etichettatura in `Field`/`Select` · `QueryBoundary`/`ErrorState` · `sideEffects` in `ui-kit`
+### ✅ Fase F — API dei moduli condivisi — **ESEGUITA** *(chiude R-D/R-E; branch `chore/audit-2026-07-25-fase-f`)*
+*Le due decisioni strutturali — `DataTable` generico e `QueryBoundary` su tutte le viste — sono state
+esposte all'utente prima di implementare, che ha scelto per entrambe l'opzione completa.*
+
+19. **`lib/seasons.ts`** — la regola «quale stagione vale per questa data» era in **4 copie con 2
+    semantiche**: il banco noleggi usava la stagione coprente, gli editor `seasons[0]`. Con più di
+    una stagione l'operatore applicava le tariffe di una mentre l'admin ne modificava un'altra ·
+    **`CryptoModule` `@Global`** — `PasswordHasher` era ri-provveduto da **5** moduli; il commento
+    «per non creare un ciclo Identity↔X» è vero **solo** per `CredentialModule`, negli altri tre era
+    una copia
+20. **`DataTable` generico** — **99** `as unknown as` azzerati (l'audit ne stimava 83: contava il
+    solo web-staff). Il vincolo è `T extends object`, non `Record<string, unknown>`: i DTO sono
+    `interface` e non hanno l'index signature che `Record` richiede · **`QueryBoundary`/`ErrorState`**
+    — chiude AUD-012 · **`Field`/`Select`** — `aria-labelledby` per le 32 combobox (AUD-013) ·
+    **`sideEffects` in `ui-kit`** — web-customer da **1008 KB a 528 KB** di asset, ECharts eliminato
+21. **AUD-014 / D-037** — `web-platform` ha ora la gestione globale del 401 che non ha mai avuto
+
+*Scoperto eseguendo:* **Vue Test Utils non propaga i parametri di tipo di `<script setup generic>`**
+(dentro `mount()` `T` collassa sempre al vincolo) — limite dello strumento, non del componente.
+**`QueryBoundary` inoltrava sempre `@retry`**, quindi ogni vista avrebbe mostrato un «Riprova» inerte;
+trovato dal test, non dalla lettura. In `RenewalsView` il `v-if` della tabella aveva un `<template
+v-else>` **fratello**: avvolgerla li separava e rompeva la compilazione. E cercare `zrender` per
+verificare il tree-shaking **non è un test valido**: in web-staff quella stringa non sopravvive alla
+minificazione e la sua assenza sembra una rimozione.
 
 ### Fase G — Test *(chiude R-I/R-J)*
 21. Mirror unit delle difese di sicurezza (4-10 righe ciascuno: `JwtAuthGuard`, `token.service` kind, `CustomerSessionService`)
