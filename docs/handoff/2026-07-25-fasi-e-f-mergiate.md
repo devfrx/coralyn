@@ -1,6 +1,12 @@
 # Handoff 2026-07-25 (sessione 5): Fasi E ed F eseguite e MERGIATE. Restano G e H
 
-> **Punto d'ingresso unico.** Sostituisce
+> ⛔ **SUPERATO da [2026-07-25 D-065 eseguita, restano G e H](2026-07-25-d065-eseguita-restano-g-h.md)**
+> (sessione 6). Questo documento resta valido tranne dove quello lo corregge: **la §2 (baseline) e la
+> §5.2 (D-065, ora chiusa) sono obsolete**. Fino a oggi la catena di handoff aveva solo puntatori
+> *all'indietro*, quindi chi atterrava su un documento vecchio non poteva sapere di esserci: questo
+> rimando in avanti è il rimedio, e va aggiunto anche alla prossima consegna.
+
+> **Punto d'ingresso unico** (alla data in cui è stato scritto). Sostituisce
 > [2026-07-25 Fase E eseguita](2026-07-25-fase-e-eseguita.md) e
 > [2026-07-25 Fase D mergiata](2026-07-25-fase-d-mergiata.md), che restano validi solo dove questo
 > documento non li corregge (§1c).

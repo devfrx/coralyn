@@ -13,6 +13,16 @@ Perimetro: **tutto il repo**, partizionato in 9 aree × 11 livelli. Modalità: r
 > Ogni difetto è stato riprodotto con un test rosso PRIMA del fix, e ogni fix è stato provato per
 > mutazione.
 >
+> **Fasi E ed F eseguite, verificate e MERGIATE su `main`** il 2026-07-25 (`main` = `49d3970`).
+> **[D-065](../architecture/deferred.md) eseguita** lo stesso giorno
+> ([ADR-0058](../architecture/decisions/0058-package-data-layer-condiviso.md), branch
+> `chore/audit-2026-07-25-d065-data-layer`, **non ancora mergiata**).
+>
+> ⚠️ **Corretto il 2026-07-25:** la riga «Tutto il resto → fasi E → H» di questa tabella diceva che
+> **E ed F erano aperte** mentre il **§4 dello stesso documento** le marcava già `✅ ESEGUITA`. Il
+> documento contraddiceva sé stesso, ed è la radice **R-G** che si ripresenta: il §4 era stato
+> aggiornato eseguendo le fasi, questo blocco no. Restano aperte **solo G e H**.
+>
 > | Finding | Stato |
 > |---|---|
 > | **AUD-001** e2e che cancellano il DB dev | ✅ **CORRETTO** — guardia sul nome della risorsa in `jest-setup-env.ts` + `.env.test.example` versionato |
@@ -37,7 +47,11 @@ Perimetro: **tutto il repo**, partizionato in 9 aree × 11 livelli. Modalità: r
 > | **P1-004** guardia «cliente anonimizzato» in 1 write-path su 4 | ✅ **CORRETTO** (Fase D) — `customers/active-customer.ts` nei 4 percorsi; `PATCH /customers/:id` su anonimizzato è ora **409** (era PII fuori inventario). La guardia che *esisteva già* (cessione) non aveva test: aggiunto |
 > | PII in `GET /establishment/overview` | 🔓 **APERTO** — [D-064](../architecture/deferred.md). L'inversione **non** lo chiude: l'app-shell chiama quell'endpoint a ogni caricamento, quindi separare `team[]` è un cambio di contratto FE/BE |
 > | Permessi configurabili dall'admin | 🔓 **PIANIFICATO** — [D-063](../architecture/deferred.md) + [brief di delega](../superpowers/specs/2026-07-25-permessi-configurabili-design.md) |
-> | **Tutto il resto** | 🔓 **APERTO** — fasi E → H del §4 |
+> | **AUD-012** un guasto indistinguibile da «nessun dato» | ✅ **CORRETTO** (Fase F) — `QueryBoundary`/`ErrorState` in `ui-kit`; 8 viste su 12 non consultavano mai `isError` |
+> | **AUD-014 / D-037** gestione globale del 401 in `web-platform` | ✅ **CORRETTO** (Fase F), e da **D-065** la regola è in **una sola copia** (`@coralyn/data-layer`) invece di due |
+> | Le tre invarianti di stato dell'abbonamento | ✅ **PRESIDIATE DAL DB** (Fase E) — unique parziali + trigger + CHECK, 12 mutazioni su 12 rendono rossa la suite |
+> | **D-065** data-layer FE duplicato | ✅ **ESEGUITA** (2026-07-25) — [ADR-0058](../architecture/decisions/0058-package-data-layer-condiviso.md). ⚠️ Su branch, **non mergiata**: serve l'ok dell'utente |
+> | **Tutto il resto** | 🔓 **APERTO** — fasi **G e H** del §4 |
 >
 > ### ⛔ Correzione ad AUD-006 / P2-006 — la rotazione del `JWT_SECRET` non serviva
 >
@@ -324,6 +338,25 @@ trovato dal test, non dalla lettura. In `RenewalsView` il `v-if` della tabella a
 v-else>` **fratello**: avvolgerla li separava e rompeva la compilazione. E cercare `zrender` per
 verificare il tree-shaking **non è un test valido**: in web-staff quella stringa non sopravvive alla
 minificazione e la sua assenza sembra una rimozione.
+
+### ✅ D-065 — Package FE condiviso — **ESEGUITA** *(coda della Fase F; branch `chore/audit-2026-07-25-d065-data-layer`, NON mergiata)*
+*Decisione strutturale esposta all'utente prima di implementare, che ha scelto la fattorizzazione
+per strati su tutte e tre le app.* Vedi [ADR-0058](../architecture/decisions/0058-package-data-layer-condiviso.md).
+
+22. **`@coralyn/data-layer`** — la duplicazione non era di 5 file su 2 app ma di 8 artefatti su 2-3:
+    `toasts.ts`, `useQueryResource.ts` e `ToastHost.vue` erano identici in **tre** copie. Criterio di
+    appartenenza dichiarato: «ciò che non conosce né il router, né lo store, né la chiave di sessione
+    dell'app». Il sistema toast è andato in `ui-kit`, dove `Toast.vue` viveva già
+
+*Scoperto eseguendo:* **`ApiError` non era il nodo ma la chiave** — D-065 lo dava per «definito per
+app» e quindi ostacolo; è testualmente identico in tutte e tre, e portarlo nel package è ciò che fa
+attraversare `instanceof` al confine. **La duplicazione era scoperta, e la mutazione lo ha misurato**:
+togliere il `Bearer` da `apiFetch` di `web-platform` lascia **29/29 verdi**, la stessa mutazione su
+`web-staff` fa **2 rossi** — i test esistevano, puntati su una copia sola. **Il barrel di `ui-kit`
+trascina `~icons/lucide/*`**, quindi un package senza `.vue` avrebbe dovuto installare tre strumenti
+di build per compilare i test di un wrapper di `fetch` → subpath `@coralyn/ui-kit/toasts`. E
+**`sideEffects` sul package nuovo è vero ma inerte**: vale 480 KB in `ui-kit` solo perché lì
+`echarts.ts` ha un effetto al top level che Rollup non può dimostrare puro.
 
 ### Fase G — Test *(chiude R-I/R-J)*
 21. Mirror unit delle difese di sicurezza (4-10 righe ciascuno: `JwtAuthGuard`, `token.service` kind, `CustomerSessionService`)
