@@ -287,9 +287,18 @@ doppio type-check, oggi fatto una volta da `tsc` e una volta per worker da ts-je
 `NEW_CUSTOMER_ANON` della cessione — l'unica guardia «cliente anonimizzato» che *già esisteva* —
 non aveva un solo test: cancellarlo lasciava la suite verde.
 
-### Fase E — Presidi strutturali *(chiude R-C; migration)*
-17. Indici unici parziali (sospensione aperta, release attiva, rinnovo confermato) · FK su `BookingCoverage.umbrellaId` + trigger che la rende DB-autoritativa
-18. 3 indici compositi per le query reali (`customerId`, `collectionDate`, `previousBookingId`)
+### ✅ Fase E — Presidi strutturali — **ESEGUITA** *(chiude R-C; branch `chore/audit-2026-07-25-fase-e`)*
+17. **P2-007** — 3 indici unici **parziali** (sospensione aperta, assenza attiva per giorno, rinnovo confermato) · **P2-005** — FK `BookingCoverage.umbrellaId` → `Umbrella` (RESTRICT) + `coverage_fill_slot_minutes()` estesa a ereditare anche `umbrellaId`, con il trigger ricreato su `UPDATE OF "bookingId", "umbrellaId"`
+18. **P9-004** — **2** indici compositi, non 3: `(establishmentId, customerId)` e `(establishmentId, collectionDate)`. Il terzo, su `previousBookingId`, è **ridondante** con l'indice unico parziale dei rinnovi — stessa colonna in testa, predicato implicato da entrambe le query. Verificato con `EXPLAIN` su 25.000 prenotazioni sintetiche
+19. *(fuori dalla lista originale, §5.3 dell'handoff di Fase D)* — CHECK `booking_range_valid` e `suspension_range_valid`, gemelli del `coverage_range_valid` di Fase D
+
+*Scoperto eseguendo:* **ADR-0046 dichiarava `umbrellaId` «mantenuto DB-autoritativo dai trigger» dall'origine,
+e non lo era**: il trigger popolava solo i minuti. Il documento correva avanti al codice da 17 giorni, ed è
+esattamente il finding P2-005 scritto in un ADR senza che nessuno lo leggesse come un difetto. Inoltre **due
+test esistenti erano costruiti su premesse che i nuovi vincoli invalidano**: quello di `coverage_range_valid`
+sarebbe passato per il constraint sbagliato (entrambi 23514), e quello del trigger su `UPDATE OF bookingId`
+ora collide davvero con `coverage_no_overlap` — prima passava solo perché la chiave di partizionamento
+restava stantia, cioè l'occupazione fantasma in persona.
 
 ### Fase F — API dei moduli condivisi *(chiude R-D/R-E; ⚠️ decisioni strutturali)*
 19. Allargare `useActiveSeason`, `statusMaps`, `queryKeys`, `lib/dates` · `crypto.module.ts` `@Global`
