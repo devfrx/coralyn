@@ -59,6 +59,10 @@ services:
       MAIL_SECURE: "false"
       MAIL_FROM: "Coralyn <no-reply@coralyn.dev>"
       APP_WEB_STAFF_URL: "http://localhost:8080"
+      # Origin dell'app bagnanti in questo profilo (servizio `web-customer`, porta 8082).
+      # Mancava: l'API partiva sana e generava activationUrl RELATIVI, cioè QR inutilizzabili
+      # (P7-011). Ora lo schema di validazione la esige e questo stack non partirebbe senza.
+      CUSTOMER_APP_URL: "http://localhost:8082"
       CREDENTIAL_TOKEN_TTL_HOURS: "72"
       # Bootstrap superuser di piattaforma (seed env-gated, idempotente upsert).
       PLATFORM_SUPERUSER_EMAIL: "super@coralyn.dev"
@@ -76,6 +80,11 @@ services:
     build:
       context: .
       dockerfile: apps/web-staff/Dockerfile
+      args:
+        # Stesso origin che l'API mette nei link di attivazione: una sola fonte di verità, come
+        # in produzione. Senza questo arg il link di anteprima non compariva nella console staff
+        # (l'altra metà di P7-011). È di BUILD, non di runtime: cambiarlo richiede `--build`.
+        VITE_WEB_CUSTOMER_URL: "http://localhost:8082"
     container_name: coralyn-web
     depends_on:
       api:

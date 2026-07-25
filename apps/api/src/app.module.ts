@@ -17,10 +17,14 @@ import { CustomerAuthModule } from './customer-auth/customer-auth.module';
 import { RentalsModule } from './rentals/rentals.module';
 import { InformativaModule } from './informativa/informativa.module';
 import { PrismaExceptionFilter } from './common/prisma-exception.filter';
+import { validateEnv } from './common/env.validation';
 
 @Module({
   imports: [
-    ConfigModule.forRoot({ isGlobal: true }),
+    // `validate`: la configurazione è verificata all'AVVIO. Prima le variabili obbligatorie
+    // fallivano in tre momenti diversi — avvio, primo invito, mai — e l'ultima categoria
+    // degradava in silenzio bruciando un token monouso. Vedi common/env.validation.ts.
+    ConfigModule.forRoot({ isGlobal: true, validate: validateEnv }),
     // Rate-limit env-driven. NESSUN APP_GUARD globale: il ThrottlerGuard è applicato solo al
     // CustomerAuthController (controller-scoped) così tocca esclusivamente /customer/* (D-027).
     ThrottlerModule.forRootAsync({
