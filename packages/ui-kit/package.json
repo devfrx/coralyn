@@ -3,6 +3,11 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
+  "//sideEffects": "P9-007. Senza questo campo il default e' moduleSideEffects:true: Rollup deve conservare OGNI modulo raggiungibile dal barrel, anche se il suo export non e' usato. ChartBar.vue fa `import '../echarts'` (bare), ed echarts.ts chiama use([...]) al top level — un side effect che il bundler non puo' dimostrare puro. Risultato: ~130 KB gzip di ECharts nel bundle di web-customer, che e' una PWA mobile con 3 viste e zero grafici. Elencare qui i SOLI file che hanno davvero side effect rende il resto eliminabile: se nessuno importa ChartBar, sparisce e si porta via echarts. Aggiungere un file a questo elenco solo se ha un effetto al top level; toglierne uno che ce l'ha lo fa sparire a runtime, e il sintomo e' una schermata bianca, non un errore di build.",
+  "sideEffects": [
+    "**/*.css",
+    "**/echarts.ts"
+  ],
   "exports": {
     ".": "./src/index.ts",
     "./styles/theme.css": "./src/styles/theme.css"
