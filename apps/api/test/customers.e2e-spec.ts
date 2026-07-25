@@ -279,6 +279,29 @@ describe('Customers erasure (e2e) — GDPR D-024', () => {
     expect(stillThere).not.toBeNull();
   });
 
+  it('cliente ANONIMIZZATO: PATCH → 409 e la PII resta cancellata; nuova prenotazione → 422 (P1-004)', async () => {
+    const c = await prisma.forTenant(s1, (tx) =>
+      tx.customer.create({ data: { establishmentId: s1, firstName: 'Da', lastName: 'Anonimizzare', phone: '333' } }),
+    );
+    await request(app.getHttpServer()).post('/api/bookings').set(...bearer(adminT))
+      .send({ customerId: c.id, umbrellaId: ids.u1, timeSlotId: ids.slotAfternoon, type: 'daily', startDate: '2026-05-06' })
+      .expect(201);
+    await request(app.getHttpServer()).delete(`/api/customers/${c.id}`).set(...bearer(adminT)).expect(200);
+
+    // La PATCH ripopolava i campi PII SENZA azzerare anonymizedAt: dati personali su un record
+    // che `list()` continua a nascondere, cioe' fuori inventario.
+    await request(app.getHttpServer()).patch(`/api/customers/${c.id}`).set(...bearer(adminT))
+      .send({ firstName: 'Riesumato', phone: '3331234567' }).expect(409);
+    const after = await prisma.forTenant(s1, (tx) => tx.customer.findFirst({ where: { id: c.id } }));
+    expect(after).toEqual(expect.objectContaining({ firstName: 'Cliente', lastName: 'rimosso', phone: null }));
+    expect(after?.anonymizedAt).toBeInstanceOf(Date);
+
+    // e non e' piu' un bersaglio valido per una scrittura di dominio
+    await request(app.getHttpServer()).post('/api/bookings').set(...bearer(adminT))
+      .send({ customerId: c.id, umbrellaId: ids.u1, timeSlotId: ids.slotMorning, type: 'daily', startDate: '2026-09-25' })
+      .expect(422);
+  });
+
   it('cliente con prenotazione confirmed endDate >= oggi → 409 (messaggio verbatim)', async () => {
     const c = await prisma.forTenant(s1, (tx) =>
       tx.customer.create({ data: { establishmentId: s1, firstName: 'Attivo', lastName: 'Futuro' } }),

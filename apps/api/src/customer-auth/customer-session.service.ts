@@ -44,12 +44,23 @@ export class CustomerSessionService {
 
     const pinOk = await this.hasher.verify(token.pinHash, input.pin);
     if (!pinOk) {
-      const attempts = token.pinAttempts + 1;
-      const lock = attempts >= this.maxPinAttempts();
-      await this.prisma.customerEnrollmentToken.update({
+      // `increment` e non `pinAttempts + 1` letto sopra: con un read-modify-write N tentativi
+      // concorrenti leggono lo stesso valore e ne consumano UNO SOLO. Con un PIN a 6 cifre il
+      // lock a soglia e' l'unica difesa specifica contro il brute-force, e chi attacca non fa
+      // richieste in fila. Stessa postura race-safe gia' usata dal claim one-time e dalla
+      // rotazione del refresh — mancava solo al percorso di FALLIMENTO (P2-008).
+      const updated = await this.prisma.customerEnrollmentToken.update({
         where: { id: token.id },
-        data: { pinAttempts: attempts, revokedAt: lock ? new Date() : null },
+        data: { pinAttempts: { increment: 1 } },
       });
+      if (updated.pinAttempts >= this.maxPinAttempts()) {
+        // Guardata da `revokedAt: null` e mai scritta a `null`: il ramo non-lock precedente
+        // AZZERAVA revokedAt, quindi un tentativo in volo poteva annullare il lock appena messo.
+        await this.prisma.customerEnrollmentToken.updateMany({
+          where: { id: token.id, revokedAt: null },
+          data: { revokedAt: new Date() },
+        });
+      }
       throw new UnauthorizedException(INVALID);
     }
 

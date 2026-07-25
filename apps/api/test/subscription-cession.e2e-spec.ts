@@ -194,6 +194,19 @@ describe('Subscription cession (e2e)', () => {
     expect(res.body.message).toBe('Il subentrante coincide col titolare attuale');
   });
 
+  it('422: subentrante ANONIMIZZATO (guardia senza copertura fino a P1-004)', async () => {
+    const { id } = await makeSub();
+    const anon = await prisma.forTenant(s1, (tx) =>
+      tx.customer.create({ data: { establishmentId: s1, firstName: 'Cliente', lastName: 'rimosso', anonymizedAt: new Date() } }),
+    );
+    const res = await request(app.getHttpServer())
+      .post(`/api/bookings/${id}/transfer`)
+      .set(...bearer(adminToken))
+      .send({ newCustomerId: anon.id, effectiveDate: '2026-07-15', refundToPrevious: 0, collectedFromNew: 0 })
+      .expect(422);
+    expect(res.body.message).toBe('Cliente subentrante anonimizzato');
+  });
+
   it('422: OVER_TOTAL (netto incassato supera il totale)', async () => {
     const { id } = await makeSub();
     const res = await request(app.getHttpServer())

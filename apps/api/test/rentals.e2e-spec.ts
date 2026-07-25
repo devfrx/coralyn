@@ -35,6 +35,7 @@ describe('Rentals (e2e)', () => {
     await prisma.forTenant(s1, async (tx) => {
       await tx.rental.deleteMany({}); await tx.rentalTariff.deleteMany({});
       await tx.season.deleteMany({}); await tx.rentalItem.deleteMany({});
+      await tx.customer.deleteMany({});
     });
     await prisma.user.deleteMany({ where: { email: { in: ['a.rx1@e2e.test'] } } });
     await prisma.establishment.deleteMany({ where: { id: { in: [s1] } } });
@@ -52,9 +53,34 @@ describe('Rentals (e2e)', () => {
       .send({ rentalItemId: otherItemId, rentalTariffId: tariffId }).expect(422);
   });
 
+  it('checkout 422: articolo ARCHIVIATO (la sua tariffa resta attiva) — P2-009', async () => {
+    // L'archiviazione non si propaga alle tariffe figlie, quindi la guardia sulla tariffa non
+    // basta: senza il controllo sull'articolo si registrava un noleggio fatturabile per un
+    // articolo che `GET /rentals` esclude dalle disponibilita' — nessuna riga lo rappresenta.
+    const arch = (await request(srv()).post('/api/rental-items').set(...bearer(t1)).send({ name: 'Windsurf', stock: 2 })).body.id;
+    const archTariff = (await request(srv()).post(`/api/rental-items/${arch}/tariffs`).set(...bearer(t1))
+      .send({ label: '1 ora', price: 12, sortOrder: 1 })).body.id;
+    await request(srv()).post(`/api/rental-items/${arch}/archive`).set(...bearer(t1)).expect(201);
+
+    await request(srv()).post('/api/rentals').set(...bearer(t1))
+      .send({ rentalItemId: arch, rentalTariffId: archTariff }).expect(422);
+
+    // e l'articolo archiviato non compare fra le disponibilita': le due regole sono la stessa
+    const day = await request(srv()).get('/api/rentals').set(...bearer(t1)).expect(200);
+    expect(day.body.availability.some((a: { rentalItemId: string }) => a.rentalItemId === arch)).toBe(false);
+  });
+
   it('checkout 400: units<1 (validazione DTO, @Min(1))', async () => {
     await request(srv()).post('/api/rentals').set(...bearer(t1))
       .send({ rentalItemId: itemId, rentalTariffId: tariffId, units: 0 }).expect(400);
+  });
+
+  it('checkout 422: cliente ANONIMIZZATO (P1-004)', async () => {
+    const c = await prisma.forTenant(s1, (tx) =>
+      tx.customer.create({ data: { establishmentId: s1, firstName: 'Ex', lastName: 'Cliente', anonymizedAt: new Date() } }),
+    );
+    await request(srv()).post('/api/rentals').set(...bearer(t1))
+      .send({ rentalItemId: itemId, rentalTariffId: tariffId, customerId: c.id }).expect(422);
   });
 
   it('checkout 422: customerId inesistente nel tenant', async () => {

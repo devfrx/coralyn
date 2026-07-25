@@ -5,6 +5,7 @@ import { TenantContext } from '../tenant/tenant-context';
 import { CustomerDTO, CreateCustomerInput, UpdateCustomerInput, DeleteCustomerResult } from '@coralyn/contracts';
 import { todayInRome, toDbDate, formatDbDate } from '../common/dates';
 import { computeRenewalWindowState } from '../bookings/renewal-window.projection';
+import { isActiveCustomer } from './active-customer';
 
 @Injectable()
 export class CustomersService {
@@ -53,13 +54,21 @@ export class CustomersService {
 
   async update(id: string, input: UpdateCustomerInput): Promise<CustomerDTO> {
     const tenantId = this.tenant.require();
-    const c = await this.prisma.forTenant(tenantId, async (tx) => {
+    const outcome = await this.prisma.forTenant(tenantId, async (tx) => {
       const existing = await tx.customer.findFirst({ where: { id } });
       if (!existing) return null;
+      // Ripopolare i campi PII di un cliente anonimizzato NON azzerava `anonymizedAt`: il record
+      // tornava a contenere dati personali restando invisibile a `list()` — PII fuori inventario,
+      // e un'anonimizzazione (D-024) di fatto reversibile per errore. Non e' un 404: il cliente
+      // c'e' e la Scheda lo mostra nello stato «rimosso».
+      if (!isActiveCustomer(existing)) return 'ANONYMIZED' as const;
       return tx.customer.update({ where: { id }, data: input });
     });
-    if (!c) throw new NotFoundException('Cliente non trovato');
-    return this.toDTO(c);
+    if (outcome === null) throw new NotFoundException('Cliente non trovato');
+    if (outcome === 'ANONYMIZED') {
+      throw new ConflictException('Cliente anonimizzato: i dati non sono più modificabili.');
+    }
+    return this.toDTO(outcome);
   }
 
   /** Diritto all'oblio (GDPR D-024): 0 prenotazioni → delete; con storico passato → anonimizza;

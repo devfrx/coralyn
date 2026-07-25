@@ -24,6 +24,20 @@ export function toRentalDTO(r: RentalRow): RentalDTO {
   };
 }
 
+/**
+ * «Un articolo e' noleggiabile» e «un articolo compare fra le disponibilita' di giornata» sono la
+ * STESSA regola, espressa una volta come filtro Prisma e una volta come predicato — le due facce
+ * dello stesso fatto, adiacenti perche' non tornino a divergere. L'archiviazione non si propaga
+ * alle tariffe figlie, quindi la guardia sulla tariffa non basta: senza questa, `checkout`
+ * registrava un noleggio fatturabile per un articolo che `listByDate` esclude, cioe' senza una
+ * riga di disponibilita' che lo rappresenti (P2-009).
+ */
+export const RENTABLE_ITEM_WHERE = { archivedAt: null } as const;
+
+export function isRentable(item: Pick<RentalItem, 'archivedAt'>): boolean {
+  return item.archivedAt == null;
+}
+
 export function computeAvailability(item: Pick<RentalItem, 'id' | 'stock'>, out: number): RentalAvailabilityDTO {
   return { rentalItemId: item.id, stock: item.stock, out, available: item.stock == null ? null : Math.max(0, item.stock - out) };
 }

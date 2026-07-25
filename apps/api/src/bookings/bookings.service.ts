@@ -41,6 +41,7 @@ import { UUID_SHAPE } from '../common/uuid';
 import { toTransferDTO, toCededSubscriptionDTO } from './booking-transfer.projection';
 import { toAbsenceReleaseDTO } from './absence-release.projection';
 import { reconcileCessionPayment } from './cession.payment';
+import { findActiveCustomer, isActiveCustomer } from '../customers/active-customer';
 
 @Injectable()
 export class BookingsService {
@@ -402,7 +403,9 @@ export class BookingsService {
       // 2) FK nel tenant (RLS: fuori tenant → null → 422).
       const slot = await tx.timeSlot.findFirst({ where: { id: input.timeSlotId } });
       const umbrella = await tx.umbrella.findFirst({ where: { id: input.umbrellaId, retiredAt: null } });
-      const customer = await tx.customer.findFirst({ where: { id: input.customerId } });
+      // Un cliente anonimizzato e' inattivo come un ombrellone ritirato: non e' un bersaglio
+      // valido per una scrittura, e finisce nello stesso 422 (P1-004).
+      const customer = await findActiveCustomer(tx, input.customerId);
       if (!slot || !umbrella || !customer) {
         throw new UnprocessableEntityException('Cliente, ombrellone o fascia non validi');
       }
@@ -819,7 +822,9 @@ export class BookingsService {
       if (input.newCustomerId === existing.customerId) return { error: 'SAME_HOLDER' as const };
       const newCustomer = await tx.customer.findFirst({ where: { id: input.newCustomerId } });
       if (!newCustomer) return { error: 'NEW_CUSTOMER_INVALID' as const };
-      if (newCustomer.anonymizedAt) return { error: 'NEW_CUSTOMER_ANON' as const };
+      // Qui il caricamento resta in due passi di proposito: la cessione distingue «subentrante
+      // inesistente» da «subentrante anonimizzato», due messaggi diversi per l'operatore.
+      if (!isActiveCustomer(newCustomer)) return { error: 'NEW_CUSTOMER_ANON' as const };
 
       const eff = toDbDate(input.effectiveDate);
       if (!(eff >= existing.startDate && eff <= existing.endDate)) return { error: 'BAD_DATE' as const };

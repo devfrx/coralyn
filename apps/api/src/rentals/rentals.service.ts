@@ -5,7 +5,8 @@ import { TenantContext } from '../tenant/tenant-context';
 import { CatalogService } from '../catalog/catalog.service';
 import { resolvePayment } from '../bookings/booking.payment';
 import { todayInRome, toDbDate } from '../common/dates';
-import { RENTAL_INCLUDE, computeAvailability, toRentalDTO } from './rental.projection';
+import { RENTAL_INCLUDE, RENTABLE_ITEM_WHERE, computeAvailability, isRentable, toRentalDTO } from './rental.projection';
+import { findActiveCustomer } from '../customers/active-customer';
 
 @Injectable()
 export class RentalsService {
@@ -21,11 +22,18 @@ export class RentalsService {
     const row = await this.prisma.forTenant(t, async (tx) => {
       const season = await this.catalog.resolveSeasonWithin(tx, todayInRome());
       if (!season.ok) throw new UnprocessableEntityException('Nessuna stagione attiva per questa data');
-      const tariff = await tx.rentalTariff.findFirst({ where: { id: input.rentalTariffId } });
+      const tariff = await tx.rentalTariff.findFirst({
+        where: { id: input.rentalTariffId },
+        include: { rentalItem: true },
+      });
       if (!tariff || tariff.archivedAt != null || tariff.rentalItemId !== input.rentalItemId || tariff.seasonId !== season.id)
         throw new UnprocessableEntityException('Tariffa non valida per l’articolo o la stagione');
+      // L'archiviazione dell'articolo NON si propaga alle tariffe figlie: la guardia sopra non la
+      // vedrebbe. `isRentable` e' la stessa regola con cui `listByDate` costruisce le disponibilita'.
+      if (!isRentable(tariff.rentalItem))
+        throw new UnprocessableEntityException('Articolo archiviato: non noleggiabile');
       if (input.customerId != null) {
-        const c = await tx.customer.findFirst({ where: { id: input.customerId } });
+        const c = await findActiveCustomer(tx, input.customerId); // anonimizzato = non valido (P1-004)
         if (!c) throw new UnprocessableEntityException('Cliente non valido');
       }
       const created = await tx.rental.create({ data: {
@@ -81,7 +89,7 @@ export class RentalsService {
       const start = new Date(`${day}T00:00:00.000Z`); const end = new Date(`${day}T23:59:59.999Z`);
       const rentals = await tx.rental.findMany({
         where: { startAt: { gte: start, lte: end } }, include: RENTAL_INCLUDE, orderBy: { startAt: 'desc' } });
-      const items = await tx.rentalItem.findMany({ where: { archivedAt: null } });
+      const items = await tx.rentalItem.findMany({ where: RENTABLE_ITEM_WHERE });
       const out = new Map<string, number>();
       const active = await tx.rental.findMany({ where: { cancelledAt: null, returnedAt: null } });
       for (const a of active) out.set(a.rentalItemId, (out.get(a.rentalItemId) ?? 0) + a.units);

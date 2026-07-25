@@ -191,6 +191,30 @@ describe('Customer access provisioning (D-035 S3)', () => {
         .expect(401);
     });
 
+    it('tentativi PIN CONCORRENTI: 5 richieste parallele consumano 5 slot e lasciano il lock (P2-008)', async () => {
+      const { token, pin } = await provision();
+      const wrong = pin === '000000' ? '111111' : '000000';
+
+      // Il contatore era un read-modify-write: N richieste che leggono lo stesso valore prima che
+      // una qualsiasi scriva consumano UN solo slot. Con un PIN a 6 cifre e la soglia a 5, il lock
+      // e' l'unica difesa specifica contro il brute-force, e chi attacca non fa richieste in fila.
+      await Promise.all(
+        Array.from({ length: 5 }, () =>
+          request(app.getHttpServer())
+            .post('/api/customer/activate')
+            .send({ enrollmentToken: token, pin: wrong })
+            .expect(401),
+        ),
+      );
+
+      const row = await prisma.customerEnrollmentToken.findFirst({
+        where: { customerId },
+        orderBy: { createdAt: 'desc' },
+      });
+      expect(row?.pinAttempts).toBe(5);
+      expect(row?.revokedAt).not.toBeNull(); // e nessun ramo ha riazzerato la revoca
+    });
+
     it('token inesistente -> 401 generico', async () => {
       await request(app.getHttpServer())
         .post('/api/customer/activate')
