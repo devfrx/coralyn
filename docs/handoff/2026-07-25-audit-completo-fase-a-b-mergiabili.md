@@ -11,9 +11,8 @@
 
 ## 0. In una riga
 
-`main` è invariata a `62eb63f`. Il lavoro vive su due branch, **nessuno mergiato**: serve ok esplicito.
-**`chore/audit-2026-07-25-fase-a-b`** (4 commit) e **`chore/audit-2026-07-25-fase-c`**, che parte dal
-primo e aggiunge la Fase C.
+**`main` = `a996dd6`, mergiata e spinta** il 2026-07-25 con l'ok dell'utente (fast-forward da
+`62eb63f`): contiene Fase A, B e C. La CI ha girato per la prima volta su quel push ed è **verde**.
 
 | Commit | Contenuto |
 |---|---|
@@ -215,7 +214,11 @@ affermazioni false** (cita `/privacy` dove il codice usa `/legale/informativa`).
   esiste.** Il repo ha **più di un clone attivo**.
 - `.superpowers/` gitignorato. **Prossimo prefisso scratch libero: `task-sl-N`.**
 - **Prossimo ADR libero: 0058. Prossima deferred libera: D-065.** (0057, D-063 e D-064 presi in Fase C.)
-- **Nessun merge su `main` senza ok esplicito.**
+- **Nessun merge su `main` senza ok esplicito.** (Il merge del 2026-07-25 aveva quell'ok.)
+- **Il repository è PUBBLICO** (`github.com/devfrx/coralyn`). Ogni valore in un file versionato è
+  leggibile da chiunque: `docker-compose.yml` contiene in chiaro `JWT_SECRET`, `DEV_ADMIN_PASSWORD`,
+  `PLATFORM_SUPERUSER_PASSWORD` e le credenziali Postgres. Sono **dev-only dichiarati** e vanno
+  bene lì, ma non devono comparire in nessun ambiente reale.
 
 ---
 
@@ -251,14 +254,18 @@ affermazioni false** (cita `/privacy` dove il codice usa `/legale/informativa`).
 
 ### 5.1 Azioni dell'utente, bloccanti
 
-1. ⚠️ **Ruotare il `JWT_SECRET`.** Il valore di `RUNBOOK.local.md` **è già nei layer di ogni immagine
-   API costruita finora**. `.dockerignore` chiude il futuro, non sana il passato: le immagini
-   esistenti vanno ricostruite.
-2. **Mergiare (o no) i due branch.** `chore/audit-2026-07-25-fase-a-b` (4 commit) e
-   `chore/audit-2026-07-25-fase-c`, che parte dal primo. Entrambi con `verify` verde.
-3. **La CI non è mai stata eseguita.** Il primo push la esercita: il job `e2e` (setup del ruolo DB,
-   `migrate deploy`) potrebbe aver bisogno di ritocchi. ⚠️ In Fase C `.env.test.example` ha
-   guadagnato `CUSTOMER_APP_URL`, che la CI copia: senza, nessuna e2e partirebbe.
+1. ⛔ ~~Ruotare il `JWT_SECRET`~~ — **richiesta INFONDATA, verificata e ritirata.** Il valore in
+   `RUNBOOK.local.md` è identico (hash SHA-256 confrontati) a quello di `docker-compose.yml`, che è
+   **versionato** su un repo **pubblico**: è il segnaposto `dev-secret-change-me-…`. Non c'era nulla
+   di segreto da ruotare. **Resta invece da verificare, e non è verificabile da qui**: se esiste un
+   VPS di produzione, il `JWT_SECRET` nel suo `.env.prod` deve essere un valore generato
+   (`openssl rand -base64 48`) e **mai** quel segnaposto. Chi lo conosce forgia token con qualunque
+   ruolo su qualunque lido, RLS compresa (il tenant arriva dal token, ADR-0026).
+2. ✅ **Mergiato.** `main` = `a996dd6` (fast-forward, spinto su `origin/main`): contiene Fase A, B e C.
+3. ✅ **CI eseguita per la prima volta** su quel push:
+   [run #1](https://github.com/devfrx/coralyn/actions/runs/30159012576), **entrambi i job verdi**,
+   nessun ritocco necessario. NB: `.env.test.example` ha guadagnato `CUSTOMER_APP_URL` in Fase C e
+   la CI lo copia — senza, nessuna e2e partirebbe.
 4. ~~`.env.test` locale su `:5433`~~ → **risolto in Fase C**: allineato a `:5432` (la porta che il
    container espone) e completato con `CUSTOMER_APP_URL`. Le e2e girano senza override inline.
    Resta disallineato `apps/api/.env`, che punta ancora a `:5433` per `coralyn_dev`: è il file che

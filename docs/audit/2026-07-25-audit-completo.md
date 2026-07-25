@@ -5,15 +5,15 @@ Perimetro: **tutto il repo**, partizionato in 9 aree × 11 livelli. Modalità: r
 
 > ## Stato della remediation
 >
-> **Fasi A, B e C eseguite e verificate** il 2026-07-25. **Nessuna mergiata su `main`.**
-> Fasi A/B sul branch `chore/audit-2026-07-25-fase-a-b` (`374007e`, `6f618f5`);
-> **Fase C** sul branch `chore/audit-2026-07-25-fase-c`, che parte dal precedente.
+> **Fasi A, B e C eseguite, verificate e MERGIATE su `main`** il 2026-07-25 (fast-forward a
+> `a996dd6`, spinto su `origin/main`). La CI ha girato per la **prima volta** su quel push:
+> [run #1](https://github.com/devfrx/coralyn/actions/runs/30159012576), entrambi i job verdi.
 >
 > | Finding | Stato |
 > |---|---|
 > | **AUD-001** e2e che cancellano il DB dev | ✅ **CORRETTO** — guardia sul nome della risorsa in `jest-setup-env.ts` + `.env.test.example` versionato |
-> | **AUD-006** `JWT_SECRET` nelle immagini Docker | ⚠️ **CORRETTO A META'** — `.dockerignore` è ora allow-list e il file non entra più nel contesto, ma **il valore è già nei layer delle immagini costruite finora: va RUOTATO** (azione utente, non eseguibile qui) |
-> | **AUD-018** nessuna CI / nessuno script `verify` | ✅ **CORRETTO** — `pnpm run verify` + `.github/workflows/verify.yml`; `packages/contracts` ha ora `typecheck` (6/7 → 7/7). ⚠️ La CI **non è mai stata eseguita**: scritta contro il comportamento verificato in locale, il job `e2e` gira su un runner non provato |
+> | **AUD-006** `JWT_SECRET` nelle immagini Docker | ✅ **CORRETTO** — `.dockerignore` è ora allow-list. ⛔ **La richiesta di rotazione era infondata**: vedi la correzione qui sotto |
+> | **AUD-018** nessuna CI / nessuno script `verify` | ✅ **CORRETTO E VERIFICATO** — `pnpm run verify` + `.github/workflows/verify.yml`; `packages/contracts` ha ora `typecheck` (6/7 → 7/7). La CI ha girato per la prima volta il 2026-07-25 su `main`: **entrambi i job verdi**, nessun ritocco necessario |
 > | Flake OOM di Jest | ✅ **CORRETTO** — `maxWorkers: '50%'` + `workerIdleMemoryLimit`. Da 49/50 suite a **50/50** |
 > | Doppio conteggio ui-kit (P6-014, P7-018, P8-002) | ✅ **CORRETTO** — rimosso l'include da `web-staff/vitest.config.ts` |
 > | Lint (P6-015, P7-008) | ✅ **CORRETTO** — 73 errori → **0**; copertura da 494 a **603 file**, inclusi i 109 `.vue` prima invisibili |
@@ -26,6 +26,29 @@ Perimetro: **tutto il repo**, partizionato in 9 aree × 11 livelli. Modalità: r
 > | PII in `GET /establishment/overview` | 🔓 **APERTO** — [D-064](../architecture/deferred.md). L'inversione **non** lo chiude: l'app-shell chiama quell'endpoint a ogni caricamento, quindi separare `team[]` è un cambio di contratto FE/BE |
 > | Permessi configurabili dall'admin | 🔓 **PIANIFICATO** — [D-063](../architecture/deferred.md) + [brief di delega](../superpowers/specs/2026-07-25-permessi-configurabili-design.md) |
 > | **Tutto il resto** | 🔓 **APERTO** — fasi D → H del §4 |
+>
+> ### ⛔ Correzione ad AUD-006 / P2-006 — la rotazione del `JWT_SECRET` non serviva
+>
+> Il finding è accurato sul **meccanismo** — `RUNBOOK.local.md` finiva davvero in ogni immagine API
+> — e sbagliato sulla **conseguenza**. Confronto delle impronte SHA-256 (valori mai stampati):
+> il `JWT_SECRET` in `RUNBOOK.local.md`, quello in `apps/api/.env` e quello in **`docker-compose.yml`**
+> hanno lo stesso hash. È il segnaposto `dev-secret-change-me-at-least-32-characters-long`, che sta
+> **in chiaro in un file versionato**, su un repository **pubblico**.
+>
+> Quindi non c'era alcun segreto da ruotare: era già leggibile da chiunque, con o senza immagini.
+> Il fix di Fase A resta giusto per l'altra ragione — una deny-list dimentica **il prossimo** file,
+> quello che conterrà un segreto vero.
+>
+> **Il rischio reale è un altro, e resta aperto**: quel segnaposto non deve mai essere il segreto di
+> produzione. `.env.prod` non esiste sulla macchina di sviluppo, quindi da qui non è verificabile
+> cosa usi un eventuale VPS. Chi conosce il `JWT_SECRET` non legge i token: **li forgia** — può
+> firmarsi `role: superuser` su qualunque `establishmentId`, e il tenant arriva dal token (ADR-0026),
+> quindi scavalca anche l'RLS. Sullo stesso piano, e per lo stesso motivo, `docker-compose.yml`
+> pubblica anche `DEV_ADMIN_PASSWORD` e `PLATFORM_SUPERUSER_PASSWORD`: dichiarati dev-only, e da
+> non riusare mai altrove.
+>
+> *Metodo*: questo errore è passato perché la conseguenza è stata ereditata dal report invece di
+> essere verificata. Bastavano due `sha256`.
 >
 > ### ⛔ Correzione al §4/7 di questo report
 >
