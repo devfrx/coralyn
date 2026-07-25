@@ -1,35 +1,31 @@
-# Dipendenze / build (rigenerate dentro l'immagine)
-node_modules
+# ALLOW-LIST, non deny-list. Tutti e 4 i Dockerfile (api + le 3 app web) hanno come contesto la
+# ROOT del repo e fanno `COPY . .`, quindi ogni file non escluso finisce dentro un'immagine.
+#
+# Perche' allow-list: una deny-list dimentica per costruzione i file nuovi. Quella precedente non
+# elencava `RUNBOOK.local.md`, che e' gitignorato ma contiene un JWT_SECRET: finiva in ogni
+# immagine dell'API. Un elenco di eccezioni su default permissivo non regge alla crescita del repo;
+# un default restrittivo con eccezioni esplicite si'.
+#
+# Effetto collaterale voluto: il contesto di build si riduce di ordini di grandezza (fuori restano
+# .git, docs/ con 294 .md, deploy/, i dump del design tool).
+
+*
+
+# Manifesti del workspace: servono a pnpm per risolvere il grafo con --frozen-lockfile.
+!package.json
+!pnpm-lock.yaml
+!pnpm-workspace.yaml
+!tsconfig.base.json
+
+# Sorgenti. Tutti i package del workspace, non solo quelli filtrati: pnpm legge comunque i loro
+# manifesti per validare il lockfile.
+!apps
+!packages
+
+# ...e dentro cio' che e' stato riammesso, si riescludono gli artefatti rigenerati nell'immagine
+# e ogni file d'ambiente locale (le env arrivano da docker-compose / --env-file, mai dal contesto).
 **/node_modules
 **/dist
-*.tsbuildinfo
-
-# Git / editor
-.git
-.gitignore
-.idea
-.vscode
-*.swp
-
-# Ambiente locale (le immagini ricevono le env da docker-compose)
-.env
-.env.*
-!.env.example
-
-# Docker (non serve nel contesto di build)
-Dockerfile
-**/Dockerfile
-.dockerignore
-docker-compose.yml
-docker-compose.override.yml
-
-# Dump del design tool e mockup pesanti
-/Coralyn - Gestionale Lidi.html
-/Redesign coralyn gestionale moderno/
-
-# Log e temporanei
-*.log
-*.tmp
-.superpowers/
-.DS_Store
-Thumbs.db
+**/*.tsbuildinfo
+**/.env
+**/.env.*
