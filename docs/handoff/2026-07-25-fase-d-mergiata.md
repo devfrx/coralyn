@@ -14,6 +14,22 @@
 
 Restano aperte le fasi **E → H** (§5.2) e due decisioni tue (§5.1).
 
+### I primi cinque minuti, se arrivi a freddo
+
+```bash
+git fetch --all --prune && git status -sb
+```
+
+Il repo ha **più di un clone attivo**: `git log --all` copre solo i ref locali, quindi `fetch`
+prima di dichiarare che qualcosa non esiste. Poi, in ordine: questo documento (§3 i gotcha, §4 il
+metodo), il [report d'audit §4](../audit/2026-07-25-audit-completo.md) per il piano ordinato per
+dipendenza, e `git log --format=%B -8` per il razionale dei fix — i messaggi di commit di questo
+repo sono più densi della documentazione.
+
+Prima di toccare l'API: **allinea `apps/api/.env` alla porta 5432** (§3, Ambiente), altrimenti
+`start:dev` non si connette. Il gate è `pnpm run verify` (lint + typecheck + unit); le **e2e sono
+un comando a parte** e richiedono Postgres.
+
 ---
 
 ## 1. Cosa è stato fatto
@@ -47,7 +63,23 @@ di lavorare sul repo.
    personali freschi su un record che `list()` continua a nascondere. Il codice è stato allineato
    al documento (409), non viceversa: **nessun testo legale è stato modificato.**
 
-### 1b. Correzione al testo di un documento precedente
+### 1b. Controllo di coerenza docs ↔ codice, eseguito a chiusura
+
+**Ogni gotcha di questo handoff è stato verificato sul codice mergiato**, non ereditato. Regge quasi
+tutto; tre affermazioni no, e sono corrette qui e nei documenti d'origine:
+
+| Affermazione ereditata | Esito |
+|---|---|
+| «`configureApp` è condivisa da **tutte le 41** suite e2e» | ❌ **37 su 41.** Quattro suite DB-level fanno bootstrap manuale |
+| «D-037 **interamente CHIUSA**» (`deferred.md`) | ❌ **Riaperta**: `web-platform` non è coperta e non è mai stata nominata nei tre aggiornamenti che l'hanno chiusa (AUD-014). Verificato: `queryClient.ts` senza `onError`, nessun `onApiError.ts` |
+| «D-037: per `web-customer`, `session.logout()` **+ redirect a `/attiva`**» | ❌ Era **falso quando è stato scritto** (è AUD-010). ✅ **Vero da adesso** — annotato come tale, per distinguere «è sempre stato così» da «lo è diventato» |
+
+Confermate invece, contro il sospetto: **reka-ui** è solo in `packages/ui-kit` (in web-staff compare
+unicamente nei commenti); **web-customer** non usa MSW nei test benché `msw` sia fra le sue
+dipendenze (serve al service worker); **P4-006** è ancora aperto e ora è caratterizzato con
+precisione (vedi §3, «Le due superfici privacy»).
+
+### 1c. Correzione al testo di un documento precedente
 
 L'handoff di Fase C, §3 «API», diceva: «`PrismaExceptionFilter` lascia **P2025 a 500 di proposito**;
 **P2003 pure**». La prima metà resta vera, la seconda **non più**: P2003 è ora 409. Stessa cosa per
@@ -124,7 +156,11 @@ non sale sopra 0 errori.
   intercetta in CI. Lo stesso test fallisce anche per un permesso **mai usato**.
 - **Throttler**: `@Throttle({ default: {...} })` come sovrascrittura per-rotta. Una seconda
   definizione *nominata* verrebbe valutata su **tutte** le rotte throttled.
-- **`configureApp` è condivisa** da `main.ts` e da tutte le 41 suite e2e.
+- **`configureApp` è condivisa** da `main.ts` e da **37 delle 41** suite e2e (⛔ l'handoff di Fase C
+  diceva «tutte e 41»: verificato il 2026-07-25, sono 37). Le quattro che fanno bootstrap manuale —
+  `booking-overlap-constraint`, `prisma.service`, `rate-fk-restrict`, `reset-dev` — sono suite
+  DB-level che non fanno richieste HTTP, quindi prefix e ValidationPipe non servirebbero a nulla.
+  Toccare `configureApp` resta un cambio che attraversa quasi tutta la suite.
 - **Una env obbligatoria nuova va aggiunta a tutti e tre gli example**, altrimenti CI e e2e non
   partono.
 - **Il seed rifiuta un database che non si chiami `coralyn_dev`/`coralyn_test`** (prefisso).
@@ -154,10 +190,16 @@ non sale sopra 0 errori.
 | Titolare | **il lido** (per tenant) | **Coralyn** (uno solo) |
 | Dove si compila | form Stabilimento → Profilo legale | **codice**, `packages/legal/src/*.content.ts` |
 
-**`/privacy` è riservato al bagnante**: due test per app lo vietano. **Doppio artefatto**
-`docs/legal/*.md` ↔ `packages/legal/src/*.content.ts` da aggiornare **insieme** — e ⚠️ **oggi sono
-divergenti**: `privacy-policy-operatori.md:68-73` ha un blocco «✅ Verificato sul codice» con **due
-affermazioni false**. Finding P4-006, aperto, Fase H.
+**`/privacy` è riservato al bagnante**: `legal-routes.spec.ts` lo vieta in entrambe le app staff
+(3 test ciascuno). **Doppio artefatto** `docs/legal/*.md` ↔ `packages/legal/src/*.content.ts` da
+aggiornare **insieme** — e ⚠️ **oggi sono divergenti**. Finding **P4-006, aperto, Fase H**, che ho
+ri-verificato il 2026-07-25 e qui è più preciso che nel report: il blocco «✅ Verificato sul codice
+(2026-07-24)» in `privacy-policy-operatori.md:68-73` afferma che l'email credenziali rinvia a
+`/privacy` e che «la rotta `/privacy` è pubblica in `web-staff` e `web-platform`». **Entrambe
+false**: `credential-setup.email.ts:23` costruisce `${webStaffUrl}/legale/informativa`, e
+`/privacy` in web-staff non è una rotta — il router ha un commento che lo vieta esplicitamente e
+la spec asserisce che sia `undefined`. È il paragrafo che un legale legge per verificare
+l'art. 14.3(a).
 
 ### API — invariati
 
@@ -172,12 +214,21 @@ affermazioni false**. Finding P4-006, aperto, Fase H.
 
 - **`VITE_*` è BUILD-TIME**: in produzione va passata come **build arg**.
 - **Tailwind v4 non scansiona i package**: serve `@source` in `main.css` di ogni app consumatrice.
-- **`mutationResource` ha un toast d'errore di default, `queryResource` no** → 9 viste su 12 rendono
-  l'errore come «vuoto» (AUD-012, aperto).
+- **`mutationResource` ha un toast d'errore di default, `queryResource` no** → la maggior parte delle
+  viste rende un guasto come «vuoto» invece che come errore (AUD-012, **aperto**). ⚠️ Non fidarti di
+  un `grep isError`: su 15 `*View.vue` di web-staff quattro lo contengono, ma in `MapView.vue` è
+  `isError` del **preventivo** (`useBookingQuote`), non dei dati della mappa — l'esempio di punta
+  dell'audit («un guasto della Mappa rende una spiaggia vuota») regge. Il conteggio «9 su 12» del
+  report è dell'audit, con un denominatore diverso: non l'ho ri-derivato.
 - Contenuti dei `Modal` **teleportati**: nei test `document.querySelector`, **non** `w.get`.
 - `Popover` = props + emit. `Calendar` = stringa ISO. `Select` = `selectOption` + `SELECT_EMPTY`.
-  **reka-ui solo in `packages/ui-kit`.**
-- **web-customer NON usa MSW**; web-staff sì.
+  **reka-ui solo in `packages/ui-kit`** (verificato: unica dipendenza in
+  `packages/ui-kit/package.json`; le occorrenze in web-staff sono **solo commenti** che spiegano
+  perché i test del `Modal`/`Drawer` interrogano `document.body`).
+- **web-customer NON usa MSW nei test** (`src/test/setup.ts` lo dice: si mocka `apiFetch` con
+  `vi.spyOn`, o il composable con `vi.mock`); web-staff sì, via `@/mocks/server`. ⚠️ `msw` **è**
+  fra le dipendenze di web-customer: serve al service worker, non ai test — non dedurre dal
+  `package.json` che i test lo usino.
 - **Niente em dash nel testo utente** — `docs/` è FUORI da quel perimetro.
 - **`SidebarNav.vue` mostra `operativeNav` a OGNI ruolo.**
 
@@ -200,20 +251,45 @@ affermazioni false**. Finding P4-006, aperto, Fase H.
 
 ---
 
-## 4. Metodo — cosa ha pagato in questa sessione
+## 4. Metodo atteso
+
+### 4a. Regole di ingaggio
+
+- **Skill `dev-discipline` + `dev-communication` sempre.** `systematic-debugging` **prima** di
+  proporre un fix. `compliance-docs` per qualunque cosa tocchi legale/GDPR. `design-docs` se tocchi
+  dominio, dati, flussi o decisioni. `repo-audit` se il lavoro torna a essere sistemico.
+- **Le decisioni strutturali sono dell'utente**, e si espongono **prima** di implementare, con
+  opzioni e trade-off reali (non un'opzione buona e due di paglia). Dipendenza nuova, cambio di
+  pattern, breaking change su un contratto condiviso: ci si ferma. Bugfix e refactor locali: si
+  procede.
+- **Ogni fix alla radice.** Se la radice è fuori portata, dirlo e lasciare il finding aperto — mai
+  mascherarlo. Se un fix ne richiede uno più grande, quello grande è una proposta, non un fatto
+  compiuto dentro un task che chiedeva altro.
+- **Dati societari e scelte d'infrastruttura si chiedono, mai si inventano.**
+- **Nessun merge su `main` senza ok esplicito.**
+
+### 4b. Cosa ha pagato, e va ripetuto
 
 - **Riprodurre prima di correggere, sempre.** Sei difetti, sei test rossi prima del fix. Due volte
   il rosso ha detto qualcosa che il finding non diceva: il `500` di `suspend` arrivava da un
-  `data_exception` e non dal constraint di overlap; i 5 tentativi PIN concorrenti ne consumavano
-  **1**, non 2 o 3.
-- **La mutazione come prova, anche sui fix riusciti.** Ha trovato un buco che la lettura non aveva
-  visto: la guardia «cliente anonimizzato» della cessione era priva di test. Una suite che resta
-  verde quando cancelli la riga che dovrebbe proteggere non protegge nulla.
-- **Verificare il finding, non solo eseguirlo.** P1-003 parlava di un commento falso fra i due seed;
-  aprendo i file, la conseguenza vera era che uno dei due script non poteva funzionare.
+  `data_exception` e non dal constraint di overlap (quindi `isBookingOverlapExclusion` non poteva
+  intercettarlo); i 5 tentativi PIN concorrenti ne consumavano **1**, non 2 o 3.
+- **La mutazione come prova, anche sui fix riusciti.** Cancella la riga che il test dovrebbe
+  proteggere e guarda se la suite diventa rossa. Qui ha trovato un buco che la lettura non aveva
+  visto: la guardia «cliente anonimizzato» della cessione — l'unica che il finding dava per
+  **già presente** — non aveva un solo test. Una suite che resta verde quando togli la difesa non
+  sta difendendo niente.
+- **Verificare il finding, non solo eseguirlo.** P1-003 parlava di un commento falso fra i due
+  seed; aprendo i file, la conseguenza vera era che `seed-report-demo.ts` non poteva funzionare.
+  Chi esegue un finding alla lettera perde quello che il finding non ha visto.
+- **Verificare anche i gotcha che stai per riscrivere.** L'ultimo passo della sessione è stato
+  ripassare ogni affermazione di questo handoff sul codice: tre erano false (§1b). I gotcha si
+  tramandano per copia, e una copia non verificata è come sono nate tutte e tre.
 - **Correggere il testo falso invece di annotarlo.** Il commento in `bookings.service.ts` che
-  codificava l'assunzione sbagliata è stato rimosso, non affiancato da una nota; le tre righe rese
-  false dalla Fase D nell'handoff precedente sono riscritte qui, non aggiunte sotto.
+  codificava l'assunzione sbagliata è stato rimosso, non affiancato da una nota; le righe rese
+  false dalla Fase D negli handoff precedenti sono riscritte, non aggiunte sotto. Radice R-G.
+- **Distinguere «è sempre stato vero» da «lo è diventato».** Quando un fix rende vera una riga che
+  era falsa (D-037), dirlo: altrimenti la prossima persona non sa se fidarsi del resto della riga.
 
 ---
 
@@ -246,6 +322,9 @@ Indici unici parziali (sospensione aperta, release attiva, rinnovo confermato) �
 Allargare `useActiveSeason`/`statusMaps`/`queryKeys`/`lib/dates` · `crypto.module.ts` `@Global` ·
 `DataTable` generico (elimina 83 doppi cast) · etichettatura in `Field`/`Select` (32 combobox senza
 nome accessibile) · `QueryBoundary`/`ErrorState` · `sideEffects` in `ui-kit`.
+**+ AUD-014 / [D-037](../architecture/deferred.md) riaperta**: `web-platform` non ha gestione
+globale del 401. Fix piccolo e meccanico — copiare `web-staff/src/lib/onApiError.ts` e agganciarlo
+in `queryClient.ts` — ma è error-surface FE, quindi sta con `QueryBoundary`/`ErrorState`.
 
 **Fase G — test**
 Mirror unit delle difese di sicurezza (`JwtAuthGuard`, `token.service` kind, `CustomerSessionService`)
@@ -255,9 +334,16 @@ cross-tenant lato operatore** il cui scaffolding è stato rimosso (P6-020).
 
 **Fase H — documentazione**
 Correggere le affermazioni false verificate (D-061 «unica memorizzazione», ⚖️-18 che cita `/privacy`,
-`data-model.md` con due entità inesistenti, README root fermo al 01/07, README di web-staff, guida
-deploy) · igiene di `deferred.md` (73.680 caratteri, ≥7 voci chiuse ancora in tabella) · **spostare
-le asserzioni verificabili dai documenti ai test**.
+`privacy-policy-operatori.md:68-73`, `data-model.md` con due entità inesistenti, README root fermo al
+01/07, README di web-staff, guida deploy) · igiene di `deferred.md` (73.680 caratteri, ≥7 voci chiuse
+ancora in tabella) · **spostare le asserzioni verificabili dai documenti ai test**.
+
+> Quest'ultimo punto è la lezione della sessione, non un elemento di lista. Tre delle affermazioni
+> false trovate finora — l'«interim a costo zero», il «redirect a `/attiva`», «tutte le 41 suite» —
+> erano tutte verificabili con una riga di codice, e nessuna era verificata da nulla. Un'asserzione
+> in un `.md` non ha un guardiano; la stessa asserzione in un test sì. Dove una riga di
+> documentazione afferma un fatto sul codice, la domanda giusta non è «è ancora vera?» ma «cosa la
+> renderebbe rossa se smettesse di esserlo?».
 
 ### 5.3 Segnalazioni fuori scope, non fatte di proposito
 
@@ -272,7 +358,23 @@ le asserzioni verificabili dai documenti ai test**.
   accesso cliente provisioned (quell'app non usa MSW). Il comportamento è coperto dai test; la
   modifica di layout è una riga flex.
 
-### 5.4 Follow-up minori
+### 5.4 Igiene del workspace (nessun lavoro perso — verificato)
+
+Sei branch locali stantii, **nessuno con lavoro unico**. Tre sono contenuti in `main`
+(`chore/audit-2026-07-25-fase-a-b`, `-fase-c`, `-fase-d`). Gli altri tre risultano «non mergiati»
+ma i loro commit **sono in `main` sotto SHA diversi** (riconciliazione/rebase): verificato per
+oggetto, es. `fix(legal): separa le due superfici privacy` → `1daa46c`,
+`feat(api): rinvio all'informativa nelle email credenziali` → `6886c1c`,
+`chore: ignora RUNBOOK.local.md` → `dd59d54`. Sono duplicati pre-rebase, cancellabili senza perdite:
+
+```bash
+git branch -D chore/audit-2026-07-25-fase-a-b chore/audit-2026-07-25-fase-c chore/audit-2026-07-25-fase-d backup/main-pre-reconcile-20260725 docs/handoff-5-6a-ricostruito feat/legal-d061-d062
+```
+
+Non l'ho fatto io: cancellare branch è una scelta dell'utente, non un effetto collaterale di una
+sessione di fix.
+
+### 5.5 Follow-up minori
 
 a11y combobox con `<label>` fratello · scorciatoie «Oggi + salti» nel `Calendar` e i 15
 `<input type="date">` residui · flash-replay del rail fila · l'utente di prova disabilitato nel DB
