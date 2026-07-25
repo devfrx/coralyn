@@ -1,5 +1,6 @@
 import { PrismaClient, Role } from '@prisma/client';
 import * as argon2 from 'argon2';
+import { assertDevDatabase } from './dev-database';
 
 const prisma = new PrismaClient();
 
@@ -8,9 +9,14 @@ const prisma = new PrismaClient();
 const DEV_ESTABLISHMENT_ID = '00000000-0000-0000-0000-000000000001';
 
 async function main(): Promise<void> {
-  if (process.env.NODE_ENV === 'production') {
-    throw new Error('Seed non può girare in produzione');
-  }
+  // La guardia era `NODE_ENV !== 'production'`, e docker-entrypoint.sh la disarmava forzando
+  // `NODE_ENV=development` per il solo comando di seed — riconoscendola e aggirandola. Ora si
+  // guarda il nome del database, che il processo non può falsificare: l'entrypoint può
+  // continuare a fare quello che fa senza che apra nulla, perché il DB di produzione si chiama
+  // `coralyn_prod` e non passa il filtro.
+  const [{ database }] = await prisma.$queryRaw<{ database: string }[]>`
+    SELECT current_database() AS database`;
+  assertDevDatabase('seed', database);
 
   await prisma.establishment.upsert({
     where: { id: DEV_ESTABLISHMENT_ID },
@@ -19,8 +25,16 @@ async function main(): Promise<void> {
   });
 
   // Primo admin di sviluppo (per login locale). Password hashata con argon2id.
-  const email = process.env.DEV_ADMIN_EMAIL ?? 'admin@coralyn.dev';
-  const password = process.env.DEV_ADMIN_PASSWORD ?? 'coralyn-admin';
+  // Nessun fallback letterale: i due valori erano hardcodati nel sorgente e assenti da
+  // `deploy/.env.prod.example`, quindi un `SEED_ON_START=true` su un host pubblico avrebbe
+  // creato un admin con credenziali note al mondo. Stesso pattern di bootstrap-superuser.ts.
+  const email = process.env.DEV_ADMIN_EMAIL;
+  const password = process.env.DEV_ADMIN_PASSWORD;
+  if (!email || !password) {
+    throw new Error(
+      'DEV_ADMIN_EMAIL e DEV_ADMIN_PASSWORD sono obbligatorie per il seed (vedi .env.example).',
+    );
+  }
   const passwordHash = await argon2.hash(password, { type: argon2.argon2id });
   await prisma.user.upsert({
     where: { email },

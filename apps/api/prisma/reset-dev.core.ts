@@ -1,4 +1,5 @@
 import type { PrismaClient, Prisma } from '@prisma/client';
+import { assertDevDatabase } from './dev-database';
 
 /** Executor: il PrismaClient o un TransactionClient (per il test in rollback). */
 export type Executor = PrismaClient | Prisma.TransactionClient;
@@ -14,16 +15,16 @@ export const KEEP_LIST: readonly string[] = [
   '_prisma_migrations',
 ];
 
-/** Guardia ambiente: rifiuta produzione e DB che non siano dev/test. */
+/**
+ * Guardia del reset: rifiuta produzione e DB che non siano dev/test.
+ * Il controllo sul nome è condiviso col seed (`dev-database.ts`): è quello che regge anche
+ * quando NODE_ENV viene sovrascritto. Il controllo su NODE_ENV resta come primo filtro.
+ */
 export function assertResettableEnv(nodeEnv: string | undefined, dbName: string): void {
   if (nodeEnv === 'production') {
     throw new Error('reset-dev: rifiutato in NODE_ENV=production');
   }
-  if (!/^coralyn_(dev|test)/i.test(dbName)) {
-    throw new Error(
-      `reset-dev: database "${dbName}" non matcha /^coralyn_(dev|test)/i — rifiutato`,
-    );
-  }
+  assertDevDatabase('reset-dev', dbName);
 }
 
 /** Set da azzerare = forced meno la keep-list (belt-and-suspenders: le keep non sono forced comunque). */

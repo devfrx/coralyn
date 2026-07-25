@@ -6,6 +6,37 @@ import {
   assertCoherence,
   resetTenantData,
 } from '../prisma/reset-dev.core';
+import { assertDevDatabase } from '../prisma/dev-database';
+
+/**
+ * La guardia condivisa da `reset-dev` e dal seed. Sta qui e non in `src/` perché è codice di
+ * `prisma/`, come il core che la usa: jest unit ha `rootDir: 'src'` e non la vedrebbe.
+ */
+describe('assertDevDatabase — guardia ancorata al nome della risorsa', () => {
+  it.each(['coralyn_dev', 'coralyn_test', 'coralyn_dev_2', 'CORALYN_TEST'])(
+    'accetta %s',
+    (db) => {
+      expect(() => assertDevDatabase('seed', db)).not.toThrow();
+    },
+  );
+
+  it.each(['coralyn_prod', 'coralyn', 'postgres', 'prod_coralyn_dev', ''])(
+    'rifiuta %s',
+    (db) => {
+      expect(() => assertDevDatabase('seed', db)).toThrow(/non matcha/);
+    },
+  );
+
+  it('il messaggio nomina l’operazione e il database rifiutato', () => {
+    expect(() => assertDevDatabase('seed', 'coralyn_prod')).toThrow(/seed.*coralyn_prod/);
+  });
+
+  it('l’ancora è il PREFISSO: un nome che contiene "coralyn_dev" più avanti non passa', () => {
+    // È la differenza con la guardia delle e2e, che cerca `coralyn_test` ovunque nella URL
+    // perché lì il nome arriva da una connection string. Qui arriva da current_database().
+    expect(() => assertDevDatabase('seed', 'staging_coralyn_dev')).toThrow(/non matcha/);
+  });
+});
 
 describe('reset-dev core — funzioni pure', () => {
   it('selectTablesToWipe rimuove la keep-list dalle forced', () => {

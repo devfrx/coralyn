@@ -9,10 +9,14 @@ pnpm --filter @coralyn/api exec prisma migrate deploy
 
 if [ "${SEED_ON_START:-false}" = "true" ]; then
   echo "[entrypoint] seed tenant di sviluppo + admin..."
-  # Il seed ha una guardia che blocca NODE_ENV=production; l'immagine gira in
-  # production ma SEED_ON_START e' una comodita' DEV esplicita -> forziamo
-  # NODE_ENV=development solo per il comando di seed.
-  NODE_ENV=development pnpm --filter @coralyn/api exec prisma db seed || echo "[entrypoint] seed saltato/errore non bloccante"
+  # NODE_ENV=development serve al resto della toolchain, non piu' a scavalcare una guardia: il
+  # seed si difende ora sul nome del database (prisma/dev-database.ts), che questo script non
+  # puo' falsificare. Su un DB che non sia coralyn_dev/coralyn_test si rifiuta e basta.
+  #
+  # Nessun `|| echo`: mascherava OGNI fallimento come "non bloccante", quindi un seed andato
+  # male lasciava partire un'API senza admin e senza un errore. `set -e` lo rende fatale — che
+  # e' il punto: SEED_ON_START=true e' una richiesta esplicita, se non riesce va detto.
+  NODE_ENV=development pnpm --filter @coralyn/api exec prisma db seed
 fi
 
 echo "[entrypoint] avvio API su :${PORT:-3000}"
