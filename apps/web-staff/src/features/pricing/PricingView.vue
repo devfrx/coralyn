@@ -3,6 +3,8 @@ import { computed, ref, watchEffect } from 'vue';
 import { Button, Card, DataTable, QueryBoundary, EmptyState, Modal, ConfirmDialog, Field, Input, Select, Option, Icon, IconButton, ActionBar, formatEuro } from '@coralyn/ui-kit';
 import type { DataTableColumn } from '@coralyn/ui-kit';
 import type { BookingType, PackageEquipmentDTO, RateDTO, TimeSlotDTO } from '@coralyn/contracts';
+import { seasonIdCoveringDate } from '@/lib/seasons';
+import { useSessionStore } from '@/stores/session';
 import { useSeasons, useCreateSeason, useDeleteSeason } from './useSeasons';
 import { useRates, useCreateRate, useUpdateRate, useDeleteRate } from './useRates';
 import { useTimeSlots, useCreateTimeSlot, useUpdateTimeSlot, useDeleteTimeSlot } from './useTimeSlots';
@@ -20,6 +22,7 @@ import { useDayMap } from '@/features/map/useDayMap';
 import { rateSpecificity } from './rateSpecificity';
 
 // --- Stagioni ---
+const session = useSessionStore();
 const { data: seasons } = useSeasons();
 const createSeason = useCreateSeason();
 const deleteSeason = useDeleteSeason();
@@ -28,7 +31,9 @@ const seasonOptions = computed(() => (seasons.value ?? []).map((s) => ({ value: 
 const activeSeason = computed(() => seasons.value?.find((s) => s.id === activeSeasonId.value));
 // Seleziona la prima stagione appena arrivano i dati, se non ce n'è già una attiva.
 watchEffect(() => {
-  if (!activeSeasonId.value && (seasons.value?.length ?? 0) > 0) activeSeasonId.value = seasons.value![0].id;
+  // Default = la stagione IN CORSO, non la prima dell'elenco: con `seasons[0]` l'editor apriva
+  // una stagione diversa da quella che il banco stava applicando (radice R-D, regola unica in lib/seasons).
+  if (!activeSeasonId.value && (seasons.value?.length ?? 0) > 0) activeSeasonId.value = seasonIdCoveringDate(seasons.value!, session.activeDate);
 });
 const getSeasonId = () => activeSeasonId.value;
 

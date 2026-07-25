@@ -12,6 +12,7 @@ import { RENTAL_STATUS_LABEL, RENTAL_STATUS_TONE } from '@/lib/statusMaps';
 import { useRentals, useCheckoutRental, useReturnRental, useCancelRental } from './useRentals';
 import { useRentalItems } from './useRentalItems';
 import { useRentalTariffs } from './useRentalTariffs';
+import { seasonIdCoveringDate } from '@/lib/seasons';
 import { useSeasons } from '@/features/pricing/useSeasons';
 import { useCustomers } from '@/features/customers/useCustomers';
 import SettleRentalPaymentModal from './SettleRentalPaymentModal.vue';
@@ -29,11 +30,7 @@ const { data: customers } = useCustomers();
 // Stagione attiva: quella che copre la data operativa corrente, altrimenti la prima disponibile
 // (stesso fallback di RentalCatalogView quando non c'è ancora una stagione "in corso" configurata).
 const { data: seasons } = useSeasons();
-const activeSeasonId = computed(() => {
-  const list = seasons.value ?? [];
-  const covering = list.find((s) => s.startDate <= activeDate.value && activeDate.value <= s.endDate);
-  return covering?.id ?? list[0]?.id ?? '';
-});
+const activeSeasonId = computed(() => seasonIdCoveringDate(seasons.value ?? [], activeDate.value));
 
 const cols: DataTableColumn<RentalDTO>[] = [
   { key: 'articolo', label: 'Articolo' },

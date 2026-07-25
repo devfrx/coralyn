@@ -9,6 +9,7 @@ import type { RenewalWindowState } from '@coralyn/contracts';
 import { storeToRefs } from 'pinia';
 import { useSessionStore } from '@/stores/session';
 import { useSubscriptions, useRenewBooking, useRenewalCampaign, useOpenCampaign, useCloseCampaign } from './useRenewals';
+import { seasonIdCoveringDate } from '@/lib/seasons';
 import { useSeasons } from '@/features/pricing/useSeasons';
 import { useEntityLabels } from '@/lib/useEntityLabels';
 
@@ -25,8 +26,7 @@ const deadline = ref('');            // scadenza per l'apertura di una nuova cam
 watchEffect(() => {
   const list = seasons.value ?? [];
   if (!originSeasonId.value && list.length) {
-    const containing = list.find((s) => s.startDate <= activeDate.value && activeDate.value <= s.endDate);
-    originSeasonId.value = (containing ?? list[0]).id;
+    originSeasonId.value = seasonIdCoveringDate(list, activeDate.value);
   }
 });
 

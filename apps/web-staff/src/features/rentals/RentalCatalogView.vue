@@ -3,6 +3,8 @@ import { computed, ref, watchEffect } from 'vue';
 import { Button, Card, DataTable, QueryBoundary, EmptyState, Modal, ConfirmDialog, Field, Input, Select, Option, Icon, IconButton, ActionBar, formatEuro } from '@coralyn/ui-kit';
 import type { DataTableColumn } from '@coralyn/ui-kit';
 import type { RentalItemDTO, RentalTariffDTO } from '@coralyn/contracts';
+import { seasonIdCoveringDate } from '@/lib/seasons';
+import { useSessionStore } from '@/stores/session';
 import { useSeasons } from '@/features/pricing/useSeasons';
 import {
   useAllRentalItems,
@@ -22,12 +24,15 @@ import {
 } from './useRentalTariffs';
 
 // --- Stagioni (riuso: nessuna gestione CRUD qui, solo selettore per le tariffe) ---
+const session = useSessionStore();
 const { data: seasons } = useSeasons();
 const activeSeasonId = ref('');
 const seasonOptions = computed(() => (seasons.value ?? []).map((s) => ({ value: s.id, label: s.name })));
 // Seleziona la prima stagione appena arrivano i dati, se non ce n'è già una attiva.
 watchEffect(() => {
-  if (!activeSeasonId.value && (seasons.value?.length ?? 0) > 0) activeSeasonId.value = seasons.value![0].id;
+  // Default = la stagione IN CORSO, non la prima dell'elenco: con `seasons[0]` l'editor apriva
+  // una stagione diversa da quella che il banco stava applicando (radice R-D, regola unica in lib/seasons).
+  if (!activeSeasonId.value && (seasons.value?.length ?? 0) > 0) activeSeasonId.value = seasonIdCoveringDate(seasons.value!, session.activeDate);
 });
 
 // --- Catalogo articoli ---
