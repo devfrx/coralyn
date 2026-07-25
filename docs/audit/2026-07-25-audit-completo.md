@@ -24,9 +24,10 @@ Perimetro: **tutto il repo**, partizionato in 9 aree × 11 livelli. Modalità: r
 > aggiornato eseguendo le fasi, questo blocco no. Restano aperte **solo G e H**.
 >
 > ⚠️ **Aggiornato il 2026-07-25 (sessione 7):** D-065 è **mergiata** su `main` (CI verde, e2e
-> comprese). Della Fase G è eseguita la slice **G1**: chiuse **AUD-024**, **AUD-026**, **AUD-028**,
-> **P6-001**, **P6-010**, **P6-018** e **P6-020**. Restano **G2** (precedenza pricing e RLS
-> parametrica), **G3** (`bookings.service.ts`) e tutta la **Fase H**.
+> comprese). Della Fase G sono eseguite **G1** e **G2**: chiuse **AUD-024**, **AUD-025**,
+> **AUD-026**, **AUD-028**, **P6-001**, **P6-003**, **P6-009**, **P6-010**, **P6-018** e **P6-020**.
+> Restano **G3** (`bookings.service.ts`) e tutta la **Fase H**. Aperta [D-066](../architecture/deferred.md)
+> — fragilità del gate `verify`, trovata eseguendo.
 >
 > | Finding | Stato |
 > |---|---|
@@ -390,10 +391,31 @@ di build per compilare i test di un wrapper di `fetch` → subpath `@coralyn/ui-
   non è così**, il test A→B preesistente la prende. Plausibile che la misura originale usasse i soli
   unit, dato che allora le e2e non giravano (P6-017). Coi 3 test nuovi le rosse diventano **4**.
 
-### Fase G2 — Precedenza e isolamento *(richiede Postgres)*
-23. **AUD-025 / P6-003** — precedenza del pricing testata su 3 coppie su 15
-24. **P6-009** — RLS testata su 1 tabella su 22, in sola lettura: test parametrico derivato da
-    `grep CREATE POLICY`, con il `WITH CHECK` esercitato
+### ✅ Fase G2 — Precedenza e isolamento — **ESEGUITA** *(chiude il resto di R-I/R-J)*
+23. **AUD-025 / P6-003** — l'ordine totale di [ADR-0032](../architecture/decisions/0032-pricing-dimensioni-e-precedenza.md) §2
+    è ora **dichiarato una volta** nello spec e le **15 coppie** sono derivate da quella
+    dichiarazione, invece dei 5 test per coppia adiacente che questo piano proponeva
+24. **P6-009** — `rls-isolation.e2e-spec.ts`: le tabelle sono **derivate dal catalogo di Postgres**,
+    non elencate a mano, e il seed popola **una riga per ognuna delle 22**; il `WITH CHECK` è
+    esercitato su tutte con una `UPDATE` che sposta `establishmentId`, e su otto anche con un
+    `INSERT` esplicito
+
+*Scoperto eseguendo — due cose che cambiano la lettura dei finding:*
+- **Il `WITH CHECK` non era «mai esercitato» dal database, ma dai test.** Togliendo la clausola
+  esplicita da una policy il comportamento **non cambia**: per una policy `FOR ALL` Postgres usa
+  l'espressione `USING` anche come check sulle righe nuove. La scrittura cross-tenant è quindi
+  sempre stata respinta — mancava qualcosa che lo dimostrasse.
+- **Il cardine vero è `FORCE ROW LEVEL SECURITY`, e nessun test lo guardava.** Le tabelle sono di
+  proprietà di `coralyn_app`, che è anche il ruolo con cui gira l'API, e **Postgres esenta il
+  proprietario** da RLS senza `FORCE`. Misurato: `DISABLE` su una tabella fa cadere 1 test (che la
+  nomina), **`NO FORCE` su una sola tabella ne fa cadere 6**.
+- **Trovata una fragilità del gate, non del prodotto** → [D-066](../architecture/deferred.md):
+  `pnpm run verify` lancia le suite dei sette pacchetti in parallelo senza limite di concorrenza e
+  va in OOM sotto pressione di memoria (5,5 GB liberi → `Zone Allocation failed`; 17,9 GB → exit 0
+  sulla stessa revisione). **Non** è la flake di P6-007, che restava dentro jest ed è corretta.
+
+### Fase G3 — `bookings.service.ts`
+25. **AUD-027 / P6-006** — 1024 LOC, zero unit test. La radice è nel **codice di produzione**
 
 ### Fase G3 — `bookings.service.ts`
 25. **AUD-027 / P6-006** — 1024 LOC, zero unit test. La radice è nel **codice di produzione**

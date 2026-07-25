@@ -184,5 +184,27 @@ addendum, `flows.md` §7 (nota `source='customer'`), 4 mockup `web-customer-*.ht
   con più di due o tre operatori. *Impatto se ignorata*: **media** — è PII di operatori resa a un
   ruolo che non ne ha bisogno, su una superficie che i documenti legali descrivono.
 
+- **D-066** — **`pnpm run verify` va in OOM quando la macchina è sotto pressione di memoria.**
+  Trovata eseguendo la Fase G2, il 2026-07-25. `verify` chiama `pnpm -r test`, che lancia le suite
+  dei **sette pacchetti in parallelo** senza alcun limite di concorrenza: `apps/api` (jest, già
+  limitato a `maxWorkers: '50%'` **al proprio interno**) più quattro processi vitest, tutti insieme.
+  Con **5,5 GB liberi su 33,5** l'esito è `FATAL ERROR: Zone Allocation failed - process out of
+  memory` in `ui-kit` e `Error: spawn UNKNOWN` in `apps/api`; con **17,9 GB liberi** la stessa
+  identica revisione esce **0**.
+  ⚠️ **Non è la flake di P6-007, che è stata corretta**: quel fix limita i worker *dentro* jest, e
+  regge (`apps/api` da sola passa sempre). Qui il moltiplicatore è la concorrenza **fra pacchetti**,
+  che nessuno limita — la stessa radice **R5** dell'audit («i cancelli vanno nella configurazione»)
+  applicata un livello più in alto.
+  Misurato, non dedotto: il crash **si riproduce con la modifica di G2 messa da parte** (`git stash`
+  → 5 righe `FATAL ERROR`), quindi non dipende dai test aggiunti; e le sette suite lanciate **una
+  alla volta** sono tutte verdi.
+  *Perché rimandata*: la correzione (`pnpm -r --workspace-concurrency=N test`, o separare `test` da
+  `test:ci`) tocca lo **script condiviso su cui gira anche la CI**, e la scelta di `N` è un
+  compromesso fra tempo di gate e memoria: è una decisione dell'utente, non un ritocco.
+  *Trigger*: il primo verde/rosso non riproducibile che faccia dubitare del gate, o una macchina di
+  sviluppo con meno RAM. *Impatto se ignorata*: **media** — non è un difetto di prodotto, ma è il
+  gate che tutto il resto usa per dirsi verificato, e un gate che fallisce per ragioni ambientali
+  insegna a ignorarne il rosso. In CI oggi non si manifesta (runner dedicato, un job per volta).
+
 > Nota: le voci sopra sono il punto di partenza emerso dal brainstorming iniziale e
 > verranno raffinate man mano.
