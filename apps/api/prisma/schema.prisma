@@ -226,6 +226,7 @@ model Umbrella {
   row                  Row?          @relation(fields: [rowId], references: [id], onDelete: Restrict)
   type                 UmbrellaType? @relation(fields: [umbrellaTypeId], references: [id])
   bookings             Booking[]
+  coverages            BookingCoverage[]
 
   // NB: l'unicità (establishmentId, label) vale SOLO tra gli attivi: indice unico PARZIALE
   // `WHERE "retiredAt" IS NULL`, creato a mano nella migration umbrella_retire_soft_delete
@@ -242,6 +243,9 @@ model Booking {
   timeSlotId        String         @db.Uuid
   previousBookingId String?        @db.Uuid // rinnovo self-link (ADR-0012); null in A1
   packageId         String?        @db.Uuid // FK Package (A3.1); valorizzato dal selettore, opzionale (A3.2)
+  // Span di contratto. CHECK booking_range_valid ("startDate" <= "endDate") in migration a mano
+  // (Fase E): gemello di coverage_range_valid, di cui `terminate` (che tronca endDate) è il
+  // percorso di scrittura più esposto.
   startDate         DateTime       @db.Date
   endDate           DateTime       @db.Date
   type              BookingType
@@ -277,9 +281,19 @@ model Booking {
   transfers       BookingTransfer[]
   absenceReleases AbsenceRelease[]
 
+  // NB: l'unicità del rinnovo confermato (un solo rinnovo 'confirmed' per abbonamento di origine)
+  // è un indice unico PARZIALE `WHERE "previousBookingId" IS NOT NULL AND status = 'confirmed'`,
+  // creato a mano nella migration structural_invariants (il DSL Prisma non modella indici parziali).
+  // Serve ANCHE da indice di lettura per le due query su previousBookingId, che filtrano entrambe
+  // status='confirmed': non aggiungere un @@index([previousBookingId]) separato, sarebbe ridondante.
+  // Non reintrodurre un @@unique qui: vieterebbe il flusso legittimo annulla-rinnovo-e-rifai.
   @@index([establishmentId])
   @@index([umbrellaId])
   @@index([establishmentId, startDate, endDate])
+  // Scheda cliente + erasure GDPR (5 query) e Report/Platform (2 query, la seconda × N tenant):
+  // establishmentId in testa per allinearsi alla policy RLS, che è sempre nel predicato (P9-004).
+  @@index([establishmentId, customerId])
+  @@index([establishmentId, collectionDate])
 }
 
 // Occupazione fisica a intervalli (D-013 sospensione spec 1/2, ADR-0046). 1..N righe per Booking
@@ -293,6 +307,10 @@ model BookingCoverage {
   id              String        @id @default(uuid()) @db.Uuid
   bookingId       String        @db.Uuid
   establishmentId String        @db.Uuid
+  // Ombrellone denormalizzato dalla prenotazione madre, DB-autoritativo via lo STESSO trigger dei
+  // minuti (Fase E, P2-005): è la prima chiave di partizionamento di coverage_no_overlap, quindi un
+  // valore divergente non è un dato stantio ma occupazione fantasma. Ogni valore scritto dal
+  // chiamante viene sovrascritto con quello del Booking — vedi ADR-0046.
   umbrellaId      String        @db.Uuid
   startDate       DateTime      @db.Date
   endDate         DateTime      @db.Date
@@ -305,6 +323,7 @@ model BookingCoverage {
 
   booking       Booking       @relation(fields: [bookingId], references: [id], onDelete: Cascade)
   establishment Establishment @relation(fields: [establishmentId], references: [id])
+  umbrella      Umbrella      @relation(fields: [umbrellaId], references: [id])
 
   @@index([bookingId])
   @@index([establishmentId, startDate, endDate])
@@ -328,6 +347,11 @@ model BookingSuspension {
   booking       Booking       @relation(fields: [bookingId], references: [id], onDelete: Cascade)
   establishment Establishment @relation(fields: [establishmentId], references: [id])
 
+  // NB: «una sola sospensione APERTA per abbonamento» è un indice unico PARZIALE
+  // `WHERE "endDate" IS NULL`, creato a mano nella migration structural_invariants (il DSL Prisma
+  // non modella indici parziali). Le chiuse restano illimitate. Non reintrodurre un @@unique qui.
+  // Vale anche il CHECK suspension_range_valid ("startDate" <= "endDate"): una aperta ha endDate
+  // NULL e NON lo viola — in SQL un CHECK passa se l'espressione è TRUE *o* NULL.
   @@index([bookingId])
   @@index([establishmentId])
 }
@@ -378,6 +402,10 @@ model AbsenceRelease {
   booking       Booking       @relation(fields: [bookingId], references: [id], onDelete: Cascade)
   establishment Establishment @relation(fields: [establishmentId], references: [id])
 
+  // NB: «una sola assenza ATTIVA per (abbonamento, giorno)» è un indice unico PARZIALE
+  // `WHERE "canceledAt" IS NULL`, creato a mano nella migration structural_invariants (il DSL
+  // Prisma non modella indici parziali). Un @@unique pieno vieterebbe il flusso legittimo
+  // annulla-e-ri-registra sullo stesso giorno. Non reintrodurlo qui.
   @@index([bookingId])
   @@index([establishmentId])
 }

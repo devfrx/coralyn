@@ -282,7 +282,7 @@ erDiagram
         uuid id PK
         uuid bookingId FK
         uuid establishmentId FK "tenant (RLS)"
-        uuid umbrellaId FK
+        uuid umbrellaId FK "DB-autoritativo: ereditato dal Booking dallo stesso trigger dei minuti (P2-005)"
         date startDate
         date endDate
         int slotStartMin "minuti occupati, DB-autoritativi via trigger coverage_fill_slot_minutes_trg"
@@ -439,7 +439,32 @@ erDiagram
   **un'unica funzione pura**, `bookings/coverage.carve.ts`, che decide testa e coda rispetto al
   **frammento** e non allo span di contratto: su copertura frammentata le due cose divergono e la
   copia in `suspend` produceva un range invertito (AUD-007). Il presidio DB è il CHECK
-  **`coverage_range_valid`** (`startDate <= endDate`), gemello di `coverage_no_overlap`.
+  **`coverage_range_valid`** (`startDate <= endDate`), gemello di `coverage_no_overlap`, affiancato
+  dai gemelli **`booking_range_valid`** e **`suspension_range_valid`** sulle altre due tabelle con
+  un intervallo (Fase E; su `BookingSuspension` una aperta ha `endDate` NULL e **non** viola il
+  CHECK, perché in SQL un CHECK è violato solo da un'espressione FALSE, non da NULL).
+  Anche **`umbrellaId`** è DB-autoritativo dallo stesso trigger dei minuti, con una FK verso
+  `Umbrella` (`ON DELETE RESTRICT`, gemella di quella di `Booking`): è la prima chiave di
+  partizionamento di `coverage_no_overlap`, quindi un valore divergente non sarebbe un dato stantio
+  ma **occupazione fantasma** — un posto occupato da nessuno e un posto libero che risulta occupato
+  (P2-005).
+- **Invarianti di stato dell'abbonamento, presidiate da indici unici PARZIALI** (Fase E, P2-007).
+  Il dominio dichiara impossibili tre stati che il DB non impediva, lasciandoli alle sole guardie
+  read-then-write dei service:
+
+  | Invariante | Indice | Predicato |
+  |---|---|---|
+  | una sola sospensione **aperta** per abbonamento | `BookingSuspension_bookingId_open_key` | `WHERE "endDate" IS NULL` |
+  | una sola assenza **attiva** per (abbonamento, giorno) | `AbsenceRelease_bookingId_date_active_key` | `WHERE "canceledAt" IS NULL` |
+  | un solo rinnovo **confermato** per origine | `Booking_previousBookingId_confirmed_key` | `WHERE "previousBookingId" IS NOT NULL AND status = 'confirmed'` |
+
+  Le guardie applicative restano la prima linea e continuano a dare 409 leggibili; l'indice chiude la
+  finestra di concorrenza che una read-then-write non può chiudere da sé (stessa dottrina di
+  `coverage_no_overlap`, [ADR-0037](../architecture/decisions/0037-anti-overlap-exclusion-constraint.md)).
+  Il predicato **parziale** non è un'ottimizzazione: un unique pieno vieterebbe i flussi legittimi
+  di annulla-e-rifai (ri-sospendere dopo una riattivazione, ri-registrare un'assenza annullata,
+  ri-rinnovare dopo un annullo). Nessuno porta `establishmentId` in testa perché sono tutti chiavati
+  su un id di `Booking`, che appartiene per costruzione a un solo tenant.
 - **Disdetta e sospensione (D-013), contratto ↔ occupazione separati**: lo **span di contratto**
   (`Booking.startDate/endDate`) guida prezzo, rinnovo, **prelazione**, seniority; la **copertura** guida
   l'occupazione. La **disdetta** (1/3, implementata) tronca *entrambi* in modo permanente (`endDate=E-1`,

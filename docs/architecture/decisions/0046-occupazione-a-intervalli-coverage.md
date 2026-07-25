@@ -57,8 +57,17 @@ ALTER TABLE "BookingCoverage" ADD CONSTRAINT coverage_no_overlap EXCLUDE USING g
 `umbrellaId`, i minuti-fascia e `status` sono **denormalizzati** sulla coverage (come già erano su `Booking`,
 [ADR-0037](0037-anti-overlap-exclusion-constraint.md)) e mantenuti **DB-autoritativi** da due trigger:
 
-- `coverage_fill_slot_minutes_trg` (`BEFORE INSERT OR UPDATE OF "bookingId"`): legge la fascia della prenotazione
-  madre via `TimeSlot` e popola i minuti — stesso pattern di `booking_fill_slot_minutes_trg`.
+- `coverage_fill_slot_minutes_trg` (`BEFORE INSERT OR UPDATE OF "bookingId", "umbrellaId"`): legge la prenotazione
+  madre e ne eredita **sia** i minuti-fascia (via `TimeSlot`) **sia** l'`umbrellaId` — stesso pattern di
+  `booking_fill_slot_minutes_trg`. Qualunque valore fornito dal chiamante per quelle tre colonne viene
+  sovrascritto: la coverage non ha voce in capitolo su ciò che denormalizza.
+
+  > ⚠️ **La riga sopra è diventata vera il 2026-07-25 (Fase E dell'audit), non lo era prima.** Questo ADR
+  > dichiarava `umbrellaId` DB-autoritativo fin dall'origine, ma il trigger popolava **solo** i minuti: si era
+  > protetta la denormalizzazione oraria e lasciata scoperta quella spaziale, benché `umbrellaId` sia la prima
+  > chiave di partizionamento di `coverage_no_overlap`. È il finding **P2-005**, insieme all'assenza di una FK
+  > verso `Umbrella` (ora presente, `ON DELETE RESTRICT`, gemella di `Booking_umbrellaId_fkey`). La decisione
+  > di questo ADR non cambia: cambia il fatto che il codice ora la implementa davvero.
 - `booking_sync_coverage_status_trg` (`AFTER UPDATE OF "status" ON "Booking"`): propaga lo `status` del `Booking`
   a **tutte** le sue coverage, così il partial `WHERE (status = 'confirmed')` del constraint resta corretto senza
   che l'app debba scrivere lo status due volte.
