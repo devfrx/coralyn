@@ -1,6 +1,6 @@
 # Handoff 2026-07-25 (sessione 3): Fase C mergiata, CI verde, fasi D→H aperte
 
-> ⚠️ **Superato da [2026-07-25 Fase D eseguita](2026-07-25-fase-d-eseguita-non-mergiata.md)**, che è
+> ⚠️ **Superato da [2026-07-25 Fase D eseguita](2026-07-25-fase-d-mergiata.md)**, che è
 > ora il punto d'ingresso. Questo resta valido come racconto della Fase C; le righe rese false dalla
 > Fase D sono state **corrette qui sotto**, non annotate.
 >
@@ -249,11 +249,11 @@ aperto, Fase H.
 
 ### 5.2 Fasi D → H — piano in [§4 del report](../audit/2026-07-25-audit-completo.md)
 
-**✅ Fase D — bug di correttezza — ESEGUITA** sul branch `chore/audit-2026-07-25-fase-d`, non
-mergiata: `carveInterval` puro + CHECK `coverage_range_valid` · `P2003 → 409` · thunk nei composable
+**✅ Fase D — bug di correttezza — ESEGUITA E MERGIATA** su `main`:
+`carveInterval` puro + CHECK `coverage_range_valid` · `P2003 → 409` · thunk nei composable
 di `useCustomers` · logout e redirect in `web-customer` · `@IsUuidShape()` + lint · `pinAttempts` con
 `increment` · articolo archiviato non noleggiabile · guardia «cliente anonimizzato» nei 4 write-path.
-Dettaglio in [2026-07-25 Fase D eseguita](2026-07-25-fase-d-eseguita-non-mergiata.md).
+Dettaglio in [2026-07-25 Fase D eseguita](2026-07-25-fase-d-mergiata.md).
 
 **Fase E — presidi strutturali** *(migration)*
 Indici unici parziali (sospensione aperta, release attiva, rinnovo confermato) · FK su

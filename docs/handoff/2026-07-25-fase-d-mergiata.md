@@ -1,4 +1,4 @@
-# Handoff 2026-07-25 (sessione 4): Fase D eseguita, branch pronto e NON mergiato
+# Handoff 2026-07-25 (sessione 4): Fase D eseguita e MERGIATA su `main`
 
 > **Punto d'ingresso unico.** Sostituisce
 > [2026-07-25 Fase C mergiata](2026-07-25-fase-c-mergiata-ci-verde-prossime-fasi.md), che resta
@@ -8,17 +8,19 @@
 
 ## 0. In una riga
 
-**Fase D dell'audit è eseguita e verificata sul branch `chore/audit-2026-07-25-fase-d`
-(6 commit sopra `main` = `37a585f`). NON è mergiata: serve il tuo ok.**
-`pnpm run verify` → exit 0. Ogni difetto è stato **riprodotto con un test rosso prima del fix**;
-ogni fix è stato **provato per mutazione**.
+**Fase D dell'audit è eseguita, verificata e MERGIATA su `main`** il 2026-07-25 (fast-forward da
+`37a585f`, 8 commit). Nessun branch pendente. `pnpm run verify` → exit 0. Ogni difetto è stato
+**riprodotto con un test rosso prima del fix**; ogni fix è stato **provato per mutazione**.
+
+Restano aperte le fasi **E → H** (§5.2) e due decisioni tue (§5.1).
 
 ---
 
 ## 1. Cosa è stato fatto
 
-Sei commit, uno per finding. Il razionale completo è nei messaggi: `git log --format=%B main..HEAD`
-è la fonte più densa. Qui solo ciò che cambia il modo di lavorare sul repo.
+Sei commit di codice, uno per finding, più due di documentazione. Il razionale completo è nei
+messaggi: `git log --format=%B 37a585f..HEAD` è la fonte più densa. Qui solo ciò che cambia il modo
+di lavorare sul repo.
 
 | Commit | Finding | Cosa è cambiato |
 |---|---|---|
@@ -193,7 +195,8 @@ affermazioni false**. Finding P4-006, aperto, Fase H.
 - **Prossimo ADR libero: 0058. Prossima deferred libera: D-065.**
 - **`gh` non è installato**: per l'esito CI usa l'API pubblica
   (`https://api.github.com/repos/devfrx/coralyn/actions/runs`).
-- **Nessun merge su `main` senza ok esplicito.**
+- **Nessun merge su `main` senza ok esplicito.** (La Fase D è stata mergiata dopo l'ok dell'utente
+  del 2026-07-25.)
 
 ---
 

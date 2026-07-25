@@ -9,9 +9,9 @@ Perimetro: **tutto il repo**, partizionato in 9 aree × 11 livelli. Modalità: r
 > `a996dd6`, spinto su `origin/main`). La CI ha girato per la **prima volta** su quel push:
 > [run #1](https://github.com/devfrx/coralyn/actions/runs/30159012576), entrambi i job verdi.
 >
-> **Fase D eseguita e verificata** il 2026-07-25 sul branch `chore/audit-2026-07-25-fase-d`
-> (6 commit), **non ancora mergiata**. Ogni difetto è stato riprodotto con un test rosso PRIMA del
-> fix, e ogni fix è stato provato per mutazione.
+> **Fase D eseguita, verificata e MERGIATA su `main`** il 2026-07-25 (fast-forward da `37a585f`).
+> Ogni difetto è stato riprodotto con un test rosso PRIMA del fix, e ogni fix è stato provato per
+> mutazione.
 >
 > | Finding | Stato |
 > |---|---|
@@ -274,7 +274,7 @@ doppio type-check, oggi fatto una volta da `tsc` e una volta per worker da ts-je
 9. **AUD-016/017** — `validate` con class-validator, nessuna dipendenza nuova; valida senza trasformare, per non rompere i lettori esistenti
 10. **AUD-005** — guardia del seed su `current_database()`, condivisa con `reset-dev`
 
-### ✅ Fase D — Bug di correttezza — **ESEGUITA** *(branch `chore/audit-2026-07-25-fase-d`, 6 commit, non mergiata)*
+### ✅ Fase D — Bug di correttezza — **ESEGUITA E MERGIATA** *(6 commit di codice, fast-forward su `main`)*
 11. **AUD-007** — `carveInterval` puro usato da suspend (aperto e chiuso), releaseAbsence e terminate + CHECK `coverage_range_valid`
 12. **AUD-008** — `P2003 → 409` in `mapPrismaKnownError` + i count mancanti in `SeasonsService.remove`
 13. **AUD-009** — thunk nei composable di `useCustomers.ts` (15 composable, 12 punti di chiamata)
