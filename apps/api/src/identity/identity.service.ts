@@ -1,7 +1,7 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import type { User } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
-import { PasswordHasher } from './password-hasher';
+import { PasswordHasher } from '../crypto/password-hasher';
 import { TokenService } from './token.service';
 import { LoginInput, LoginResponse, Role, UserDTO } from '@coralyn/contracts';
 

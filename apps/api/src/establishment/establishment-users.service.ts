@@ -4,7 +4,7 @@ import { randomBytes } from 'node:crypto';
 import type { CreateStaffUserInput, EstablishmentMemberDTO, ResetStaffPasswordResponse } from '@coralyn/contracts';
 import { PrismaService } from '../prisma/prisma.service';
 import { TenantContext } from '../tenant/tenant-context';
-import { PasswordHasher } from '../identity/password-hasher';
+import { PasswordHasher } from '../crypto/password-hasher';
 import { CredentialSetupService } from '../credential/credential-setup.service';
 
 type UserRow = { id: string; email: string; role: string; disabledAt: Date | null };

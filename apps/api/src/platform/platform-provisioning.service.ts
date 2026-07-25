@@ -3,7 +3,7 @@ import { Prisma } from '@prisma/client';
 import { randomBytes } from 'node:crypto';
 import type { CreateEstablishmentInput, CreateEstablishmentResponse, PlatformEstablishmentDTO, ResetAdminPasswordResponse } from '@coralyn/contracts';
 import { PrismaService } from '../prisma/prisma.service';
-import { PasswordHasher } from '../identity/password-hasher';
+import { PasswordHasher } from '../crypto/password-hasher';
 import { PlatformMetricsService } from './platform-metrics.service';
 import { CredentialSetupService } from '../credential/credential-setup.service';
 

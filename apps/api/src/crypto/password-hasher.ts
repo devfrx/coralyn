@@ -3,10 +3,11 @@ import { randomBytes } from 'crypto';
 import * as argon2 from 'argon2';
 
 /**
- * Hash civetta, condiviso da tutte le istanze del processo: `PasswordHasher` è ri-provveduto da
- * più moduli (finding aperto, Fase F), e senza questa condivisione ogni istanza pagherebbe il
- * proprio argon2. Generato da un valore casuale: nessuno conosce la password che lo produce, e
- * la verifica fallisce sempre. Pigro: chi non tocca mai il ramo non lo paga.
+ * Hash civetta, a livello di modulo. Da quando `PasswordHasher` è provveduto una volta sola da
+ * CryptoModule (@Global, Fase F) l'istanza è già unica; resta qui perché il costo va pagato una
+ * volta per PROCESSO e non per istanza, che è la garanzia più forte delle due. Generato da un
+ * valore casuale: nessuno conosce la password che lo produce, e la verifica fallisce sempre.
+ * Pigro: chi non tocca mai il ramo non lo paga.
  */
 let decoyHash: Promise<string> | undefined;
 

@@ -4,7 +4,6 @@ import { ConfigService } from '@nestjs/config';
 import { APP_GUARD } from '@nestjs/core';
 import { AuthController } from './auth.controller';
 import { IdentityService } from './identity.service';
-import { PasswordHasher } from './password-hasher';
 import { TokenService } from './token.service';
 import { JwtAuthGuard } from './jwt-auth.guard';
 import { PermissionsGuard } from './permissions.guard';
@@ -24,8 +23,7 @@ import { CredentialModule } from '../credential/credential.module';
   controllers: [AuthController],
   providers: [
     IdentityService,
-    PasswordHasher,
-    TokenService,
+        TokenService,
     { provide: APP_GUARD, useClass: JwtAuthGuard },
     // L'ordine conta: JwtAuthGuard popola req.user, PermissionsGuard lo legge (ADR-0057).
     { provide: APP_GUARD, useClass: PermissionsGuard },

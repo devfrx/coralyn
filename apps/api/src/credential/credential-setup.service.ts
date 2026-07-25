@@ -3,7 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import type { Prisma } from '@prisma/client';
 import type { CredentialSetupContext, CredentialTokenPurpose } from '@coralyn/contracts';
 import { PrismaService } from '../prisma/prisma.service';
-import { PasswordHasher } from '../identity/password-hasher';
+import { PasswordHasher } from '../crypto/password-hasher';
 import { MailerService } from '../mail/mailer.service';
 import { generateRawToken, hashToken } from './token-hash';
 

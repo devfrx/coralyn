@@ -16,7 +16,6 @@ import { UmbrellasService } from './umbrellas.service';
 import { SetupStatusService } from './setup-status.service';
 import { LegalProfileService } from './legal-profile.service';
 import { LegalProfileController } from './legal-profile.controller';
-import { PasswordHasher } from '../identity/password-hasher';
 import { CredentialModule } from '../credential/credential.module';
 
 @Module({
@@ -41,8 +40,7 @@ import { CredentialModule } from '../credential/credential.module';
     UmbrellasService,
     SetupStatusService,
     LegalProfileService,
-    PasswordHasher,
-  ],
+      ],
   exports: [SetupStatusService, LegalProfileService],
 })
 export class EstablishmentModule {}

@@ -8,6 +8,7 @@ import { TenantModule } from './tenant/tenant.module';
 import { CustomersModule } from './customers/customers.module';
 import { MapModule } from './map/map.module';
 import { BookingsModule } from './bookings/bookings.module';
+import { CryptoModule } from './crypto/crypto.module';
 import { IdentityModule } from './identity/identity.module';
 import { CatalogModule } from './catalog/catalog.module';
 import { ReportsModule } from './reports/reports.module';
@@ -35,6 +36,7 @@ import { validateEnv } from './common/env.validation';
     }),
     PrismaModule,
     TenantModule,
+    CryptoModule,
     IdentityModule,
     CustomersModule,
     MapModule,

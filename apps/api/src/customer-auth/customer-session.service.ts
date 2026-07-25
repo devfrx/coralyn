@@ -7,7 +7,7 @@ import type {
   CustomerRefreshInput,
 } from '@coralyn/contracts';
 import { PrismaService } from '../prisma/prisma.service';
-import { PasswordHasher } from '../identity/password-hasher';
+import { PasswordHasher } from '../crypto/password-hasher';
 import { generateRawToken, hashToken } from '../credential/token-hash';
 import { CustomerTokenService } from './customer-token.service';
 

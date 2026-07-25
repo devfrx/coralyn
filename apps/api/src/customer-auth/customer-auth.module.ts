@@ -7,11 +7,14 @@ import { CustomerAccessService } from './customer-access.service';
 import { CustomerSessionService } from './customer-session.service';
 import { CustomerAuthController } from './customer-auth.controller';
 import { TenantModule } from '../tenant/tenant.module';
-import { PasswordHasher } from '../identity/password-hasher';
 
-// PasswordHasher è stateless: lo ri-provvediamo qui (come fa CredentialModule) per non creare
-// una dipendenza circolare Identity↔CustomerAuth. TenantModule è @Global ma lo importiamo
-// esplicitamente per dichiarare la dipendenza (TenantContext usato da CustomerAccessService).
+// TenantModule è @Global ma lo importiamo esplicitamente per dichiarare la dipendenza
+// (TenantContext usato da CustomerAccessService).
+//
+// ⛔ Qui c'era: «PasswordHasher lo ri-provvediamo per non creare una dipendenza circolare
+// Identity↔CustomerAuth». Il ciclo NON esisteva — IdentityModule importa solo JwtModule e
+// CredentialModule, mai questo — ed era una copia del commento di CredentialModule, dove invece
+// è vero. Ora l'hasher arriva da CryptoModule (@Global), unico per tutto il processo.
 @Module({
   imports: [
     TenantModule,
@@ -29,8 +32,7 @@ import { PasswordHasher } from '../identity/password-hasher';
     CustomerJwtGuard,
     CustomerAccessService,
     CustomerSessionService,
-    PasswordHasher,
-  ],
+      ],
   exports: [CustomerTokenService, CustomerJwtGuard, CustomerAccessService, CustomerSessionService],
 })
 export class CustomerAuthModule {}

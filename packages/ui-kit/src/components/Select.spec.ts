@@ -1,8 +1,9 @@
 import { describe, it, expect, afterEach, vi } from 'vitest';
 import { mount } from '@vue/test-utils';
-import { nextTick } from 'vue';
+import { nextTick, h } from 'vue';
 import Select from './Select.vue';
 import Option from './Option.vue';
+import Field from './Field.vue';
 
 // reka-ui Popper misura via ResizeObserver (assente in jsdom); il trigger usa le pointer-capture API.
 class ResizeObserverStub { observe() {} unobserve() {} disconnect() {} }
@@ -118,5 +119,38 @@ describe('Select (reka-ui)', () => {
     pointerdown(t.element);
     await nextTick();
     expect(bodyOptions()).toHaveLength(0); // disabled: non apre
+  });
+});
+
+describe('Select — nome accessibile (AUD-013, WCAG 4.1.2)', () => {
+  // Il difetto: Field avvolge il controllo in un <label>, che per <input> basta ma per un
+  // <button role="combobox"> non fa nulla — un button non è un labelable element. Lo screen
+  // reader annunciava il VALORE e mai l'etichetta, su tutte e 32 le combobox del prodotto.
+  it('dentro un Field, il trigger è etichettato dallo <span> del Field', () => {
+    const w = mount(Field, {
+      props: { label: 'Fascia oraria' },
+      slots: { default: h(Select, { options: [{ value: 'm', label: 'Mattina' }] }) },
+      global: { stubs: { teleport: true } },
+    });
+    const trigger = w.get('[role="combobox"]');
+    const labelledBy = trigger.attributes('aria-labelledby');
+    expect(labelledBy).toBeTruthy();
+    expect(w.get(`#${labelledBy}`).text()).toBe('Fascia oraria');
+  });
+
+  it("un aria-label esplicito del chiamante VINCE sul Field (chi ha gia' risolto non viene sovrascritto)", () => {
+    const w = mount(Field, {
+      props: { label: 'Fascia oraria' },
+      slots: { default: h(Select, { 'aria-label': 'Scegli la fascia', options: [] }) },
+      global: { stubs: { teleport: true } },
+    });
+    const trigger = w.get('[role="combobox"]');
+    expect(trigger.attributes('aria-labelledby')).toBeUndefined();
+    expect(trigger.attributes('aria-label')).toBe('Scegli la fascia');
+  });
+
+  it('fuori da un Field non inventa un aria-labelledby verso un id inesistente', () => {
+    const w = mount(Select, { props: { options: [] }, global: { stubs: { teleport: true } } });
+    expect(w.get('[role="combobox"]').attributes('aria-labelledby')).toBeUndefined();
   });
 });

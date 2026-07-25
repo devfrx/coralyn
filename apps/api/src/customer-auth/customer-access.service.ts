@@ -3,7 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import type { CustomerAccessStatusDTO, CustomerProvisionResponse } from '@coralyn/contracts';
 import { PrismaService } from '../prisma/prisma.service';
 import { TenantContext } from '../tenant/tenant-context';
-import { PasswordHasher } from '../identity/password-hasher';
+import { PasswordHasher } from '../crypto/password-hasher';
 import { generateRawToken, hashToken } from '../credential/token-hash';
 import { generatePin } from './pin';
 
