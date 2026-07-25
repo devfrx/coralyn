@@ -3,28 +3,52 @@
 > **Punto d'ingresso unico.** Stato, baseline verde misurata, gotcha cumulativi (sostituiscono la
 > rilettura degli handoff precedenti), metodo atteso e lavori aperti.
 
-**`main = 24c41ba` = `origin/main`, INVARIATA.** Tutto il lavoro vive su **due branch non mergiati**:
+> **Stato aggiornato il 2026-07-25 (sessione successiva).** I due branch descritti qui sotto sono
+> stati **mergiati su `main` e pushati** con ok esplicito dell'utente, e la ricostruzione
+> dell'handoff 5.6a è stata **scartata** — vedi §1a, che è stata riscritta.
 
-| Branch | Commit | Contenuto |
-|---|---|---|
-| `docs/handoff-5-6a-ricostruito` | 2 | handoff 5.6a ricostruito + riga `.gitignore` per `RUNBOOK.local.md` |
-| `feat/legal-d061-d062` | 7 | documenti legali + package `@coralyn/legal` + ADR-0056 + fix deploy |
+Al momento della scrittura di questo documento: `main = 24c41ba = origin/main`, e tutto il lavoro
+viveva su **due branch non mergiati**:
 
-⚠️ **Mergia PRIMA `docs/handoff-5-6a-ricostruito`**: porta la riga di `.gitignore` che ignora
-`RUNBOOK.local.md`. Sull'altro branch quel file risulta non tracciato (mai committato per sbaglio:
-tutti i commit usano path espliciti).
+| Branch | Commit | Contenuto | Esito |
+|---|---|---|---|
+| `docs/handoff-5-6a-ricostruito` | 2 | handoff 5.6a ricostruito + riga `.gitignore` per `RUNBOOK.local.md` | ricostruzione **scartata**, riga `.gitignore` mergiata |
+| `feat/legal-d061-d062` | 8 | documenti legali + package `@coralyn/legal` + ADR-0056 + fix deploy | **mergiato** (rebase + FF) |
 
 ---
 
 ## 1. Cosa è stato fatto
 
-### 1a. Ricostruzione dell'handoff 5.6a (branch `docs/handoff-5-6a-ricostruito`)
+### 1a. L'handoff 5.6a NON era mancante — correzione
 
-L'handoff della sessione 5.6a **non era mai stato scritto** (verificato: `git log --all
---diff-filter=A` non lo trova su nessun ref, niente in stash). Ricostruito da fonti verificabili — i
-24 commit `ff5cf1e..24c41ba`, ADR-0055, spec e piano — con baseline **rimisurata da zero**.
-Non ricostruibile, e segnalato come tale: i «3 follow-up dalla review Opus» vivevano in
-`.superpowers/` (gitignorato, non sopravvissuto).
+> **Questa sezione è stata riscritta il 2026-07-25.** Il testo originale affermava che l'handoff
+> della sessione 5.6a «non era mai stato scritto» e ne documentava la ricostruzione. **L'affermazione
+> era falsa**, e vale la pena conservare il perché: è una lezione sul confine tra una verifica
+> corretta e una conclusione sbagliata.
+
+La verifica eseguita allora — `git log --all --diff-filter=A` più un controllo degli stash — era
+**corretta**, e correttamente non trovava nulla. Ma rispondeva a «esiste in *questo clone*?», non a
+«esiste?». L'handoff **era stato scritto**, dall'utente, il **2026-07-24 alle 20:01** — commit
+**`74d277b`**, `docs(handoff): 2026-07-24 (3a) privacy 5.6a mergiata + lavori aperti` — e viveva su
+un altro clone, non ancora pushato. È comparso su `origin/main` mentre questa slice era in corso, e
+ha fatto **respingere il push**.
+
+**Lezione riutilizzabile:** `--all` copre i ref *locali*. Prima di dichiarare che qualcosa non
+esiste, `git fetch` — l'assenza da un clone non è assenza.
+
+**Riconciliazione** (decisione dell'utente): l'originale `74d277b` **vince** e resta al suo path; il
+commit di ricostruzione è stato **eliminato** ribasando `main` su `origin/main`. La riga `.gitignore`
+per `RUNBOOK.local.md`, che stava sullo stesso branch, è stata mantenuta. Il link in §7 punta allo
+stesso filename e continua a risolvere, su un documento migliore.
+
+**Cosa il documento vero contiene e la ricostruzione no:** una §5.1 «Residui diretti di 5.6a» con i
+**«3 follow-up dalla review Opus»** che la ricostruzione aveva dichiarato irrecuperabili (li credeva
+persi in `.superpowers/`, gitignorato). Sono recuperati e riportati in §5 qui sotto.
+
+**Cosa la ricostruzione aveva di suo**, e che non si perde perché è già nella tabella di §2: la
+baseline dell'originale scrive «web-staff (incl. ui-kit) 608», ma
+`pnpm --filter @coralyn/web-staff test` **non** esegue ui-kit, che è una suite a sé (190). I due
+numeri vanno letti separati.
 
 ### 1b. Documenti legali D-061/D-062 (`docs/legal/`)
 
@@ -190,6 +214,11 @@ test per app lo vietano. **Doppio artefatto**: `docs/legal/*.md` (per il legale)
 
 ### Processo
 
+- **`git log --all` copre solo i ref LOCALI. Fai `git fetch` prima di dichiarare che qualcosa non
+  esiste.** Costato una ricostruzione intera buttata: l'handoff 5.6a esisteva su un altro clone e
+  `--all` non poteva vederlo (vedi §1a). L'assenza da un clone non è assenza.
+- **Il repo ha più di un clone attivo.** Prima di una sessione lunga, `git fetch` — `origin/main` può
+  essere avanzata anche se l'handoff precedente la dava ferma.
 - `.superpowers/` gitignorato; ledger `sdd/progress.md` append-only. **Prossimo prefisso scratch
   libero: `task-sl-N`.**
 - **Prossimo ADR libero: 0057. Prossima deferred libera: D-063.**
@@ -256,6 +285,26 @@ Documentati in [`docs/legal/README.md`](../legal/README.md), meritano una slice 
   (`verifica-informativa-5492@esempio.test`, creato per verificare l'email e disattivato: l'API non
   espone un delete per gli utenti staff).
 
+### Residui di 5.6a — RECUPERATI il 2026-07-25 (§5.1 dell'handoff vero, vedi §1a)
+
+Questi erano dati per persi. Vengono dalla review Opus di 5.6a e sono tutti **minori e non
+bloccanti**, ma non erano più tracciati da nessuna parte:
+
+- **`PrivacyView` passa `eid.value` come snapshot** a `usePublicInformativa`: l'id **non è reattivo**
+  se lo *stesso* componente montato cambia `?e=`. Impatto reale nullo oggi — il deep-link operatore
+  apre un tab nuovo, quindi rimonta.
+- **`Promise.all` di due read dentro una transazione interattiva** in `getTitolare`. Questione di
+  stile: sequenziale sarebbe più prudente.
+- **Tre gap di copertura test**: `create.establishmentId` nell'unit di `upsert`; e2e del
+  **null-clearing** sul `PUT`; conversione `''`→`null` e clear di `dpoContact` nello spec del modal.
+- **`ConfirmDialog` senza `description`**: se una conferma non passa `description` e non ha slot
+  default, il body resta **vuoto**. Nessuna conferma attuale è in questo caso: è un mini-gap.
+
+Nota su D-059: la §5.1 dell'handoff vero descrive `Rental.customerId` come **caso a parte** e con le
+stesse parole usate qui («comportamento emergente, non una decisione»). È lo stesso punto del
+difetto di prodotto (a) qui sopra, visto dal lato schema invece che dal lato guardia: vanno decisi
+**insieme**.
+
 ## 6. Verifica visiva già fatta (non serve rifarla)
 
 In questa sessione le pagine legali sono state verificate **nel browser**: `/legale/informativa` e
@@ -280,6 +329,7 @@ recapitato**, letto da Mailpit.
 - **Runbook di macchina**: `RUNBOOK.local.md` alla root (gitignorato).
 - **Calendario e2e congelato al 2026-07-15** — leggilo **prima** di scrivere e2e:
   [2026-07-22](2026-07-22-e2e-frozen-calendar.md).
-- Handoff precedenti: [5.6a ricostruito](2026-07-24-privacy-5-6a-mergiata-e-lavori-aperti.md) (sul
-  branch `docs/handoff-5-6a-ricostruito`) · [5.3 Calendar](2026-07-24-calendar-daynav-fix-ui-e-lavori-aperti.md).
+- Handoff precedenti: [5.6a](2026-07-24-privacy-5-6a-mergiata-e-lavori-aperti.md) (l'**originale**,
+  `74d277b` — non la ricostruzione, vedi §1a) ·
+  [5.3 Calendar](2026-07-24-calendar-daynav-fix-ui-e-lavori-aperti.md).
 - Deferred: [deferred.md](../architecture/deferred.md).
