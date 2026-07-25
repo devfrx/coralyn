@@ -155,7 +155,7 @@ I cluster di 2+ azioni si compongono con `<ActionBar>` (layout centralizzato: `a
 
 - **Status:** Accepted
 - **Data:** 2026-07-07
-- **ADR correlati:** [0002](0002-decision-rubric.md), [0044](0044-iconbutton-variante-danger.md)
+- **ADR correlati:** [0002](../../architecture/decisions/0002-decision-rubric.md), [0044](../../architecture/decisions/0044-iconbutton-variante-danger.md)
 - **Spec:** [2026-07-07-cta-coherence-audit-design.md](../../superpowers/specs/2026-07-07-cta-coherence-audit-design.md)
 
 ## Context

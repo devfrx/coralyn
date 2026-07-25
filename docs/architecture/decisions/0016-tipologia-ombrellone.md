@@ -118,4 +118,4 @@ opzionale (nullable): una chiave del registry icone del `ui-kit` che fornisce il
 tipo* sulla cella di mappa. È un attributo di **presentazione persistito per tipo**
 (configurato dal gestore), **additivo** e con fallback senza icona; non altera la decisione
 principale (Tipologia = classificazione ortogonale, non dimensione di prezzo). Riflesso nel
-[data-model](../design/data-model.md).
+[data-model](../../design/data-model.md).

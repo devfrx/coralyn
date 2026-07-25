@@ -2,7 +2,7 @@
 
 - **Status:** Accepted
 - **Data:** 2026-07-06
-- **ADR correlati:** [0009](0009-metodo-decisionale.md), [0023](0023-contatti-cliente-colonne-tipizzate.md), [0039](0039-rbac-role-guard.md)
+- **ADR correlati:** [0009](0009-documentazione-di-design.md), [0023](0023-contatti-cliente-colonne-tipizzate.md), [0039](0039-rbac-role-guard.md)
 - **Spec:** [2026-07-06-gdpr-customer-erasure-d024-design.md](../../superpowers/specs/2026-07-06-gdpr-customer-erasure-d024-design.md)
 - **Deferred:** [D-024](../deferred.md), [D-047](../deferred.md)
 

@@ -1157,7 +1157,7 @@ Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>"
 
 - **Status:** Accepted
 - **Data:** 2026-06-29
-- **ADR correlati:** [0010](0010-isolamento-multi-tenant.md), [0015](0015-osservabilita-e-console-superuser.md), [0025](0025-hashing-password.md), [0026](0026-identita-rls-utente.md)
+- **ADR correlati:** [0010](../architecture/decisions/0010-isolamento-multi-tenant.md), [0015](../architecture/decisions/0015-osservabilita-e-console-superuser.md), [0025](../architecture/decisions/0025-hashing-password.md), [0026](../architecture/decisions/0026-identita-rls-utente.md)
 
 ## Context
 Il Core deve autenticare lo staff e ricavare il tenant (e il ruolo) per ogni richiesta,
@@ -1197,7 +1197,7 @@ sostituendo l'header provvisorio `X-Stabilimento-Id` del Plan 1 senza toccare i 
 
 - **Status:** Accepted
 - **Data:** 2026-06-29
-- **ADR correlati:** [0024](0024-strategia-auth.md)
+- **ADR correlati:** [0024](../architecture/decisions/0024-strategia-auth.md)
 
 ## Context
 Le password degli `Utente` vanno memorizzate con un algoritmo di hashing resistente.
@@ -1229,7 +1229,7 @@ Le password degli `Utente` vanno memorizzate con un algoritmo di hashing resiste
 
 - **Status:** Accepted
 - **Data:** 2026-06-29
-- **ADR correlati:** [0010](0010-isolamento-multi-tenant.md), [0024](0024-strategia-auth.md)
+- **ADR correlati:** [0010](../architecture/decisions/0010-isolamento-multi-tenant.md), [0024](../architecture/decisions/0024-strategia-auth.md)
 
 ## Context
 Il Plan 1 stabilisce che ogni tabella tenant-scoped abbia `stabilimentoId` + policy RLS
@@ -1263,9 +1263,9 @@ tutti gli utenti a qualunque query non scoped.
 
 ```markdown
 | D-025 | Gestione utenti & RBAC sugli endpoint (admin crea/elenca/disabilita staff) | Lo slice `identita` fa solo auth core (login + guard); il provisioning oltre al seed e i decoratori di ruolo sono un increment a parte. | Serve creare utenti staff dall'app oltre al seed. | Bassa: additivo (endpoint + colonne `attivo`/`creatoIl`), su modello `Utente` già presente. |
-| D-026 | Refresh & revoca dei token (refresh token, rotazione/blacklist) | L'MVP usa un access token JWT stateless a vita breve ([ADR-0024](decisions/0024-strategia-auth.md)). | Sessioni lunghe o necessità di logout immediato. | Media: il token resta valido fino a scadenza; mitigato dalla durata breve. |
+| D-026 | Refresh & revoca dei token (refresh token, rotazione/blacklist) | L'MVP usa un access token JWT stateless a vita breve ([ADR-0024](../architecture/decisions/0024-strategia-auth.md)). | Sessioni lunghe o necessità di logout immediato. | Media: il token resta valido fino a scadenza; mitigato dalla durata breve. |
 | D-027 | Rate-limiting / protezione brute-force sul login | Non necessario sul deploy interno dell'MVP; va aggiunto all'esposizione pubblica. | Endpoint di login esposto pubblicamente. | Media: senza throttling il login è attaccabile a forza bruta. |
-| D-028 | Percorso privilegiato RLS per `Utente` (difesa-in-profondità oltre il choke point) | `Utente` non ha RLS per scelta ([ADR-0026](decisions/0026-identita-rls-utente.md)); l'accesso è mediato solo a livello applicativo. | Più accessori della tabella identità o requisito di hardening formale. | Bassa: oggi unico accessore `IdentitaService`; additivo in futuro. |
+| D-028 | Percorso privilegiato RLS per `Utente` (difesa-in-profondità oltre il choke point) | `Utente` non ha RLS per scelta ([ADR-0026](../architecture/decisions/0026-identita-rls-utente.md)); l'accesso è mediato solo a livello applicativo. | Più accessori della tabella identità o requisito di hardening formale. | Bassa: oggi unico accessore `IdentitaService`; additivo in futuro. |
 ```
 
 - [ ] **Step 5: Aggiorna `docs/design/data-model.md`** (nota sotto "Invarianti e regole")

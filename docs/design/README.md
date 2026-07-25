@@ -10,8 +10,7 @@ Diagrammi e mockup **versionati e tenuti aggiornati** (vedi
   componenti del FE (`ui-kit`): spec d'implementazione di ADR-0017–0020.
 - [mockups/](mockups/) — snapshot HTML delle schermate:
   [Coralyn.dc.html](mockups/Coralyn.dc.html) — **design FE corrente** ("Mediterraneo Caldo",
-  [ADR-0027](../architecture/decisions/0027-coralyn-linguaggio-visivo.md)); bundle renderizzato:
-  [`Coralyn - Gestionale Lidi.html`](../../Coralyn%20-%20Gestionale%20Lidi.html) ·
+  [ADR-0027](../architecture/decisions/0027-coralyn-linguaggio-visivo.md)) ·
   [subscription-suspension-modal.html](mockups/subscription-suspension-modal.html) — **sospensione abbonamento**
   (card Scheda + modali Sospendi/Riattiva, D-013; *design, non ancora implementata*) ·
   [frontend-app-shell.html](mockups/frontend-app-shell.html) — *storico* (direzione "Costiero professionale", superato da Coralyn) ·

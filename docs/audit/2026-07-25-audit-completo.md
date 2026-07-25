@@ -396,7 +396,7 @@ di build per compilare i test di un wrapper di `fetch` → subpath `@coralyn/ui-
   unit, dato che allora le e2e non giravano (P6-017). Coi 3 test nuovi le rosse diventano **4**.
 
 ### ✅ Fase G2 — Precedenza e isolamento — **ESEGUITA** *(chiude il resto di R-I/R-J)*
-23. **AUD-025 / P6-003** — l'ordine totale di [ADR-0032](../architecture/decisions/0032-pricing-dimensioni-e-precedenza.md) §2
+23. **AUD-025 / P6-003** — l'ordine totale di [ADR-0032](../architecture/decisions/0032-pricing-engine-precedenza.md) §2
     è ora **dichiarato una volta** nello spec e le **15 coppie** sono derivate da quella
     dichiarazione, invece dei 5 test per coppia adiacente che questo piano proponeva
 24. **P6-009** — `rls-isolation.e2e-spec.ts`: le tabelle sono **derivate dal catalogo di Postgres**,
@@ -459,9 +459,38 @@ guardiano è a un livello solo, ed è quello lento (radice **R4**, non R3).
 1005-1006). Richiedono una race vera; il constraint è coperto a livello DB da
 `booking-overlap-constraint.e2e-spec.ts`. Annotato nel codice per non farli "coprire" con test finti.
 
-### Fase H — Documentazione *(chiude R-G)*
-23. Correggere le affermazioni false verificate (D-061, ⚖️-18, `data-model.md`, indice ADR, README root, README web-staff, guida deploy)
-24. Igiene di `deferred.md` · spostare le asserzioni verificabili dai documenti ai test
+### 🟡 Fase H — Documentazione *(chiude R-G)* — **in corso**
+23. ✅ **Link markdown** — da **~100** rotti a **19**. ⚠️ Il numero storico «67 in 22 documenti» era
+    misurato con lo stesso punto cieco della prima versione del checker: contava **solo** i link che
+    iniziano per punto, e **saltava del tutto** quelli scritti nudi (`docs/architecture/...`), che
+    sono ~32. Corretti **52 + 27** in due passate: profondità relative sbagliate, un segmento `docs/`
+    di troppo, e riferimenti `file.ts:NN` il cui numero di riga rompeva l'href (ora resta nel testo).
+    I **19 residui** sono **2 falsi positivi** (il placeholder `NNNN-....md` del template ADR e un
+    `url` dentro un esempio di codice) e **17 target realmente spariti** in documenti **storici
+    datati** — `clienti/`→`customers/`, `tenant.middleware.ts`, `onApiError.ts` e `toasts.ts` spostati
+    da D-065, una migration rinominata, due riferimenti fuori dal repo. **Lasciati di proposito**:
+    erano corretti quando furono scritti, e riscriverli farebbe dire a un handoff di giugno un path
+    che a giugno non esisteva.
+    ⚠️ **Anchor: 0 rotti su 2169 link relativi** (solo 2 ne hanno uno). L'avvertenza del §5 di questo
+    report — «gli anchor non sono mai stati verificati, quindi il numero vero è più alto» — è
+    **decaduta**. Due «anchor rotti» inizialmente segnalati erano un **bug del misuratore**: GitHub
+    non collassa gli spazi consecutivi, quindi un titolo con trattino lungo slugifica a `a--b` e non
+    ad `a-b`. Due documenti corretti stavano per essere "corretti".
+24. ✅ **Affermazioni false** — `data-model.md` (il campo `Package.equipment` rimosso da
+    [ADR-0036](../architecture/decisions/0036-equipment-catalogo-e-composizione.md) il 2026-07-03 e
+    mostrato per 22 giorni; la riga «gli eventi di dominio sono registrati in `AuditLog`», **falsa
+    dall'origine** — esiste `PlatformAuditLog`, scritto dal solo provisioning e fuori RLS) ·
+    **`privacy-policy-operatori.md`** (il blocco «✅ Verificato sul codice» citava `/privacy`: vero il
+    24, falso il 25 dopo la correzione di D-061 — ed è il paragrafo che un legale legge per l'art.
+    14.3(a)) · **D-061** («unica memorizzazione»: sono **due categorie**, token *e* cache del service
+    worker; la conclusione «niente banner» regge, ma non per quella ragione — `docs/legal/README.md`
+    era già corretto, il registro no) · **README root** (dichiarava come «prossimi passi» D-011 e
+    D-032, **già implementate da settimane**) · **`reset-dev.ts`** (porta **5433** e «18 tabelle» →
+    5432 e 22: è la radice versionata di **AUD-019**).
+    ⚠️ **Decaduta**: «l'indice ADR si ferma a 0051» — arriva a **0058**, verificato.
+25. 🔓 **Restano**: igiene di `deferred.md` (~74k caratteri, ≥7 voci chiuse ancora in tabella) ·
+    spostare le asserzioni verificabili dai documenti ai test (il checker dei link come **gate**, sul
+    modello di `single-source.spec.ts`) · README di `web-staff` e guida deploy.
 
 ---
 

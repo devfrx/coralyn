@@ -4,7 +4,7 @@
 - **Data:** 2026-06-30
 - **Decisori:** Team di progetto
 - **Supera:** [ADR-0003](0003-language-convention.md) (codice EN, **dominio IT**)
-- **ADR correlati:** [glossario](../glossary.md), [data-model](../design/data-model.md)
+- **ADR correlati:** [glossario](../glossary.md), [data-model](../../design/data-model.md)
 
 ## Context
 
@@ -28,7 +28,7 @@ nella **documentazione**.
 - **Documentazione (ADR, spec, README, handoff) resta in italiano.** Gli ADR storici sono
   record immutabili e **mantengono** la terminologia del loro tempo; l'autorità corrente è
   questo ADR + il [glossario](../glossary.md) (che ora mappa termine-di-dominio IT →
-  identificatore EN) + il [data-model](../design/data-model.md) (aggiornato ai nomi EN).
+  identificatore EN) + il [data-model](../../design/data-model.md) (aggiornato ai nomi EN).
 - Il concetto **tecnico** di isolamento multi-tenant resta `tenant` (`tenantId`, `forTenant`,
   `TenantContext`, GUC `app.current_tenant`): è il *meccanismo*, distinto dall'entità di
   business `Establishment`.
@@ -120,10 +120,10 @@ Per evitare ambiguità su "cosa va in inglese" nei `.md`:
   colonne `establishmentId`/`umbrellaTypeId`, accessor `tx.customer`…) → **inglese**.
 - **Termini di dominio in prosa italiana** ("l'ombrellone", "il cliente", "la fascia" come
   parole) → restano **in italiano**: sono lingua di documentazione, non identificatori. Il
-  ponte parola↔identificatore è il [glossario](glossary.md).
-- **Documenti autoritativi/viventi** — [glossario](glossary.md),
-  [data-model](../design/data-model.md), `README.md`, [architettura](README.md),
-  [deferred](deferred.md) — sono **allineati ai nomi inglesi**: descrivono lo stato corrente e
+  ponte parola↔identificatore è il [glossario](../glossary.md).
+- **Documenti autoritativi/viventi** — [glossario](../glossary.md),
+  [data-model](../../design/data-model.md), `README.md`, [architettura](../README.md),
+  [deferred](../deferred.md) — sono **allineati ai nomi inglesi**: descrivono lo stato corrente e
   devono combaciare col codice.
 - **Documenti storici datati** (handoff, piani e spec in `docs/handoff|plans|specs/`, ADR
   superati come [ADR-0003](0003-language-convention.md)) sono **record immutabili**: gli
@@ -131,8 +131,8 @@ Per evitare ambiguità su "cosa va in inglese" nei `.md`:
   falserebbe la cronologia e rischierebbe errori). La nomenclatura corrente è questo ADR + il
   glossario; un lettore mappa i nomi storici tramite la tabella sopra.
 
-La **fonte di verità** della nomenclatura è: questo ADR + il [glossario](glossary.md) + il
-[data-model](../design/data-model.md).
+La **fonte di verità** della nomenclatura è: questo ADR + il [glossario](../glossary.md) + il
+[data-model](../../design/data-model.md).
 
 ## Rubric check
 1. **Professionalità** — schema/codebase uniformi in inglese, scelta convenzionale.

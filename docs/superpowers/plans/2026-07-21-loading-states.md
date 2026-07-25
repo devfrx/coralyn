@@ -1082,7 +1082,7 @@ Nuova voce (in ordine alfabetico accanto a Select/SegmentedControl):
   60%. Anti-flicker centralizzato in `useDelayedLoading(source, { delay: 150, minVisible: 300 })`:
   visibile solo oltre 150ms di attesa, poi per almeno 300ms. Regola: lo skeleton non sostituisce
   MAI dati reali (refetch con dati stantii = silenzioso). Spec:
-  [loading-states](../superpowers/specs/2026-07-21-loading-states-design.md).
+  [loading-states](../specs/2026-07-21-loading-states-design.md).
 ```
 
 Voce DataTable — aggiungere accanto a `emptyMessage`:

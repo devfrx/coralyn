@@ -828,7 +828,7 @@ git commit -m "feat(web-staff): campagna di prelazione nella vista Rinnovi (D-01
 
 - [ ] **Step 2: `deferred.md`** — rimuovere la riga **D-011** dalla tabella e aggiungerla in **## Risolte**:
 ```
-- **D-011** — Prelazione abbonamenti → **implementata** (branch `feat/d011-prelazione`, spec [2026-07-01-prelazione-abbonamenti-d011-design.md](../specs/2026-07-01-prelazione-abbonamenti-d011-design.md), piano [2026-07-02-prelazione-abbonamenti-d011.md](../superpowers/plans/2026-07-02-prelazione-abbonamenti-d011.md)). Nuovo **[ADR-0034](decisions/0034-prelazione-finestre-lazy.md)** (finestre derivate lazy; `RenewalCampaign` unico stato persistito; hold applicativo in `priceAndWrite`; nessun `BookingStatus` nuovo). Test: api unit …, e2e …; web-staff ….
+- **D-011** — Prelazione abbonamenti → **implementata** (branch `feat/d011-prelazione`, spec [2026-07-01-prelazione-abbonamenti-d011-design.md](../../specs/2026-07-01-prelazione-abbonamenti-d011-design.md), piano [2026-07-02-prelazione-abbonamenti-d011.md](./2026-07-02-prelazione-abbonamenti-d011.md)). Nuovo **[ADR-0034](../../architecture/decisions/0034-prelazione-finestre-lazy.md)** (finestre derivate lazy; `RenewalCampaign` unico stato persistito; hold applicativo in `priceAndWrite`; nessun `BookingStatus` nuovo). Test: api unit …, e2e …; web-staff ….
 ```
 (compilare i conteggi finali reali).
 

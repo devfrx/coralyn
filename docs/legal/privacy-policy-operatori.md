@@ -65,12 +65,24 @@ Questo documento riguarda te come utente del gestionale. È diverso dall'informa
 stabilimento consegna ai propri clienti, che riguarda loro e di cui il titolare è lo stabilimento
 stesso.
 
-> ✅ **Verificato sul codice (2026-07-24).** L'affermazione qui sopra è vera, non un proposito:
-> `credential-setup.email.ts` include il rinvio a `/privacy` in **entrambe** le versioni del
-> messaggio (testo e HTML) e per **entrambi** gli scopi (invito e reset), sulla stessa origin del
-> link di set-password; la rotta `/privacy` è pubblica in `web-staff` e `web-platform`
-> ([ADR-0056](../architecture/decisions/0056-package-legale-condiviso.md)). Quattro test la
-> vincolano — se il rinvio sparisse, l'adempimento dell'art. 14.3(a) salterebbe in silenzio.
+> ✅ **Verificato sul codice (2026-07-26).** L'affermazione qui sopra è vera, non un proposito:
+> `credential-setup.email.ts:23` costruisce il rinvio a **`/legale/informativa`** e lo include in
+> **entrambe** le versioni del messaggio (testo e HTML) e per **entrambi** gli scopi (invito e
+> reset), sulla stessa origin del link di set-password; le rotte `/legale/informativa` e
+> `/legale/note` sono pubbliche in `web-staff` e `web-platform`
+> ([ADR-0056](../architecture/decisions/0056-package-legale-condiviso.md)). **Otto** test la
+> vincolano — cinque sull'email, tre sulle rotte — e se il rinvio sparisse l'adempimento
+> dell'art. 14.3(a) salterebbe in silenzio.
+>
+> ⚠️ **Questo blocco è stato corretto il 2026-07-26, ed è utile sapere perché.** Diceva `/privacy`,
+> ed era **vero quando fu scritto** il 2026-07-24. È diventato **falso il giorno dopo**: `/privacy`
+> collideva con il path dell'informativa del **bagnante** servita da `web-customer`, e la
+> correzione registrata in [D-061](../architecture/deferred.md) ha spostato le rotte operatori sotto
+> `/legale/`. Il codice ora **vieta** esplicitamente `/privacy` in `web-staff`
+> (`router/index.ts:27` e `router/legal-routes.spec.ts`), mentre questo documento ha continuato per
+> due giorni a dichiarare «verificato» una rotta che i test rifiutavano. Un blocco «✅ Verificato»
+> che invecchia è peggio di nessun blocco: è il paragrafo che un legale legge **proprio** per
+> accertare l'art. 14.3(a).
 
 ## Quali dati trattiamo e perché
 

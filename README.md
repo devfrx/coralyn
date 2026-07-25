@@ -9,7 +9,62 @@ Gestionale **SaaS** per la gestione di **lidi balneari** (stabilimenti balneari)
 mappa ombrelloni, prenotazioni e abbonamenti, cassa, e — in prospettiva — booking
 online per il cliente finale.
 
-Stato: **A4.2 rinnovo + anzianità implementati → incremento A4 COMPLETO**. **Backend** — Core Foundation
+## Setup locale
+
+Prerequisiti: **Node ≥ 22**, **pnpm 11.9** (via `corepack enable`), **Docker**.
+
+```bash
+corepack enable
+pnpm install
+cp .env.example .env          # DATABASE_URL punta a localhost:5432, come il compose
+cp .env.test.example .env.test
+docker compose up -d db mailpit
+pnpm --filter @coralyn/api exec prisma migrate deploy
+pnpm --filter @coralyn/api exec prisma db seed
+pnpm run verify               # lint + typecheck + unit
+```
+
+Dev server: `pnpm --filter @coralyn/web-staff dev` (5173), `@coralyn/web-platform` (5174),
+`@coralyn/web-customer` (5175) — porte **fisse** (`strictPort`), e `pnpm --filter @coralyn/api start:dev`
+per l'API (3000). Mailpit espone la posta di sviluppo su <http://localhost:8025>.
+
+Le **e2e dell'API** richiedono un Postgres reale e girano a parte, sul database `coralyn_test`:
+`pnpm --filter @coralyn/api test:e2e` (applica prima le migration **anche** su quel database).
+Con `docker compose --profile full up -d` si avvia l'intero stack containerizzato (8080/8081/8082).
+
+> ⚠️ Il DB è sulla **5432**, la porta che `docker-compose.yml` pubblica. Se trovi la 5433 citata in
+> un handoff datato, è la mappatura di un `docker-compose.override.yml` **gitignorato** di un'altra
+> macchina: non è mai stata la configurazione del repo.
+
+## Stato
+
+**Backend**: `apps/api` (NestJS + Prisma + Postgres) con isolamento multi-tenant **RLS FORCE** su 22
+tabelle e autorizzazione **fail-closed** a permessi ([ADR-0057](docs/architecture/decisions/0057-autorizzazione-fail-closed-permessi.md)).
+Moduli: identità e auth, mappa, prenotazioni (giornaliere, periodiche, abbonamenti; rinnovo,
+prelazione, sospensione, cessione, assenze comunicate), catalogo e pricing, clienti, struttura dello
+stabilimento, noleggi, report, canale cliente self-service, informativa privacy e piattaforma.
+
+**Frontend**: tre app Vue — `web-staff` (operatore), `web-platform` (console superuser),
+`web-customer` (PWA del bagnante) — su `@coralyn/ui-kit`, `@coralyn/data-layer`, `@coralyn/contracts`
+e `@coralyn/legal`.
+
+**Gate**: `pnpm run verify` (lint + typecheck + unit) e le e2e dell'API, entrambi in CI su `main` e
+sulle PR ([`.github/workflows/verify.yml`](.github/workflows/verify.yml)).
+
+> ⚠️ **Questa sezione è stata riscritta il 2026-07-26** (Fase H dell'audit). Diceva
+> «A4.2 rinnovo + anzianità implementati → incremento A4 COMPLETO» e indicava come *prossimi passi*
+> l'editor del listino ([D-032](docs/architecture/deferred.md)), la prelazione automatica
+> ([D-011](docs/architecture/deferred.md)) e la gestione utenti staff
+> ([D-025](docs/architecture/deferred.md)): le **prime due erano già implementate** da settimane. La
+> narrazione slice-per-slice che occupava questa sezione è cresciuta per accumulo e descriveva al
+> presente uno stato superato. La storia vive dove le compete — negli
+> [ADR](docs/architecture/decisions/) e negli [handoff](docs/handoff/) — e lo stato corrente
+> nell'[audit](docs/audit/) e in [deferred.md](docs/architecture/deferred.md).
+
+<details>
+<summary>Narrazione storica delle slice A1–A4.2 (superata, conservata per riferimento)</summary>
+
+**Backend** — Core Foundation
 (Piano 1), Incremento 1 (scheda cliente), **modulo identità & auth** (login JWT,
 `JwtAuthGuard` globale, RLS Utente), **modulo mappa** (modello + lettura) e **prenotazioni**
 (giornaliere slice A1; periodiche e abbonamenti slice A4.1; rinnovo e anzianità slice A4.2) implementati:
@@ -63,9 +118,8 @@ Il provisioning è **fornitore + inviti**
 ([ADR-0028](docs/architecture/decisions/0028-provisioning-tenant.md)):
 la pagina `/registrazione` è informativa ("attivazione su invito"), non self-service.
 Containerizzazione locale via Docker Compose.
-Prossimi passi: **editor CRUD del listino** ([D-032](docs/architecture/deferred.md)) oppure
-**prelazione automatica** ([D-011](docs/architecture/deferred.md)), e **gestione utenti staff**
-([D-025](docs/architecture/deferred.md)).
+
+</details>
 
 ## Documentazione
 

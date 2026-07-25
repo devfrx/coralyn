@@ -55,18 +55,18 @@ invece della tariffa dedicata **Abbonamento €800**, perché la precedenza ADR-
 wildcard `type=null` è la famiglia **a prezzo/giorno** (daily/periodic), non il forfait. Fix di radice, non riordino.
 
 **Layer (un solo layer di sostanza, backend):**
-1. **Motore** `isApplicable` ([`pricing.engine.ts:32`](../../apps/api/src/catalog/pricing.engine.ts:32), check tipo `:33`):
+1. **Motore** `isApplicable` ([`pricing.engine.ts:32`](../../apps/api/src/catalog/pricing.engine.ts), check tipo `:33`):
    per `ctx.type === 'subscription'` applicabili solo le tariffe `r.type === 'subscription'`; daily/periodic invariati
    (wildcard applica). **Precedenza invariata** (`specificity` `:47-56`; la partizione basta — spec §3.2).
-2. **422 specifico** in `throwPriceError` ([`bookings.service.ts:50`](../../apps/api/src/bookings/bookings.service.ts:50),
+2. **422 specifico** in `throwPriceError` ([`bookings.service.ts:50`](../../apps/api/src/bookings/bookings.service.ts),
    call site `71` e `197`): per NO_RATE + `type='subscription'` → "Nessuna tariffa Abbonamento configurata per questa
    stagione"; altrimenti il generico. Aggiungere il param `type` all'helper.
 3. **ADR-0035** (nuovo): raffina ADR-0032 §1 (semantica wildcard + ruolo di `type` post-"Chiarezza tipi") + riga di rimando
    in ADR-0032. **FE invariato** (il mock quote già ritorna €800; nessun avviso editor — "Chiarezza tipi" §7.4 = NO).
-4. **Test (spec §5):** unit motore — sostituisci 1:1 il test "subscription→forfait" ([`pricing.engine.spec.ts:79`](../../apps/api/src/catalog/pricing.engine.spec.ts:79),
+4. **Test (spec §5):** unit motore — sostituisci 1:1 il test "subscription→forfait" ([`pricing.engine.spec.ts:79`](../../apps/api/src/catalog/pricing.engine.spec.ts),
    usa una tariffa `subscription`, non wildcard); aggiungi: €800 batte €28 fascia-specifica; subscription+solo-catch-all→
    NO_RATE; daily/periodic invariati. e2e: subscription senza tariffa Abbonamento → 422 specifico; €800/€850 invariati.
-5. **Impatto (verificato):** seed dev ([`seed.ts:159-191`](../../apps/api/prisma/seed.ts:159)) + helper e2e
+5. **Impatto (verificato):** seed dev ([`seed.ts:159-191`](../../apps/api/prisma/seed.ts)) + helper e2e
    ([`seed-pricing.ts`](../../apps/api/test/helpers/seed-pricing.ts)) hanno già tariffe subscription → nessun cambio dati;
    **1 solo test unit** aggiornato 1:1; resto additivo. Baseline `main` da non regredire: **api unit 91 · e2e 129**
    (attesi +3/4 unit, +1/2 e2e).

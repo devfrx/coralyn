@@ -742,7 +742,7 @@ In `docs/architecture/deferred.md`, aggiungi una riga nella tabella (dopo D-046,
 Nella riga D-025, nel testo "**Restano deferiti** (increment futuri di D-025): **cambio-ruolo** … e **reset/invito self-service dello staff** …", aggiorna per riflettere che l'invito/reset staff è ora **fatto**:
 
 ```markdown
-**Aggiornamento 2026-07-05 (slice invito staff):** l'invito staff (creazione via link set-password) e il reset-password staff tenant-scoped sono ora **realizzati** (spec [2026-07-05-staff-invite-email-design](../superpowers/specs/2026-07-05-staff-invite-email-design.md), riusa [ADR-0042](decisions/0042-trasporto-email-e-consegna-credenziali.md)). **Resta deferito** solo il **cambio-ruolo** di un utente esistente. L'audit delle azioni admin-in-tenant è tracciato in **D-047**.
+**Aggiornamento 2026-07-05 (slice invito staff):** l'invito staff (creazione via link set-password) e il reset-password staff tenant-scoped sono ora **realizzati** (spec [2026-07-05-staff-invite-email-design](../specs/2026-07-05-staff-invite-email-design.md), riusa [ADR-0042](../../architecture/decisions/0042-trasporto-email-e-consegna-credenziali.md)). **Resta deferito** solo il **cambio-ruolo** di un utente esistente. L'audit delle azioni admin-in-tenant è tracciato in **D-047**.
 ```
 
 - [ ] **Step 3: Commit**

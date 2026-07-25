@@ -638,7 +638,7 @@ Crea `docs/architecture/decisions/0037-anti-overlap-exclusion-constraint.md` seg
 
 - [ ] **Step 3: Aggiungi i rimandi in ADR-0006 e ADR-0034**
 
-In `docs/architecture/decisions/0006-dominio-prenotazioni-e-pricing.md`, dove si parla dell'invariante anti-overlap, aggiungi una riga: `> Raffinato da [ADR-0037](0037-anti-overlap-exclusion-constraint.md): l'invariante è ora garantita anche a livello DB (EXCLUDE constraint).`
+In `docs/architecture/decisions/0006-dominio-prenotazioni-e-pricing.md`, dove si parla dell'invariante anti-overlap, aggiungi una riga: `> Raffinato da [ADR-0037](../../architecture/decisions/0037-anti-overlap-exclusion-constraint.md): l'invariante è ora garantita anche a livello DB (EXCLUDE constraint).`
 
 In `docs/architecture/decisions/0034-prelazione-finestre-lazy.md`, dove si parla della validazione stagioni delle campagne, aggiungi un rimando ad ADR-0037 (la validazione `dest.startDate > origin.endDate` rende il constraint rinnovo-safe).
 

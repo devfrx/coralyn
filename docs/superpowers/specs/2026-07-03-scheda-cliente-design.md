@@ -3,15 +3,15 @@
 - **Data:** 2026-07-03
 - **Stato:** Approvato (design) — decisioni risolte con l'utente in brainstorming il 2026-07-03. **Da pianificare
   ed eseguire** (ADR-0009).
-- **Origine:** la vista dettaglio cliente ([`/customers/:id`](../../apps/web-staff/src/features/customers/CustomerDetailView.vue))
+- **Origine:** la vista dettaglio cliente ([`/customers/:id`](../../../apps/web-staff/src/features/customers/CustomerDetailView.vue))
   è **già reale** per intestazione + anagrafica/contatti (GET/PATCH `customers/:id` funzionano), ma le **tre card
   informative** in fondo alla pagina sono **stub «In arrivo»** (bordo tratteggiato, nessun dato). Questo slice le
   rende reali: dà all'operatore la **vista a 360° del bagnante** (storico, fedeltà/abbonamenti, situazione
   pagamenti) — la prima delle "pagine ancora mockate" scelta con l'utente.
-- **ADR di riferimento:** [ADR-0006](../../docs/architecture/decisions/0006-dominio-prenotazioni-e-pricing.md)
-  (dominio prenotazioni), [ADR-0013](../../docs/architecture/decisions/0013-granularita-disponibilita-a-slot.md)
-  (fascia), [ADR-0034](../../docs/architecture/decisions/0034-prelazione-finestre-lazy.md) (prelazione/anzianità),
-  [ADR-0010](../../docs/architecture/decisions/0010-rls-tenant-isolation.md) (RLS), [ADR-0009](../../docs/architecture/decisions/0009-documentazione-di-design.md)
+- **ADR di riferimento:** [ADR-0006](../../architecture/decisions/0006-dominio-prenotazioni-e-pricing.md)
+  (dominio prenotazioni), [ADR-0013](../../architecture/decisions/0013-granularita-disponibilita-a-slot.md)
+  (fascia), [ADR-0034](../../architecture/decisions/0034-prelazione-finestre-lazy.md) (prelazione/anzianità),
+  [ADR-0010](../../docs/architecture/decisions/0010-rls-tenant-isolation.md) (RLS), [ADR-0009](../../architecture/decisions/0009-documentazione-di-design.md)
   (workflow). **Nessun nuovo ADR** previsto: è un incremento di lettura sull'architettura già decisa (nessuna nuova
   decisione strutturale; la prelazione riusa ADR-0034). Se in fase di piano emergesse una scelta strutturale, si
   valuterà un ADR.
@@ -25,7 +25,7 @@
 
 ## 1. Situazione attuale (verificata leggendo il codice)
 
-- **Vista** ([`CustomerDetailView.vue`](../../apps/web-staff/src/features/customers/CustomerDetailView.vue)):
+- **Vista** ([`CustomerDetailView.vue`](../../../apps/web-staff/src/features/customers/CustomerDetailView.vue)):
   intestazione (avatar, nome, telefono/email) + card **Anagrafica e contatti** (form reale: `phone`/`email`/`notes`
   via `useCustomer`/`useUpdateCustomer` → `GET`/`PATCH customers/:id`). In fondo, **3 card stub** (righe 15-19,
   58-67) con `<Badge tone="soon">In arrivo</Badge>` e descrizioni già scritte:
@@ -33,11 +33,11 @@
   2. **Storico prenotazioni** — "Tutte le prenotazioni del bagnante, per stagione."
   3. **Pagamenti e saldo** — "Incassi, metodo di pagamento e saldo aperto."
 - **Backend disponibile:** `CustomersController` ha `GET /customers`, `GET /customers/:id`, `POST`, `PATCH`
-  ([`customers.controller.ts`](../../apps/api/src/customers/customers.controller.ts)). **Manca** qualsiasi endpoint
+  ([`customers.controller.ts`](../../../apps/api/src/customers/customers.controller.ts)). **Manca** qualsiasi endpoint
   per le prenotazioni di un cliente. Nel dominio bookings esistono già: `BookingsService.listByDate`,
-  `listSubscriptions(seasonId)`, [`computeSeniority(tx, ids)`](../../apps/api/src/bookings/seniority.ts) (anzianità
+  `listSubscriptions(seasonId)`, [`computeSeniority(tx, ids)`](../../../apps/api/src/bookings/seniority.ts) (anzianità
   = lunghezza catena `previousBookingId`), e la logica prelazione in
-  [`renewal-campaigns.service.ts`](../../apps/api/src/bookings/renewal-campaigns.service.ts) (`getByDestinationSeasonId`
+  [`renewal-campaigns.service.ts`](../../../apps/api/src/bookings/renewal-campaigns.service.ts) (`getByDestinationSeasonId`
   calcola per ogni avente-diritto lo stato finestra `open`/`exercised`/`expired`).
 - **Dato condiviso:** le 3 card derivano **tutte** dalle **prenotazioni del cliente** (`Booking.customerId`). Storico
   = la lista; Abbonamento/anzianità = le sole `subscription` + `computeSeniority` + catena rinnovi + prelazione;
@@ -72,7 +72,7 @@ delle letture). La route sta in `CustomersController` (URL customer-centrico, RE
 logica del dominio bookings — `CustomersModule` importa il servizio di lettura bookings (dipendenza
 customers→bookings, nessun ciclo: bookings non importa customers).
 
-`CustomerBookingDTO` (nuovo, in [`packages/contracts`](../../packages/contracts/src/index.ts)) = i campi di
+`CustomerBookingDTO` (nuovo, in [`packages/contracts`](../../../packages/contracts/src/index.ts)) = i campi di
 `BookingDTO` **+** arricchimenti di sola presentazione:
 
 ```ts
@@ -127,7 +127,7 @@ Dentro `forTenant`:
 ### 3.3 Helper condiviso (fonte unica prelazione)
 
 Estrai da `getByDestinationSeasonId` la funzione pura in
-[`renewal-window.projection.ts`](../../apps/api/src/bookings/renewal-window.projection.ts) (dove vive già la
+[`renewal-window.projection.ts`](../../../apps/api/src/bookings/renewal-window.projection.ts) (dove vive già la
 projection della finestra; importa `dateRangesOverlap` da `booking.availability.ts`):
 
 ```ts

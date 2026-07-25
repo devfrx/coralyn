@@ -2,7 +2,7 @@
 
 - **Data:** 2026-07-03
 - **Stato:** Approvato in brainstorming con l'utente (2026-07-03). Da scrivere piano ed eseguire (ADR-0009).
-- **Origine:** la vista dettaglio cliente [`/customers/:id`](../../apps/web-staff/src/features/customers/CustomerDetailView.vue) è ora **funzionalmente completa** (slice "Scheda Cliente 360°": header + anagrafica + 3 card reali alimentate da `GET /customers/:id/bookings`). L'utente ha fornito il **mock aspirazionale** ([`docs/design/mockups/gestionale-lidi-aspirazionale.html`](../../docs/design/mockups/gestionale-lidi-aspirazionale.html), schermata `data-screen-label="Scheda cliente"`) come **target visivo per le sole schede**. Questo slice porta la vista alla **qualità del mock**, estraendo i primitivi condivisi nel `ui-kit` (professionale, riutilizzabile, senza debiti).
+- **Origine:** la vista dettaglio cliente [`/customers/:id`](../../../apps/web-staff/src/features/customers/CustomerDetailView.vue) è ora **funzionalmente completa** (slice "Scheda Cliente 360°": header + anagrafica + 3 card reali alimentate da `GET /customers/:id/bookings`). L'utente ha fornito il **mock aspirazionale** ([`docs/design/mockups/gestionale-lidi-aspirazionale.html`](../../design/mockups/gestionale-lidi-aspirazionale.html), schermata `data-screen-label="Scheda cliente"`) come **target visivo per le sole schede**. Questo slice porta la vista alla **qualità del mock**, estraendo i primitivi condivisi nel `ui-kit` (professionale, riutilizzabile, senza debiti).
 - **Scope (deciso con l'utente):** **SOLO** la Scheda cliente (header + 3 card). Le altre 7 schermate del mock (Mappa, Prenotazioni, Clienti, Listino, Report, Stabilimento, Struttura) **non** sono in questo slice; l'utente le mostrerà separatamente se/quando servirà.
 - **ADR di riferimento:** ADR-0033 (mappe stato→presentazione), ADR-0009 (workflow). Nessun nuovo ADR: è allineamento visivo + estrazione di componenti di presentazione sull'architettura esistente.
 - **Convenzione:** codice/DB in inglese; UI/doc in italiano. **Baseline test da NON regredire** (branch `feat/scheda-cliente-360`, live 2026-07-03): **api unit 111 · api e2e 158 · web-staff 156 · ui-kit standalone 55.** Typecheck pulito. Incrementi additivi.
@@ -26,28 +26,28 @@
 Il mock usa **lo stesso vocabolario visivo in ogni card/schermata**. Per non creare debito né stili one-off, i pattern ripetuti diventano componenti `ui-kit`; il resto **riusa** i componenti esistenti.
 
 ### 2.1 Nuovi componenti `ui-kit`
-- **`SectionCard`** — compone [`Card`](../../packages/ui-kit/src/components/Card.vue) + header standard: quadratino-icona tinto (stesso stile di [`KpiCard`](../../packages/ui-kit/src/components/KpiCard.vue): `size-[34px] rounded-[10px]`, `iconBg`/`iconInk`) + `title`, slot opzionale `#action` (es. «Modifica»), slot default = corpo (padding `20px 22px`). Props: `{ title: string; icon?: string; iconBg?: string; iconInk?: string }`. È il pattern di **ogni** card del mock (riuso futuro su tutte le schermate).
+- **`SectionCard`** — compone [`Card`](../../../packages/ui-kit/src/components/Card.vue) + header standard: quadratino-icona tinto (stesso stile di [`KpiCard`](../../../packages/ui-kit/src/components/KpiCard.vue): `size-[34px] rounded-[10px]`, `iconBg`/`iconInk`) + `title`, slot opzionale `#action` (es. «Modifica»), slot default = corpo (padding `20px 22px`). Props: `{ title: string; icon?: string; iconBg?: string; iconInk?: string }`. È il pattern di **ogni** card del mock (riuso futuro su tutte le schermate).
 - **`Callout`** — box tinto con icona opzionale + contenuto; prop `tone: 'warm' | 'accent' | 'neutral'` (default `warm`), slot `#icon` + default. Mappa `warm`→`--color-coral-050`/`--color-coral-700`. Usato per la nota **Prelazione** (riutilizzabile per avvisi inline).
 
 ### 2.2 Estensione minima (retro-compatibile)
 - **`StatTile`** — aggiungere DUE prop opzionali retro-compatibili: `tone?: 'default' | 'accent'` (default `default`; `accent` colora il valore coral per il **SALDO**) e `layout?: 'value-first' | 'label-first'` (default `value-first` = comportamento attuale invariato). Il mock mostra la **label sopra** il valore → i due box Pagamenti usano `layout="label-first"`. I chiamanti esistenti non passano nulla → nessun cambiamento.
 
 ### 2.3 Riuso diretto (nessuna modifica)
-- [`DataTable`](../../packages/ui-kit/src/components/DataTable.vue) + `TD/TD_FIRST/TD_RIGHT/TD_NUM` — tabella Pagamenti.
-- [`Badge`](../../packages/ui-kit/src/components/Badge.vue) — toni: tipo prenotazione (coral→`accent`/nuovo mapping), stato (`success`/`warning`/`danger`/`neutral`), «Rinnovato» (`success`).
-- [`Avatar`](../../packages/ui-kit/src/components/Avatar.vue), [`Icon`](../../packages/ui-kit/src/components/Icon.vue) — header cliente.
+- [`DataTable`](../../../packages/ui-kit/src/components/DataTable.vue) + `TD/TD_FIRST/TD_RIGHT/TD_NUM` — tabella Pagamenti.
+- [`Badge`](../../../packages/ui-kit/src/components/Badge.vue) — toni: tipo prenotazione (coral→`accent`/nuovo mapping), stato (`success`/`warning`/`danger`/`neutral`), «Rinnovato» (`success`).
+- [`Avatar`](../../../packages/ui-kit/src/components/Avatar.vue), [`Icon`](../../../packages/ui-kit/src/components/Icon.vue) — header cliente.
 - Chip ombrellone: piccolo badge testuale `«{sectorName} · {umbrellaLabel}»` (riusa `Badge` tono neutral o un piccolo stile inline; NON `UmbrellaCell`, che è il pallino-stato della mappa, semantica diversa).
 
 ## 3. Backend — arricchimento etichette (deciso: soluzione professionale, senza debiti)
 
 Per rendere fedeli le etichette del mock servono due campi in più sul DTO di lettura (stesso pattern di `umbrellaLabel`/`seasonName`, join server-side, RLS via `forTenant`).
 
-`CustomerBookingDTO` ([`packages/contracts`](../../packages/contracts/src/index.ts)) **+=**:
+`CustomerBookingDTO` ([`packages/contracts`](../../../packages/contracts/src/index.ts)) **+=**:
 ```ts
   packageName?: string;   // nome del Package (se packageId presente); il FE non carica il catalogo
   sectorName?: string;    // nome del Settore dell'ombrellone (per il chip «C · 15»)
 ```
-`BookingsService.listByCustomer` ([`bookings.service.ts`](../../apps/api/src/bookings/bookings.service.ts)):
+`BookingsService.listByCustomer` ([`bookings.service.ts`](../../../apps/api/src/bookings/bookings.service.ts)):
 - estende l'`include`: `{ umbrella: { include: { row: { include: { sector: true } } } }, package: true, renewals: true }`;
 - projection: `packageName = b.package?.name`, `sectorName = b.umbrella.row.sector.name`.
 
@@ -66,7 +66,7 @@ Header cliente + card «Anagrafica e contatti» **restano funzionalmente identic
 ### 4.3 Pagamenti e saldo
 `SectionCard` (icona `euro`). Due `StatTile`: SALDO APERTO (`tone="accent"`, = `Σ(totalPrice − amountCollected)` sulle non-cancellate) e INCASSATO (`Σ amountCollected`). Sotto, `DataTable` con colonne PERIODO (`seasonName`/date) · OMBRELLONE (chip) · IMPORTO · METODO (`PAYMENT_METHOD_LABEL[b.paymentMethod]`) · STATO (`PAY_LABEL`/`PAY_TONE`). Non-cancellate. Empty state.
 
-Nuova piccola mappa in [`statusMaps.ts`](../../apps/web-staff/src/lib/statusMaps.ts): `PAYMENT_METHOD_LABEL: Record<PaymentMethod,string>` (cash→'Contanti', card→'Carta', transfer→'Bonifico', other→'Altro').
+Nuova piccola mappa in [`statusMaps.ts`](../../../apps/web-staff/src/lib/statusMaps.ts): `PAYMENT_METHOD_LABEL: Record<PaymentMethod,string>` (cash→'Contanti', card→'Carta', transfer→'Bonifico', other→'Altro').
 
 ## 5. Piano di test (TDD)
 

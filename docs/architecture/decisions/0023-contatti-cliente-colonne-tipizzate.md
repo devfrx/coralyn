@@ -12,7 +12,7 @@ L'Incremento 1 della scheda cliente porta l'anagrafica del `Cliente` (il bagnant
 da `{nome, cognome}` a `{nome, cognome, telefono, email, note}`, end-to-end
 (schema → API → frontend), isolata per tenant.
 
-Il [data-model](../design/data-model.md) prevedeva i contatti come singolo campo
+Il [data-model](../../design/data-model.md) prevedeva i contatti come singolo campo
 `contatti json`. La spec ([2026-06-28-scheda-cliente-design.md](../../specs/2026-06-28-scheda-cliente-design.md), §7.4)
 ha segnalato la necessità di una decisione esplicita: i contatti del bagnante
 nell'MVP sono **pochi e noti** (un telefono, una email), più una `note` di servizio
@@ -58,7 +58,7 @@ model Cliente {
 - La proiezione DTO nel service mappa `null → undefined` in **tutti** i metodi
   (`list`, `getById`, `create`, `update`), così il confine tipizzato non espone `null`.
 
-Questa è una **divergenza consapevole** dal [data-model](../design/data-model.md)
+Questa è una **divergenza consapevole** dal [data-model](../../design/data-model.md)
 (che indicava `contatti json`): il data-model viene **aggiornato** di conseguenza.
 
 ## Consequences

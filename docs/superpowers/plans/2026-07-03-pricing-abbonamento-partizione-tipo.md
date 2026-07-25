@@ -254,14 +254,14 @@ Crea `docs/architecture/decisions/0035-pricing-tipo-partiziona-la-formula.md`:
 - **Status:** Accepted
 - **Data:** 2026-07-02
 - **Decisori:** Team di progetto
-- **ADR correlati:** [ADR-0032](0032-pricing-engine-precedenza.md) (**raffinato** da questo ADR: §1 semantica wildcard),
-  [ADR-0006](0006-dominio-prenotazioni-e-pricing.md) (dominio pricing),
-  [ADR-0009](0009-documentazione-di-design.md) (workflow). Spec:
+- **ADR correlati:** [ADR-0032](../../architecture/decisions/0032-pricing-engine-precedenza.md) (**raffinato** da questo ADR: §1 semantica wildcard),
+  [ADR-0006](../../architecture/decisions/0006-dominio-prenotazioni-e-pricing.md) (dominio pricing),
+  [ADR-0009](../../architecture/decisions/0009-documentazione-di-design.md) (workflow). Spec:
   `docs/specs/2026-07-02-pricing-abbonamento-partizione-tipo-design.md`.
 
 ## Context
 
-[ADR-0032](0032-pricing-engine-precedenza.md) definì `type` come una normale dimensione-filtro con `type=null`
+[ADR-0032](../../architecture/decisions/0032-pricing-engine-precedenza.md) definì `type` come una normale dimensione-filtro con `type=null`
 "wildcard" (vale per qualsiasi tipo, abbonamento incluso) e `type` come **ultima** dimensione di precedenza (la più
 debole). All'epoca il prezzo era guidato da `Rate.unit` (`day`/`period`).
 
@@ -349,14 +349,14 @@ ADR-0032 §6, "mai €0/prezzo silenzioso"). Il messaggio generico resta per gli
 In `docs/architecture/decisions/0032-pricing-engine-precedenza.md`, nella lista **ADR correlati** dell'header (righe 6-11), aggiungi la voce:
 
 ```markdown
-  [ADR-0035](0035-pricing-tipo-partiziona-la-formula.md) (**raffina** questo ADR: §1 semantica wildcard di `type`),
+  [ADR-0035](../../architecture/decisions/0035-pricing-tipo-partiziona-la-formula.md) (**raffina** questo ADR: §1 semantica wildcard di `type`),
 ```
 
 Poi, in fondo alla sezione **§1. Dimensioni della `Rate` e wildcard** (dopo la riga sulla `UmbrellaType`, riga ~38), aggiungi una riga di rimando **senza** riscrivere la decisione:
 
 ```markdown
 
-> **Raffinato da [ADR-0035](0035-pricing-tipo-partiziona-la-formula.md) (2026-07-02):** dopo lo slice "Chiarezza tipi",
+> **Raffinato da [ADR-0035](../../architecture/decisions/0035-pricing-tipo-partiziona-la-formula.md) (2026-07-02):** dopo lo slice "Chiarezza tipi",
 > `type=null` non è più "qualsiasi tipo, abbonamento incluso" ma "famiglia a prezzo/giorno (daily/periodic)". Un
 > abbonamento è prezzato **solo** da una tariffa `type='subscription'`; il wildcard non lo prezza. La precedenza qui
 > definita resta invariata.

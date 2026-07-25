@@ -10,6 +10,14 @@
 > da A3.1). `Package`, `Season`, `Pricing` e `Rate` sono **implementate** (slice A3.1, con RLS
 > `tenant_isolation` FORCE e vincolo di non-ambiguità sulla firma delle dimensioni).
 >
+> ⚠️ **Correzione 2026-07-25 (Fase H dell'audit):** il diagramma dava a `PACKAGE` un campo
+> `json equipment "n. lettini, sdraio, ..."`. Era **vero fino al 2026-07-03**, quando
+> [ADR-0036](../architecture/decisions/0036-equipment-catalogo-e-composizione.md) ha sostituito il
+> blob JSONB con un **catalogo di tipi + una composizione normalizzata**: `EQUIPMENT_TYPE` e la
+> join `PACKAGE_EQUIPMENT` con `quantity`. Il diagramma ha continuato a mostrare il campo rimosso
+> per 22 giorni. Ora l'ER riflette lo schema; la riga «Audit & superuser» più in basso è stata
+> corretta nello stesso passaggio, ed era invece **falsa dall'origine**.
+>
 > **Refinement A3.1 rispetto al design originale:** `Rate.period` (json) → due colonne tipizzate
 > `periodStart`/`periodEnd` (`@db.Date`); `Rate.scope "sector/row"` → FK nullable `sectorId`/`rowId`
 > (coerente con [ADR-0023](../architecture/decisions/0023-contatti-cliente-colonne-tipizzate.md));
@@ -210,7 +218,19 @@ erDiagram
         uuid id PK
         uuid establishmentId FK
         string name
-        json equipment "n. lettini, sdraio, ..."
+        datetime archivedAt "null = attivo"
+    }
+    PACKAGE_EQUIPMENT {
+        uuid establishmentId FK
+        uuid packageId FK
+        uuid equipmentTypeId FK
+        int quantity
+    }
+    EQUIPMENT_TYPE {
+        uuid id PK
+        uuid establishmentId FK
+        string name "Lettino|Sdraio|..."
+        datetime archivedAt
     }
     TIME_SLOT {
         uuid id PK
@@ -412,10 +432,16 @@ erDiagram
   mai bloccato dal proprio hold. L'hold è verificato dentro `BookingsService.priceAndWrite`, accanto
   all'anti-overlap, non come vincolo DB (stessa filosofia di [D-030](../architecture/deferred.md)).
   Nessun nuovo `BookingStatus`.
-- **Audit & superuser**: gli eventi di dominio sono registrati in `AuditLog`
-  (sanificati, tenant-tagged); il ruolo `superuser` di piattaforma li consulta
-  cross-tenant in sola lettura
-  ([ADR-0015](../architecture/decisions/0015-osservabilita-e-console-superuser.md)).
+- **Audit & superuser**: ⚠️ **corretto il 2026-07-25 — questa riga non è mai stata vera.** Diceva
+  che «gli eventi di dominio sono registrati in `AuditLog` (sanificati, tenant-tagged)»: un
+  `AuditLog` di dominio **non esiste**, e non è mai esistito. Ciò che esiste è
+  **`PlatformAuditLog`** (`actorUserId`, `action`, `targetEstablishmentId`, `metadata`), scritto
+  **solo** da `platform-provisioning.service.ts` e limitato alle azioni di **piattaforma**
+  (provisioning, sospensione di un lido); è inoltre una delle tabelle **fuori RLS**, quindi
+  «tenant-tagged» descriveva una proprietà che non ha. L'audit **di dominio** per tenant resta un
+  lavoro aperto: [D-047](../architecture/deferred.md). La console superuser di
+  [ADR-0015](../architecture/decisions/0015-osservabilita-e-console-superuser.md) legge le metriche
+  PII-free, non un registro di eventi.
 - **Disponibilità per slot**: l'unità di disponibilità è (`Umbrella`, data,
   `TimeSlot`); con un'unica `TimeSlot` "Giornata intera" il modello degrada al caso
   per-giorno.

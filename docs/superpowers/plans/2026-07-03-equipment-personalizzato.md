@@ -1309,7 +1309,7 @@ Create `docs/architecture/decisions/0036-equipment-catalogo-e-composizione.md` s
 
 - [ ] **Step 2: Rimando in ADR-0006**
 
-In `docs/architecture/decisions/0006-dominio-prenotazioni-e-pricing.md`, riga "ADR correlati", aggiungi `[ADR-0036](0036-equipment-catalogo-e-composizione.md)` e una riga sotto la sezione Decision (unità Ombrellone-pacchetto) del tipo:
+In `docs/architecture/decisions/0006-dominio-prenotazioni-e-pricing.md`, riga "ADR correlati", aggiungi `[ADR-0036](../../architecture/decisions/0036-equipment-catalogo-e-composizione.md)` e una riga sotto la sezione Decision (unità Ombrellone-pacchetto) del tipo:
 ```markdown
 > **Aggiornamento (ADR-0036):** la "dotazione" del Pacchetto non è più un attributo JSONB ma una
 > relazione verso un catalogo `EquipmentType` con composizione normalizzata `PackageEquipment`.

@@ -29,13 +29,13 @@ l'ultima dimensione (la più debole).
 | €28 Giorno Intero / Tutti | `null` (wildcard) | Giorno Intero | `[F,F,F,F,**T**,F]` |
 | €800 Abbonamento / Tutte | `subscription` | `null` | `[F,F,F,F,**F**,T]` |
 
-`isApplicable` ([`pricing.engine.ts:33`](../../apps/api/src/catalog/pricing.engine.ts:33)) considera **applicabile** la €28
+`isApplicable` ([`pricing.engine.ts:33`](../../apps/api/src/catalog/pricing.engine.ts)) considera **applicabile** la €28
 perché `type=null` combacia con qualsiasi tipo, inclusa `subscription`. In `compareSpecificity` le prime quattro
 dimensioni sono pari; alla **fascia** la €28 ha `T` e la €800 ha `F` → la €28 vince e il confronto si ferma **prima** di
 arrivare a `tipo`. La €800 (specifica solo su `tipo`, l'ultima dimensione) è **irraggiungibile** ogni volta che esiste una
 tariffa fascia-specifica a `type=null`.
 
-**Aggravante — errore di categoria.** Alla [riga 91](../../apps/api/src/catalog/pricing.engine.ts:91):
+**Aggravante — errore di categoria.** Alla [riga 91](../../apps/api/src/catalog/pricing.engine.ts):
 `ctx.type === 'subscription' ? price : price*days`. Per un abbonamento il prezzo della tariffa vincente è usato **come
 forfait di stagione**. La €28 — pensata come prezzo *al giorno* — diventa il prezzo dell'**intera stagione**. La label
 "forfait stagione" (che usa il tipo corrente della prenotazione) fa sembrare tutto legittimo.
@@ -64,7 +64,7 @@ deciso NO nello slice "Chiarezza tipi" §7.4); nessun cambio a daily/periodic; n
 
 ## 3. Layer backend (unico layer di sostanza)
 
-### 3.1 Motore — `isApplicable` ([`pricing.engine.ts:32-44`](../../apps/api/src/catalog/pricing.engine.ts:32))
+### 3.1 Motore — `isApplicable` ([`pricing.engine.ts:32-44`](../../apps/api/src/catalog/pricing.engine.ts))
 
 Sostituire la sola riga del check sul tipo. **Prima:**
 ```ts
@@ -95,7 +95,7 @@ Sostituire la sola riga del check sul tipo. **Prima:**
   scavalcare la specificità di posizione. Riordinare introdurrebbe effetti indesiderati su daily/periodic senza servire il
   problema.
 
-### 3.3 Messaggio 422 specifico ([`bookings.service.ts:50-56`](../../apps/api/src/bookings/bookings.service.ts:50))
+### 3.3 Messaggio 422 specifico ([`bookings.service.ts:50-56`](../../apps/api/src/bookings/bookings.service.ts))
 
 `throwPriceError` diventa type-aware per il caso `NO_RATE`. **Firma:** aggiungere il parametro `type: BookingType`.
 ```ts
@@ -110,9 +110,9 @@ Sostituire la sola riga del check sul tipo. **Prima:**
     throw new UnprocessableEntityException('Nessuna tariffa applicabile: configurare il listino');
   }
 ```
-**Call site 1** — `quote` ([riga 71](../../apps/api/src/bookings/bookings.service.ts:71)):
+**Call site 1** — `quote` ([riga 71](../../apps/api/src/bookings/bookings.service.ts)):
 `if (!outcome.ok) this.throwPriceError(outcome, input.type);`
-**Call site 2** — `priceAndWrite` (create/renew), [riga 197](../../apps/api/src/bookings/bookings.service.ts:197):
+**Call site 2** — `priceAndWrite` (create/renew), [riga 197](../../apps/api/src/bookings/bookings.service.ts):
 `if (!outcome.ok) this.throwPriceError(outcome, p.type);` (il tipo è `p.type` nella firma di `priceAndWrite`).
 Sono gli **unici due** call site di `throwPriceError` (righe 71 e 197).
 
@@ -130,7 +130,7 @@ silenzioso). Aggiungere in **ADR-0032** una riga di rimando ("Raffinato da ADR-0
 - Il modale prenotazione (`MapView.vue`) **già** gestisce `NO_RATE`/422 (blocca il confirm e mostra il messaggio del
   server). Dopo il fix: un abbonamento con tariffa Abbonamento mostra il forfait corretto (es. €800) e la label
   "€800 forfait stagione" si autocorregge; un abbonamento senza tariffa Abbonamento mostra il **422 specifico**.
-- I test FE usano MSW: il mock `GET /api/bookings/quote` ([`server.ts:194-203`](../../apps/web-staff/src/mocks/server.ts:194))
+- I test FE usano MSW: il mock `GET /api/bookings/quote` ([`server.ts:194-203`](../../apps/web-staff/src/mocks/server.ts))
   già ritorna €800 per `type=subscription` → i test FE **non** sono impattati dal cambio motore. Nessuna modifica FE
   necessaria oltre a un'eventuale verifica; **nessun** avviso editor (§2).
 
@@ -138,7 +138,7 @@ silenzioso). Aggiungere in **ADR-0032** una riga di rimando ("Raffinato da ADR-0
 
 **Unit motore ([`pricing.engine.spec.ts`](../../apps/api/src/catalog/pricing.engine.spec.ts)) — cuore dello slice:**
 - **Sostituzione 1:1:** il test esistente "subscription → forfait, indipendente dai giorni"
-  ([riga 79](../../apps/api/src/catalog/pricing.engine.spec.ts:79)) oggi usa una tariffa **wildcard** (`type:null`). Va
+  ([riga 79](../../apps/api/src/catalog/pricing.engine.spec.ts)) oggi usa una tariffa **wildcard** (`type:null`). Va
   aggiornato a una tariffa `type:'subscription'` (la premessa cambia: un abbonamento non è più prezzato da una wildcard).
 - **Nuovo — il bug esatto:** subscription + { fascia-specifica €28 `type:null`, €800 `type:'subscription'` fascia null } →
   vince **€800** (la tariffa Abbonamento batte la fascia-specifica wildcard).
@@ -158,7 +158,7 @@ silenzioso). Aggiungere in **ADR-0032** una riga di rimando ("Raffinato da ADR-0
 
 ## 6. Impatto e conseguenze (verificato)
 
-- **Seed dev** ([`seed.ts:159-191`](../../apps/api/prisma/seed.ts:159)) ha già €800 (2026) e €850 (2027) subscription → il
+- **Seed dev** ([`seed.ts:159-191`](../../apps/api/prisma/seed.ts)) ha già €800 (2026) e €850 (2027) subscription → il
   **bug dal vivo si risolve col solo cambio motore**, nessuna modifica al seed.
 - **Helper e2e** ([`seed-pricing.ts`](../../apps/api/test/helpers/seed-pricing.ts)) seeda già una tariffa subscription → il
   pricing subscription negli e2e resta invariato.
