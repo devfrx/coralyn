@@ -45,7 +45,9 @@ async function rawFetch(path: string, init: RequestInit): Promise<Response> {
 
 // Il tenant non viaggia più in un header: è dedotto dal JWT lato backend (ADR-0026).
 // apiFetch allega il Bearer dal token di sessione (se presente); su 401 innesca UNA rotazione
-// silenziosa via l'handler registrato dalla store (D-037) e ritenta una sola volta.
+// silenziosa via l'handler registrato dalla store (D-037) e ritenta una sola volta. Il ritorno
+// all'attivazione dopo un fallimento terminale NON avviene qui: lo fa CustomerShell osservando
+// `authenticated`, cosi' l'interceptor resta ignaro del router.
 // `retryOn401: false` (default true) esclude questa logica: usato dalle chiamate pubbliche/che
 // GESTISCONO i token stessi (/customer/refresh, /customer/activate) — un 401 lì è terminale e NON
 // deve rientrare nell'interceptor, altrimenti un refresh-token scaduto/revocato causa una
@@ -65,7 +67,7 @@ export async function apiFetch<T>(
       // retry): non c'è recupero possibile, l'utente resta altrimenti "appeso". Logout esplicito.
       if (res.status === 401) handler.onAuthFailure();
     } else {
-      handler.onAuthFailure();                         // refresh morto → logout + redirect attivazione
+      handler.onAuthFailure();                         // refresh morto → sessione azzerata
     }
   }
   if (!res.ok) throw new ApiError(res.status, path, await readErrorMessage(res));

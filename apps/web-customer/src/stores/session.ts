@@ -54,9 +54,33 @@ export const useSessionStore = defineStore('session', () => {
     }
   }
 
-  function logout(): void {
+  /** Teardown puramente locale. NON chiama `/customer/logout`: si usa quando la sessione è già
+   *  morta lato server (401 terminale, rehydrate fallita) e non c'è nulla da revocare. */
+  function clearSession(): void {
     clearTokens();
     me.value = null;
+  }
+
+  /** Uscita esplicita del bagnante. Revoca la sessione lato server PRIMA di dimenticare il refresh
+   *  token: senza questa chiamata quel token resterebbe valido fino alla sua scadenza (120 giorni)
+   *  su un dispositivo che l'utente crede di aver abbandonato — ed è esattamente lo scenario del
+   *  telefono prestato o dello smarrimento. La revoca è best-effort: se fallisce (rete giù, token
+   *  già revocato) il teardown locale avviene comunque, altrimenti l'utente resterebbe dentro. */
+  async function logout(): Promise<void> {
+    const rt = getRefreshToken();
+    if (rt) {
+      try {
+        // `retryOn401: false` come activate/refresh: gestisce i token stessi, un 401 è terminale.
+        await apiFetch<void>(
+          '/customer/logout',
+          { method: 'POST', body: JSON.stringify({ refreshToken: rt }) },
+          { retryOn401: false },
+        );
+      } catch {
+        /* la sessione locale finisce comunque */
+      }
+    }
+    clearSession();
   }
 
   async function rehydrate(): Promise<void> {
@@ -64,12 +88,14 @@ export const useSessionStore = defineStore('session', () => {
     try {
       await loadMe();
     } catch {
-      logout();
+      clearSession();
     }
   }
 
-  // D-037: l'http interceptor usa questi due su 401.
-  setRefreshHandler({ refresh, onAuthFailure: logout });
+  // D-037: l'http interceptor usa questi due su 401. Su fallimento terminale si azzera lo stato
+  // locale (il server ha già invalidato tutto); a portare via l'utente pensa CustomerShell, che
+  // osserva `authenticated`.
+  setRefreshHandler({ refresh, onAuthFailure: clearSession });
 
-  return { me, authenticated, activate, refresh, logout, rehydrate };
+  return { me, authenticated, activate, refresh, logout, clearSession, rehydrate };
 });

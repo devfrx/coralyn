@@ -3,7 +3,7 @@
 // autenticato + canale assenze comunicate (segnalazione/annullo self-service).
 import { computed, ref } from 'vue';
 import { RouterLink } from 'vue-router';
-import { Badge, Button, EmptyState, SectionCard, SkeletonText, dateRange, useDelayedLoading } from '@coralyn/ui-kit';
+import { Badge, Button, EmptyState, Icon, SectionCard, SkeletonText, dateRange, useDelayedLoading } from '@coralyn/ui-kit';
 import type { AbsenceReleaseDTO, CustomerBookingDTO } from '@coralyn/contracts';
 import { useSessionStore } from '@/stores/session';
 import { useMySubscriptions, useCancelRelease } from './useMySubscriptions';
@@ -34,6 +34,13 @@ function isCanceling(releaseId: string): boolean {
   return cancelRelease.isPending.value && cancelRelease.variables.value === releaseId;
 }
 
+// L'uscita revoca la sessione lato server (vedi store): senza, il refresh token resterebbe
+// valido per mesi sul dispositivo. Il ritorno all'attivazione lo fa CustomerShell osservando
+// `authenticated`, come per il 401 terminale — un solo punto per entrambe le uscite.
+function onLogout(): void {
+  void session.logout();
+}
+
 // Tutte le release dell'abbonamento (non solo quelle annullabili: il template applica il
 // gating resold/canceled riga per riga tramite i badge/il bottone "Annulla").
 function releasesFor(sub: CustomerBookingDTO): AbsenceReleaseDTO[] {
@@ -43,8 +50,15 @@ function releasesFor(sub: CustomerBookingDTO): AbsenceReleaseDTO[] {
 
 <template>
   <section class="mx-auto max-w-[560px] px-4 py-6">
-    <h1 class="mb-1 text-[22px] font-bold tracking-[-.02em] text-[var(--color-text)]">I miei abbonamenti</h1>
-    <p v-if="session.me" class="mb-5 text-sm text-[var(--color-text-muted)]">{{ session.me.establishmentName }}</p>
+    <div class="mb-5 flex items-start justify-between gap-3">
+      <div class="min-w-0">
+        <h1 class="mb-1 text-[22px] font-bold tracking-[-.02em] text-[var(--color-text)]">I miei abbonamenti</h1>
+        <p v-if="session.me" class="text-sm text-[var(--color-text-muted)]">{{ session.me.establishmentName }}</p>
+      </div>
+      <Button size="sm" variant="ghost" data-testid="logout" class="shrink-0" @click="onLogout">
+        <Icon name="logout" :size="15" />Esci
+      </Button>
+    </div>
 
     <div v-if="skeletonVisible" aria-busy="true" class="flex flex-col gap-4">
       <div

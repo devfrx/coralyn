@@ -72,17 +72,58 @@ describe('session store — activate/refresh/logout/rehydrate', () => {
     expect(spy).not.toHaveBeenCalled();
   });
 
-  it('logout: pulisce i token e lo stato me', async () => {
-    vi.spyOn(http, 'apiFetch')
+  it('clearSession: pulisce i token e lo stato me senza contattare il server', async () => {
+    const spy = vi.spyOn(http, 'apiFetch')
       .mockResolvedValueOnce({ accessToken: 'a1', refreshToken: 'r1' })
       .mockResolvedValueOnce({ customerId: 'c1', firstName: 'Mario', lastName: 'Rossi', establishmentName: 'Lido' });
     const s = useSessionStore();
     await s.activate('enroll-tok', '1234');
-    s.logout();
+    spy.mockClear();
+    s.clearSession();
+    expect(spy).not.toHaveBeenCalled(); // la sessione e' gia' morta lato server: nulla da revocare
     expect(getAccessToken()).toBeNull();
     expect(getRefreshToken()).toBeNull();
     expect(s.authenticated).toBe(false);
     expect(s.me).toBeNull();
+  });
+
+  it('logout: REVOCA la sessione lato server col refresh token, poi pulisce lo stato locale', async () => {
+    const spy = vi.spyOn(http, 'apiFetch')
+      .mockResolvedValueOnce({ accessToken: 'a1', refreshToken: 'r1' })
+      .mockResolvedValueOnce({ customerId: 'c1', firstName: 'Mario', lastName: 'Rossi', establishmentName: 'Lido' })
+      .mockResolvedValueOnce(undefined); // POST /customer/logout
+    const s = useSessionStore();
+    await s.activate('enroll-tok', '1234');
+    await s.logout();
+
+    // Senza questa chiamata il refresh token resta valido per mesi sul dispositivo (AUD-010).
+    expect(spy).toHaveBeenLastCalledWith(
+      '/customer/logout',
+      { method: 'POST', body: JSON.stringify({ refreshToken: 'r1' }) },
+      { retryOn401: false },
+    );
+    expect(getRefreshToken()).toBeNull();
+    expect(s.authenticated).toBe(false);
+  });
+
+  it('logout: se la revoca fallisce la sessione locale finisce comunque', async () => {
+    vi.spyOn(http, 'apiFetch')
+      .mockResolvedValueOnce({ accessToken: 'a1', refreshToken: 'r1' })
+      .mockResolvedValueOnce({ customerId: 'c1', firstName: 'Mario', lastName: 'Rossi', establishmentName: 'Lido' })
+      .mockRejectedValueOnce(new Error('rete giu'));
+    const s = useSessionStore();
+    await s.activate('enroll-tok', '1234');
+    await s.logout();
+    expect(getAccessToken()).toBeNull();
+    expect(s.authenticated).toBe(false);
+  });
+
+  it('logout: senza refresh token persistito non chiama il server', async () => {
+    const spy = vi.spyOn(http, 'apiFetch');
+    const s = useSessionStore();
+    await s.logout();
+    expect(spy).not.toHaveBeenCalled();
+    expect(s.authenticated).toBe(false);
   });
 
   it('rehydrate: senza refresh token persistito non chiama /me', async () => {

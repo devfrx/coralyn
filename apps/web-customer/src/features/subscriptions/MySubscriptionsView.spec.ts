@@ -3,6 +3,7 @@ import { ref } from 'vue';
 import { flushPromises } from '@vue/test-utils';
 import type { CustomerBookingDTO } from '@coralyn/contracts';
 import { mountApp } from '@/test/utils';
+import { useSessionStore } from '@/stores/session';
 import MySubscriptionsView from './MySubscriptionsView.vue';
 import { useMySubscriptions, useReleaseAbsence, useCancelRelease } from './useMySubscriptions';
 
@@ -48,6 +49,22 @@ describe('MySubscriptionsView', () => {
     await settle();
     expect(w.findAll('[data-testid="subscription-row"]')).toHaveLength(1);
     expect(w.html()).toContain('A12');
+    w.unmount();
+  });
+
+  it('«Esci» chiama il logout della store (che revoca la sessione lato server)', async () => {
+    vi.mocked(useMySubscriptions).mockReturnValue({ data: ref([makeSub()]), isLoading: ref(false) } as any);
+    const w = mountApp(MySubscriptionsView, { attachTo: document.body });
+    await settle();
+    const session = useSessionStore();
+    const spy = vi.spyOn(session, 'logout').mockResolvedValue(undefined);
+
+    const btn = w.find('[data-testid="logout"]');
+    expect(btn.exists()).toBe(true); // prima esisteva SOLO lato server: zero chiamanti (AUD-010)
+    await btn.trigger('click');
+    await settle();
+
+    expect(spy).toHaveBeenCalledTimes(1);
     w.unmount();
   });
 
