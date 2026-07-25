@@ -7,7 +7,7 @@ import { IdentityService } from './identity.service';
 import { PasswordHasher } from './password-hasher';
 import { TokenService } from './token.service';
 import { JwtAuthGuard } from './jwt-auth.guard';
-import { RolesGuard } from './roles.guard';
+import { PermissionsGuard } from './permissions.guard';
 import { CredentialModule } from '../credential/credential.module';
 
 @Module({
@@ -27,7 +27,8 @@ import { CredentialModule } from '../credential/credential.module';
     PasswordHasher,
     TokenService,
     { provide: APP_GUARD, useClass: JwtAuthGuard },
-    { provide: APP_GUARD, useClass: RolesGuard },
+    // L'ordine conta: JwtAuthGuard popola req.user, PermissionsGuard lo legge (ADR-0057).
+    { provide: APP_GUARD, useClass: PermissionsGuard },
   ],
 })
 export class IdentityModule {}

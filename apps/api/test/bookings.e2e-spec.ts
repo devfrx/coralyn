@@ -103,8 +103,9 @@ describe('Bookings (e2e)', () => {
     await request(app.getHttpServer()).post('/api/bookings').set(...bearer(token2)).send(body({ startDate: '2026-07-16' })).expect(422);
   });
 
-  it('superuser (no tenant) → 400', async () => {
-    await request(app.getHttpServer()).post('/api/bookings').set(...bearer(superToken)).send(body({ startDate: '2026-07-17' })).expect(400);
+  // 403 (permesso tenant non detenuto) e non più 400 (tenant assente): vedi auth.e2e-spec, ADR-0057.
+  it('superuser (no tenant) → 403', async () => {
+    await request(app.getHttpServer()).post('/api/bookings').set(...bearer(superToken)).send(body({ startDate: '2026-07-17' })).expect(403);
   });
 
   it('validazione: data calendariale impossibile → 400', async () => {
@@ -178,8 +179,8 @@ describe('Bookings (e2e)', () => {
       const res = await request(app.getHttpServer()).get('/api/packages').set(...bearer(token2)).expect(200);
       expect(res.body).toEqual([]);
     });
-    it('superuser (no tenant) → 400', async () => {
-      await request(app.getHttpServer()).get('/api/packages').set(...bearer(superToken)).expect(400);
+    it('superuser (no tenant) → 403', async () => {
+      await request(app.getHttpServer()).get('/api/packages').set(...bearer(superToken)).expect(403);
     });
   });
 

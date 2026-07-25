@@ -1,13 +1,13 @@
 import { Body, Controller, Delete, Param, ParseUUIDPipe, Patch, Post } from '@nestjs/common';
-import { Role } from '@coralyn/contracts';
 import type { StructureSectorDTO } from '@coralyn/contracts';
-import { Roles } from '../identity/roles.decorator';
+import { Permission } from '../identity/permission';
+import { RequiresPermission } from '../identity/permission.decorator';
 import { SectorsService } from './sectors.service';
 import { CreateSectorDto } from './dto/create-sector.dto';
 import { UpdateSectorDto } from './dto/update-sector.dto';
 
 @Controller('establishment/sectors')
-@Roles(Role.Admin)
+@RequiresPermission(Permission.StructureManage)
 export class SectorsController {
   constructor(private readonly sectors: SectorsService) {}
 

@@ -1,7 +1,7 @@
 import { Body, Controller, Get, Param, Post } from '@nestjs/common';
-import { Role } from '@coralyn/contracts';
 import type { CreateEstablishmentResponse, PlatformEstablishmentDTO, ResetAdminPasswordResponse } from '@coralyn/contracts';
-import { Roles } from '../identity/roles.decorator';
+import { Permission } from '../identity/permission';
+import { RequiresPermission } from '../identity/permission.decorator';
 import { CurrentUser } from '../identity/current-user.decorator';
 import type { AuthUser } from '../identity/auth-user';
 import { PlatformMetricsService } from './platform-metrics.service';
@@ -9,7 +9,7 @@ import { PlatformProvisioningService } from './platform-provisioning.service';
 import { CreateEstablishmentDto } from './dto/create-establishment.dto';
 
 @Controller('platform')
-@Roles(Role.Superuser) // l'intero modulo è cross-tenant, solo distributore
+@RequiresPermission(Permission.PlatformAdminister) // l'intero modulo è cross-tenant, solo distributore
 export class PlatformController {
   constructor(
     private readonly metrics: PlatformMetricsService,

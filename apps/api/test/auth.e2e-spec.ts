@@ -90,7 +90,11 @@ describe('Auth (e2e)', () => {
       .expect(401);
   });
 
-  it('superuser: token con establishmentId null; endpoint tenant-scoped → 400', async () => {
+  // 403 e non 400: il superuser non ha un ruolo DENTRO il lido, quindi non detiene i permessi
+  // tenant-scoped (ADR-0039 lo dichiarava già; ADR-0057 lo rende effettivo). Prima dell'inversione
+  // fail-closed passava la guardia e si fermava più a valle, sul tenant assente: il 400 era un
+  // effetto del default permissivo, non una decisione. La proprietà asserita è la stessa.
+  it('superuser: token con establishmentId null; endpoint tenant-scoped → 403', async () => {
     const token = await login(app, 'super.auth@e2e.test', 'segreto-2');
     await request(app.getHttpServer())
       .get('/api/auth/me')
@@ -104,6 +108,6 @@ describe('Auth (e2e)', () => {
     await request(app.getHttpServer())
       .get('/api/customers')
       .set('Authorization', `Bearer ${token}`)
-      .expect(400);
+      .expect(403);
   });
 });

@@ -1,14 +1,16 @@
 import { Body, Controller, Delete, Get, Param, Patch, Post } from '@nestjs/common';
 import { CustomersService } from './customers.service';
-import { CustomerDTO, CustomerBookingDTO, CededSubscriptionDTO, DeleteCustomerResult, Role } from '@coralyn/contracts';
+import { CustomerDTO, CustomerBookingDTO, CededSubscriptionDTO, DeleteCustomerResult } from '@coralyn/contracts';
 import { CreateCustomerDto } from './dto/create-customer.dto';
 import { UpdateCustomerDto } from './dto/update-customer.dto';
 import { BookingsService } from '../bookings/bookings.service';
-import { Roles } from '../identity/roles.decorator';
+import { Permission } from '../identity/permission';
+import { RequiresPermission } from '../identity/permission.decorator';
 import { CurrentUser } from '../identity/current-user.decorator';
 import { AuthUser } from '../identity/auth-user';
 
 @Controller('customers')
+@RequiresPermission(Permission.CustomersManage)
 export class CustomersController {
   constructor(
     private readonly customers: CustomersService,
@@ -46,7 +48,7 @@ export class CustomersController {
   }
 
   @Delete(':id')
-  @Roles(Role.Admin)
+  @RequiresPermission(Permission.CustomersErase)
   remove(@Param('id') id: string, @CurrentUser() user: AuthUser): Promise<DeleteCustomerResult> {
     return this.customers.remove(id, user.id);
   }

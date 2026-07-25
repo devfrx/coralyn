@@ -1,13 +1,13 @@
 import { Body, Controller, Delete, Param, ParseUUIDPipe, Patch, Post } from '@nestjs/common';
-import { Role } from '@coralyn/contracts';
 import type { StructureRowDTO } from '@coralyn/contracts';
-import { Roles } from '../identity/roles.decorator';
+import { Permission } from '../identity/permission';
+import { RequiresPermission } from '../identity/permission.decorator';
 import { RowsService } from './rows.service';
 import { CreateRowDto } from './dto/create-row.dto';
 import { UpdateRowDto } from './dto/update-row.dto';
 
 @Controller('establishment/rows')
-@Roles(Role.Admin)
+@RequiresPermission(Permission.StructureManage)
 export class RowsController {
   constructor(private readonly rows: RowsService) {}
 

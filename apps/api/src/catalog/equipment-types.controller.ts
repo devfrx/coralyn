@@ -3,8 +3,11 @@ import type { EquipmentTypeDTO } from '@coralyn/contracts';
 import { CatalogService } from './catalog.service';
 import { CreateEquipmentTypeDto } from './dto/create-equipment-type.dto';
 import { UpdateEquipmentTypeDto } from './dto/update-equipment-type.dto';
+import { Permission } from '../identity/permission';
+import { RequiresPermission } from '../identity/permission.decorator';
 
 @Controller('equipment-types')
+@RequiresPermission(Permission.PricingManage)
 export class EquipmentTypesController {
   constructor(private readonly catalog: CatalogService) {}
 

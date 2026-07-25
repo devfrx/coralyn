@@ -6,7 +6,6 @@ import type {
   CustomerProvisionResponse,
   SubscriptionListItemDTO,
 } from '@coralyn/contracts';
-import { Role } from '@coralyn/contracts';
 import { BookingsService } from './bookings.service';
 import { CreateBookingDto } from './dto/create-booking.dto';
 import { QuoteBookingDto } from './dto/quote-booking.dto';
@@ -20,13 +19,15 @@ import { ReactivateSubscriptionDto } from './dto/reactivate-subscription.dto';
 import { TransferSubscriptionDto } from './dto/transfer-subscription.dto';
 import { SetAbsenceConsentDto } from './dto/set-absence-consent.dto';
 import { ReleaseAbsenceDto } from './dto/release-absence.dto';
-import { Roles } from '../identity/roles.decorator';
+import { Permission } from '../identity/permission';
+import { RequiresPermission } from '../identity/permission.decorator';
 import { CurrentUser } from '../identity/current-user.decorator';
 import type { AuthUser } from '../identity/auth-user';
 import { CustomerAccessService } from '../customer-auth/customer-access.service';
 import { resolveDate } from '../common/dates';
 
 @Controller('bookings')
+@RequiresPermission(Permission.BookingsManage)
 export class BookingsController {
   constructor(
     private readonly bookings: BookingsService,
@@ -65,28 +66,28 @@ export class BookingsController {
 
   @Post(':id/terminate')
   @HttpCode(200)
-  @Roles(Role.Admin)
+  @RequiresPermission(Permission.BookingsAdminister)
   terminate(@Param('id') id: string, @Body() body: TerminateSubscriptionDto): Promise<BookingDTO> {
     return this.bookings.terminate(id, body);
   }
 
   @Post(':id/suspend')
   @HttpCode(200)
-  @Roles(Role.Admin)
+  @RequiresPermission(Permission.BookingsAdminister)
   suspend(@Param('id') id: string, @Body() body: SuspendSubscriptionDto): Promise<BookingDTO> {
     return this.bookings.suspend(id, body);
   }
 
   @Post(':id/reactivate')
   @HttpCode(200)
-  @Roles(Role.Admin)
+  @RequiresPermission(Permission.BookingsAdminister)
   reactivate(@Param('id') id: string, @Body() body: ReactivateSubscriptionDto): Promise<BookingDTO> {
     return this.bookings.reactivate(id, body);
   }
 
   @Post(':id/transfer')
   @HttpCode(200)
-  @Roles(Role.Admin)
+  @RequiresPermission(Permission.BookingsAdminister)
   transfer(@Param('id') id: string, @Body() body: TransferSubscriptionDto): Promise<BookingDTO> {
     return this.bookings.transfer(id, body);
   }
@@ -97,39 +98,39 @@ export class BookingsController {
   }
 
   @Patch(':id/absence-consent')
-  @Roles(Role.Admin)
+  @RequiresPermission(Permission.BookingsAdminister)
   setAbsenceConsent(@Param('id') id: string, @Body() body: SetAbsenceConsentDto): Promise<BookingDTO> {
     return this.bookings.setAbsenceConsent(id, body);
   }
 
   @Post(':id/absence-releases')
   @HttpCode(200)
-  @Roles(Role.Admin)
+  @RequiresPermission(Permission.BookingsAdminister)
   releaseAbsence(@Param('id') id: string, @Body() body: ReleaseAbsenceDto): Promise<BookingDTO> {
     return this.bookings.releaseAbsence(id, body);
   }
 
   @Post(':id/absence-releases/:rid/cancel')
   @HttpCode(200)
-  @Roles(Role.Admin)
+  @RequiresPermission(Permission.BookingsAdminister)
   cancelAbsenceRelease(@Param('id') id: string, @Param('rid') rid: string): Promise<BookingDTO> {
     return this.bookings.cancelAbsenceRelease(id, rid);
   }
 
   @Get(':id/customer-access')
-  @Roles(Role.Admin)
+  @RequiresPermission(Permission.CustomerAccessManage)
   customerAccessStatus(@Param('id') id: string): Promise<CustomerAccessStatusDTO> {
     return this.customerAccess.accessStatusForBooking(id);
   }
 
   @Post(':id/customer-access')
-  @Roles(Role.Admin)
+  @RequiresPermission(Permission.CustomerAccessManage)
   provisionCustomerAccess(@Param('id') id: string, @CurrentUser() user: AuthUser): Promise<CustomerProvisionResponse> {
     return this.customerAccess.provisionAccess(id, user.id);
   }
 
   @Post(':id/customer-access/revoke')
-  @Roles(Role.Admin)
+  @RequiresPermission(Permission.CustomerAccessManage)
   @HttpCode(HttpStatus.NO_CONTENT)
   revokeCustomerAccess(@Param('id') id: string): Promise<void> {
     return this.customerAccess.revokeAccess(id);

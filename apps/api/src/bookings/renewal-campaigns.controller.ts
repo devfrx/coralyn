@@ -3,8 +3,11 @@ import type { RenewalCampaignDTO, RenewalCampaignDetailDTO } from '@coralyn/cont
 import { RenewalCampaignsService } from './renewal-campaigns.service';
 import { OpenRenewalCampaignDto } from './dto/open-renewal-campaign.dto';
 import { RenewalCampaignQueryDto } from './dto/renewal-campaign-query.dto';
+import { Permission } from '../identity/permission';
+import { RequiresPermission } from '../identity/permission.decorator';
 
 @Controller('renewal-campaigns')
+@RequiresPermission(Permission.RenewalsManage)
 export class RenewalCampaignsController {
   constructor(private readonly campaigns: RenewalCampaignsService) {}
 

@@ -1,13 +1,13 @@
 import { Body, Controller, Delete, Param, ParseUUIDPipe, Patch, Post } from '@nestjs/common';
-import { Role } from '@coralyn/contracts';
 import type { UmbrellaTypeDTO } from '@coralyn/contracts';
-import { Roles } from '../identity/roles.decorator';
+import { Permission } from '../identity/permission';
+import { RequiresPermission } from '../identity/permission.decorator';
 import { UmbrellaTypesService } from './umbrella-types.service';
 import { CreateUmbrellaTypeDto } from './dto/create-umbrella-type.dto';
 import { UpdateUmbrellaTypeDto } from './dto/update-umbrella-type.dto';
 
 @Controller('establishment/umbrella-types')
-@Roles(Role.Admin)
+@RequiresPermission(Permission.StructureManage)
 export class UmbrellaTypesController {
   constructor(private readonly types: UmbrellaTypesService) {}
 

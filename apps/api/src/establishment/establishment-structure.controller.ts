@@ -1,11 +1,11 @@
 import { Controller, Get } from '@nestjs/common';
-import { Role } from '@coralyn/contracts';
 import type { EstablishmentStructureDTO } from '@coralyn/contracts';
-import { Roles } from '../identity/roles.decorator';
+import { Permission } from '../identity/permission';
+import { RequiresPermission } from '../identity/permission.decorator';
 import { EstablishmentStructureService } from './establishment-structure.service';
 
 @Controller('establishment/structure')
-@Roles(Role.Admin)
+@RequiresPermission(Permission.StructureManage)
 export class EstablishmentStructureController {
   constructor(private readonly structure: EstablishmentStructureService) {}
 

@@ -3,8 +3,11 @@ import type { PackageDTO } from '@coralyn/contracts';
 import { CatalogService } from './catalog.service';
 import { CreatePackageDto } from './dto/create-package.dto';
 import { UpdatePackageDto } from './dto/update-package.dto';
+import { Permission } from '../identity/permission';
+import { RequiresPermission } from '../identity/permission.decorator';
 
 @Controller('packages')
+@RequiresPermission(Permission.PricingManage)
 export class PackagesController {
   constructor(private readonly catalog: CatalogService) {}
 

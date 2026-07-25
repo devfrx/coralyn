@@ -3,6 +3,8 @@ import { IdentityService } from './identity.service';
 import { LoginDto } from './dto/login.dto';
 import { SetPasswordDto } from './dto/set-password.dto';
 import { Public } from './public.decorator';
+import { Permission } from './permission';
+import { RequiresPermission } from './permission.decorator';
 import { CurrentUser } from './current-user.decorator';
 import type { AuthUser } from './auth-user';
 import { CredentialSetupService } from '../credential/credential-setup.service';
@@ -23,6 +25,7 @@ export class AuthController {
   }
 
   @Get('me')
+  @RequiresPermission(Permission.SessionRead)
   me(@CurrentUser() user: AuthUser): Promise<UserDTO> {
     return this.identity.me(user.id);
   }

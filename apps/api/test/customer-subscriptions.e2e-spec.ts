@@ -240,9 +240,10 @@ describe('Customer subscriptions channel (D-035 S4)', () => {
   });
 
   it('SICUREZZA (cross-auth): il token cliente NON autentica sulle rotte staff (JwtAuthGuard) → 401', async () => {
-    // Stesso JWT_SECRET di staff e cliente: senza un check esplicito su `kind`,
-    // un token cliente (kind='customer', no `role`) verifica correttamente la firma
-    // e passerebbe la JwtAuthGuard staff (RolesGuard lascia passare le rotte senza @Roles).
+    // Stesso JWT_SECRET di staff e cliente: senza un check esplicito su `kind`, un token cliente
+    // (kind='customer', senza `role`) verifica correttamente la firma e autenticherebbe. Il 401 è
+    // quel check. La difesa a valle esiste — il PermissionsGuard nega senza `role` — ma darebbe
+    // 403, cioè una risposta diversa e più tardiva: qui si asserisce la prima, non la seconda.
     await request(app.getHttpServer())
       .get('/api/bookings')
       .query({ date: relativeFutureDate() })

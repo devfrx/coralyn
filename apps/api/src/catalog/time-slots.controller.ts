@@ -3,8 +3,11 @@ import type { TimeSlotDTO } from '@coralyn/contracts';
 import { TimeSlotsService } from './time-slots.service';
 import { CreateTimeSlotDto } from './dto/create-time-slot.dto';
 import { UpdateTimeSlotDto } from './dto/update-time-slot.dto';
+import { Permission } from '../identity/permission';
+import { RequiresPermission } from '../identity/permission.decorator';
 
 @Controller('time-slots')
+@RequiresPermission(Permission.PricingManage)
 export class TimeSlotsController {
   constructor(private readonly timeSlots: TimeSlotsService) {}
 

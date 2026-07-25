@@ -3,8 +3,11 @@ import type { RentalItemDTO } from '@coralyn/contracts';
 import { RentalCatalogService } from './rental-catalog.service';
 import { CreateRentalItemDto } from './dto/create-rental-item.dto';
 import { UpdateRentalItemDto } from './dto/update-rental-item.dto';
+import { Permission } from '../identity/permission';
+import { RequiresPermission } from '../identity/permission.decorator';
 
 @Controller('rental-items')
+@RequiresPermission(Permission.RentalCatalogManage)
 export class RentalItemsController {
   constructor(private readonly catalog: RentalCatalogService) {}
 

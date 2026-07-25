@@ -4,8 +4,11 @@ import { RatesService } from './rates.service';
 import { CreateRateDto } from './dto/create-rate.dto';
 import { UpdateRateDto } from './dto/update-rate.dto';
 import { RatesQueryDto } from './dto/rates-query.dto';
+import { Permission } from '../identity/permission';
+import { RequiresPermission } from '../identity/permission.decorator';
 
 @Controller('rates')
+@RequiresPermission(Permission.PricingManage)
 export class RatesController {
   constructor(private readonly rates: RatesService) {}
 
