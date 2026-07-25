@@ -1,7 +1,7 @@
-import { IsUUID } from 'class-validator';
 import type { RestoreUmbrellaInput } from '@coralyn/contracts';
+import { IsUuidShape } from '../../common/is-uuid-shape';
 
 export class RestoreUmbrellaDto implements RestoreUmbrellaInput {
-  @IsUUID()
+  @IsUuidShape()
   rowId!: string;
 }

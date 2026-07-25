@@ -1,18 +1,20 @@
 import { PrismaClient, Prisma, BookingType, BookingStatus, PaymentStatus, PaymentMethod } from '@prisma/client';
+import { devId } from './dev-ids';
 
 // Script DEV-ONLY (demo del "Report cruscotto"): popola dati ricchi nel tenant di
 // sviluppo già creato da seed.ts. Idempotente (upsert + id fissi). NON per produzione.
 // Esegui con:
-//   DATABASE_URL="postgresql://coralyn_app:coralyn_app@localhost:5433/coralyn_dev?schema=public" \
+//   DATABASE_URL="postgresql://coralyn_app:coralyn_app@localhost:5432/coralyn_dev?schema=public" \
 //     corepack pnpm --filter @coralyn/api exec ts-node prisma/seed-report-demo.ts
 
 const prisma = new PrismaClient();
 
 const EID = '00000000-0000-0000-0000-000000000001';
 
-// Stesso helper id di seed.ts: u(prefix, n) = "${prefix}0000000-0000-0000-0000-${n padded a 12}"
-const u = (prefix: number, n: number): string =>
-  `${prefix}0000000-0000-0000-0000-${String(n).padStart(12, '0')}`;
+// Lo STESSO helper di seed.ts, importato: SLOT/SEASON/umbrelle qui sotto sono righe create da
+// quello script e riferite per id. Prima erano due copie divergenti (`-0000-0000-0000-` qui,
+// `-0000-4000-8000-` la`) e il commento diceva il falso: questo script puntava a id inesistenti.
+const u = devId;
 
 // Id fissi dedicati a questo script (prefisso 'c' per i customer, come da istruzioni).
 const c = (n: number): string => `c0000000-0000-0000-0000-${String(n).padStart(12, '0')}`;

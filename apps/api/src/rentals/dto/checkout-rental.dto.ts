@@ -1,9 +1,10 @@
-import { IsInt, IsOptional, IsUUID, Min, ValidateIf } from 'class-validator';
+import { IsInt, IsOptional, Min, ValidateIf } from 'class-validator';
 import type { CheckoutRentalInput } from '@coralyn/contracts';
+import { IsUuidShape } from '../../common/is-uuid-shape';
 
 export class CheckoutRentalDto implements CheckoutRentalInput {
-  @IsUUID() rentalItemId!: string;
-  @IsUUID() rentalTariffId!: string;
-  @IsOptional() @ValidateIf((_, v) => v !== null) @IsUUID() customerId?: string | null;
+  @IsUuidShape() rentalItemId!: string;
+  @IsUuidShape() rentalTariffId!: string;
+  @IsOptional() @ValidateIf((_, v) => v !== null) @IsUuidShape() customerId?: string | null;
   @IsOptional() @IsInt() @Min(1) units?: number;
 }

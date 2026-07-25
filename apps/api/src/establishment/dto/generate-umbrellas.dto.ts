@@ -1,8 +1,9 @@
-import { IsInt, IsString, IsUUID, Max, MaxLength, Min, ValidateIf } from 'class-validator';
+import { IsInt, IsString, Max, MaxLength, Min, ValidateIf } from 'class-validator';
 import type { GenerateUmbrellasInput } from '@coralyn/contracts';
+import { IsUuidShape } from '../../common/is-uuid-shape';
 
 export class GenerateUmbrellasDto implements GenerateUmbrellasInput {
-  @IsUUID()
+  @IsUuidShape()
   rowId!: string;
 
   @IsString()
@@ -19,6 +20,6 @@ export class GenerateUmbrellasDto implements GenerateUmbrellasInput {
   count!: number;
 
   @ValidateIf((o: GenerateUmbrellasDto) => o.umbrellaTypeId !== null)
-  @IsUUID()
+  @IsUuidShape()
   umbrellaTypeId!: string | null;
 }

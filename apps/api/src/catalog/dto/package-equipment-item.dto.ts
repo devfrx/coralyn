@@ -1,7 +1,8 @@
-import { IsInt, IsUUID, Min } from 'class-validator';
+import { IsInt, Min } from 'class-validator';
+import { IsUuidShape } from '../../common/is-uuid-shape';
 
 export class PackageEquipmentItemDto {
-  @IsUUID()
+  @IsUuidShape()
   equipmentTypeId!: string;
 
   @IsInt()

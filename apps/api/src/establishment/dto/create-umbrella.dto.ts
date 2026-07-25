@@ -1,8 +1,9 @@
-import { IsNotEmpty, IsString, IsUUID, MaxLength, ValidateIf } from 'class-validator';
+import { IsNotEmpty, IsString, MaxLength, ValidateIf } from 'class-validator';
 import type { CreateUmbrellaInput } from '@coralyn/contracts';
+import { IsUuidShape } from '../../common/is-uuid-shape';
 
 export class CreateUmbrellaDto implements CreateUmbrellaInput {
-  @IsUUID()
+  @IsUuidShape()
   rowId!: string;
 
   @IsString()
@@ -12,6 +13,6 @@ export class CreateUmbrellaDto implements CreateUmbrellaInput {
 
   // null = Normale; se valorizzato dev'essere un UUID (l'appartenenza al tenant → 422 nel service).
   @ValidateIf((o: CreateUmbrellaDto) => o.umbrellaTypeId !== null)
-  @IsUUID()
+  @IsUuidShape()
   umbrellaTypeId!: string | null;
 }

@@ -1,14 +1,15 @@
-import { ArrayMaxSize, ArrayMinSize, IsArray, IsUUID, ValidateIf } from 'class-validator';
+import { ArrayMaxSize, ArrayMinSize, IsArray, ValidateIf } from 'class-validator';
 import type { BulkAssignUmbrellaTypeInput } from '@coralyn/contracts';
+import { IsUuidShape } from '../../common/is-uuid-shape';
 
 export class BulkAssignUmbrellaTypeDto implements BulkAssignUmbrellaTypeInput {
   @IsArray()
   @ArrayMinSize(1)
   @ArrayMaxSize(200)
-  @IsUUID(undefined, { each: true })
+  @IsUuidShape({ each: true })
   ids!: string[];
 
   @ValidateIf((o: BulkAssignUmbrellaTypeDto) => o.umbrellaTypeId !== null)
-  @IsUUID()
+  @IsUuidShape()
   umbrellaTypeId!: string | null;
 }

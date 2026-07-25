@@ -1,6 +1,7 @@
 import { PrismaClient, Role } from '@prisma/client';
 import * as argon2 from 'argon2';
 import { assertDevDatabase } from './dev-database';
+import { devId } from './dev-ids';
 
 const prisma = new PrismaClient();
 
@@ -58,11 +59,10 @@ async function main(): Promise<void> {
   // --- Map demo (idempotente) per il tenant dev. Forma allineata a mapSeed FE. ---
   // Le tabelle map hanno RLS FORCE: gli upsert devono girare con la GUC
   // app.current_tenant impostata, dentro UNA transazione (come PrismaService.forTenant).
-  // uuid v4 validi (nibble versione = 4, variante = 8): gli id seed passano @IsUUID nei DTO
-  // dell'editor Configura (rowId/sectorId/umbrellaTypeId nei body). Stesso helper → riferimenti
-  // interni coerenti. In produzione gli id nascono da @default(uuid()) (già v4).
-  const u = (prefix: number, n: number): string =>
-    `${prefix}0000000-0000-4000-8000-${String(n).padStart(12, '0')}`;
+  // Gli id sintetici vengono da `dev-ids.ts`, condiviso con seed-report-demo.ts: quello script
+  // RIFERISCE per id fasce, ombrelloni e stagioni creati qui, quindi due helper divergenti
+  // significano riferimenti a righe inesistenti. In produzione gli id nascono da @default(uuid()).
+  const u = devId;
   const t = (hhmm: string): Date => new Date(`1970-01-01T${hhmm}:00Z`);
   const t2 = (ymd: string): Date => new Date(`${ymd}T00:00:00Z`);
   const EID = DEV_ESTABLISHMENT_ID;

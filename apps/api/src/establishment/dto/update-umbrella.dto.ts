@@ -1,5 +1,6 @@
-import { IsNotEmpty, IsOptional, IsString, IsUUID, MaxLength } from 'class-validator';
+import { IsNotEmpty, IsOptional, IsString, MaxLength } from 'class-validator';
 import type { UpdateUmbrellaInput } from '@coralyn/contracts';
+import { IsUuidShape } from '../../common/is-uuid-shape';
 
 export class UpdateUmbrellaDto implements UpdateUmbrellaInput {
   @IsOptional()
@@ -10,6 +11,6 @@ export class UpdateUmbrellaDto implements UpdateUmbrellaInput {
 
   // @IsOptional accetta null (→ Normale) e undefined (→ non toccare); un non-UUID → 400.
   @IsOptional()
-  @IsUUID()
+  @IsUuidShape()
   umbrellaTypeId?: string | null;
 }

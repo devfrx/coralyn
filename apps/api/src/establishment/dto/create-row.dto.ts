@@ -1,8 +1,9 @@
-import { IsNotEmpty, IsString, IsUUID, MaxLength } from 'class-validator';
+import { IsNotEmpty, IsString, MaxLength } from 'class-validator';
 import type { CreateRowInput } from '@coralyn/contracts';
+import { IsUuidShape } from '../../common/is-uuid-shape';
 
 export class CreateRowDto implements CreateRowInput {
-  @IsUUID()
+  @IsUuidShape()
   sectorId!: string;
 
   @IsString()

@@ -27,6 +27,30 @@ export default tseslint.config(
     },
   },
   {
+    // La policy UUID del repo e' `common/uuid.ts`: forma canonica 8-4-4-4-12, SENZA vincolo di
+    // versione/variante RFC-4122, perche' gli id sintetici dei seed sono `uuid` validi per
+    // Postgres. `@IsUUID()` applica il vincolo RFC e li rifiuta: il Pedalo' shippato non era
+    // noleggiabile, e lo stesso customerId passava da POST /bookings ma non da .../transfer
+    // (AUD-011). Sostituire le 16 occorrenze non bastava — finche' la strada scorretta non costa
+    // nulla, torna al primo DTO nuovo. Il decoratore giusto e' `common/is-uuid-shape.ts`.
+    files: ['apps/api/**/*.ts'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          paths: [
+            {
+              name: 'class-validator',
+              importNames: ['IsUUID'],
+              message:
+                "Usa @IsUuidShape() da src/common/is-uuid-shape: @IsUUID() applica il vincolo RFC-4122 e rifiuta gli id sintetici che common/uuid.ts dichiara validi.",
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
     // Nei test e nei mock `any` e' la scelta pragmatica corretta: i fake di Prisma e i doppi di
     // test modellano solo la porzione di superficie che serve, e tipizzarli per intero
     // significherebbe reimplementare i tipi generati. Resta `warn` per non perderne traccia.
