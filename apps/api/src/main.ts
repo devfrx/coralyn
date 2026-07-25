@@ -1,12 +1,13 @@
 import 'reflect-metadata';
 import { NestFactory } from '@nestjs/core';
-import { ValidationPipe } from '@nestjs/common';
+import type { NestExpressApplication } from '@nestjs/platform-express';
 import { AppModule } from './app.module';
+import { configureApp } from './configure-app';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
-  app.setGlobalPrefix('api', { exclude: ['health'] });
-  app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
+  // Tipizzata come NestExpressApplication: serve `app.set('trust proxy', …)` in configureApp.
+  const app = await NestFactory.create<NestExpressApplication>(AppModule);
+  configureApp(app);
   await app.listen(process.env.PORT ?? 3000);
 }
 void bootstrap();

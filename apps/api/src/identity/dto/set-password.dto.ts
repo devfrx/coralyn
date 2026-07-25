@@ -1,4 +1,4 @@
-import { IsNotEmpty, IsString, MinLength } from 'class-validator';
+import { IsNotEmpty, IsString, MaxLength, MinLength } from 'class-validator';
 import type { SetPasswordInput } from '@coralyn/contracts';
 
 export class SetPasswordDto implements SetPasswordInput {
@@ -10,5 +10,6 @@ export class SetPasswordDto implements SetPasswordInput {
   // dell'admin/invitato via link vale un minimo più alto. Divergenza intenzionale, non un refuso.
   @IsString()
   @MinLength(10, { message: 'La password deve avere almeno 10 caratteri' })
+  @MaxLength(128)
   password!: string;
 }

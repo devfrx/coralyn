@@ -26,16 +26,20 @@ export class IdentityService {
   }
 
   async login(input: LoginInput): Promise<LoginResponse> {
-    // Nota sicurezza: hasher.verify viene eseguito solo se l'utente esiste, quindi
-    // i tempi di risposta possono distinguere un'email registrata da una no (oracolo
-    // di timing → enumerazione). Mitigazione (verify a tempo costante + rate-limiting)
-    // rinviata e tracciata: vedi deferred D-029 e D-027.
     // Lookup fuori da forTenant: User non ha RLS (login pre-tenant). ADR-0026.
     const user = await this.prisma.user.findUnique({
       where: { email: input.email },
       include: { establishment: { select: { name: true, suspendedAt: true } } },
     });
-    if (!user || !(await this.hasher.verify(user.passwordHash, input.password))) {
+    if (!user) {
+      // Verifica civetta: senza, argon2 girerebbe solo per le email esistenti e il tempo di
+      // risposta direbbe all'esterno quali indirizzi sono registrati (D-029). Il ramo costa
+      // quanto quello della password errata, ed è per questo che c'è. Il rate-limit sul login
+      // (D-027) impedisce che questo costo diventi a sua volta un vettore di esaurimento CPU.
+      await this.hasher.verifyDecoy(input.password);
+      throw new UnauthorizedException('Credenziali non valide');
+    }
+    if (!(await this.hasher.verify(user.passwordHash, input.password))) {
       // 401 generico identico: niente user-enumeration.
       throw new UnauthorizedException('Credenziali non valide');
     }

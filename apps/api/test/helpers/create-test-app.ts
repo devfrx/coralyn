@@ -1,15 +1,15 @@
-import { INestApplication, ValidationPipe } from '@nestjs/common';
 import type { TestingModule } from '@nestjs/testing';
+import type { NestExpressApplication } from '@nestjs/platform-express';
+import { configureApp } from '../../src/configure-app';
 
 /**
- * Bootstrap e2e allineato a main.ts: prefix `api` + ValidationPipe(whitelist,transform) + init.
- * Il PrismaExceptionFilter NON va applicato qui: è registrato via APP_FILTER in AppModule, quindi
- * è già attivo in ogni test che importa AppModule (zero drift test-vs-prod per costruzione).
+ * Bootstrap e2e: **la stessa** `configureApp` di `main.ts`, non una copia allineata a mano.
+ * Il PrismaExceptionFilter arriva da APP_FILTER in AppModule, quindi è già attivo in ogni test
+ * che importa il modulo (zero drift test-vs-prod per costruzione).
  */
-export async function createTestApp(moduleRef: TestingModule): Promise<INestApplication> {
-  const app = moduleRef.createNestApplication();
-  app.setGlobalPrefix('api', { exclude: ['health'] });
-  app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
+export async function createTestApp(moduleRef: TestingModule): Promise<NestExpressApplication> {
+  const app = moduleRef.createNestApplication<NestExpressApplication>();
+  configureApp(app);
   await app.init();
   return app;
 }

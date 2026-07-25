@@ -1,13 +1,16 @@
 import { UnauthorizedException } from '@nestjs/common';
 import { IdentityService } from './identity.service';
 
-function makeService(user: any) {
+function makeService(user: any, verifyResult = true) {
   const prisma = {
     user: { findUnique: jest.fn().mockResolvedValue(user) },
   } as any;
-  const hasher = { verify: jest.fn().mockResolvedValue(true) } as any;
+  const hasher = {
+    verify: jest.fn().mockResolvedValue(verifyResult),
+    verifyDecoy: jest.fn().mockResolvedValue(false),
+  } as any;
   const tokens = { sign: jest.fn().mockReturnValue('signed-token') } as any;
-  return { service: new IdentityService(prisma, hasher, tokens), prisma, tokens };
+  return { service: new IdentityService(prisma, hasher, tokens), prisma, hasher, tokens };
 }
 
 const ADMIN = {
@@ -16,6 +19,24 @@ const ADMIN = {
 };
 
 describe('IdentityService.login', () => {
+  // Le due asserzioni che rendono il ramo «email inesistente» indistinguibile dall'esterno:
+  // stesso esito E stesso costo. La seconda è quella che protegge dall'oracolo di timing —
+  // togliere `verifyDecoy` da login lascerebbe verde solo la prima.
+  it('email inesistente → 401 generico, e paga comunque una verifica (anti-enumerazione, D-029)', async () => {
+    const { service, hasher, tokens } = makeService(null);
+    await expect(service.login({ email: 'ignota@lido.it', password: 'pw' })).rejects.toBeInstanceOf(UnauthorizedException);
+    expect(hasher.verifyDecoy).toHaveBeenCalledWith('pw');
+    expect(tokens.sign).not.toHaveBeenCalled();
+  });
+
+  it('password errata → 401 generico, nessun token', async () => {
+    const { service, hasher, tokens } = makeService(ADMIN, false);
+    await expect(service.login({ email: 'a@lido.it', password: 'sbagliata' })).rejects.toBeInstanceOf(UnauthorizedException);
+    expect(hasher.verify).toHaveBeenCalled();
+    expect(hasher.verifyDecoy).not.toHaveBeenCalled(); // l'utente esiste: la civetta non serve
+    expect(tokens.sign).not.toHaveBeenCalled();
+  });
+
   it('lido sospeso → 401 generico, nessun token', async () => {
     const { service, tokens } = makeService({ ...ADMIN, establishment: { name: 'Lido Test', suspendedAt: new Date() } });
     await expect(service.login({ email: 'a@lido.it', password: 'pw' })).rejects.toBeInstanceOf(UnauthorizedException);
