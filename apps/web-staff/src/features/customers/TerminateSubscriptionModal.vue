@@ -12,7 +12,7 @@ const open = defineModel<boolean>('open', { required: true });
 const props = defineProps<{ booking: CustomerBookingDTO | null; customerId: string }>();
 
 const session = useSessionStore();
-const terminate = useTerminateSubscription(props.customerId);
+const terminate = useTerminateSubscription(() => props.customerId);
 
 const effectiveDate = ref('');
 const refundAmount = ref(0);

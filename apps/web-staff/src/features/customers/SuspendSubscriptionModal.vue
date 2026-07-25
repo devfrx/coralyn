@@ -12,7 +12,7 @@ const open = defineModel<boolean>('open', { required: true });
 const props = defineProps<{ booking: CustomerBookingDTO | null; customerId: string }>();
 
 const session = useSessionStore();
-const suspend = useSuspendSubscription(props.customerId);
+const suspend = useSuspendSubscription(() => props.customerId);
 
 const mode = ref<'closed' | 'open'>('closed');
 const startDate = ref('');

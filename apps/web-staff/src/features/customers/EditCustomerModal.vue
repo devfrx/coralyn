@@ -8,7 +8,7 @@ import { useSessionStore } from '@/stores/session';
 
 const props = defineProps<{ customer: CustomerDTO }>();
 const open = defineModel<boolean>('open', { required: true });
-const update = useUpdateCustomer(props.customer.id);
+const update = useUpdateCustomer(() => props.customer.id);
 const session = useSessionStore();
 // Vuota se `VITE_WEB_CUSTOMER_URL` non e' configurata → promemoria senza link (vedi privacyPreview).
 const privacyUrl = computed(() => privacyPreviewUrl(session.establishmentId));

@@ -7,9 +7,11 @@ import { useCustomerAccessStatus, useProvisionCustomerAccess, useRevokeCustomerA
 const props = defineProps<{ bookingId: string; isAdmin: boolean }>();
 const emit = defineEmits<{ provisioned: [CustomerProvisionResponse] }>();
 
-const { data: status } = useCustomerAccessStatus(props.bookingId);
-const provision = useProvisionCustomerAccess(props.bookingId);
-const revoke = useRevokeCustomerAccess(props.bookingId);
+// Thunk, non valore: la card non viene rimontata quando cambia l'abbonamento rappresentativo
+// (v-if su un id sempre truthy) — cfr. il commento in useCustomers.ts.
+const { data: status } = useCustomerAccessStatus(() => props.bookingId);
+const provision = useProvisionCustomerAccess(() => props.bookingId);
+const revoke = useRevokeCustomerAccess(() => props.bookingId);
 
 const state = computed<CustomerAccessState>(() => status.value?.state ?? 'none');
 const hasAccess = computed(() => state.value === 'issued' || state.value === 'active');

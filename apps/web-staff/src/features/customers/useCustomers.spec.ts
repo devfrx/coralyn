@@ -8,15 +8,15 @@ import { useCustomer, useUpdateCustomer, useSuspendSubscription, useReactivateSu
 
 const Probe = defineComponent({
   setup() {
-    const q = useCustomer('c-1');
+    const q = useCustomer(() => 'c-1');
     return () => h('div', q.data.value ? `${q.data.value.firstName} ${q.data.value.lastName}` : 'loading');
   },
 });
 
 const EditProbe = defineComponent({
   setup() {
-    const q = useCustomer('c-1');
-    const m = useUpdateCustomer('c-1');
+    const q = useCustomer(() => 'c-1');
+    const m = useUpdateCustomer(() => 'c-1');
     return () => h('div', [
       h('span', q.data.value?.phone ?? '-'),
       h('button', { onClick: () => m.mutate({ phone: '+39 000' }) }, 'save'),
@@ -26,7 +26,7 @@ const EditProbe = defineComponent({
 
 const SuspendProbe = defineComponent({
   setup() {
-    const m = useSuspendSubscription('c-1');
+    const m = useSuspendSubscription(() => 'c-1');
     return () => h('button', {
       onClick: () => m.mutate({ id: 'b1', input: { startDate: '2026-07-20', endDate: '2026-07-26', refundAmount: 5 } }),
     }, 'suspend');
@@ -35,7 +35,7 @@ const SuspendProbe = defineComponent({
 
 const ReactivateProbe = defineComponent({
   setup() {
-    const m = useReactivateSubscription('c-1');
+    const m = useReactivateSubscription(() => 'c-1');
     return () => h('button', {
       onClick: () => m.mutate({ id: 'b1', input: { returnDate: '2026-08-01', refundAmount: 0 } }),
     }, 'reactivate');
@@ -44,7 +44,7 @@ const ReactivateProbe = defineComponent({
 
 const SetAbsenceConsentProbe = defineComponent({
   setup() {
-    const m = useSetAbsenceConsent('c-1');
+    const m = useSetAbsenceConsent(() => 'c-1');
     return () => h('button', {
       onClick: () => m.mutate({ id: 'b1', input: { consent: true } }),
     }, 'set-consent');
@@ -53,7 +53,7 @@ const SetAbsenceConsentProbe = defineComponent({
 
 const ReleaseAbsenceProbe = defineComponent({
   setup() {
-    const m = useReleaseAbsence('c-1');
+    const m = useReleaseAbsence(() => 'c-1');
     return () => h('button', {
       onClick: () => m.mutate({ id: 'b1', input: { date: '2026-07-20' } }),
     }, 'release-absence');
@@ -62,7 +62,7 @@ const ReleaseAbsenceProbe = defineComponent({
 
 const CancelAbsenceReleaseProbe = defineComponent({
   setup() {
-    const m = useCancelAbsenceRelease('c-1');
+    const m = useCancelAbsenceRelease(() => 'c-1');
     return () => h('button', {
       onClick: () => m.mutate({ id: 'b1', releaseId: 'r1' }),
     }, 'cancel-release');
@@ -71,21 +71,21 @@ const CancelAbsenceReleaseProbe = defineComponent({
 
 const AccessStatusProbe = defineComponent({
   setup() {
-    const q = useCustomerAccessStatus('b1');
+    const q = useCustomerAccessStatus(() => 'b1');
     return () => h('div', q.data.value ? q.data.value.state : 'loading');
   },
 });
 
 const ProvisionProbe = defineComponent({
   setup() {
-    const m = useProvisionCustomerAccess('b1');
+    const m = useProvisionCustomerAccess(() => 'b1');
     return () => h('button', { onClick: () => m.mutate(undefined) }, 'provision');
   },
 });
 
 const RevokeProbe = defineComponent({
   setup() {
-    const m = useRevokeCustomerAccess('b1');
+    const m = useRevokeCustomerAccess(() => 'b1');
     return () => h('button', { onClick: () => m.mutate(undefined) }, 'revoke');
   },
 });

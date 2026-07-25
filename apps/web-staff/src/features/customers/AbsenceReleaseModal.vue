@@ -11,7 +11,7 @@ const open = defineModel<boolean>('open', { required: true });
 const props = defineProps<{ booking: CustomerBookingDTO | null; customerId: string }>();
 
 const session = useSessionStore();
-const release = useReleaseAbsence(props.customerId);
+const release = useReleaseAbsence(() => props.customerId);
 
 const date = ref('');
 const reason = ref('');

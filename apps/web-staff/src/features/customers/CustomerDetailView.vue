@@ -23,11 +23,13 @@ import type { CustomerBookingDTO, SuspensionDTO, CustomerProvisionResponse } fro
 const props = defineProps<{ id: string }>();
 const router = useRouter();
 const session = useSessionStore();
-const { data: customer, isLoading, isError } = useCustomer(props.id);
+// Thunk, non valore: RouterView non ha :key, quindi /customers/A → /customers/B patcha questa
+// vista invece di ricrearla — cfr. il commento in useCustomers.ts.
+const { data: customer, isLoading, isError } = useCustomer(() => props.id);
 const skeletonVisible = useDelayedLoading(() => isLoading.value);
-const { data: bookings } = useCustomerBookings(props.id);
-const { data: ceded } = useCededSubscriptions(props.id);
-const deleteCustomer = useDeleteCustomer(props.id);
+const { data: bookings } = useCustomerBookings(() => props.id);
+const { data: ceded } = useCededSubscriptions(() => props.id);
+const deleteCustomer = useDeleteCustomer(() => props.id);
 
 const editOpen = ref(false);
 const terminateOpen = ref(false);
@@ -58,8 +60,8 @@ function onTransfer(b: CustomerBookingDTO) {
 }
 const absenceOpen = ref(false);
 const absenceBooking = ref<CustomerBookingDTO | null>(null);
-const setConsent = useSetAbsenceConsent(props.id);
-const cancelAbsence = useCancelAbsenceRelease(props.id);
+const setConsent = useSetAbsenceConsent(() => props.id);
+const cancelAbsence = useCancelAbsenceRelease(() => props.id);
 function onConsent(b: CustomerBookingDTO) {
   setConsent.mutate({ id: b.id, input: { consent: !b.absenceConsentAt } });
 }

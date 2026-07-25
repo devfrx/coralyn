@@ -12,7 +12,7 @@ const open = defineModel<boolean>('open', { required: true });
 const props = defineProps<{ booking: CustomerBookingDTO | null; customerId: string }>();
 
 const session = useSessionStore();
-const transfer = useTransferSubscription(props.customerId);
+const transfer = useTransferSubscription(() => props.customerId);
 const { data: customers } = useCustomers();
 
 const newCustomerId = ref('');
