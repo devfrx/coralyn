@@ -144,6 +144,20 @@ addendum, `flows.md` §7 (nota `source='customer'`), 4 mockup `web-customer-*.ht
   *Impatto se ignorata*: bassa — il default di fabbrica riproduce il comportamento attuale, quindi
   nessun lido regredisce; ma ogni richiesta di personalizzazione resta una modifica al codice.
 
+- **D-065** — **Package FE condiviso per il data-layer di `web-staff` e `web-platform`.**
+  ✅ **Approvata dall'utente il 2026-07-25**, esecuzione delegata alla sessione successiva.
+  `http.ts`, `toasts.ts`, `queryClient.ts`, `useQueryResource.ts` e — da Fase F — `onApiError.ts`
+  esistono in **due copie identiche** nelle due app: cinque file, zero differenze di sostanza. La
+  Fase F ha aggiunto la quinta copia **di proposito**, per non prendere una decisione strutturale
+  dentro un fix (dev-communication), e l'ha dichiarato nel commento in testa a
+  `web-platform/src/lib/onApiError.ts`. Il nodo tecnico è che `ApiError` è definito **per app** in
+  `http.ts`: un modulo condiviso deve o portarsi dietro la propria classe (e allora le app la
+  importano invece di dichiararla) o farsela iniettare. Il precedente da seguire per forma e
+  confezionamento è **[ADR-0056](decisions/0056-package-legale-condiviso.md)** (`@coralyn/legal`).
+  Serve un ADR nuovo (**0058**, il primo libero). ⚠️ Non toccare `web-customer`: ha un data-layer
+  **diverso** e non duplicato (refresh token single-flight, ADR-0049) — accorparlo sarebbe una
+  falsa fattorizzazione.
+
 - **D-064** — **`GET /establishment/overview` espone `team[]` (email di tutti gli operatori) a chi
   ha `establishment.read`, cioè anche allo staff.** È il caso PII che ha motivato AUD-004, e
   l'inversione fail-closed **non lo chiude**: l'endpoint resta leggibile dallo staff perché
