@@ -142,6 +142,20 @@ describe('BookingCoverage overlap EXCLUDE constraint (e2e, DB-level)', () => {
     ).rejects.toThrow(/coverage_no_overlap|23P01|exclusion/i);
   });
 
+  it('coverage_range_valid: una coverage con startDate > endDate → rifiutata dal DB (P1-001)', async () => {
+    // Backstop strutturale del carve: l'aritmetica corretta vive in coverage.carve.ts, ma prima di
+    // questo CHECK nulla vietava a un chiamante distratto di scrivere un range invertito — che il
+    // driver riporta come data_exception non mappato (500). Ora e' impossibile per costruzione.
+    await expect(
+      insert({
+        umbrellaId: ids.u1,
+        timeSlotId: ids.slotMorning,
+        startDate: new Date('2026-07-20T00:00:00Z'),
+        endDate: new Date('2026-07-19T00:00:00Z'),
+      }),
+    ).rejects.toThrow(/coverage_range_valid|23514|check constraint/i);
+  });
+
   it('Giorno Intero (08-19) vs Mattina (08-13), stesso ombrellone/data → rifiutato (semantica oraria, non timeSlotId)', async () => {
     await insert({ umbrellaId: ids.u1, timeSlotId: ids.slotMorning, startDate: D, endDate: D });
     await expect(

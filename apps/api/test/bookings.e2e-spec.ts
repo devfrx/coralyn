@@ -1068,6 +1068,24 @@ describe('Bookings (e2e)', () => {
       expect(rel).not.toBeNull(); // la release resta come fatto storico
     });
 
+    it('D3: suspend chiuso su coverage frammentata non crea range invertiti (R-1 = ultimo giorno del frammento)', async () => {
+      const { id } = await makeSub();
+      await grantConsent(id);
+      // release del 08-15 → frammenti [05-01, 08-14] + [08-16, 09-30]
+      await request(app.getHttpServer()).post(`/api/bookings/${id}/absence-releases`).set(...bearer(token1))
+        .send({ date: '2026-08-15' }).expect(200);
+      // R-1 = 08-14 = ultimo giorno del frammento di testa → la coda [08-15, 08-14] sarebbe INVERTITA.
+      // La guardia RETURN_OUT confronta R-1 con lo span di contratto (09-30) e non intercetta il caso.
+      await request(app.getHttpServer()).post(`/api/bookings/${id}/suspend`).set(...bearer(token1))
+        .send({ startDate: '2026-08-01', endDate: '2026-08-14' }).expect(200);
+      const cov = await coverageOf(id);
+      for (const c of cov) expect(c.startDate.getTime()).toBeLessThanOrEqual(c.endDate.getTime());
+      expect(cov.map((c) => [iso(c.startDate), iso(c.endDate)])).toEqual([
+        ['2026-05-01', '2026-07-31'], // frammento di testa, troncato a S-1
+        ['2026-08-16', '2026-09-30'], // frammento di coda, intatto
+      ]);
+    });
+
     it('D4: suspend-closed(rimborso 100) → terminate(rimborso 50) → refundedAmount cumulativo = 150', async () => {
       const { id } = await makeSub();
       await request(app.getHttpServer()).patch(`/api/bookings/${id}/payment`).set(...bearer(token1))

@@ -32,6 +32,7 @@ import { toSubscriptionListItemDTO } from './subscription.projection';
 import { toCustomerBookingDTO, resolveSeasonName, toSuspensionDTO } from './customer-booking.projection';
 import { computeRenewalWindowState } from './renewal-window.projection';
 import { slotsOverlap, dateRangesOverlap } from './booking.availability';
+import { carveInterval, type CarveResult } from './coverage.carve';
 import { resolvePayment } from './booking.payment';
 import { toDbDate, formatDbDate, todayInRome } from '../common/dates';
 import { computeSeniority } from './seniority';
@@ -560,6 +561,37 @@ export class BookingsService {
    * Rifiuta la sospensione aperta (409 OPEN_SUSPENSION, D1); il carve è per-frammento, mai a
    * tappeto (D3); refundedAmount è un ledger cumulativo — increment sul residuo, non SET (D4).
    */
+  /**
+   * Persiste il piano prodotto da `carveInterval`: il frammento sopravvissuto viene RISTRETTO in
+   * place (l'id resta, e con esso i minuti calcolati dal trigger), l'eventuale secondo pezzo è una
+   * create. L'ordine restringi-poi-crea non attraversa mai uno stato che violi coverage_no_overlap,
+   * perché entrambi i pezzi stanno dentro l'intervallo che il frammento occupava già.
+   */
+  private async applyCarve(
+    tx: Prisma.TransactionClient,
+    tenantId: string,
+    bookingId: string,
+    plan: CarveResult<{ id: string; umbrellaId: string; startDate: Date; endDate: Date }>[],
+  ): Promise<void> {
+    for (const { fragment, remaining } of plan) {
+      if (remaining.length === 0) {
+        await tx.bookingCoverage.delete({ where: { id: fragment.id } });
+        continue;
+      }
+      const [kept, ...extra] = remaining;
+      await tx.bookingCoverage.update({
+        where: { id: fragment.id },
+        data: { startDate: kept.startDate, endDate: kept.endDate },
+      });
+      for (const span of extra) {
+        await tx.bookingCoverage.create({
+          data: { bookingId, establishmentId: tenantId, umbrellaId: fragment.umbrellaId,
+            startDate: span.startDate, endDate: span.endDate, status: 'confirmed' },
+        });
+      }
+    }
+  }
+
   async terminate(id: string, input: TerminateSubscriptionInput): Promise<BookingDTO> {
     const tenantId = this.tenant.require();
     const outcome = await this.prisma.forTenant(tenantId, async (tx) => {
@@ -592,16 +624,10 @@ export class BookingsService {
           refundedAmount: { increment: input.refundAmount }, // ledger cumulativo (coerente con suspend/reactivate)
         },
       });
-      // Post-carve (sospensione chiusa / release) l'abbonamento può avere PIÙ frammenti coverage: tronca
-      // per-frammento in sincrono con lo span contrattuale, senza mai creare range invertiti.
+      // Post-carve (sospensione chiusa / release) l'abbonamento può avere PIÙ frammenti coverage: la
+      // troncatura allo span è il carve aperto a destra da E in poi (E = lastValid + 1).
       const covs = await tx.bookingCoverage.findMany({ where: { bookingId: id } });
-      for (const c of covs) {
-        if (c.startDate > lastValid) {
-          await tx.bookingCoverage.delete({ where: { id: c.id } }); // frammento interamente oltre lo span troncato
-        } else if (c.endDate > lastValid) {
-          await tx.bookingCoverage.update({ where: { id: c.id }, data: { endDate: lastValid } }); // clamp del frammento a cavallo
-        }
-      }
+      await this.applyCarve(tx, tenantId, id, carveInterval(covs, effective, null));
       return { row };
     });
 
@@ -626,7 +652,6 @@ export class BookingsService {
    */
   async suspend(id: string, input: SuspendSubscriptionInput): Promise<BookingDTO> {
     const tenantId = this.tenant.require();
-    const day = 24 * 60 * 60 * 1000;
     const outcome = await this.prisma.forTenant(tenantId, async (tx) => {
       const existing = await tx.booking.findFirst({ where: { id }, include: { suspensions: true } });
       if (!existing) return { error: 'NOT_FOUND' as const };
@@ -652,37 +677,21 @@ export class BookingsService {
         const Rminus1 = toDbDate(input.endDate!);
         if (Rminus1 < S) return { error: 'BAD_RANGE' as const }; // S ≤ R-1
         if (!(Rminus1 < existing.endDate)) return { error: 'RETURN_OUT' as const }; // ritorno ENTRO la stagione
-        const C = coverages.find((c) => c.startDate <= S && Rminus1 <= c.endDate);
-        if (!C) return { error: 'NO_COVERAGE' as const }; // buco a cavallo o già libero
-        await tx.bookingCoverage.delete({ where: { id: C.id } });
-        if (S > C.startDate) {
-          await tx.bookingCoverage.create({
-            data: { bookingId: id, establishmentId: tenantId, umbrellaId: C.umbrellaId,
-              startDate: C.startDate, endDate: new Date(S.getTime() - day), status: 'confirmed' },
-          });
+        // Il buco deve stare dentro UN frammento: a cavallo di due (o su giorni già liberi) è 422.
+        if (!coverages.some((c) => c.startDate <= S && Rminus1 <= c.endDate)) {
+          return { error: 'NO_COVERAGE' as const };
         }
-        // coda [R, C.end] sempre non vuota (Rminus1 < endDate = C.end ⇒ R ≤ C.end)
-        await tx.bookingCoverage.create({
-          data: { bookingId: id, establishmentId: tenantId, umbrellaId: C.umbrellaId,
-            startDate: new Date(Rminus1.getTime() + day), endDate: C.endDate, status: 'confirmed' },
-        });
+        // La coda [R, C.end] può essere VUOTA: R-1 è confrontato sopra con lo span di CONTRATTO, che su
+        // coverage frammentata non è la fine del frammento. Il carve lo decide sul frammento (P1-001).
+        await this.applyCarve(tx, tenantId, id, carveInterval(coverages, S, Rminus1));
         await tx.bookingSuspension.create({
           data: { bookingId: id, establishmentId: tenantId, startDate: S, endDate: Rminus1,
             refundedAmount: refund, reason: input.reason ?? null },
         });
       } else {
-        const C = coverages.find((c) => c.startDate <= S && S <= c.endDate);
-        if (!C) return { error: 'NO_COVERAGE' as const };
-        // Tronca da S in poi: elimina i frammenti interamente ≥ S (inclusa C se S = C.start)…
-        await tx.bookingCoverage.deleteMany({ where: { bookingId: id, startDate: { gte: S } } });
-        // …e, se C inizia prima di S (non colpita sopra), sostituiscila con la sola testa [C.start, S-1].
-        if (S > C.startDate) {
-          await tx.bookingCoverage.delete({ where: { id: C.id } });
-          await tx.bookingCoverage.create({
-            data: { bookingId: id, establishmentId: tenantId, umbrellaId: C.umbrellaId,
-              startDate: C.startDate, endDate: new Date(S.getTime() - day), status: 'confirmed' },
-          });
-        }
+        if (!coverages.some((c) => c.startDate <= S && S <= c.endDate)) return { error: 'NO_COVERAGE' as const };
+        // Aperta = carve aperto a destra: tronca il frammento che contiene S ed elimina i successivi.
+        await this.applyCarve(tx, tenantId, id, carveInterval(coverages, S, null));
         await tx.bookingSuspension.create({
           data: { bookingId: id, establishmentId: tenantId, startDate: S, endDate: null,
             refundedAmount: 0, reason: input.reason ?? null },
@@ -901,7 +910,6 @@ export class BookingsService {
   ): Promise<BookingDTO> {
     const tenantId = this.tenant.require();
     const source = opts?.source ?? 'operator';
-    const day = 24 * 60 * 60 * 1000;
     const outcome = await this.prisma.forTenant(tenantId, async (tx) => {
       const existing = await tx.booking.findFirst({
         where: { id, ...(opts?.actingCustomerId ? { customerId: opts.actingCustomerId } : {}) },
@@ -921,22 +929,9 @@ export class BookingsService {
       if (existing.absenceReleases.some((r) => r.canceledAt === null && +r.date === +D)) return { error: 'ALREADY_RELEASED' as const };
 
       const coverages = await tx.bookingCoverage.findMany({ where: { bookingId: id, status: 'confirmed' } });
-      const C = coverages.find((c) => c.startDate <= D && D <= c.endDate);
-      if (!C) return { error: 'NO_COVERAGE' as const };
+      if (!coverages.some((c) => c.startDate <= D && D <= c.endDate)) return { error: 'NO_COVERAGE' as const };
 
-      await tx.bookingCoverage.delete({ where: { id: C.id } });
-      if (D > C.startDate) {
-        await tx.bookingCoverage.create({
-          data: { bookingId: id, establishmentId: tenantId, umbrellaId: C.umbrellaId,
-            startDate: C.startDate, endDate: new Date(D.getTime() - day), status: 'confirmed' },
-        });
-      }
-      if (D < C.endDate) {
-        await tx.bookingCoverage.create({
-          data: { bookingId: id, establishmentId: tenantId, umbrellaId: C.umbrellaId,
-            startDate: new Date(D.getTime() + day), endDate: C.endDate, status: 'confirmed' },
-        });
-      }
+      await this.applyCarve(tx, tenantId, id, carveInterval(coverages, D, D)); // buco a giorno singolo
       await tx.absenceRelease.create({
         data: { bookingId: id, establishmentId: tenantId, date: D, source, reason: input.reason ?? null },
       });
