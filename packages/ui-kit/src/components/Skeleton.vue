@@ -1,5 +1,5 @@
 <script setup lang="ts">
-const props = withDefaults(
+withDefaults(
   defineProps<{
     variant?: 'line' | 'block' | 'circle';
     width?: string;

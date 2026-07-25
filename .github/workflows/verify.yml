@@ -1,0 +1,111 @@
+name: verify
+
+# Primo gate eseguibile del repo. Fino all'audit del 2026-07-25 ogni verifica era manuale e
+# l'esito veniva trascritto a mano negli handoff: il numero di riferimento divergeva da quello
+# reale (15 errori eslint dichiarati contro 73 effettivi, 4 link rotti contro 95) senza che nulla
+# lo segnalasse. Vedi docs/audit/2026-07-25-audit-completo.md, radice R-A.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: verify-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # Lint + typecheck + unit. Non tocca il database: deve restare veloce e sempre verde.
+  static:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - run: corepack enable
+
+      - uses: actions/cache@v4
+        with:
+          path: ~/.local/share/pnpm/store
+          key: pnpm-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: pnpm-${{ runner.os }}-
+
+      # --ignore-scripts: il `prepare` di root builda contracts, lo facciamo dopo esplicitamente
+      # (stessa sequenza dei Dockerfile). `prisma generate` PRIMA del typecheck: senza, i tipi del
+      # client non esistono e l'API fallisce con TS7006.
+      - run: pnpm install --frozen-lockfile --ignore-scripts
+      - run: pnpm --filter @coralyn/contracts build
+      - run: pnpm --filter @coralyn/api exec prisma generate
+
+      - run: pnpm run lint
+      - run: pnpm run typecheck
+      - run: pnpm run test
+
+  # e2e API. Girano SOLO qui perche' richiedono un Postgres reale: sono l'unico guardiano di RLS,
+  # della difesa cross-canale e di tutta l'orchestrazione di bookings.service.ts (1024 LOC senza
+  # unit test). Vedi docs/audit/findings/P6-test.md, radice R-J.
+  e2e:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: coralyn
+          POSTGRES_PASSWORD: coralyn
+          POSTGRES_DB: coralyn_dev
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U coralyn -d coralyn_dev"
+          --health-interval 5s --health-timeout 5s --health-retries 20
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - run: corepack enable
+
+      - uses: actions/cache@v4
+        with:
+          path: ~/.local/share/pnpm/store
+          key: pnpm-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: pnpm-${{ runner.os }}-
+
+      - run: pnpm install --frozen-lockfile --ignore-scripts
+      - run: pnpm --filter @coralyn/contracts build
+      - run: pnpm --filter @coralyn/api exec prisma generate
+
+      # Stesso ruolo di init/01-app-role.sql: NOSUPERUSER NOBYPASSRLS, senza il quale FORCE ROW
+      # LEVEL SECURITY non sarebbe effettivo e i test di isolamento passerebbero per il motivo
+      # sbagliato. Il servizio Postgres di Actions non esegue /docker-entrypoint-initdb.d.
+      - name: Crea ruolo applicativo e database di test
+        env:
+          PGPASSWORD: coralyn
+        run: |
+          psql -h localhost -U coralyn -d coralyn_dev -v ON_ERROR_STOP=1 <<'SQL'
+          CREATE ROLE coralyn_app WITH LOGIN PASSWORD 'coralyn_app' NOSUPERUSER NOBYPASSRLS CREATEDB;
+          GRANT ALL ON DATABASE coralyn_dev TO coralyn_app;
+          ALTER SCHEMA public OWNER TO coralyn_app;
+          CREATE DATABASE coralyn_test OWNER coralyn_app;
+          SQL
+          psql -h localhost -U coralyn -d coralyn_test -v ON_ERROR_STOP=1 \
+            -c 'ALTER SCHEMA public OWNER TO coralyn_app;'
+
+      - run: cp .env.test.example .env.test
+
+      # DATABASE_URL dall'ambiente vince sul file: e' il caso per cui la precedenza e' stata
+      # mantenuta. La guardia sul nome in jest-setup-env.ts vale comunque.
+      - name: Applica le migration a coralyn_test
+        env:
+          DATABASE_URL: postgresql://coralyn_app:coralyn_app@localhost:5432/coralyn_test?schema=public
+        run: pnpm --filter @coralyn/api exec prisma migrate deploy
+
+      - name: e2e
+        env:
+          DATABASE_URL: postgresql://coralyn_app:coralyn_app@localhost:5432/coralyn_test?schema=public
+        run: pnpm --filter @coralyn/api run test:e2e

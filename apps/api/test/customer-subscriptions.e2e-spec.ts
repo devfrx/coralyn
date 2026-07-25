@@ -38,7 +38,6 @@ describe('Customer subscriptions channel (D-035 S4)', () => {
 
   // Tenant B (isolamento cross-tenant/cross-customer)
   let sB: string;
-  let adminTokenB: string;
   let idsB: MapSeedIds;
   let customerIdB: string;
   let bookingIdB: string;
@@ -61,7 +60,6 @@ describe('Customer subscriptions channel (D-035 S4)', () => {
 
     sB = (await prisma.establishment.create({ data: { name: 'CS B' } })).id;
     await createUser(prisma, { email: 'cs.admin.b@e2e.test', password: 'pw1', role: Role.admin, establishmentId: sB });
-    adminTokenB = await login(app, 'cs.admin.b@e2e.test', 'pw1');
     idsB = await seedMapTenant(prisma, sB);
 
     // Cliente + abbonamento "principale" di A (consenso ON, mai toccato dalle mutazioni).

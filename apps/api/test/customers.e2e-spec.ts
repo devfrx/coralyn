@@ -201,7 +201,6 @@ describe('Customers erasure (e2e) — GDPR D-024', () => {
   let otherT: string;
   let ids: MapSeedIds;
   let adminId: string;
-  let season2026: string;
   let season2027: string;
 
   beforeAll(async () => {
@@ -221,7 +220,6 @@ describe('Customers erasure (e2e) — GDPR D-024', () => {
 
     ids = await seedMapTenant(prisma, s1);
     const pricingIds = await seedPricingTenant(prisma, s1, { afternoonSlotId: ids.slotAfternoon });
-    season2026 = pricingIds.seasonId;
     season2027 = pricingIds.season2027Id;
   });
 

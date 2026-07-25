@@ -102,7 +102,8 @@ function slotStatesFor(u: UmbrellaDTO): SlotState[] {
 const highlight = ref<Set<SlotState>>(new Set());
 function toggleHighlight(s: SlotState) {
   const next = new Set(highlight.value);
-  next.has(s) ? next.delete(s) : next.add(s);
+  if (next.has(s)) next.delete(s);
+  else next.add(s);
   highlight.value = next;
 }
 function isDimmed(u: UmbrellaDTO): boolean {

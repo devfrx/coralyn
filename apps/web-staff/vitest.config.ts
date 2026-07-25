@@ -14,6 +14,11 @@ export default defineConfig({
     environment: 'jsdom',
     globals: true,
     setupFiles: ['./src/test/setup.ts'],
-    include: ['src/**/*.spec.ts', '../../packages/ui-kit/src/**/*.spec.ts'],
+    // Solo le spec di questa app. `packages/ui-kit` ha il proprio vitest.config.ts e il proprio
+    // script `test`: includerle qui le faceva girare DUE volte, in due ambienti diversi (qui
+    // ereditano MSW strict + il reset del body + gli stub reka-ui di src/test/setup.ts; sotto
+    // ui-kit no), quindi l'esito dipendeva da quale comando si lanciava. Gonfiava anche la
+    // baseline: i 190 test di ui-kit finivano dentro i 617 di web-staff.
+    include: ['src/**/*.spec.ts'],
   },
 });
