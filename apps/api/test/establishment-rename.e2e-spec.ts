@@ -4,16 +4,18 @@ import { Role } from '@prisma/client';
 import request from 'supertest';
 import { AppModule } from '../src/app.module';
 import { PrismaService } from '../src/prisma/prisma.service';
+import type { TenantId } from '../src/tenant/tenant-id';
 import { createUser, login } from './helpers/seed-auth';
 import { createTestApp } from './helpers/create-test-app';
+import { createEstablishment } from './helpers/create-establishment';
 
 const bearer = (t: string): [string, string] => ['Authorization', `Bearer ${t}`];
 
 describe('Establishment rename (e2e)', () => {
   let app: INestApplication;
   let prisma: PrismaService;
-  let s1: string;
-  let s2: string;
+  let s1: TenantId;
+  let s2: TenantId;
   let adminT: string;
   let staffT: string;
   let superT: string;
@@ -23,8 +25,8 @@ describe('Establishment rename (e2e)', () => {
     app = await createTestApp(moduleRef);
     prisma = app.get(PrismaService);
 
-    s1 = (await prisma.establishment.create({ data: { name: 'REN A' } })).id;
-    s2 = (await prisma.establishment.create({ data: { name: 'REN B' } })).id;
+    s1 = await createEstablishment(prisma, 'REN A');
+    s2 = await createEstablishment(prisma, 'REN B');
     await createUser(prisma, { email: 'ren.admin@e2e.test', password: 'pw1', role: Role.admin, establishmentId: s1 });
     await createUser(prisma, { email: 'ren.staff@e2e.test', password: 'pw2', role: Role.staff, establishmentId: s1 });
     await createUser(prisma, { email: 'ren.super@e2e.test', password: 'pw3', role: Role.superuser, establishmentId: null });

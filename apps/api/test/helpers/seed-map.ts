@@ -1,4 +1,5 @@
 import type { PrismaService } from '../../src/prisma/prisma.service';
+import type { TenantId } from '../../src/tenant/tenant-id';
 
 export interface MapSeedIds {
   umbrellaTypeId: string;
@@ -13,7 +14,7 @@ export interface MapSeedIds {
 /** Crea una struttura mappa minima per `establishmentId` (RLS: dentro forTenant). */
 export async function seedMapTenant(
   prisma: PrismaService,
-  establishmentId: string,
+  establishmentId: TenantId,
 ): Promise<MapSeedIds> {
   return prisma.forTenant(establishmentId, async (tx) => {
     const type = await tx.umbrellaType.create({
@@ -63,7 +64,7 @@ export async function seedMapTenant(
 /** Pulisce la struttura mappa di un tenant (ordine FK: umbrellas → rows → sectors; types; slots). */
 export async function cleanMapTenant(
   prisma: PrismaService,
-  establishmentId: string,
+  establishmentId: TenantId,
 ): Promise<void> {
   await prisma.forTenant(establishmentId, async (tx) => {
     await tx.umbrella.deleteMany({});

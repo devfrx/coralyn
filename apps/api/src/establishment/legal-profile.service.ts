@@ -6,6 +6,7 @@ import type {
 } from '@coralyn/contracts';
 import { PrismaService } from '../prisma/prisma.service';
 import { TenantContext } from '../tenant/tenant-context';
+import { tenantIdOf } from '../tenant/tenant-id';
 
 const EMPTY: EstablishmentLegalProfileDTO = {
   legalName: null, registeredAddress: null, vatOrTaxId: null, contactEmail: null, pec: null,
@@ -52,7 +53,10 @@ export class LegalProfileService {
   }
 
   async getTitolare(establishmentId: string): Promise<PublicTitolareDTO> {
-    return this.prisma.forTenant(establishmentId, async (tx) => {
+    // Deroga dichiarata: qui il tenant NON è quello della richiesta ed è preso dall'URL, perché
+    // l'informativa del titolare è pubblica per obbligo (art. 13/14 GDPR) e la si legge prima di
+    // avere una sessione. Il payload è già ristretto ai soli campi pubblici. Vedi tenant-id.ts.
+    return this.prisma.forTenant(tenantIdOf(establishmentId), async (tx) => {
       const [est, row] = await Promise.all([
         tx.establishment.findUniqueOrThrow({ where: { id: establishmentId }, select: { name: true } }),
         tx.establishmentLegalProfile.findUnique({ where: { establishmentId } }) as Promise<Row | null>,

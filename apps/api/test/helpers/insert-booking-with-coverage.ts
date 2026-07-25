@@ -1,4 +1,5 @@
 import type { PrismaService } from '../../src/prisma/prisma.service';
+import type { TenantId } from '../../src/tenant/tenant-id';
 
 /** Inserisce un Booking confermato + la sua coverage 1:1, bypassando il service (per test DB-level).
  *  I minuti della coverage li riempie il trigger; lo status della coverage = quello del booking.
@@ -6,7 +7,7 @@ import type { PrismaService } from '../../src/prisma/prisma.service';
  *  con consenso assenze) senza toccare i call-site esistenti (`daily`, nessun consenso). */
 export async function insertBookingWithCoverage(
   prisma: PrismaService,
-  tenantId: string,
+  tenantId: TenantId,
   data: {
     establishmentId: string; customerId: string; umbrellaId: string; timeSlotId: string;
     startDate: Date; endDate: Date; status?: 'confirmed' | 'cancelled';

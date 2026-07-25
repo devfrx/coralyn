@@ -4,8 +4,10 @@ import { Role } from '@prisma/client';
 import request from 'supertest';
 import { AppModule } from '../src/app.module';
 import { PrismaService } from '../src/prisma/prisma.service';
+import type { TenantId } from '../src/tenant/tenant-id';
 import { createUser, login } from './helpers/seed-auth';
 import { createTestApp } from './helpers/create-test-app';
+import { createEstablishment } from './helpers/create-establishment';
 
 const bearer = (t: string): [string, string] => ['Authorization', `Bearer ${t}`];
 const EMAILS = ['str.admin@e2e.test', 'str.staff@e2e.test'];
@@ -13,7 +15,7 @@ const EMAILS = ['str.admin@e2e.test', 'str.staff@e2e.test'];
 describe('Establishment structure + umbrella-types (e2e)', () => {
   let app: INestApplication;
   let prisma: PrismaService;
-  let s1: string;
+  let s1: TenantId;
   let adminT: string;
   let staffT: string;
   let typeId: string;
@@ -23,7 +25,7 @@ describe('Establishment structure + umbrella-types (e2e)', () => {
     app = await createTestApp(moduleRef);
     prisma = app.get(PrismaService);
 
-    s1 = (await prisma.establishment.create({ data: { name: 'STRUCT A' } })).id;
+    s1 = await createEstablishment(prisma, 'STRUCT A');
     await createUser(prisma, { email: 'str.admin@e2e.test', password: 'pw-admin-1', role: Role.admin, establishmentId: s1 });
     await createUser(prisma, { email: 'str.staff@e2e.test', password: 'pw-staff-1', role: Role.staff, establishmentId: s1 });
     adminT = await login(app, 'str.admin@e2e.test', 'pw-admin-1');

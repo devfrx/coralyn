@@ -4,10 +4,12 @@ import { Role } from '@prisma/client';
 import request from 'supertest';
 import { AppModule } from '../src/app.module';
 import { PrismaService } from '../src/prisma/prisma.service';
+import type { TenantId } from '../src/tenant/tenant-id';
 import { createUser, login } from './helpers/seed-auth';
 import { seedMapTenant, cleanMapTenant, type MapSeedIds } from './helpers/seed-map';
 import { insertBookingWithCoverage } from './helpers/insert-booking-with-coverage';
 import { createTestApp } from './helpers/create-test-app';
+import { createEstablishment } from './helpers/create-establishment';
 
 const bearer = (t: string): [string, string] => ['Authorization', `Bearer ${t}`];
 
@@ -21,7 +23,7 @@ function isoPlusDays(todayIso: string, delta: number): string {
 describe('Reports (e2e)', () => {
   let app: INestApplication;
   let prisma: PrismaService;
-  let s1: string;
+  let s1: TenantId;
   let t1: string;
 
   beforeAll(async () => {
@@ -29,7 +31,7 @@ describe('Reports (e2e)', () => {
     app = await createTestApp(moduleRef);
     prisma = app.get(PrismaService);
 
-    s1 = (await prisma.establishment.create({ data: { name: 'RPT A' } })).id;
+    s1 = await createEstablishment(prisma, 'RPT A');
     await createUser(prisma, { email: 'rpt.s1@e2e.test', password: 'pw1', role: Role.admin, establishmentId: s1 });
     t1 = await login(app, 'rpt.s1@e2e.test', 'pw1');
   });
@@ -76,13 +78,13 @@ describe('Reports (e2e)', () => {
 
   // --- Tenant separato per i casi seminati (non disturba le asserzioni empty-tenant sopra). ---
   describe('KPI incasso: week vs season (dati seminati)', () => {
-    let s2: string;
+    let s2: TenantId;
     let t2: string;
     let map: MapSeedIds;
     let todayIso: string;
 
     beforeAll(async () => {
-      s2 = (await prisma.establishment.create({ data: { name: 'RPT B' } })).id;
+      s2 = await createEstablishment(prisma, 'RPT B');
       await createUser(prisma, { email: 'rpt.s2@e2e.test', password: 'pw2', role: Role.admin, establishmentId: s2 });
       t2 = await login(app, 'rpt.s2@e2e.test', 'pw2');
       map = await seedMapTenant(prisma, s2);
@@ -153,13 +155,13 @@ describe('Reports (e2e)', () => {
 
   // --- Selezione campagna: con una scaduta + una aperta, il report deve mostrare l'APERTA. ---
   describe('getActiveCampaign: sceglie la campagna aperta, non quella scaduta (dati seminati)', () => {
-    let s3: string;
+    let s3: TenantId;
     let t3: string;
     let map: MapSeedIds;
     let todayIso: string;
 
     beforeAll(async () => {
-      s3 = (await prisma.establishment.create({ data: { name: 'RPT C' } })).id;
+      s3 = await createEstablishment(prisma, 'RPT C');
       await createUser(prisma, { email: 'rpt.s3@e2e.test', password: 'pw3', role: Role.admin, establishmentId: s3 });
       t3 = await login(app, 'rpt.s3@e2e.test', 'pw3');
       map = await seedMapTenant(prisma, s3);
@@ -249,13 +251,13 @@ describe('Reports (e2e)', () => {
   // --- «Da incassare» (outstanding): un abbonamento DISDETTO (terminatedAt) resta status='confirmed'
   //     ma il suo residuo NON è più esigibile → non deve contribuire all'outstanding (§4.3). ---
   describe('KPI da incassare (outstanding): esclude i disdetti (dati seminati)', () => {
-    let s4: string;
+    let s4: TenantId;
     let t4: string;
     let map: MapSeedIds;
     let todayIso: string;
 
     beforeAll(async () => {
-      s4 = (await prisma.establishment.create({ data: { name: 'RPT D' } })).id;
+      s4 = await createEstablishment(prisma, 'RPT D');
       await createUser(prisma, { email: 'rpt.s4@e2e.test', password: 'pw4', role: Role.admin, establishmentId: s4 });
       t4 = await login(app, 'rpt.s4@e2e.test', 'pw4');
       map = await seedMapTenant(prisma, s4);

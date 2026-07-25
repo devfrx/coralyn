@@ -3,6 +3,8 @@ import { INestApplication } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { AppModule } from '../src/app.module';
 import { PrismaService } from '../src/prisma/prisma.service';
+import type { TenantId } from '../src/tenant/tenant-id';
+import { createEstablishment } from './helpers/create-establishment';
 
 /**
  * Canary DB-level delle FK dimensionali di Rate (D-058, migration 20260723062405_rate_fk_restrict).
@@ -19,7 +21,7 @@ import { PrismaService } from '../src/prisma/prisma.service';
 describe('Rate FK ON DELETE RESTRICT (e2e, DB-level)', () => {
   let app: INestApplication;
   let prisma: PrismaService;
-  let s1: string;
+  let s1: TenantId;
 
   let bareSectorId: string; // referenziato solo da rateSector
   let bareRowId: string; // referenziato solo da rateRow (il suo settore contenitore non si cancella mai)
@@ -49,7 +51,7 @@ describe('Rate FK ON DELETE RESTRICT (e2e, DB-level)', () => {
     app = moduleRef.createNestApplication();
     await app.init();
     prisma = app.get(PrismaService);
-    s1 = (await prisma.establishment.create({ data: { name: 'Rate FK DB' } })).id;
+    s1 = await createEstablishment(prisma, 'Rate FK DB');
 
     await prisma.forTenant(s1, async (tx) => {
       const bareSector = await tx.sector.create({ data: { establishmentId: s1, name: 'Solo tariffa', sortOrder: 1 } });

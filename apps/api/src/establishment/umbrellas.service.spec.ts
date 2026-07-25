@@ -1,7 +1,6 @@
 import { ConflictException, NotFoundException, UnprocessableEntityException } from '@nestjs/common';
 import { UmbrellasService } from './umbrellas.service';
-
-const TENANT = 't-1';
+import { TEST_TENANT as TENANT, fakeTenantPrisma, fakeTenantContext } from '../test/tenant-prisma';
 
 function makeService() {
   const tx = {
@@ -12,8 +11,8 @@ function makeService() {
     },
     booking: { count: jest.fn(), groupBy: jest.fn() },
   };
-  const prisma = { forTenant: (_t: string, cb: (tx: unknown) => unknown) => cb(tx) } as any;
-  const tenant = { require: () => TENANT } as any;
+  const prisma = fakeTenantPrisma(tx) as any;
+  const tenant = fakeTenantContext() as any;
   return { service: new UmbrellasService(prisma, tenant), tx };
 }
 

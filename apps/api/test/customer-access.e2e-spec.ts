@@ -4,25 +4,27 @@ import { Role } from '@prisma/client';
 import request from 'supertest';
 import { AppModule } from '../src/app.module';
 import { PrismaService } from '../src/prisma/prisma.service';
+import type { TenantId } from '../src/tenant/tenant-id';
 import { createUser, login } from './helpers/seed-auth';
 import { cleanMapTenant, seedMapTenant, type MapSeedIds } from './helpers/seed-map';
 import { insertBookingWithCoverage } from './helpers/insert-booking-with-coverage';
 import { createTestApp } from './helpers/create-test-app';
 import { provisionCustomerAccess, activateCustomer } from './helpers/customer-auth';
+import { createEstablishment } from './helpers/create-establishment';
 
 const bearer = (t: string): [string, string] => ['Authorization', `Bearer ${t}`];
 
 describe('Customer access provisioning (D-035 S3)', () => {
   let app: INestApplication;
   let prisma: PrismaService;
-  let s1: string;
+  let s1: TenantId;
   let adminToken: string;
   let staffToken: string;
   let ids: MapSeedIds;
   let customerId: string;
   let bookingId: string;
   // Tenant B: usato solo dai test di isolamento (Task 10).
-  let s2: string;
+  let s2: TenantId;
   let adminToken2: string;
   let customerId2: string;
   let bookingId2: string;
@@ -35,7 +37,7 @@ describe('Customer access provisioning (D-035 S3)', () => {
     app = await createTestApp(moduleRef);
     prisma = app.get(PrismaService);
 
-    s1 = (await prisma.establishment.create({ data: { name: 'CA A' } })).id;
+    s1 = await createEstablishment(prisma, 'CA A');
     await createUser(prisma, { email: 'ca.admin@e2e.test', password: 'pw1', role: Role.admin, establishmentId: s1 });
     await createUser(prisma, { email: 'ca.staff@e2e.test', password: 'pw2', role: Role.staff, establishmentId: s1 });
     adminToken = await login(app, 'ca.admin@e2e.test', 'pw1');
@@ -59,7 +61,7 @@ describe('Customer access provisioning (D-035 S3)', () => {
     bookingId = booking.id;
 
     // Tenant B (isolamento): stabilimento + admin + mappa + customer + booking-subscription.
-    s2 = (await prisma.establishment.create({ data: { name: 'CA B' } })).id;
+    s2 = await createEstablishment(prisma, 'CA B');
     await createUser(prisma, { email: 'cb.admin@e2e.test', password: 'pw1', role: Role.admin, establishmentId: s2 });
     adminToken2 = await login(app, 'cb.admin@e2e.test', 'pw1');
 
@@ -385,6 +387,71 @@ describe('Customer access provisioning (D-035 S3)', () => {
         .get(`/api/bookings/${freshBookingId}/customer-access`)
         .set(...bearer(staffToken))
         .expect(403);
+    });
+  });
+
+  describe('Cross-tenant lato OPERATORE sulle SCRITTURE (P6-020)', () => {
+    /**
+     * L'isolamento cross-tenant lato operatore è già coperto altrove per bookings, packages,
+     * equipment-types, campagne e time-slot — ma su `customer-access` esisteva solo per la
+     * LETTURA dello stato (il test 404 del blocco D-051). Le due scritture sono quelle che
+     * contano davvero: `provision` consegna a chi chiama un QR + PIN **funzionanti**, `revoke`
+     * stacca un cliente dal suo abbonamento. Su queste il 404 non è una formalità.
+     *
+     * Ogni test asserisce anche l'ASSENZA di effetto collaterale: un 404 restituito dopo aver
+     * comunque scritto sarebbe indistinguibile da un 404 corretto, se si guardasse solo il codice.
+     */
+    let bookingA: string;
+
+    beforeAll(async () => {
+      const c = await prisma.forTenant(s1, (tx) =>
+        tx.customer.create({ data: { establishmentId: s1, firstName: 'Cross', lastName: 'Tenant' } }),
+      );
+      const b = await insertBookingWithCoverage(prisma, s1, {
+        establishmentId: s1,
+        customerId: c.id,
+        umbrellaId: ids.u2,
+        timeSlotId: ids.slotMorning,
+        startDate: new Date('2026-07-12'),
+        endDate: new Date('2026-07-12'),
+      });
+      bookingA = b.id;
+    });
+
+    it("l'admin del tenant B non provisiona l'accesso su una booking del tenant A → 404, e nulla viene emesso", async () => {
+      await request(app.getHttpServer())
+        .post(`/api/bookings/${bookingA}/customer-access`)
+        .set(...bearer(adminToken2))
+        .expect(404);
+
+      const stato = await request(app.getHttpServer())
+        .get(`/api/bookings/${bookingA}/customer-access`)
+        .set(...bearer(adminToken))
+        .expect(200);
+      expect(stato.body).toEqual({ state: 'none', lastActivatedAt: null });
+    });
+
+    it("l'admin del tenant B non revoca l'accesso di una booking del tenant A → 404, e il cliente resta attivabile", async () => {
+      const { enrollmentToken, pin } = await provisionCustomerAccess(app, adminToken, bookingA);
+
+      await request(app.getHttpServer())
+        .post(`/api/bookings/${bookingA}/customer-access/revoke`)
+        .set(...bearer(adminToken2))
+        .expect(404);
+
+      // La prova che conta non è il codice HTTP: è che l'enrollment del cliente di A funziona
+      // ancora. Se la revoca fosse passata, questa attivazione sarebbe 401.
+      const sessione = await activateCustomer(app, enrollmentToken, pin);
+      expect(sessione.accessToken).toEqual(expect.any(String));
+    });
+
+    it("l'admin del tenant B non legge lo stato d'accesso di una booking del tenant A → 404", async () => {
+      // Il gemello, nella direzione opposta a quella già coperta: lì era A→B, qui è B→A. Con un
+      // solo verso un'asimmetria nella risoluzione del tenant resterebbe invisibile.
+      await request(app.getHttpServer())
+        .get(`/api/bookings/${bookingA}/customer-access`)
+        .set(...bearer(adminToken2))
+        .expect(404);
     });
   });
 });

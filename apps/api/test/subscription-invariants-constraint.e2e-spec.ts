@@ -3,7 +3,9 @@ import { INestApplication } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { AppModule } from '../src/app.module';
 import { PrismaService } from '../src/prisma/prisma.service';
+import type { TenantId } from '../src/tenant/tenant-id';
 import { seedMapTenant, cleanMapTenant, type MapSeedIds } from './helpers/seed-map';
+import { createEstablishment } from './helpers/create-establishment';
 
 /**
  * Backstop DB delle invarianti di stato dell'abbonamento (P2-007, radice R3 dell'audit). Le tre
@@ -23,7 +25,7 @@ import { seedMapTenant, cleanMapTenant, type MapSeedIds } from './helpers/seed-m
 describe('Invarianti di stato abbonamento — indici unici parziali (e2e, DB-level)', () => {
   let app: INestApplication;
   let prisma: PrismaService;
-  let s1: string;
+  let s1: TenantId;
   let ids: MapSeedIds;
   let customerId: string;
   let subA: string; // abbonamento su u1
@@ -95,7 +97,7 @@ describe('Invarianti di stato abbonamento — indici unici parziali (e2e, DB-lev
     app = moduleRef.createNestApplication();
     await app.init();
     prisma = app.get(PrismaService);
-    s1 = (await prisma.establishment.create({ data: { name: 'Invarianti abbonamento DB' } })).id;
+    s1 = await createEstablishment(prisma, 'Invarianti abbonamento DB');
     ids = await seedMapTenant(prisma, s1);
     customerId = (
       await prisma.forTenant(s1, (tx) =>

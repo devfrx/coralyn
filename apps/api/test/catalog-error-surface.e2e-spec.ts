@@ -4,8 +4,10 @@ import { Role } from '@prisma/client';
 import request from 'supertest';
 import { AppModule } from '../src/app.module';
 import { PrismaService } from '../src/prisma/prisma.service';
+import type { TenantId } from '../src/tenant/tenant-id';
 import { createTestApp } from './helpers/create-test-app';
 import { createUser, login } from './helpers/seed-auth';
+import { createEstablishment } from './helpers/create-establishment';
 
 /**
  * D-050: un id non-UUID sui controller catalog (:id preso come stringa grezza, senza
@@ -16,7 +18,7 @@ import { createUser, login } from './helpers/seed-auth';
 describe('Catalog error-surface — id malformato → 400 (D-050)', () => {
   let app: INestApplication;
   let prisma: PrismaService;
-  let sid: string;
+  let sid: TenantId;
   let token: string;
   const bearer = (t: string): [string, string] => ['Authorization', `Bearer ${t}`];
   const BAD = 'not-a-uuid';
@@ -25,7 +27,7 @@ describe('Catalog error-surface — id malformato → 400 (D-050)', () => {
     const moduleRef = await Test.createTestingModule({ imports: [AppModule] }).compile();
     app = await createTestApp(moduleRef);
     prisma = app.get(PrismaService);
-    sid = (await prisma.establishment.create({ data: { name: 'Cat ErrSurface' } })).id;
+    sid = await createEstablishment(prisma, 'Cat ErrSurface');
     await createUser(prisma, {
       email: 'admin.caterr@e2e.test', password: 'pw', role: Role.admin, establishmentId: sid,
     });

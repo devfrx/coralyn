@@ -6,8 +6,10 @@ import { AppModule } from '../src/app.module';
 import { PrismaService } from '../src/prisma/prisma.service';
 import { createUser, login } from './helpers/seed-auth';
 import { MailerService } from '../src/mail/mailer.service';
+import type { TenantId } from '../src/tenant/tenant-id';
 import { FakeMailerService } from './helpers/fake-mailer';
 import { createTestApp } from './helpers/create-test-app';
+import { createEstablishment } from './helpers/create-establishment';
 
 const bearer = (t: string): [string, string] => ['Authorization', `Bearer ${t}`];
 const SUPER_EMAIL = 'su@platform.test';
@@ -17,7 +19,7 @@ const NEW_ADMIN_EMAIL = 'new.admin@platform.test';
 describe('Platform Console (e2e)', () => {
   let app: INestApplication;
   let prisma: PrismaService;
-  let hostEstId: string;
+  let hostEstId: TenantId;
   let superT: string;
   let staffT: string;
   let createdEstId: string;
@@ -32,7 +34,7 @@ describe('Platform Console (e2e)', () => {
     mailer = app.get(MailerService);
 
     // Un lido "host" per lo staff (superuser è cross-tenant, establishmentId null).
-    hostEstId = (await prisma.establishment.create({ data: { name: 'PLATFORM HOST' } })).id;
+    hostEstId = await createEstablishment(prisma, 'PLATFORM HOST');
     await createUser(prisma, { email: SUPER_EMAIL, password: 'pw-super-1', role: Role.superuser, establishmentId: null });
     await createUser(prisma, { email: STAFF_EMAIL, password: 'pw-staff-1', role: Role.staff, establishmentId: hostEstId });
     superT = await login(app, SUPER_EMAIL, 'pw-super-1');

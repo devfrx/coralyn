@@ -5,9 +5,11 @@ import request from 'supertest';
 import { AppModule } from '../src/app.module';
 import { PrismaService } from '../src/prisma/prisma.service';
 import { MailerService } from '../src/mail/mailer.service';
+import type { TenantId } from '../src/tenant/tenant-id';
 import { FakeMailerService } from './helpers/fake-mailer';
 import { createUser, login } from './helpers/seed-auth';
 import { createTestApp } from './helpers/create-test-app';
+import { createEstablishment } from './helpers/create-establishment';
 
 const bearer = (t: string): [string, string] => ['Authorization', `Bearer ${t}`];
 const EMAILS = ['u.admin@e2e.test', 'u.admin2@e2e.test', 'u.staff@e2e.test', 'u.new@e2e.test', 'u.other@e2e.test'];
@@ -16,7 +18,7 @@ describe('Establishment users (e2e)', () => {
   let app: INestApplication;
   let prisma: PrismaService;
   let mailer: FakeMailerService;
-  let s1: string;
+  let s1: TenantId;
   let adminT: string;
   let staffT: string;
   let adminId: string;
@@ -31,7 +33,7 @@ describe('Establishment users (e2e)', () => {
     prisma = app.get(PrismaService);
     mailer = app.get(MailerService);
 
-    s1 = (await prisma.establishment.create({ data: { name: 'USERS A' } })).id;
+    s1 = await createEstablishment(prisma, 'USERS A');
     await createUser(prisma, { email: 'u.admin@e2e.test', password: 'pw-admin-1', role: Role.admin, establishmentId: s1 });
     await createUser(prisma, { email: 'u.admin2@e2e.test', password: 'pw-admin-2', role: Role.admin, establishmentId: s1 });
     await createUser(prisma, { email: 'u.staff@e2e.test', password: 'pw-staff-1', role: Role.staff, establishmentId: s1 });

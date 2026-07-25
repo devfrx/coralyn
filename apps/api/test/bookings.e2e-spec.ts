@@ -4,16 +4,18 @@ import { Role } from '@prisma/client';
 import request from 'supertest';
 import { AppModule } from '../src/app.module';
 import { PrismaService } from '../src/prisma/prisma.service';
+import type { TenantId } from '../src/tenant/tenant-id';
 import { createUser, login } from './helpers/seed-auth';
 import { cleanMapTenant, seedMapTenant, type MapSeedIds } from './helpers/seed-map';
 import { seedPricingTenant, cleanPricingTenant } from './helpers/seed-pricing';
 import { createTestApp } from './helpers/create-test-app';
+import { createEstablishment } from './helpers/create-establishment';
 
 describe('Bookings (e2e)', () => {
   let app: INestApplication;
   let prisma: PrismaService;
-  let s1: string;
-  let s2: string;
+  let s1: TenantId;
+  let s2: TenantId;
   let token1: string;
   let token2: string;
   let superToken: string;
@@ -31,8 +33,8 @@ describe('Bookings (e2e)', () => {
     const moduleRef = await Test.createTestingModule({ imports: [AppModule] }).compile();
     app = await createTestApp(moduleRef);
     prisma = app.get(PrismaService);
-    s1 = (await prisma.establishment.create({ data: { name: 'Book A' } })).id;
-    s2 = (await prisma.establishment.create({ data: { name: 'Book B' } })).id;
+    s1 = await createEstablishment(prisma, 'Book A');
+    s2 = await createEstablishment(prisma, 'Book B');
     await createUser(prisma, { email: 'admin.b1@e2e.test', password: 'pw1', role: Role.admin, establishmentId: s1 });
     await createUser(prisma, { email: 'admin.b2@e2e.test', password: 'pw2', role: Role.admin, establishmentId: s2 });
     await createUser(prisma, { email: 'super.b@e2e.test', password: 'pws', role: Role.superuser, establishmentId: null });

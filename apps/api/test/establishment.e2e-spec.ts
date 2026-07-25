@@ -4,9 +4,11 @@ import { Role } from '@prisma/client';
 import request from 'supertest';
 import { AppModule } from '../src/app.module';
 import { PrismaService } from '../src/prisma/prisma.service';
+import type { TenantId } from '../src/tenant/tenant-id';
 import { createUser, login } from './helpers/seed-auth';
 import { seedMapTenant, cleanMapTenant } from './helpers/seed-map';
 import { createTestApp } from './helpers/create-test-app';
+import { createEstablishment } from './helpers/create-establishment';
 
 const bearer = (t: string): [string, string] => ['Authorization', `Bearer ${t}`];
 const todayIso = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Rome' }).format(new Date());
@@ -19,8 +21,8 @@ const isoPlus = (delta: number): string => {
 describe('Establishment overview (e2e)', () => {
   let app: INestApplication;
   let prisma: PrismaService;
-  let s1: string;
-  let s2: string;
+  let s1: TenantId;
+  let s2: TenantId;
   let t1: string;
 
   beforeAll(async () => {
@@ -28,7 +30,7 @@ describe('Establishment overview (e2e)', () => {
     app = await createTestApp(moduleRef);
     prisma = app.get(PrismaService);
 
-    s1 = (await prisma.establishment.create({ data: { name: 'EST A' } })).id;
+    s1 = await createEstablishment(prisma, 'EST A');
     await seedMapTenant(prisma, s1);
     await prisma.forTenant(s1, async (tx) => {
       await tx.package.create({ data: { establishmentId: s1, name: 'Standard' } });
@@ -39,7 +41,7 @@ describe('Establishment overview (e2e)', () => {
     await createUser(prisma, { email: 'est.super@e2e.test', password: 'pw3', role: Role.superuser, establishmentId: null });
     t1 = await login(app, 'est.admin@e2e.test', 'pw1');
 
-    s2 = (await prisma.establishment.create({ data: { name: 'EST B' } })).id;
+    s2 = await createEstablishment(prisma, 'EST B');
     await seedMapTenant(prisma, s2);
     await createUser(prisma, { email: 'est.b@e2e.test', password: 'pw4', role: Role.admin, establishmentId: s2 });
   });
@@ -76,14 +78,14 @@ describe('Establishment overview (e2e)', () => {
 describe('Establishment overview — off-season → activeSeason null (e2e)', () => {
   let app: INestApplication;
   let prisma: PrismaService;
-  let s3: string;
+  let s3: TenantId;
   let t3: string;
 
   beforeAll(async () => {
     const moduleRef = await Test.createTestingModule({ imports: [AppModule] }).compile();
     app = await createTestApp(moduleRef);
     prisma = app.get(PrismaService);
-    s3 = (await prisma.establishment.create({ data: { name: 'EST C' } })).id;
+    s3 = await createEstablishment(prisma, 'EST C');
     await prisma.forTenant(s3, async (tx) => {
       await tx.season.create({ data: { establishmentId: s3, name: 'Stagione Passata', startDate: new Date(`${isoPlus(-60)}T00:00:00Z`), endDate: new Date(`${isoPlus(-30)}T00:00:00Z`) } });
     });

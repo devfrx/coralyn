@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import type { ReportSummaryDTO, ReportPeriod } from '@coralyn/contracts';
 import { PrismaService } from '../prisma/prisma.service';
 import { TenantContext } from '../tenant/tenant-context';
+import type { TenantId } from '../tenant/tenant-id';
 import { MapService } from '../map/map.service';
 import { RenewalCampaignsService } from '../bookings/renewal-campaigns.service';
 import { revenueKpi, revenueBuckets, occupancyPct, stateMix, occupancyStates } from './report.projection';
@@ -82,7 +83,7 @@ export class ReportsService {
   }
 
   private async enrichRenewals(
-    tenantId: string,
+    tenantId: TenantId,
     campaign: ActiveCampaign,
   ): Promise<ReportSummaryDTO['expiringRenewals']> {
     if (!campaign) return [];

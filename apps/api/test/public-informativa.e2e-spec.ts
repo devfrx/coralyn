@@ -4,13 +4,15 @@ import request from 'supertest';
 import { AppModule } from '../src/app.module';
 import { PrismaService } from '../src/prisma/prisma.service';
 import { MailerService } from '../src/mail/mailer.service';
+import type { TenantId } from '../src/tenant/tenant-id';
 import { FakeMailerService } from './helpers/fake-mailer';
 import { createTestApp } from './helpers/create-test-app';
+import { createEstablishment } from './helpers/create-establishment';
 
 describe('Public informativa (e2e)', () => {
   let app: INestApplication;
   let prisma: PrismaService;
-  let s1: string;
+  let s1: TenantId;
 
   beforeAll(async () => {
     const moduleRef = await Test.createTestingModule({ imports: [AppModule] })
@@ -19,7 +21,7 @@ describe('Public informativa (e2e)', () => {
     app = await createTestApp(moduleRef);
     prisma = app.get(PrismaService);
 
-    s1 = (await prisma.establishment.create({ data: { name: 'PUBLIC INFORMATIVA A' } })).id;
+    s1 = await createEstablishment(prisma, 'PUBLIC INFORMATIVA A');
   });
 
   afterAll(async () => {

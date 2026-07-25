@@ -1,6 +1,7 @@
 import { CanActivate, ExecutionContext, Injectable, UnauthorizedException } from '@nestjs/common';
 import type { Request } from 'express';
 import { CustomerTokenService } from './customer-token.service';
+import { tenantIdOf } from '../tenant/tenant-id';
 import type { CustomerPrincipal } from './customer-principal';
 
 type CustomerRequest = Request & { customer?: CustomerPrincipal; tenantId?: string };
@@ -23,7 +24,10 @@ export class CustomerJwtGuard implements CanActivate {
     if (scheme?.toLowerCase() !== 'bearer' || !token) throw new UnauthorizedException('Token non valido');
     try {
       const claims = this.tokens.verify(token);
-      req.customer = { id: claims.sub, establishmentId: claims.establishmentId };
+      // Gemello di TenantContext.require() per il canale cliente: è QUI che il tenant del
+      // cliente diventa un TenantId, perché è qui che si sa che viene dal token verificato e
+      // non da un input. Vedi tenant-id.ts.
+      req.customer = { id: claims.sub, establishmentId: tenantIdOf(claims.establishmentId) };
       req.tenantId = claims.establishmentId;
       return true;
     } catch {

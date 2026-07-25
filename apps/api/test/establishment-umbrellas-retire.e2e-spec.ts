@@ -4,8 +4,10 @@ import { Role } from '@prisma/client';
 import request from 'supertest';
 import { AppModule } from '../src/app.module';
 import { PrismaService } from '../src/prisma/prisma.service';
+import type { TenantId } from '../src/tenant/tenant-id';
 import { createUser, login } from './helpers/seed-auth';
 import { createTestApp } from './helpers/create-test-app';
+import { createEstablishment } from './helpers/create-establishment';
 
 // Collaudo integrato del ritiro ombrellone (D-055): guardia prenotazioni attive/future, sgancio dalla
 // struttura con snapshot in retired, sblocco via disdetta, label riusabile dopo il ritiro, restore con
@@ -19,7 +21,7 @@ const EMAILS = ['retire.admin@e2e.test', 'retire.staff@e2e.test'];
 describe('Establishment umbrellas retire (e2e)', () => {
   let app: INestApplication;
   let prisma: PrismaService;
-  let s1: string;
+  let s1: TenantId;
   let adminT: string;
   let staffT: string;
   let rowId: string;
@@ -34,7 +36,7 @@ describe('Establishment umbrellas retire (e2e)', () => {
     app = await createTestApp(moduleRef);
     prisma = app.get(PrismaService);
 
-    s1 = (await prisma.establishment.create({ data: { name: 'RETIRE A' } })).id;
+    s1 = await createEstablishment(prisma, 'RETIRE A');
     await createUser(prisma, { email: 'retire.admin@e2e.test', password: 'pw-admin-1', role: Role.admin, establishmentId: s1 });
     await createUser(prisma, { email: 'retire.staff@e2e.test', password: 'pw-staff-1', role: Role.staff, establishmentId: s1 });
     adminT = await login(app, 'retire.admin@e2e.test', 'pw-admin-1');

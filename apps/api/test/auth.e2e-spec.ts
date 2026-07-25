@@ -4,19 +4,21 @@ import { Role } from '@prisma/client';
 import request from 'supertest';
 import { AppModule } from '../src/app.module';
 import { PrismaService } from '../src/prisma/prisma.service';
+import type { TenantId } from '../src/tenant/tenant-id';
 import { createUser, login } from './helpers/seed-auth';
 import { createTestApp } from './helpers/create-test-app';
+import { createEstablishment } from './helpers/create-establishment';
 
 describe('Auth (e2e)', () => {
   let app: INestApplication;
   let prisma: PrismaService;
-  let estId: string;
+  let estId: TenantId;
 
   beforeAll(async () => {
     const moduleRef = await Test.createTestingModule({ imports: [AppModule] }).compile();
     app = await createTestApp(moduleRef);
     prisma = app.get(PrismaService);
-    estId = (await prisma.establishment.create({ data: { name: 'Auth E2E' } })).id;
+    estId = await createEstablishment(prisma, 'Auth E2E');
     await createUser(prisma, {
       email: 'admin.auth@e2e.test',
       password: 'segreto-1',

@@ -7,6 +7,7 @@ import type {
   CustomerRefreshInput,
 } from '@coralyn/contracts';
 import { PrismaService } from '../prisma/prisma.service';
+import type { TenantId } from '../tenant/tenant-id';
 import { PasswordHasher } from '../crypto/password-hasher';
 import { generateRawToken, hashToken } from '../credential/token-hash';
 import { CustomerTokenService } from './customer-token.service';
@@ -146,7 +147,7 @@ export class CustomerSessionService {
 
   /** Profilo del cliente autenticato (session-check). Tenant-scoped via forTenant (RLS): sia il
    *  customerId sia il tenant provengono dal claim JWT (CustomerJwtGuard). */
-  async getMe(customerId: string, tenantId: string): Promise<CustomerMeDTO> {
+  async getMe(customerId: string, tenantId: TenantId): Promise<CustomerMeDTO> {
     const c = await this.prisma.forTenant(tenantId, async (tx) => {
       return tx.customer.findFirst({
         where: { id: customerId },

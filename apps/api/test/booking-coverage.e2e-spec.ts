@@ -4,11 +4,13 @@ import { Role } from '@prisma/client';
 import request from 'supertest';
 import { AppModule } from '../src/app.module';
 import { PrismaService } from '../src/prisma/prisma.service';
+import type { TenantId } from '../src/tenant/tenant-id';
 import { createUser, login } from './helpers/seed-auth';
 import { seedMapTenant, cleanMapTenant, type MapSeedIds } from './helpers/seed-map';
 import { seedPricingTenant, cleanPricingTenant } from './helpers/seed-pricing';
 import { insertBookingWithCoverage } from './helpers/insert-booking-with-coverage';
 import { createTestApp } from './helpers/create-test-app';
+import { createEstablishment } from './helpers/create-establishment';
 
 /**
  * Test della BookingCoverage (D-013 sospensione spec 1/2, ADR-0046). Verifica:
@@ -20,7 +22,7 @@ import { createTestApp } from './helpers/create-test-app';
 describe('BookingCoverage (e2e)', () => {
   let app: INestApplication;
   let prisma: PrismaService;
-  let s1: string;
+  let s1: TenantId;
   let ids: MapSeedIds;
   let customerId: string;
   let token1: string;
@@ -35,7 +37,7 @@ describe('BookingCoverage (e2e)', () => {
     const moduleRef = await Test.createTestingModule({ imports: [AppModule] }).compile();
     app = await createTestApp(moduleRef);
     prisma = app.get(PrismaService);
-    s1 = (await prisma.establishment.create({ data: { name: 'Coverage E2E' } })).id;
+    s1 = await createEstablishment(prisma, 'Coverage E2E');
     await createUser(prisma, { email: 'admin.cov@e2e.test', password: 'pw1', role: Role.admin, establishmentId: s1 });
     token1 = await login(app, 'admin.cov@e2e.test', 'pw1');
     ids = await seedMapTenant(prisma, s1);

@@ -4,7 +4,9 @@ import { AppModule } from '../src/app.module';
 import { PrismaService } from '../src/prisma/prisma.service';
 import { seedMapTenant, cleanMapTenant, type MapSeedIds } from './helpers/seed-map';
 import { insertBookingWithCoverage } from './helpers/insert-booking-with-coverage';
+import { createEstablishment } from './helpers/create-establishment';
 import { isBookingOverlapExclusion } from '../src/bookings/booking.errors';
+import type { TenantId } from '../src/tenant/tenant-id';
 
 /**
  * Test a livello DB dell'EXCLUDE constraint coverage_no_overlap (D-030, ADR-0037/ADR-0046). Inserisce
@@ -17,7 +19,7 @@ import { isBookingOverlapExclusion } from '../src/bookings/booking.errors';
 describe('BookingCoverage overlap EXCLUDE constraint (e2e, DB-level)', () => {
   let app: INestApplication;
   let prisma: PrismaService;
-  let s1: string;
+  let s1: TenantId;
   let ids: MapSeedIds;
   let customerId: string;
   let fullDaySlot: string; // Giorno Intero 08-19 (fascia diversa, orari che coprono Mattina)
@@ -64,7 +66,7 @@ describe('BookingCoverage overlap EXCLUDE constraint (e2e, DB-level)', () => {
     app = moduleRef.createNestApplication();
     await app.init();
     prisma = app.get(PrismaService);
-    s1 = (await prisma.establishment.create({ data: { name: 'Overlap DB' } })).id;
+    s1 = await createEstablishment(prisma, 'Overlap DB');
     ids = await seedMapTenant(prisma, s1);
     customerId = (
       await prisma.forTenant(s1, (tx) =>
@@ -216,8 +218,8 @@ describe('BookingCoverage overlap EXCLUDE constraint (e2e, DB-level)', () => {
     // uuid: senza il trigger nulla impediva di scriverlo nella colonna. Il trigger lo sovrascrive
     // e la FK, indipendentemente, rifiuterebbe un id inesistente.
     const b = await insert({ umbrellaId: ids.u1, timeSlotId: ids.slotMorning, startDate: D, endDate: D });
-    const alien = await prisma.establishment.create({ data: { name: 'Altro lido' } });
-    const alienIds = await seedMapTenant(prisma, alien.id);
+    const alien = await createEstablishment(prisma, 'Altro lido');
+    const alienIds = await seedMapTenant(prisma, alien);
 
     const rogue = await insertRawCoverage({
       bookingId: b.id,
@@ -227,8 +229,8 @@ describe('BookingCoverage overlap EXCLUDE constraint (e2e, DB-level)', () => {
     });
     expect(rogue.umbrellaId).toBe(ids.u1);
 
-    await cleanMapTenant(prisma, alien.id);
-    await prisma.establishment.deleteMany({ where: { id: alien.id } });
+    await cleanMapTenant(prisma, alien);
+    await prisma.establishment.deleteMany({ where: { id: alien } });
   });
 
   it('la coverage dichiara la FK verso Umbrella (ON DELETE RESTRICT, gemella di quella di Booking)', async () => {

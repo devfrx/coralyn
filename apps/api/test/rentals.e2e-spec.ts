@@ -4,11 +4,13 @@ import { Role } from '@prisma/client';
 import request from 'supertest';
 import { AppModule } from '../src/app.module';
 import { PrismaService } from '../src/prisma/prisma.service';
+import type { TenantId } from '../src/tenant/tenant-id';
 import { createUser, login } from './helpers/seed-auth';
 import { createTestApp } from './helpers/create-test-app';
+import { createEstablishment } from './helpers/create-establishment';
 
 describe('Rentals (e2e)', () => {
-  let app: INestApplication; let prisma: PrismaService; let s1: string; let t1: string;
+  let app: INestApplication; let prisma: PrismaService; let s1: TenantId; let t1: string;
   let itemId: string; let otherItemId: string; let tariffId: string;
   const bearer = (t: string): [string, string] => ['Authorization', `Bearer ${t}`];
   const srv = () => app.getHttpServer();
@@ -16,7 +18,7 @@ describe('Rentals (e2e)', () => {
   beforeAll(async () => {
     const m = await Test.createTestingModule({ imports: [AppModule] }).compile();
     app = await createTestApp(m); prisma = app.get(PrismaService);
-    s1 = (await prisma.establishment.create({ data: { name: 'Rentals TX' } })).id;
+    s1 = await createEstablishment(prisma, 'Rentals TX');
     await createUser(prisma, { email: 'a.rx1@e2e.test', password: 'pw1', role: Role.admin, establishmentId: s1 });
     t1 = await login(app, 'a.rx1@e2e.test', 'pw1');
 

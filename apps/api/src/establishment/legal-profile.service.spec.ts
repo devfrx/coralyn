@@ -2,8 +2,7 @@ import { Test } from '@nestjs/testing';
 import { LegalProfileService } from './legal-profile.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { TenantContext } from '../tenant/tenant-context';
-
-const TENANT = '11111111-1111-1111-1111-111111111111';
+import { TEST_TENANT as TENANT, fakeTenantPrisma, fakeTenantContext } from '../test/tenant-prisma';
 
 function makeTx() {
   return {
@@ -25,8 +24,8 @@ describe('LegalProfileService', () => {
 
   beforeEach(async () => {
     tx = makeTx();
-    const prisma = { forTenant: jest.fn((_id: string, fn: any) => fn(tx)) };
-    const tenant = { require: jest.fn().mockReturnValue(TENANT) };
+    const prisma = fakeTenantPrisma(tx);
+    const tenant = fakeTenantContext();
     const mod = await Test.createTestingModule({
       providers: [
         LegalProfileService,

@@ -4,11 +4,13 @@ import { Role } from '@prisma/client';
 import request from 'supertest';
 import { AppModule } from '../src/app.module';
 import { PrismaService } from '../src/prisma/prisma.service';
+import type { TenantId } from '../src/tenant/tenant-id';
 import { createUser, login } from './helpers/seed-auth';
 import { cleanMapTenant, seedMapTenant, type MapSeedIds } from './helpers/seed-map';
 import { insertBookingWithCoverage } from './helpers/insert-booking-with-coverage';
 import { createTestApp } from './helpers/create-test-app';
 import { provisionCustomerAccess, activateCustomer } from './helpers/customer-auth';
+import { createEstablishment } from './helpers/create-establishment';
 
 const bearer = (t: string): [string, string] => ['Authorization', `Bearer ${t}`];
 
@@ -25,7 +27,7 @@ describe('Customer subscriptions channel (D-035 S4)', () => {
   let prisma: PrismaService;
 
   // Tenant A
-  let sA: string;
+  let sA: TenantId;
   let adminTokenA: string;
   let idsA: MapSeedIds;
   let umbrellaSeq = 0;
@@ -37,7 +39,7 @@ describe('Customer subscriptions channel (D-035 S4)', () => {
   let accessTokenA: string;
 
   // Tenant B (isolamento cross-tenant/cross-customer)
-  let sB: string;
+  let sB: TenantId;
   let idsB: MapSeedIds;
   let customerIdB: string;
   let bookingIdB: string;
@@ -53,12 +55,12 @@ describe('Customer subscriptions channel (D-035 S4)', () => {
     app = await createTestApp(moduleRef);
     prisma = app.get(PrismaService);
 
-    sA = (await prisma.establishment.create({ data: { name: 'CS A' } })).id;
+    sA = await createEstablishment(prisma, 'CS A');
     await createUser(prisma, { email: 'cs.admin.a@e2e.test', password: 'pw1', role: Role.admin, establishmentId: sA });
     adminTokenA = await login(app, 'cs.admin.a@e2e.test', 'pw1');
     idsA = await seedMapTenant(prisma, sA);
 
-    sB = (await prisma.establishment.create({ data: { name: 'CS B' } })).id;
+    sB = await createEstablishment(prisma, 'CS B');
     await createUser(prisma, { email: 'cs.admin.b@e2e.test', password: 'pw1', role: Role.admin, establishmentId: sB });
     idsB = await seedMapTenant(prisma, sB);
 
@@ -112,7 +114,7 @@ describe('Customer subscriptions channel (D-035 S4)', () => {
 
   /** Ombrellone dedicato per tenant (label univoca): ogni abbonamento full-season ha bisogno del
    *  proprio ombrellone per non collidere con l'anti-overlap (constraint DB coverage_no_overlap). */
-  async function makeUmbrella(tenantId: string, rowId: string, label: string): Promise<string> {
+  async function makeUmbrella(tenantId: TenantId, rowId: string, label: string): Promise<string> {
     const u = await prisma.forTenant(tenantId, (tx) =>
       tx.umbrella.create({
         data: { establishmentId: tenantId, rowId, umbrellaTypeId: null, label: `${label}-${(umbrellaSeq += 1)}`, logicalOrder: 100 + umbrellaSeq },

@@ -7,8 +7,10 @@ import { PrismaService } from '../src/prisma/prisma.service';
 import { MailerService } from '../src/mail/mailer.service';
 import { FakeMailerService } from './helpers/fake-mailer';
 import { CredentialSetupService } from '../src/credential/credential-setup.service';
+import type { TenantId } from '../src/tenant/tenant-id';
 import { createUser } from './helpers/seed-auth';
 import { createTestApp } from './helpers/create-test-app';
+import { createEstablishment } from './helpers/create-establishment';
 
 const EMAIL = 'redeem.admin@platform.test';
 
@@ -17,7 +19,7 @@ describe('Credential setup (e2e)', () => {
   let prisma: PrismaService;
   let mailer: FakeMailerService;
   let credentials: CredentialSetupService;
-  let estId: string;
+  let estId: TenantId;
   let userId: string;
 
   beforeAll(async () => {
@@ -28,7 +30,7 @@ describe('Credential setup (e2e)', () => {
     prisma = app.get(PrismaService);
     mailer = app.get(MailerService);
     credentials = app.get(CredentialSetupService);
-    estId = (await prisma.establishment.create({ data: { name: 'REDEEM HOST' } })).id;
+    estId = await createEstablishment(prisma, 'REDEEM HOST');
     await createUser(prisma, { email: EMAIL, password: 'unusable-initial', role: Role.admin, establishmentId: estId });
     userId = (await prisma.user.findUniqueOrThrow({ where: { email: EMAIL } })).id;
   });

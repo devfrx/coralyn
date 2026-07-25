@@ -4,18 +4,20 @@ import { Role } from '@prisma/client';
 import request from 'supertest';
 import { AppModule } from '../src/app.module';
 import { PrismaService } from '../src/prisma/prisma.service';
+import type { TenantId } from '../src/tenant/tenant-id';
 import { createUser, login } from './helpers/seed-auth';
 import { cleanMapTenant, seedMapTenant, type MapSeedIds } from './helpers/seed-map';
 import { seedPricingTenant, cleanPricingTenant } from './helpers/seed-pricing';
 import { createTestApp } from './helpers/create-test-app';
+import { createEstablishment } from './helpers/create-establishment';
 
 const bearer = (t: string): [string, string] => ['Authorization', `Bearer ${t}`];
 
 describe('Subscription cession (e2e)', () => {
   let app: INestApplication;
   let prisma: PrismaService;
-  let s1: string;
-  let s2: string;
+  let s1: TenantId;
+  let s2: TenantId;
   let adminToken: string;
   let staffToken: string;
   let otherTenantAdminToken: string;
@@ -30,8 +32,8 @@ describe('Subscription cession (e2e)', () => {
     app = await createTestApp(moduleRef);
     prisma = app.get(PrismaService);
 
-    s1 = (await prisma.establishment.create({ data: { name: 'Cession A' } })).id;
-    s2 = (await prisma.establishment.create({ data: { name: 'Cession B' } })).id;
+    s1 = await createEstablishment(prisma, 'Cession A');
+    s2 = await createEstablishment(prisma, 'Cession B');
     await createUser(prisma, { email: 'cession.admin1@e2e.test', password: 'pw1', role: Role.admin, establishmentId: s1 });
     await createUser(prisma, { email: 'cession.staff1@e2e.test', password: 'pws1', role: Role.staff, establishmentId: s1 });
     await createUser(prisma, { email: 'cession.admin2@e2e.test', password: 'pw2', role: Role.admin, establishmentId: s2 });

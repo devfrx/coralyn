@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import type { PlatformEstablishmentDTO } from '@coralyn/contracts';
 import { PrismaService } from '../prisma/prisma.service';
+import { tenantIdOf } from '../tenant/tenant-id';
 import { todayInRome, toDbDate } from '../common/dates';
 import { occupancyPct } from '../reports/report.projection';
 import { SetupStatusService } from '../establishment/setup-status.service';
@@ -34,7 +35,9 @@ export class PlatformMetricsService {
       where: { establishmentId: est.id, disabledAt: null, role: { in: ['admin', 'staff'] } },
     });
 
-    const agg = await this.prisma.forTenant(est.id, async (tx) => {
+    // Deroga dichiarata: qui il tenant NON è quello della richiesta. Il superuser di piattaforma
+    // non ha uno stabilimento proprio e itera sui lidi del registro. Vedi tenant-id.ts.
+    const agg = await this.prisma.forTenant(tenantIdOf(est.id), async (tx) => {
       const [sectors, rows, umbrellas] = [await tx.sector.count(), await tx.row.count(), await tx.umbrella.count({ where: { retiredAt: null } })];
       const lastBooking = await tx.booking.aggregate({ _max: { createdAt: true } });
 

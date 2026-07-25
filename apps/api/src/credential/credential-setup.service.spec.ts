@@ -32,10 +32,23 @@ describe('CredentialSetupService', () => {
   it('issueAndSend: crea un token hashato (mai il raw), invalida i precedenti, invia email', async () => {
     const { client, tokens } = makePrisma();
     const svc = new CredentialSetupService(client, hasher, mailer, config);
+    // Lo stato che il titolo promette di verificare, e che il fixture non conteneva (P6-001): un
+    // token VIVO dello stesso utente. Senza, la `updateMany` di issueAndSend matcha zero righe e
+    // cancellarla è invisibile — misurato: rimuovendola i 7 test restavano verdi.
+    tokens.push({ id: 't-precedente', userId: 'u1', tokenHash: hashToken('precedente'), purpose: 'invite', consumedAt: null, expiresAt: new Date(Date.now() + 3600_000) });
+    // E uno di un ALTRO utente, che NON deve essere toccato: senza questo, invalidare tutto
+    // indiscriminatamente supererebbe comunque il test.
+    tokens.push({ id: 't-altro-utente', userId: 'u2', tokenHash: hashToken('altro'), purpose: 'invite', consumedAt: null, expiresAt: new Date(Date.now() + 3600_000) });
+
     const { expiresAt } = await svc.issueAndSend('u1', 'a@lido.test', 'invite', 'su1');
-    expect(tokens).toHaveLength(1);
-    expect(tokens[0].tokenHash).toMatch(/^[0-9a-f]{64}$/);
-    expect(tokens[0].purpose).toBe('invite');
+
+    expect(tokens).toHaveLength(3);
+    const precedente = tokens.find((t) => t.id === 't-precedente');
+    expect(precedente.consumedAt).not.toBeNull();
+    expect(tokens.find((t) => t.id === 't-altro-utente').consumedAt).toBeNull();
+    const nuovo = tokens.find((t) => t.userId === 'u1' && t.consumedAt === null);
+    expect(nuovo.tokenHash).toMatch(/^[0-9a-f]{64}$/);
+    expect(nuovo.purpose).toBe('invite');
     expect(expiresAt).toBeInstanceOf(Date);
     expect(mailer.sendCredentialSetup).toHaveBeenCalledWith(expect.objectContaining({ to: 'a@lido.test', purpose: 'invite' }));
   });
@@ -44,10 +57,34 @@ describe('CredentialSetupService', () => {
     const { client, tokens, users } = makePrisma();
     const svc = new CredentialSetupService(client, hasher, mailer, config);
     const raw = 'known-raw';
-    tokens.push({ id: 't1', userId: 'u1', tokenHash: hashToken(raw), purpose: 'invite', consumedAt: null, expiresAt: new Date(Date.now() + 3600_000) });
+    const vivo = { purpose: 'invite', consumedAt: null, expiresAt: new Date(Date.now() + 3600_000) };
+    tokens.push({ id: 't1', userId: 'u1', tokenHash: hashToken(raw), ...vivo });
+    // I FRATELLI, che il fixture non conteneva: due link di set-password possono coesistere
+    // (invito + reset chiesto dall'admin). Consumarne uno deve spegnere l'altro, altrimenti un
+    // link vecchio — mailbox compromessa, log SMTP — continua a impostare la password.
+    tokens.push({ id: 't-fratello', userId: 'u1', tokenHash: hashToken('fratello'), ...vivo });
+    tokens.push({ id: 't-altro-utente', userId: 'u2', tokenHash: hashToken('altro'), ...vivo });
+
     await svc.redeem(raw, 'nuova-password-123');
+
     expect(users[0].passwordHash).toBe('hash(nuova-password-123)');
-    expect(tokens[0].consumedAt).not.toBeNull();
+    expect(tokens.find((t) => t.id === 't1').consumedAt).not.toBeNull();
+    expect(tokens.find((t) => t.id === 't-fratello').consumedAt).not.toBeNull();
+    expect(tokens.find((t) => t.id === 't-altro-utente').consumedAt).toBeNull();
+  });
+
+  it('redeem: il fratello invalidato non è più spendibile', async () => {
+    // L'asserzione sopra guarda la colonna; questa guarda il COMPORTAMENTO, che è ciò che
+    // protegge davvero l'utente: il secondo link non imposta più nulla.
+    const { client, tokens, users } = makePrisma();
+    const svc = new CredentialSetupService(client, hasher, mailer, config);
+    const vivo = { purpose: 'invite', consumedAt: null, expiresAt: new Date(Date.now() + 3600_000) };
+    tokens.push({ id: 't1', userId: 'u1', tokenHash: hashToken('primo'), ...vivo });
+    tokens.push({ id: 't2', userId: 'u1', tokenHash: hashToken('secondo'), ...vivo });
+
+    await svc.redeem('primo', 'password-legittima-1');
+    await expect(svc.redeem('secondo', 'password-di-chi-ha-il-link-vecchio')).rejects.toBeInstanceOf(NotFoundException);
+    expect(users[0].passwordHash).toBe('hash(password-legittima-1)');
   });
 
   it('redeem: token scaduto → NotFoundException', async () => {

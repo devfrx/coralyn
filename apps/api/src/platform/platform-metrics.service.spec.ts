@@ -1,5 +1,11 @@
 import { NotFoundException } from '@nestjs/common';
 import { PlatformMetricsService } from './platform-metrics.service';
+import { fakeTenantPrisma } from '../test/tenant-prisma';
+import { tenantIdOf } from '../tenant/tenant-id';
+
+// Il superuser di piattaforma non ha un tenant proprio: itera sui lidi del registro, quindi il
+// tenant atteso da `forTenant` è l'id del lido in esame, non quello della richiesta.
+const EST_ID = 'e-1';
 
 function makeTx() {
   return {
@@ -25,7 +31,7 @@ function makeService(
   setupComplete = true,
 ) {
   const prisma = {
-    forTenant: (_t: string, cb: (tx: unknown) => unknown) => cb(tx),
+    ...fakeTenantPrisma(tx, tenantIdOf(EST_ID)),
     user: { count: jest.fn().mockResolvedValue(userCount) },
     establishment: { findMany: jest.fn(), findUnique: jest.fn(), ...establishmentOverrides },
   } as any;
@@ -34,7 +40,7 @@ function makeService(
 }
 
 describe('PlatformMetricsService', () => {
-  const EST = { id: 'e-1', name: 'Lido A', createdAt: new Date('2026-01-02T00:00:00Z'), suspendedAt: null };
+  const EST = { id: EST_ID, name: 'Lido A', createdAt: new Date('2026-01-02T00:00:00Z'), suspendedAt: null };
 
   it('metricsFor: compone il DTO PII-free da count/sum/aggregate', async () => {
     const tx = makeTx();

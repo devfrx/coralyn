@@ -1,7 +1,6 @@
 import { ConflictException, NotFoundException } from '@nestjs/common';
 import { UmbrellaTypesService } from './umbrella-types.service';
-
-const TENANT = 't-1';
+import { TEST_TENANT as TENANT, fakeTenantPrisma, fakeTenantContext } from '../test/tenant-prisma';
 
 function makeService(txOverrides: Record<string, jest.Mock> = {}) {
   const tx = {
@@ -11,8 +10,8 @@ function makeService(txOverrides: Record<string, jest.Mock> = {}) {
     umbrella: { count: jest.fn() },
     ...txOverrides,
   };
-  const prisma = { forTenant: (_t: string, cb: (tx: unknown) => unknown) => cb(tx) } as any;
-  const tenant = { require: () => TENANT } as any;
+  const prisma = fakeTenantPrisma(tx) as any;
+  const tenant = fakeTenantContext() as any;
   return { service: new UmbrellaTypesService(prisma, tenant), tx };
 }
 

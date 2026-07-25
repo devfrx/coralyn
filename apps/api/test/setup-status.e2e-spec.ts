@@ -3,15 +3,17 @@ import { Test } from '@nestjs/testing';
 import request from 'supertest';
 import { AppModule } from '../src/app.module';
 import { PrismaService } from '../src/prisma/prisma.service';
+import type { TenantId } from '../src/tenant/tenant-id';
 import { createTestApp } from './helpers/create-test-app';
 import { createUser, login } from './helpers/seed-auth';
+import { createEstablishment } from './helpers/create-establishment';
 
 describe('GET /api/establishment/setup-status (e2e)', () => {
   let app: INestApplication;
   let prisma: PrismaService;
   let adminToken: string;
   let staffToken: string;
-  let estId: string;
+  let estId: TenantId;
 
   const ADMIN = 'setup-admin@e2e.test';
   const STAFF = 'setup-staff@e2e.test';
@@ -21,8 +23,7 @@ describe('GET /api/establishment/setup-status (e2e)', () => {
     const moduleRef = await Test.createTestingModule({ imports: [AppModule] }).compile();
     app = await createTestApp(moduleRef);
     prisma = app.get(PrismaService);
-    const est = await prisma.establishment.create({ data: { name: 'Lido Setup E2E' } });
-    estId = est.id;
+    estId = await createEstablishment(prisma, 'Lido Setup E2E');
     await createUser(prisma, { email: ADMIN, password: PASS, role: 'admin', establishmentId: estId });
     await createUser(prisma, { email: STAFF, password: PASS, role: 'staff', establishmentId: estId });
     adminToken = await login(app, ADMIN, PASS);

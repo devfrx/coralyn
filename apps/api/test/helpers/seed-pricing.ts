@@ -1,4 +1,5 @@
 import type { PrismaService } from '../../src/prisma/prisma.service';
+import type { TenantId } from '../../src/tenant/tenant-id';
 
 export interface PricingSeedIds {
   seasonId: string;
@@ -10,7 +11,7 @@ export interface PricingSeedIds {
 /** Listino minimo per `establishmentId`: catch-all (28/giorno) + pomeriggio specifico (40/giorno). */
 export async function seedPricingTenant(
   prisma: PrismaService,
-  establishmentId: string,
+  establishmentId: TenantId,
   opts: { afternoonSlotId: string },
 ): Promise<PricingSeedIds> {
   return prisma.forTenant(establishmentId, async (tx) => {
@@ -82,7 +83,7 @@ export async function seedPricingTenant(
 }
 
 /** Pulisce il listino di un tenant (ordine FK: rate → pricing → season; package). */
-export async function cleanPricingTenant(prisma: PrismaService, establishmentId: string): Promise<void> {
+export async function cleanPricingTenant(prisma: PrismaService, establishmentId: TenantId): Promise<void> {
   await prisma.forTenant(establishmentId, async (tx) => {
     await tx.rate.deleteMany({});
     await tx.pricing.deleteMany({});

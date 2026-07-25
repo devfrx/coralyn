@@ -4,18 +4,20 @@ import { Role } from '@prisma/client';
 import request from 'supertest';
 import { AppModule } from '../src/app.module';
 import { PrismaService } from '../src/prisma/prisma.service';
+import type { TenantId } from '../src/tenant/tenant-id';
 import { createUser, login } from './helpers/seed-auth';
 import { cleanMapTenant, seedMapTenant, type MapSeedIds } from './helpers/seed-map';
 import { insertBookingWithCoverage } from './helpers/insert-booking-with-coverage';
 import { createTestApp } from './helpers/create-test-app';
 import { provisionCustomerAccess, activateCustomer } from './helpers/customer-auth';
+import { createEstablishment } from './helpers/create-establishment';
 
 const bearer = (t: string): [string, string] => ['Authorization', `Bearer ${t}`];
 
 describe('Customer informativa (e2e)', () => {
   let app: INestApplication;
   let prisma: PrismaService;
-  let s1: string;
+  let s1: TenantId;
   let adminToken: string;
   let ids: MapSeedIds;
   let customerAccessToken: string;
@@ -28,7 +30,7 @@ describe('Customer informativa (e2e)', () => {
     app = await createTestApp(moduleRef);
     prisma = app.get(PrismaService);
 
-    s1 = (await prisma.establishment.create({ data: { name: 'CUSTOMER INFORMATIVA A' } })).id;
+    s1 = await createEstablishment(prisma, 'CUSTOMER INFORMATIVA A');
     await createUser(prisma, { email: 'ci.admin@e2e.test', password: 'pw1', role: Role.admin, establishmentId: s1 });
     adminToken = await login(app, 'ci.admin@e2e.test', 'pw1');
     ids = await seedMapTenant(prisma, s1);

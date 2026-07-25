@@ -1,7 +1,6 @@
 import { ConflictException, NotFoundException } from '@nestjs/common';
 import { CustomersService } from './customers.service';
-
-const TENANT = 't-1';
+import { fakeTenantPrisma, fakeTenantContext } from '../test/tenant-prisma';
 
 function makeService(overrides: {
   customer?: Partial<{ findFirst: jest.Mock; delete: jest.Mock; update: jest.Mock; findMany: jest.Mock }>;
@@ -14,8 +13,8 @@ function makeService(overrides: {
   const renewalCampaign = { findMany: jest.fn().mockResolvedValue([]), ...overrides.renewalCampaign };
   const season = { findFirst: jest.fn(), ...overrides.season };
   const tx = { customer, booking, renewalCampaign, season };
-  const prisma = { forTenant: (_t: string, cb: (t: typeof tx) => unknown) => cb(tx) } as any;
-  const tenant = { require: () => TENANT } as any;
+  const prisma = fakeTenantPrisma(tx) as any;
+  const tenant = fakeTenantContext() as any;
   return { service: new CustomersService(prisma, tenant), customer, booking, renewalCampaign, season };
 }
 

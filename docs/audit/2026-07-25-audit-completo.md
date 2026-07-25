@@ -23,6 +23,11 @@ Perimetro: **tutto il repo**, partizionato in 9 aree × 11 livelli. Modalità: r
 > documento contraddiceva sé stesso, ed è la radice **R-G** che si ripresenta: il §4 era stato
 > aggiornato eseguendo le fasi, questo blocco no. Restano aperte **solo G e H**.
 >
+> ⚠️ **Aggiornato il 2026-07-25 (sessione 7):** D-065 è **mergiata** su `main` (CI verde, e2e
+> comprese). Della Fase G è eseguita la slice **G1**: chiuse **AUD-024**, **AUD-026**, **AUD-028**,
+> **P6-001**, **P6-010**, **P6-018** e **P6-020**. Restano **G2** (precedenza pricing e RLS
+> parametrica), **G3** (`bookings.service.ts`) e tutta la **Fase H**.
+>
 > | Finding | Stato |
 > |---|---|
 > | **AUD-001** e2e che cancellano il DB dev | ✅ **CORRETTO** — guardia sul nome della risorsa in `jest-setup-env.ts` + `.env.test.example` versionato |
@@ -31,7 +36,7 @@ Perimetro: **tutto il repo**, partizionato in 9 aree × 11 livelli. Modalità: r
 > | Flake OOM di Jest | ✅ **CORRETTO** — `maxWorkers: '50%'` + `workerIdleMemoryLimit`. Da 49/50 suite a **50/50** |
 > | Doppio conteggio ui-kit (P6-014, P7-018, P8-002) | ✅ **CORRETTO** — rimosso l'include da `web-staff/vitest.config.ts` |
 > | Lint (P6-015, P7-008) | ✅ **CORRETTO** — 73 errori → **0**; copertura da 494 a **603 file**, inclusi i 109 `.vue` prima invisibili |
-> | P6-020 scaffolding morto nelle e2e | ⚠️ **PARZIALE** — variabili rimosse, ma **il test cross-tenant lato operatore che le giustificava non è stato scritto**: resta aperto |
+> | P6-020 scaffolding morto nelle e2e | ✅ **CHIUSO** (Fase G1) — 3 test cross-tenant lato operatore sulle **scritture** di `customer-access`. ⚠️ Misurando, il finding era più stretto del vero: il cross-tenant lato operatore **esisteva già** su bookings, packages, equipment-types, campagne e time-slot; mancava **solo** su `customer-access`, e lì solo sulle scritture |
 > | **AUD-004** autorizzazione opt-in (9 controller scoperti) | ✅ **CORRETTO** (Fase C) — guard fail-closed + `@RequiresPermission`, [ADR-0057](../architecture/decisions/0057-autorizzazione-fail-closed-permessi.md). ⚠️ Il **passo intermedio proposto al §4/7 era sbagliato**: vedi sotto |
 > | **AUD-002** `trust proxy` mai impostato | ✅ **CORRETTO** (Fase C) — `configureApp` condivisa fra `main.ts` e le e2e + `TRUST_PROXY_HOPS` (2 in produzione) |
 > | **AUD-003** login staff esposto senza throttling né anti-enumerazione | ✅ **CORRETTO** (Fase C) — `ThrottlerGuard` method-scoped sulle 3 rotte `@Public` di `AuthController`, hash civetta, `@MaxLength(128)`. D-026 (revoca a sessione in corso) **resta aperta** |
@@ -358,9 +363,40 @@ di build per compilare i test di un wrapper di `fetch` → subpath `@coralyn/ui-
 **`sideEffects` sul package nuovo è vero ma inerte**: vale 480 KB in `ui-kit` solo perché lì
 `echarts.ts` ha un effetto al top level che Rollup non può dimostrare puro.
 
-### Fase G — Test *(chiude R-I/R-J)*
-21. Mirror unit delle difese di sicurezza (4-10 righe ciascuno: `JwtAuthGuard`, `token.service` kind, `CustomerSessionService`)
-22. Fixture con lo stato concorrente sui test che oggi non possono fallire · fake `forTenant` che **asserisce** il tenant · test RLS parametrico derivato da `grep CREATE POLICY`
+### ✅ Fase G1 — Le difese di sicurezza + il fixture bugiardo — **ESEGUITA** *(chiude parte di R-I/R-J)*
+21. **AUD-028 / P6-018 / P6-010** — spec di `JwtAuthGuard` (8 test: non ne aveva **nessuno**), difesa
+    cross-canale in `token.service` nei due versi, `CustomerSessionService` (16) e
+    `CustomerAccessService` (9), che avevano **zero** spec a testa
+22. **AUD-026 / P6-005** — fake `forTenant` **condiviso** che asserisce il tenant, in
+    `src/test/tenant-prisma.ts`, + tipo **`TenantId`** brandizzato · **AUD-024 / P6-001 / P6-002** —
+    i fixture ricevono lo stato concorrente che il titolo promette · **P6-020** — cross-tenant lato
+    operatore sulle scritture di `customer-access`
+
+*Scoperto eseguendo — quattro cose che i finding non dicevano:*
+- **Il piano del report chiudeva 7 servizi su 24.** Il fake che asserisce copre solo i servizi che
+  *hanno* uno spec; i 17 restanti passavano il tenant come `string` e nessuno se ne sarebbe accorto.
+  Da qui la decisione strutturale (esposta all'utente) del tipo `TenantId`: le due difese si dividono
+  il lavoro e la divisione è **misurata** — tenant come stringa qualunque → **26 errori di
+  compilazione**; tenant come `TenantId` di altra origine → **0 errori, 7 test rossi**.
+- **Il compilatore ha trovato quattro punti di produzione, non i due che il `grep` prometteva.**
+  `reports.service.ts` riceve il tenant **per parametro** da `require()` (basta propagare il tipo), e
+  soprattutto **il canale cliente non passa da `TenantContext`**: il tenant gli arriva dal claim via
+  `CustomerJwtGuard`, che è quindi il **secondo produttore legittimo** e non una deroga.
+- **`P6-005` cita `tenant-context.ts` (18 LOC) come il file senza spec**: quel file esiste, ma
+  `forTenant` **non è lì** — vive in `prisma.service.ts`. Il nome era ereditato da un refactor.
+- **`P6-002` conta 24 e2e in `customer-access`: sono 20.** Rimuovendo entrambe le revoche di sessione
+  restano **20/20 verdi**, quindi la sostanza del finding regge; il numero no.
+- **`P6-009` dice che spegnere RLS su `Booking` lascia «tutto verde»: sulla suite `customer-access`
+  non è così**, il test A→B preesistente la prende. Plausibile che la misura originale usasse i soli
+  unit, dato che allora le e2e non giravano (P6-017). Coi 3 test nuovi le rosse diventano **4**.
+
+### Fase G2 — Precedenza e isolamento *(richiede Postgres)*
+23. **AUD-025 / P6-003** — precedenza del pricing testata su 3 coppie su 15
+24. **P6-009** — RLS testata su 1 tabella su 22, in sola lettura: test parametrico derivato da
+    `grep CREATE POLICY`, con il `WITH CHECK` esercitato
+
+### Fase G3 — `bookings.service.ts`
+25. **AUD-027 / P6-006** — 1024 LOC, zero unit test. La radice è nel **codice di produzione**
 
 ### Fase H — Documentazione *(chiude R-G)*
 23. Correggere le affermazioni false verificate (D-061, ⚖️-18, `data-model.md`, indice ADR, README root, README web-staff, guida deploy)

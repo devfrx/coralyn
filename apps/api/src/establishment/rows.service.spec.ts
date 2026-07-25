@@ -1,7 +1,6 @@
 import { ConflictException, NotFoundException } from '@nestjs/common';
 import { RowsService } from './rows.service';
-
-const TENANT = 't-1';
+import { TEST_TENANT as TENANT, fakeTenantPrisma, fakeTenantContext } from '../test/tenant-prisma';
 
 function makeService() {
   const tx = {
@@ -10,8 +9,8 @@ function makeService() {
     umbrella: { count: jest.fn() },
     rate: { count: jest.fn() },
   };
-  const prisma = { forTenant: (_t: string, cb: (tx: unknown) => unknown) => cb(tx) } as any;
-  const tenant = { require: () => TENANT } as any;
+  const prisma = fakeTenantPrisma(tx) as any;
+  const tenant = fakeTenantContext() as any;
   return { service: new RowsService(prisma, tenant), tx };
 }
 

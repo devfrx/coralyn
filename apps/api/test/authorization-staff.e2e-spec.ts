@@ -4,8 +4,10 @@ import { Role } from '@prisma/client';
 import request from 'supertest';
 import { AppModule } from '../src/app.module';
 import { PrismaService } from '../src/prisma/prisma.service';
+import type { TenantId } from '../src/tenant/tenant-id';
 import { createUser, login } from './helpers/seed-auth';
 import { createTestApp } from './helpers/create-test-app';
+import { createEstablishment } from './helpers/create-establishment';
 
 /**
  * Il ruolo `staff` esercitato sulle superfici che lo riguardano (ADR-0057).
@@ -23,7 +25,7 @@ import { createTestApp } from './helpers/create-test-app';
 describe('Autorizzazione del ruolo staff (e2e)', () => {
   let app: INestApplication;
   let prisma: PrismaService;
-  let s1: string;
+  let s1: TenantId;
   let staffT: string;
   const bearer = (t: string): [string, string] => ['Authorization', `Bearer ${t}`];
   const EMAILS = ['authz.staff@e2e.test'];
@@ -34,7 +36,7 @@ describe('Autorizzazione del ruolo staff (e2e)', () => {
     const moduleRef = await Test.createTestingModule({ imports: [AppModule] }).compile();
     app = await createTestApp(moduleRef);
     prisma = app.get(PrismaService);
-    s1 = (await prisma.establishment.create({ data: { name: 'AUTHZ STAFF' } })).id;
+    s1 = await createEstablishment(prisma, 'AUTHZ STAFF');
     await createUser(prisma, { email: EMAILS[0], password: 'pw-staff-1', role: Role.staff, establishmentId: s1 });
     staffT = await login(app, EMAILS[0], 'pw-staff-1');
   });
