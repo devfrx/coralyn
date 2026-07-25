@@ -1,8 +1,9 @@
 # Handoff 2026-07-25 (sessione 2): audit completo del repo + Fase A/B eseguite
 
 > ⚠️ **NON è più il punto d'ingresso.** Lo è
-> [2026-07-25 Fase C mergiata, CI verde](2026-07-25-fase-c-mergiata-ci-verde-prossime-fasi.md),
-> che corregge **due affermazioni** di questo documento: l'«interim a costo zero» su `@Roles`
+> [2026-07-25 Fase D eseguita](2026-07-25-fase-d-eseguita-non-mergiata.md). Nel mezzo,
+> [2026-07-25 Fase C mergiata, CI verde](2026-07-25-fase-c-mergiata-ci-verde-prossime-fasi.md)
+> corregge **due affermazioni** di questo documento: l'«interim a costo zero» su `@Roles`
 > (avrebbe rotto quattro sezioni per lo staff lasciando la suite verde) e la rotazione del
 > `JWT_SECRET` (infondata: il valore era il segnaposto già pubblico in `docker-compose.yml`).
 > Questo documento resta valido come **racconto dell'audit** e delle Fasi A/B.

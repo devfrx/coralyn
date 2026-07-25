@@ -218,17 +218,20 @@ affermazioni false**. Finding P4-006, aperto, Fase H.
 
 ### 5.1 Azioni tue
 
-1. **Merge di `chore/audit-2026-07-25-fase-d`** su `main` — serve il tuo ok esplicito. Il branch è
-   fast-forwardabile (`main` non è avanzata).
-2. **Verificare il `JWT_SECRET` di produzione** — *solo se esiste un VPS*. `.env.prod` non esiste
-   sulla macchina di sviluppo. Se è il segnaposto `dev-secret-change-me-…` (pubblico nel repo) va
-   sostituito con `openssl rand -base64 48`: chi lo conosce **forgia** token con qualunque ruolo su
-   qualunque lido, RLS compresa. La sostituzione slogga gli operatori; i bagnanti no. NB: la
-   «rotazione urgente» dell'audit era **infondata** (§1e dell'handoff di Fase C).
-3. **Decidere su [D-064](../architecture/deferred.md)**: `GET /establishment/overview` espone le
+1. **Decidere su [D-064](../architecture/deferred.md)**: `GET /establishment/overview` espone le
    email di tutti gli operatori anche allo staff. Separare `team[]` è un cambio di contratto FE/BE.
-4. Bloccanti legali pregressi: dati societari di Coralyn, scelta infrastruttura (hosting + email →
+2. Bloccanti legali pregressi: dati societari di Coralyn, scelta infrastruttura (hosting + email →
    sub-responsabili e trasferimenti extra-SEE), revisione dei 18 punti ⚖️.
+
+### 5.1b ✅ Chiuse in questa sessione
+
+- **Merge della Fase D** — autorizzato dall'utente il 2026-07-25 ed eseguito (fast-forward).
+- **`JWT_SECRET` di produzione** — **decade: non esiste alcun VPS** (confermato dall'utente il
+  2026-07-25). Non c'era nulla da verificare, e non c'è oggi alcuna produzione che possa usare il
+  segnaposto pubblico. **Non riaprirla come «azione pendente»**: è già una precondizione al primo
+  deploy, presidiata da `deploy/README.md:167` (`openssl rand -base64 48`) e dalla checklist `:343`.
+  Il rischio resta reale *quando* il deploy ci sarà — chi conosce quel segreto **forgia** token con
+  qualunque ruolo su qualunque lido, RLS compresa — ma è una voce di runbook, non un lavoro aperto.
 
 ### 5.2 Fasi E → H — piano in [§4 del report](../audit/2026-07-25-audit-completo.md)
 

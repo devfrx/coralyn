@@ -16,7 +16,7 @@ Perimetro: **tutto il repo**, partizionato in 9 aree × 11 livelli. Modalità: r
 > | Finding | Stato |
 > |---|---|
 > | **AUD-001** e2e che cancellano il DB dev | ✅ **CORRETTO** — guardia sul nome della risorsa in `jest-setup-env.ts` + `.env.test.example` versionato |
-> | **AUD-006** `JWT_SECRET` nelle immagini Docker | ✅ **CORRETTO** — `.dockerignore` è ora allow-list. ⛔ **La richiesta di rotazione era infondata**: vedi la correzione qui sotto |
+> | **AUD-006** `JWT_SECRET` nelle immagini Docker | ✅ **CHIUSO** — `.dockerignore` è ora allow-list. ⛔ **La richiesta di rotazione era infondata** e l'azione residua **decade**: non esiste alcun VPS (confermato 2026-07-25). Vedi la correzione qui sotto |
 > | **AUD-018** nessuna CI / nessuno script `verify` | ✅ **CORRETTO E VERIFICATO** — `pnpm run verify` + `.github/workflows/verify.yml`; `packages/contracts` ha ora `typecheck` (6/7 → 7/7). La CI ha girato per la prima volta il 2026-07-25 su `main`: **entrambi i job verdi**, nessun ritocco necessario |
 > | Flake OOM di Jest | ✅ **CORRETTO** — `maxWorkers: '50%'` + `workerIdleMemoryLimit`. Da 49/50 suite a **50/50** |
 > | Doppio conteggio ui-kit (P6-014, P7-018, P8-002) | ✅ **CORRETTO** — rimosso l'include da `web-staff/vitest.config.ts` |
@@ -51,9 +51,14 @@ Perimetro: **tutto il repo**, partizionato in 9 aree × 11 livelli. Modalità: r
 > Il fix di Fase A resta giusto per l'altra ragione — una deny-list dimentica **il prossimo** file,
 > quello che conterrà un segreto vero.
 >
-> **Il rischio reale è un altro, e resta aperto**: quel segnaposto non deve mai essere il segreto di
-> produzione. `.env.prod` non esiste sulla macchina di sviluppo, quindi da qui non è verificabile
-> cosa usi un eventuale VPS. Chi conosce il `JWT_SECRET` non legge i token: **li forgia** — può
+> **Il rischio reale è un altro, e non è un'esposizione ma una precondizione.** ✅ **2026-07-25,
+> confermato dall'utente: non esiste alcun VPS.** Non c'è quindi nessuna produzione che possa usare
+> quel segnaposto oggi, e l'azione «verificare il `JWT_SECRET` di produzione» **decade**: non era
+> verificabile da qui perché non c'era nulla da verificare. Resta come **precondizione al primo
+> deploy**, dove è già presidiata: `deploy/README.md:167` prescrive `openssl rand -base64 48` e la
+> checklist `:343` richiede che i placeholder siano sostituiti.
+>
+> Perché la precondizione conta: chi conosce il `JWT_SECRET` non legge i token, **li forgia** — può
 > firmarsi `role: superuser` su qualunque `establishmentId`, e il tenant arriva dal token (ADR-0026),
 > quindi scavalca anche l'RLS. Sullo stesso piano, e per lo stesso motivo, `docker-compose.yml`
 > pubblica anche `DEV_ADMIN_PASSWORD` e `PLATFORM_SUPERUSER_PASSWORD`: dichiarati dev-only, e da
@@ -249,7 +254,7 @@ Le radici prima di ciò che ci sta sopra. Le fasi B e C sbloccano la verificabil
 
 ### ✅ Fase A — Fermare i danni attivi — **ESEGUITA** *(commit `374007e`)*
 1. **AUD-001** — asserzione hard sul nome DB in `jest-setup-env.ts` + `.env.test.example` versionato + inversione della precedenza env
-2. **AUD-006** — `.dockerignore` da deny-list ad **allow-list** · ⚠️ richiede **rotazione di `JWT_SECRET`** (azione tua)
+2. **AUD-006** — `.dockerignore` da deny-list ad **allow-list** · ~~richiede rotazione di `JWT_SECRET`~~ **infondata** (il valore era il segnaposto già pubblico) e comunque priva di oggetto: nessun VPS esiste
 
 ### ✅ Fase B — Il gate eseguibile — **ESEGUITA** *(commit `6f618f5`)*
 *Eccezione dichiarata*: `isolatedModules` **non applicata**. In ts-jest 29.4 l'opzione nel transform

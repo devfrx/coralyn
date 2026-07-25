@@ -237,12 +237,11 @@ aperto, Fase H.
 
 ### 5.1 Azioni dell'utente
 
-1. **Verificare il `JWT_SECRET` di produzione** — *solo se esiste un VPS*. `.env.prod` non esiste
-   sulla macchina di sviluppo, quindi da qui non è verificabile. Se il valore è il segnaposto
-   `dev-secret-change-me-…` (pubblico nel repo), va sostituito con `openssl rand -base64 48`: chi lo
-   conosce **forgia** token con qualunque ruolo su qualunque lido, RLS compresa (il tenant arriva dal
-   token). La sostituzione slogga gli operatori (rifanno login); i bagnanti no, il loro refresh è una
-   riga di `CustomerSession`, non un JWT.
+1. ~~Verificare il `JWT_SECRET` di produzione~~ — ✅ **DECADUTA il 2026-07-25: non esiste alcun VPS**
+   (confermato dall'utente). Non c'era nulla da verificare. Resta una **precondizione al primo
+   deploy**, già presidiata da `deploy/README.md:167` e dalla checklist `:343`: chi conosce quel
+   segreto **forgia** token con qualunque ruolo su qualunque lido, RLS compresa (il tenant arriva dal
+   token).
 2. Restano i bloccanti legali pregressi: dati societari di Coralyn, scelta infrastruttura (hosting +
    email → sub-responsabili e trasferimenti extra-SEE), revisione dei 18 punti ⚖️.
 3. **Decidere su [D-064](../architecture/deferred.md)**: `GET /establishment/overview` espone le email
