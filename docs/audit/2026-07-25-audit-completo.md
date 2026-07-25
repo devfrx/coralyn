@@ -24,10 +24,14 @@ Perimetro: **tutto il repo**, partizionato in 9 aree × 11 livelli. Modalità: r
 > aggiornato eseguendo le fasi, questo blocco no. Restano aperte **solo G e H**.
 >
 > ⚠️ **Aggiornato il 2026-07-25 (sessione 7):** D-065 è **mergiata** su `main` (CI verde, e2e
-> comprese). Della Fase G sono eseguite **G1** e **G2**: chiuse **AUD-024**, **AUD-025**,
-> **AUD-026**, **AUD-028**, **P6-001**, **P6-003**, **P6-009**, **P6-010**, **P6-018** e **P6-020**.
-> Restano **G3** (`bookings.service.ts`) e tutta la **Fase H**. Aperta [D-066](../architecture/deferred.md)
-> — fragilità del gate `verify`, trovata eseguendo.
+> comprese) e la **Fase G è chiusa** (G1, G2, G3): **AUD-024**, **AUD-025**, **AUD-026**,
+> **AUD-027**, **AUD-028**, **P6-001**, **P6-002**, **P6-003**, **P6-006**, **P6-009**, **P6-010**,
+> **P6-018**, **P6-020**. Resta la **Fase H**. Aperta [D-066](../architecture/deferred.md) —
+> fragilità del gate `verify`, trovata eseguendo.
+>
+> ⚠️ **AUD-027 va letta con la misura accanto**: «1024 LOC, zero unit test» è vero, «quindi è
+> scoperto» **no** — le e2e ne eseguivano già il **96,4 %** delle righe e 7 mutazioni su 8 cadono.
+> Il piano di estrazione che ne discendeva è stato **annullato dopo averlo misurato**. Vedi §4.
 >
 > | Finding | Stato |
 > |---|---|
@@ -414,11 +418,46 @@ di build per compilare i test di un wrapper di `fetch` → subpath `@coralyn/ui-
   va in OOM sotto pressione di memoria (5,5 GB liberi → `Zone Allocation failed`; 17,9 GB → exit 0
   sulla stessa revisione). **Non** è la flake di P6-007, che restava dentro jest ed è corretta.
 
-### Fase G3 — `bookings.service.ts`
-25. **AUD-027 / P6-006** — 1024 LOC, zero unit test. La radice è nel **codice di produzione**
+### ✅ Fase G3 — `bookings.service.ts` — **ESEGUITA**, con l'enunciato del finding corretto dalla misura
+25. **AUD-027 / P6-006** dichiarava «1024 LOC, zero unit test», e da lì il piano deduceva che la
+    radice fosse nel codice di produzione (classe validatore + calcolatore + orchestratore +
+    proiettore) e che servisse estrarne funzioni pure. **La prima metà è vera, la seconda no.**
 
-### Fase G3 — `bookings.service.ts`
-25. **AUD-027 / P6-006** — 1024 LOC, zero unit test. La radice è nel **codice di produzione**
+**Misurato invece che dedotto** — coverage delle sole e2e su quel file, prima di toccare nulla:
+
+| | Prima | Dopo G3 |
+|---|---|---|
+| righe eseguite | **96,40 %** | **98,32 %** |
+| rami | **78,59 %** | **80,81 %** |
+| righe mai eseguite | 13 | **6** (i soli backstop di race) |
+
+E **8 mutazioni valide su rami coperti: 7 vengono prese**. Anche `computeSeniority`, che non ha uno
+spec proprio, ne fa cadere 3. «Zero unit test» **non significa** «scoperto»: significa che il
+guardiano è a un livello solo, ed è quello lento (radice **R4**, non R3).
+
+*Scoperto eseguendo, e vale più dei test aggiunti:*
+- **L'unica mutazione sopravvissuta è invisibile per progetto.** Togliere il `throw` dell'anti-overlap
+  applicativo lascia **503/503 verdi** perché il constraint `coverage_no_overlap` produce lo **stesso
+  409** — e il commento nel codice lo dichiarava già («*client e test non distinguono chi ha
+  bloccato*»). La direzione opposta è invece presidiata: comporre `||` invece di `&&` fa **29 rossi**.
+  → **L'estrazione di `hasOverlapConflict`, inizialmente approvata dall'utente, è stata annullata**
+  esponendogli la misura: avrebbe aggiunto uno spec per logica già coperta. Al suo posto la misura è
+  scritta **nel codice**, perché è esattamente la riga che il prossimo lettore "correggerebbe".
+- **Cancellare una guardia di dominio non compila.** I codici d'errore formano un'unione tipizzata,
+  quindi rimuovere un `return { error: 'X' }` rende impossibile il confronto `e === 'X'` a valle:
+  l'*esistenza* delle guardie è già presidiata dal typecheck. Mutabile è la **condizione**, non la
+  presenza — e le tre condizioni provate cadono tutte (2, 1, 1 rossi).
+- **Due mutazioni su tre del primo giro erano invalide** (non compilavano) e la suite riportava
+  «32 passed» perché una suite che non transpila contribuisce **zero** test al totale. Contare solo
+  `Tests:` senza guardare `Test Suites:` fa concludere l'opposto del vero.
+- **La riga dell'hold di prelazione era irraggiungibile nel modo ovvio**: `renew` copia l'ombrellone
+  dalla sorgente, quindi un rinnovo confermato occupa il posto e l'anti-overlap lancia **prima** che
+  il ciclo della prelazione giri. L'unica via è un rinnovo **annullato** — che è anche la regola che
+  conta: annullare un rinnovo **non consuma** la prelazione.
+
+*Restano fuori di proposito*: i **tre `catch`** dell'EXCLUDE constraint (389-391, 771-772,
+1005-1006). Richiedono una race vera; il constraint è coperto a livello DB da
+`booking-overlap-constraint.e2e-spec.ts`. Annotato nel codice per non farli "coprire" con test finti.
 
 ### Fase H — Documentazione *(chiude R-G)*
 23. Correggere le affermazioni false verificate (D-061, ⚖️-18, `data-model.md`, indice ADR, README root, README web-staff, guida deploy)

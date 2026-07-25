@@ -303,6 +303,35 @@ describe('Renewal campaigns (e2e)', () => {
       await request(app.getHttpServer()).delete(`/api/bookings/${renewed.body.id}`).set(...bearer(token1)).expect(200);
     });
 
+    it('rinnovo ANNULLATO: l’hold torna, B non prenota uX in 2027 → 409', async () => {
+      // Il ramo `r.status === 'confirmed'` dell'hold non era MAI stato eseguito (misurato con la
+      // coverage delle e2e su bookings.service.ts): negli altri test l'avente-diritto non ha alcun
+      // rinnovo, quindi `renewals.some(...)` non valuta nemmeno la callback. Qui il rinnovo esiste
+      // ma è annullato, ed è l'unico modo di arrivarci: se fosse CONFERMATO occuperebbe uX e
+      // l'anti-overlap lancerebbe prima, senza mai entrare nel ciclo della prelazione.
+      //
+      // La regola che questo test fissa: annullare il rinnovo NON consuma la prelazione. Senza,
+      // un annullo — anche per errore dell'operatore — regalerebbe il posto al primo che arriva.
+      campaignId = (
+        await request(app.getHttpServer()).post('/api/renewal-campaigns').set(...bearer(token1))
+          .send({ originSeasonId: season2026, destinationSeasonId: season2027, deadline: '2099-12-31' }).expect(201)
+      ).body.id;
+
+      const srcA = await prisma.forTenant(s1, (tx) =>
+        tx.booking.findFirst({
+          where: { customerId: custA, umbrellaId: uX, type: 'subscription', status: 'confirmed', previousBookingId: null },
+        }),
+      );
+      const renewed = await request(app.getHttpServer()).post(`/api/bookings/${srcA!.id}/renew`).set(...bearer(token1))
+        .send({ destinationSeasonId: season2027 }).expect(201);
+      await request(app.getHttpServer()).delete(`/api/bookings/${renewed.body.id}`).set(...bearer(token1)).expect(200);
+
+      const res = await request(app.getHttpServer()).post('/api/bookings').set(...bearer(token1))
+        .send({ customerId: custB, umbrellaId: uX, timeSlotId: ids.slotMorning, type: 'subscription', startDate: '2027-07-01' })
+        .expect(409);
+      expect(res.body.message).toBe('Ombrellone riservato per prelazione');
+    });
+
     it('rilascio lazy: campagna scaduta (deadline 2000-01-01) → B prenota uX in 2027 → 201', async () => {
       campaignId = (
         await request(app.getHttpServer()).post('/api/renewal-campaigns').set(...bearer(token1))

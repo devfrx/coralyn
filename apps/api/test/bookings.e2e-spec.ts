@@ -86,6 +86,24 @@ describe('Bookings (e2e)', () => {
     expect(u1.stateBySlot[ids.slotAfternoon]).toBe('free');
   });
 
+  it('stagione con listino VUOTO → 422 «Nessuna tariffa applicabile: configurare il listino»', async () => {
+    // Ramo NO_RATE per una prenotazione NON abbonamento: mai eseguito secondo la coverage delle
+    // e2e (riga 211), perché ogni tenant seedato ha la sua catch-all. È il 422 che definisce
+    // operativamente «lido non configurato», e la projection di onboarding (ADR-0054) lo misura in
+    // anticipo: se cambia il messaggio senza che nulla lo veda, l'operatore resta senza spiegazione.
+    // Stagione 2028 dedicata, con Pricing e ZERO Rate: non interferisce con le date 2026 del file.
+    await prisma.forTenant(s1, async (tx) => {
+      const season = await tx.season.create({
+        data: { establishmentId: s1, name: 'Vuota 2028', startDate: new Date('2028-05-01'), endDate: new Date('2028-09-30') },
+      });
+      await tx.pricing.create({ data: { establishmentId: s1, seasonId: season.id } });
+    });
+
+    const res = await request(app.getHttpServer()).post('/api/bookings').set(...bearer(token1))
+      .send(body({ startDate: '2028-07-01' })).expect(422);
+    expect(res.body.message).toBe('Nessuna tariffa applicabile: configurare il listino');
+  });
+
   it('GET /bookings?date ritorna la confermata', async () => {
     const res = await request(app.getHttpServer()).get(`/api/bookings?date=${D}`).set(...bearer(token1)).expect(200);
     expect(res.body.some((b: { umbrellaId: string }) => b.umbrellaId === ids.u1)).toBe(true);
@@ -644,6 +662,29 @@ describe('Bookings (e2e)', () => {
         .send({ startDate: '2026-05-10', endDate: '2026-05-20' }).expect(422);
     });
 
+    it('a cavallo di DUE frammenti di coverage → 422 (periodo non coperto)', async () => {
+      // Il caso che il commento del codice chiama «a cavallo di due», e che la coverage delle e2e
+      // dava mai eseguito (riga 685): una prima sospensione spezza la copertura in due frammenti,
+      // e una seconda che li attraversa non sta dentro NESSUNO dei due. Senza questa guardia il
+      // carve lavorerebbe su un intervallo che nessun frammento contiene.
+      const { id } = await makeSub();
+      await request(app.getHttpServer()).post(`/api/bookings/${id}/suspend`).set(...bearer(token1))
+        .send({ startDate: '2026-07-20', endDate: '2026-07-26' }).expect(200);
+      const res = await request(app.getHttpServer()).post(`/api/bookings/${id}/suspend`).set(...bearer(token1))
+        .send({ startDate: '2026-07-25', endDate: '2026-07-28' }).expect(422);
+      expect(res.body.message).toBe('Periodo non coperto (o già libero)');
+    });
+
+    it('su giorni GIÀ liberi (dentro un buco esistente) → 422', async () => {
+      // L'altra metà dello stesso ramo: non a cavallo, ma interamente dentro il buco. Con il solo
+      // caso «a cavallo» una guardia che confrontasse gli estremi in modo lasco resterebbe verde.
+      const { id } = await makeSub();
+      await request(app.getHttpServer()).post(`/api/bookings/${id}/suspend`).set(...bearer(token1))
+        .send({ startDate: '2026-07-20', endDate: '2026-07-26' }).expect(200);
+      await request(app.getHttpServer()).post(`/api/bookings/${id}/suspend`).set(...bearer(token1))
+        .send({ startDate: '2026-07-22', endDate: '2026-07-24' }).expect(422);
+    });
+
     it('ritorno a fine stagione (R-1 = endDate) → 422 (usa la disdetta)', async () => {
       const { id } = await makeSub();
       await request(app.getHttpServer()).post(`/api/bookings/${id}/suspend`).set(...bearer(token1))
@@ -720,6 +761,18 @@ describe('Bookings (e2e)', () => {
         .send({ returnDate: '2026-07-20', refundAmount: 0 }).expect(422); // R = S
     });
 
+    it('reactivate con rimborso superiore al residuo → 422 «Rimborso non valido»', async () => {
+      // Fallback BAD_REFUND della catena di mappatura, mai eseguito secondo la coverage (riga 800):
+      // gli altri 422 del blocco escono da rami precedenti. L'abbonamento non è stato incassato,
+      // quindi il residuo è 0 e qualunque rimborso è fuori bound.
+      const { id } = await makeSub();
+      await request(app.getHttpServer()).post(`/api/bookings/${id}/suspend`).set(...bearer(token1))
+        .send({ startDate: '2026-07-20' }).expect(200);
+      const res = await request(app.getHttpServer()).post(`/api/bookings/${id}/reactivate`).set(...bearer(token1))
+        .send({ returnDate: '2026-08-01', refundAmount: 100 }).expect(422);
+      expect(res.body.message).toBe('Rimborso non valido');
+    });
+
     it('reactivate: rimborso sui giorni reali aggregato su refundedAmount', async () => {
       const { id } = await makeSub();
       await request(app.getHttpServer()).patch(`/api/bookings/${id}/payment`).set(...bearer(token1))
@@ -791,6 +844,17 @@ describe('Bookings (e2e)', () => {
       await request(app.getHttpServer()).patch(`/api/bookings/${id}/absence-consent`).set(...bearer(staffToken))
         .send({ consent: true }).expect(403);
     });
+
+    it('abbonamento ANNULLATO → 422 «Abbonamento non attivo»', async () => {
+      // Il ramo NOT_CONFIRMED è il FALLBACK della catena di mappatura, e la coverage delle e2e lo
+      // dava mai eseguito: tutti gli altri 422 del blocco passano da rami precedenti, quindi quel
+      // `throw` finale poteva dire qualunque cosa senza che nulla se ne accorgesse.
+      const { id } = await makeSub();
+      await request(app.getHttpServer()).delete(`/api/bookings/${id}`).set(...bearer(token1)).expect(200);
+      const res = await request(app.getHttpServer()).patch(`/api/bookings/${id}/absence-consent`)
+        .set(...bearer(token1)).send({ consent: true }).expect(422);
+      expect(res.body.message).toBe('Abbonamento non attivo');
+    });
   });
 
   describe('POST /bookings/:id/absence-releases (D-035 S2)', () => {
@@ -838,6 +902,20 @@ describe('Bookings (e2e)', () => {
       const { id } = await makeSub();
       await request(app.getHttpServer()).post(`/api/bookings/${id}/absence-releases`).set(...bearer(token1))
         .send({ date: '2026-07-21' }).expect(422);
+    });
+
+    it('giorno già liberato da una SOSPENSIONE → 422 (non coperto)', async () => {
+      // Ramo NO_CONVERAGE della release, mai eseguito secondo la coverage delle e2e (riga 957).
+      // Non è ALREADY_RELEASED: quel giorno non ha mai avuto una release, è la sospensione ad
+      // averne tolto la copertura. Senza la guardia, il carve scaverebbe un buco in un buco e la
+      // AbsenceRelease resterebbe registrata su un giorno che l'abbonato non aveva più.
+      const { id } = await makeSub();
+      await grantConsent(id);
+      await request(app.getHttpServer()).post(`/api/bookings/${id}/suspend`).set(...bearer(token1))
+        .send({ startDate: '2026-07-20', endDate: '2026-07-26' }).expect(200);
+      const res = await request(app.getHttpServer()).post(`/api/bookings/${id}/absence-releases`)
+        .set(...bearer(token1)).send({ date: '2026-07-22' }).expect(422);
+      expect(res.body.message).toBe('Giorno già libero (non coperto)');
     });
 
     it('data passata (< oggi, dentro lo span) → 422 (PAST_DATE)', async () => {

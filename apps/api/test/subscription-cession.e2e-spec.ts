@@ -219,6 +219,19 @@ describe('Subscription cession (e2e)', () => {
     expect(res.body.message).toBe('Il netto incassato supera il totale');
   });
 
+  it('422: BAD_REFUND (il rimborso al cedente supera quanto incassato)', async () => {
+    // Fallback della catena di mappatura, mai eseguito secondo la coverage delle e2e (riga 871):
+    // il blocco copriva OVER_TOTAL, che è un ramo precedente. Un `throw` finale mai raggiunto può
+    // dire qualunque cosa — e qui è l'unico messaggio che l'operatore vedrebbe.
+    const { id } = await makeSub();
+    const res = await request(app.getHttpServer())
+      .post(`/api/bookings/${id}/transfer`)
+      .set(...bearer(adminToken))
+      .send({ newCustomerId: customerBId, effectiveDate: '2026-07-15', refundToPrevious: 999999, collectedFromNew: 0 })
+      .expect(422);
+    expect(res.body.message).toBe('Importi di cessione non validi');
+  });
+
   it('409: sospensione aperta sull’abbonamento → transfer rifiutato', async () => {
     const { id } = await makeSub();
     await request(app.getHttpServer())

@@ -291,6 +291,13 @@ export class BookingsService {
     const conflict = coverages.some(
       (c) => dateRangesOverlap(c.startDate, c.endDate, dbStart, dbEnd) && slotsOverlap(c.booking.timeSlot, p.slot),
     );
+    // ⚠️ Misurato in Fase G3, da sapere PRIMA di "correggere" questa riga o di cancellarla come
+    // morta: togliere il `throw` lascia 503/503 e2e verdi. NON e' un buco di test, e' il progetto —
+    // il constraint coverage_no_overlap rifiuta comunque la scrittura e `isBookingOverlapExclusion`
+    // la traduce nello STESSO 409, quindi nessun test HTTP puo' distinguere chi ha bloccato. Questo
+    // pre-check esiste per non far abortire la transazione nel caso comune, non per essere
+    // l'autorita'. La direzione opposta — bloccare TROPPO — e' invece ben presidiata: comporre `||`
+    // invece di `&&` qui sotto rende rossi 29 test.
     if (conflict) throw new ConflictException('Fascia non disponibile per questo ombrellone');
 
     // Hold di prelazione (D-011, ADR-0034): mentre una finestra è APERTA, l'ombrellone+fascia
@@ -355,6 +362,9 @@ export class BookingsService {
     // sopra può essere aggirato; l'EXCLUDE constraint coverage_no_overlap (su BookingCoverage) scatta
     // (SQLSTATE 23P01) e lo traduciamo nello stesso 409 gentile, così client e test non distinguono chi
     // ha bloccato.
+    // Il `catch` qui sotto è una delle TRE righe di questo file che le e2e non eseguono, ed è
+    // corretto che sia così: serve una race vera. Il constraint in sé è coperto a livello DB da
+    // `booking-overlap-constraint.e2e-spec.ts`. Non "aggiustare" la coverage con un test finto.
     try {
       const booking = await tx.booking.create({
         data: {
