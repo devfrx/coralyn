@@ -20,8 +20,16 @@ describe('mapPrismaKnownError', () => {
     });
   });
 
+  it('mappa P2003 → 409: la FK dimenticata è un conflitto azionabile, non un 500 (AUD-008)', () => {
+    const m = mapPrismaKnownError('P2003');
+    expect(m).toEqual({
+      status: HttpStatus.CONFLICT,
+      message: 'Operazione in conflitto: la risorsa è collegata ad altri dati.',
+      error: 'Conflict',
+    });
+  });
+
   it('restituisce null (delega al default) per i codici non gestiti', () => {
-    expect(mapPrismaKnownError('P2003')).toBeNull(); // FK
     expect(mapPrismaKnownError('P2025')).toBeNull(); // record not found
     expect(mapPrismaKnownError('P2034')).toBeNull(); // deadlock/write conflict
     expect(mapPrismaKnownError('P1000')).toBeNull();

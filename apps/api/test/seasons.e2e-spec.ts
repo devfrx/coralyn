@@ -33,6 +33,9 @@ describe('Seasons (e2e)', () => {
       await prisma.forTenant(s, async (tx) => {
         await tx.rate.deleteMany({});
         await tx.pricing.deleteMany({});
+        await tx.renewalCampaign.deleteMany({});
+        await tx.rentalTariff.deleteMany({});
+        await tx.rentalItem.deleteMany({});
         await tx.season.deleteMany({});
       });
     }
@@ -89,6 +92,49 @@ describe('Seasons (e2e)', () => {
     const pricingLeft = await prisma.forTenant(s1, (tx) => tx.pricing.count({ where: { seasonId } }));
     const seasonLeft = await prisma.forTenant(s1, (tx) => tx.season.count({ where: { id: seasonId } }));
     expect([ratesLeft, pricingLeft, seasonLeft]).toEqual([0, 0, 0]);
+  });
+
+  // Season è referenziata da QUATTRO FK RESTRICT (Pricing, RenewalCampaign ×2, RentalTariff). La
+  // cascata applicativa ne conosce una sola: le altre affioravano come P2003 → 500 (P1-002/AUD-008).
+  const makeSeason = async (name: string, year: number): Promise<string> => {
+    const res = await request(app.getHttpServer())
+      .post('/api/seasons').set(...bearer(token1))
+      .send({ name, startDate: `${year}-06-01`, endDate: `${year}-09-30` })
+      .expect(201);
+    return res.body.id as string;
+  };
+
+  it('DELETE di una stagione con tariffe noleggio → 409 (non 500)', async () => {
+    const seasonId = await makeSeason('Con noleggi', 2031);
+    await prisma.forTenant(s1, async (tx) => {
+      const item = await tx.rentalItem.create({
+        data: { establishmentId: s1, name: 'Pedalò' },
+      });
+      await tx.rentalTariff.create({
+        data: { establishmentId: s1, rentalItemId: item.id, seasonId, label: 'Ora', price: 15, sortOrder: 1 },
+      });
+    });
+    const res = await request(app.getHttpServer()).delete(`/api/seasons/${seasonId}`).set(...bearer(token1)).expect(409);
+    // Il messaggio NOMINA la dipendenza: è la guardia del service, non il backstop generico del
+    // filtro Prisma (che direbbe «collegata ad altri dati» senza dire a cosa).
+    expect(res.body.message).toBe('Stagione in uso da campagne di rinnovo o tariffe noleggio: non eliminabile.');
+  });
+
+  it('DELETE di una stagione usata da una campagna di rinnovo → 409 (non 500)', async () => {
+    const origin = await makeSeason('Origine campagna', 2032);
+    const destination = await makeSeason('Destinazione campagna', 2033);
+    await prisma.forTenant(s1, (tx) =>
+      tx.renewalCampaign.create({
+        data: {
+          establishmentId: s1,
+          originSeasonId: origin,
+          destinationSeasonId: destination,
+          deadline: new Date('2033-05-01T00:00:00Z'),
+        },
+      }),
+    );
+    await request(app.getHttpServer()).delete(`/api/seasons/${origin}`).set(...bearer(token1)).expect(409);
+    await request(app.getHttpServer()).delete(`/api/seasons/${destination}`).set(...bearer(token1)).expect(409);
   });
 
   it('DELETE di una stagione inesistente → 404', async () => {

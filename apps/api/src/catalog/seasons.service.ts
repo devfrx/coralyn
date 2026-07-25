@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import type { CreateSeasonInput, SeasonDTO } from '@coralyn/contracts';
 import { PrismaService } from '../prisma/prisma.service';
 import { TenantContext } from '../tenant/tenant-context';
@@ -43,11 +43,23 @@ export class SeasonsService {
 
   async remove(id: string): Promise<SeasonDTO> {
     const tenantId = this.tenant.require();
-    // FK ON DELETE RESTRICT su Pricing/Rate: cascata APPLICATIVA (Rate → Pricing → Season)
-    // in una singola transazione. Vedi spec §5/§7.
+    // Season è referenziata da QUATTRO FK RESTRICT: Pricing, RenewalCampaign (origine E
+    // destinazione) e RentalTariff (arrivata con ADR-0050 senza che questa cascata lo sapesse:
+    // P1-002/AUD-008). Solo Pricing si cancella a cascata — è plumbing 1:1 nato con la stagione,
+    // mai esposto. Le altre tre sono dati inseriti dall'operatore: si rifiutano nominandole.
+    // Il backstop per la FK che verrà è P2003 → 409 in mapPrismaKnownError.
     const season = await this.prisma.forTenant(tenantId, async (tx) => {
       const existing = await tx.season.findFirst({ where: { id } });
       if (!existing) return null;
+      const [campaignCount, tariffCount] = await Promise.all([
+        tx.renewalCampaign.count({ where: { OR: [{ originSeasonId: id }, { destinationSeasonId: id }] } }),
+        tx.rentalTariff.count({ where: { seasonId: id } }),
+      ]);
+      if (campaignCount > 0 || tariffCount > 0) {
+        throw new ConflictException(
+          'Stagione in uso da campagne di rinnovo o tariffe noleggio: non eliminabile.',
+        );
+      }
       const pricing = await tx.pricing.findFirst({ where: { seasonId: id } });
       if (pricing) {
         await tx.rate.deleteMany({ where: { pricingId: pricing.id } });
