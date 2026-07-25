@@ -9,6 +9,17 @@ del ui-kit sono adatti solo a viz statiche minime.
 
 ## Decisione
 Adottare **Apache ECharts** via `vue-echarts`, con **renderer SVG** e **import modulari** (tree-shaking). I colori
+
+> ⚠️ **«tree-shaking» è diventato vero il 2026-07-25 (Fase F), non lo era prima.** La registrazione
+> modulare qui decisa era ed è corretta, ma non bastava: nessun `package.json` del monorepo aveva il
+> campo `sideEffects`, quindi valeva `moduleSideEffects: true` e il bundler doveva conservare
+> `ChartBar`/`ChartDonut` — e con loro ECharts — anche nelle app che non li usano. Il tree-shaking
+> non era rotto: **non era mai stato autorizzato**. Costava ~480 KB di asset a `web-customer`, che è
+> una PWA mobile con tre viste e zero grafici (P9-007). Ora `packages/ui-kit/package.json` elenca i
+> soli file con side effect reali. ⛔ Verificare l'esito cercando `zrender` **non funziona**: in
+> `web-staff` quella stringa non sopravvive alla minificazione. I marker che reggono sono
+> `echarts`/`ECharts`/`getZr`.
+
 sono risolti dai design-token e iniettati (no `var()` dentro l'SVG). L'uso è incapsulato in componenti ui-kit
 (`ChartBar`, `ChartDonut`) così l'app resta agnostica dalla libreria; i builder di option sono funzioni pure testabili.
 Ogni grafico ha un fallback a tabella per l'accessibilità.

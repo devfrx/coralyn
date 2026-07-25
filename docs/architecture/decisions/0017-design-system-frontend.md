@@ -27,6 +27,14 @@ impacchettato in **`packages/ui-kit`**.
 - **Primitivi headless accessibili** (**Reka UI**) per i componenti con logica/ARIA non
   banale: dialog, drawer, menu, combobox, tooltip, tabs, popover, selezione data. **Logica
   e a11y dalla libreria, stile dai nostri token.**
+
+  > ⚠️ **La libreria dà i ruoli, gli stati e la tastiera — non il NOME accessibile.** Quella metà
+  > resta nostra, e per due mesi non è stata fatta: `Field` avvolgeva il controllo in un `<label>`,
+  > che per `<input>` basta ma per il `<button role="combobox">` di `Select` non fa nulla (un button
+  > non è un labelable element). Risultato: **32 combobox annunciavano il valore e mai l'etichetta**
+  > (AUD-013, WCAG 4.1.2). Corretto in Fase F — `Field` pubblica l'id della propria etichetta,
+  > `Select` lo consuma con `aria-labelledby`. La lezione vale oltre il caso: adottare un primitivo
+  > accessibile **non rende accessibile il composto**, e nessun test lo diceva.
 - **Tabelle dati** complesse (ordinamento/filtri/paginazione/virtualizzazione):
   **TanStack Table** (headless) quando servono, skinnate sui token.
 - **`packages/ui-kit`** è il confine: token → primitivi → componenti base (`Button`,
