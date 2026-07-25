@@ -1,5 +1,11 @@
 # Handoff 2026-07-25 (sessione 6): D-065 eseguita ma NON mergiata. Restano G e H
 
+> ⛔ **SUPERATO dal 2026-07-26.** Il punto d'ingresso corrente è
+> [Fase G chiusa, Fase H a metà](2026-07-26-fase-g-chiusa-fase-h-a-meta.md). **D-065 è mergiata** e
+> la **Fase G è chiusa**: §0, §2 (baseline) e §5 di questo documento sono **obsoleti**. Il **§4
+> (metodo)** resta valido e non è stato riscritto. Il **§3 (gotcha)** resta valido ma incompleto:
+> l'handoff nuovo ne aggiunge sette e ne corregge uno.
+
 > **Punto d'ingresso unico.** Sostituisce
 > [2026-07-25 Fasi E ed F mergiate](2026-07-25-fasi-e-f-mergiate.md), che resta valido tranne dove
 > questo documento lo corregge (§1c e §3). Quello a sua volta sostituiva gli handoff di Fase D e E.
