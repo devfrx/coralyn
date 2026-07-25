@@ -1,6 +1,10 @@
 # Handoff 2026-07-25 (sessione 3): Fase C mergiata, CI verde, fasi D→H aperte
 
-> **Punto d'ingresso unico.** Sostituisce
+> ⚠️ **Superato da [2026-07-25 Fase D eseguita](2026-07-25-fase-d-eseguita-non-mergiata.md)**, che è
+> ora il punto d'ingresso. Questo resta valido come racconto della Fase C; le righe rese false dalla
+> Fase D sono state **corrette qui sotto**, non annotate.
+>
+> A sua volta sostituisce
 > [2026-07-25 audit completo Fase A/B](2026-07-25-audit-completo-fase-a-b-mergiabili.md), di cui
 > corregge **due affermazioni** (§1c). Quello resta valido come racconto dell'audit.
 
@@ -154,12 +158,14 @@ aperto, Fase H.
 
 - `JwtAuthGuard` + `PermissionsGuard` **globali**. `@Public()` scavalca **entrambi**; il canale
   cliente ha la propria autenticazione (`CustomerJwtGuard`).
-- `PrismaExceptionFilter` lascia **P2025 a 500 di proposito**; **P2003 pure**, e questo produce 500
-  su `DELETE /seasons/:id` (AUD-008, **Fase D**).
+- `PrismaExceptionFilter` lascia **P2025 a 500 di proposito**. **P2003 è mappato a 409** dalla Fase D
+  (AUD-008 chiuso): il messaggio del filtro è generico, quello che nomina la dipendenza lo dà la
+  guardia del service.
 - RLS via `forTenant` + policy `tenant_isolation` (**idioma da copiare verbatim**). Migration sempre
   `--create-only`, **leggile**, RLS **appesa a mano**.
-- **`common/uuid.ts` è la policy** (`UUID_SHAPE`, senza vincolo RFC): **non usare `@IsUUID()`**, che
-  rifiuta gli id sintetici del seed. 14 campi lo usano ancora (AUD-011, **Fase D**).
+- **`common/uuid.ts` è la policy** (`UUID_SHAPE`, senza vincolo RFC): il decoratore è
+  **`@IsUuidShape()`** (`common/is-uuid-shape.ts`). `@IsUUID()` **è vietato dal lint** dalla Fase D
+  (AUD-011 chiuso): rifiuta gli id sintetici del seed.
 - Il login staff restituisce **`accessToken`**; `POST /customer/activate` vuole **`enrollmentToken`**
   + `pin`.
 
@@ -174,8 +180,8 @@ aperto, Fase H.
   **reka-ui solo in `packages/ui-kit`.**
 - **web-customer NON usa MSW**; web-staff sì.
 - **Niente em dash nel testo utente** — `docs/` è FUORI da quel perimetro.
-- **I composable di `useCustomers.ts` prendono l'id per VALORE, quelli di `useRates` per THUNK.** Il
-  thunk è il pattern corretto e documentato (AUD-009, **Fase D**).
+- **I composable con id prendono il THUNK**, in `useCustomers.ts` come in `useRates` (AUD-009 chiuso
+  in Fase D). `RouterView` non ha `:key`: una vista di dettaglio viene patchata, non ricreata.
 - **`SidebarNav.vue` mostra `operativeNav` a OGNI ruolo**: Mappa, Prenotazioni, Noleggi, Rinnovi,
   Clienti, Listino, Listino noleggi, Report. È la mappa reale di «cosa fa lo staff».
 
@@ -244,14 +250,11 @@ aperto, Fase H.
 
 ### 5.2 Fasi D → H — piano in [§4 del report](../audit/2026-07-25-audit-completo.md)
 
-**Fase D — bug di correttezza** *(indipendenti, riproducibili, nessuna decisione richiesta)*
-`carveInterval` puro condiviso da suspend/releaseAbsence/terminate + `CHECK (startDate <= endDate)`
-(oggi `suspend` produce un range invertito → **500 dove il contratto prevede 422**) · `P2003 → 409`
-(oggi `DELETE /seasons/:id` → **500**, riproducibile col seed) · thunk nei composable di
-`useCustomers` (oggi `CustomerAccessCard` congela il `bookingId` e può mostrare **QR+PIN di un altro
-bagnante**) · redirect e logout in `web-customer` (`POST /customer/logout` esiste, è coperto da e2e,
-ha **zero chiamanti**) · `@IsUuidShape()` + lint che vieti `@IsUUID` · `pinAttempts` con `increment`
-· articolo archiviato non noleggiabile · guardia «cliente anonimizzato» nei 4 write-path.
+**✅ Fase D — bug di correttezza — ESEGUITA** sul branch `chore/audit-2026-07-25-fase-d`, non
+mergiata: `carveInterval` puro + CHECK `coverage_range_valid` · `P2003 → 409` · thunk nei composable
+di `useCustomers` · logout e redirect in `web-customer` · `@IsUuidShape()` + lint · `pinAttempts` con
+`increment` · articolo archiviato non noleggiabile · guardia «cliente anonimizzato» nei 4 write-path.
+Dettaglio in [2026-07-25 Fase D eseguita](2026-07-25-fase-d-eseguita-non-mergiata.md).
 
 **Fase E — presidi strutturali** *(migration)*
 Indici unici parziali (sospensione aperta, release attiva, rinnovo confermato) · FK su

@@ -435,6 +435,11 @@ erDiagram
   le operazioni di dominio che liberano tempo (disdetta = troncamento, sospensione = carve) agiscono **qui**,
   non sullo span di contratto. La lettura d'occupazione (mappa/liste/report) e l'anti-overlap interrogano la
   copertura; i minuti `slotStartMin`/`slotEndMin` sono riempiti da un trigger DB (mai dal client).
+  L'aritmetica del carve (disdetta, sospensione aperta e chiusa, assenza comunicata) vive in
+  **un'unica funzione pura**, `bookings/coverage.carve.ts`, che decide testa e coda rispetto al
+  **frammento** e non allo span di contratto: su copertura frammentata le due cose divergono e la
+  copia in `suspend` produceva un range invertito (AUD-007). Il presidio DB è il CHECK
+  **`coverage_range_valid`** (`startDate <= endDate`), gemello di `coverage_no_overlap`.
 - **Disdetta e sospensione (D-013), contratto ↔ occupazione separati**: lo **span di contratto**
   (`Booking.startDate/endDate`) guida prezzo, rinnovo, **prelazione**, seniority; la **copertura** guida
   l'occupazione. La **disdetta** (1/3, implementata) tronca *entrambi* in modo permanente (`endDate=E-1`,

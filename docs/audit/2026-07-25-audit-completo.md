@@ -9,6 +9,10 @@ Perimetro: **tutto il repo**, partizionato in 9 aree × 11 livelli. Modalità: r
 > `a996dd6`, spinto su `origin/main`). La CI ha girato per la **prima volta** su quel push:
 > [run #1](https://github.com/devfrx/coralyn/actions/runs/30159012576), entrambi i job verdi.
 >
+> **Fase D eseguita e verificata** il 2026-07-25 sul branch `chore/audit-2026-07-25-fase-d`
+> (6 commit), **non ancora mergiata**. Ogni difetto è stato riprodotto con un test rosso PRIMA del
+> fix, e ogni fix è stato provato per mutazione.
+>
 > | Finding | Stato |
 > |---|---|
 > | **AUD-001** e2e che cancellano il DB dev | ✅ **CORRETTO** — guardia sul nome della risorsa in `jest-setup-env.ts` + `.env.test.example` versionato |
@@ -23,9 +27,17 @@ Perimetro: **tutto il repo**, partizionato in 9 aree × 11 livelli. Modalità: r
 > | **AUD-003** login staff esposto senza throttling né anti-enumerazione | ✅ **CORRETTO** (Fase C) — `ThrottlerGuard` method-scoped sulle 3 rotte `@Public` di `AuthController`, hash civetta, `@MaxLength(128)`. D-026 (revoca a sessione in corso) **resta aperta** |
 > | **AUD-016/017** configurazione non validata, 11 env non documentate | ✅ **CORRETTO** (Fase C) — `validate` in `common/env.validation.ts`; chiude **P7-011** per costruzione: il compose dev senza `CUSTOMER_APP_URL` ora non parte |
 > | **AUD-005** guardia del seed annullata dall'entrypoint | ✅ **CORRETTO** (Fase C) — `prisma/dev-database.ts` su `current_database()`, fallback letterali rimossi, `\|\| echo` tolto dall'entrypoint |
+> | **AUD-007** `suspend` crea un range invertito → 500 | ✅ **CORRETTO** (Fase D) — `bookings/coverage.carve.ts`, funzione pura condivisa dai 4 punti di carve + CHECK `coverage_range_valid`. Riprodotto (500) e verificato per mutazione |
+> | **AUD-008** `DELETE /seasons/:id` → 500 | ✅ **CORRETTO** (Fase D) — `P2003 → 409` in `mapPrismaKnownError` (backstop di ogni FK futura) + i count mancanti in `SeasonsService.remove` (messaggio che nomina la causa) |
+> | **AUD-009** `CustomerAccessCard` congela `bookingId` | ✅ **CORRETTO** (Fase D) — thunk in tutti e 15 i composable di `useCustomers.ts` e nei 12 punti di chiamata. Riprodotto: la POST partiva verso l'abbonamento precedente |
+> | **AUD-010** `web-customer` senza logout, 401 terminale che non redirige | ✅ **CORRETTO** (Fase D) — `logout()` revoca lato server, `clearSession()` per la sessione già morta, redirect in `CustomerShell` (rotte `meta.public` escluse) |
+> | **AUD-011** due politiche UUID incompatibili | ✅ **CORRETTO** (Fase D) — `@IsUuidShape()` in `common/`, 16 sostituzioni, lint `no-restricted-imports` che vieta `IsUUID`. Trovato in più: `seed-report-demo.ts` puntava a id inesistenti (helper divergente) |
+> | **P2-008** contatore PIN non atomico | ✅ **CORRETTO** (Fase D) — `{ increment: 1 }` + lock guardato. Riprodotto: 5 tentativi paralleli consumavano **1** slot |
+> | **P2-009** articolo archiviato noleggiabile | ✅ **CORRETTO** (Fase D) — regola unica in `rental.projection.ts` (`RENTABLE_ITEM_WHERE` + `isRentable`) |
+> | **P1-004** guardia «cliente anonimizzato» in 1 write-path su 4 | ✅ **CORRETTO** (Fase D) — `customers/active-customer.ts` nei 4 percorsi; `PATCH /customers/:id` su anonimizzato è ora **409** (era PII fuori inventario). La guardia che *esisteva già* (cessione) non aveva test: aggiunto |
 > | PII in `GET /establishment/overview` | 🔓 **APERTO** — [D-064](../architecture/deferred.md). L'inversione **non** lo chiude: l'app-shell chiama quell'endpoint a ogni caricamento, quindi separare `team[]` è un cambio di contratto FE/BE |
 > | Permessi configurabili dall'admin | 🔓 **PIANIFICATO** — [D-063](../architecture/deferred.md) + [brief di delega](../superpowers/specs/2026-07-25-permessi-configurabili-design.md) |
-> | **Tutto il resto** | 🔓 **APERTO** — fasi D → H del §4 |
+> | **Tutto il resto** | 🔓 **APERTO** — fasi E → H del §4 |
 >
 > ### ⛔ Correzione ad AUD-006 / P2-006 — la rotazione del `JWT_SECRET` non serviva
 >
@@ -257,13 +269,18 @@ doppio type-check, oggi fatto una volta da `tsc` e una volta per worker da ts-je
 9. **AUD-016/017** — `validate` con class-validator, nessuna dipendenza nuova; valida senza trasformare, per non rompere i lettori esistenti
 10. **AUD-005** — guardia del seed su `current_database()`, condivisa con `reset-dev`
 
-### Fase D — Bug di correttezza *(indipendenti, riproducibili)*
-11. **AUD-007** — estrarre `carveInterval` puro (usato da suspend/releaseAbsence/terminate) + `CHECK (startDate <= endDate)`
-12. **AUD-008** — `P2003 → 409` in `mapPrismaKnownError` + i 3 count mancanti
-13. **AUD-009** — thunk nei composable di `useCustomers.ts`
-14. **AUD-010** — redirect post-logout + logout con revoca server-side
-15. **AUD-011** — `@IsUuidShape()` in `common/` + lint che vieti `@IsUUID`
-16. P2-008 (`pinAttempts` con `increment`), P2-009 (articolo archiviato noleggiabile), P1-004 (guardia anonimizzato in 1 write-path su 4)
+### ✅ Fase D — Bug di correttezza — **ESEGUITA** *(branch `chore/audit-2026-07-25-fase-d`, 6 commit, non mergiata)*
+11. **AUD-007** — `carveInterval` puro usato da suspend (aperto e chiuso), releaseAbsence e terminate + CHECK `coverage_range_valid`
+12. **AUD-008** — `P2003 → 409` in `mapPrismaKnownError` + i count mancanti in `SeasonsService.remove`
+13. **AUD-009** — thunk nei composable di `useCustomers.ts` (15 composable, 12 punti di chiamata)
+14. **AUD-010** — logout con revoca server-side + redirect in `CustomerShell` su fine sessione
+15. **AUD-011** — `@IsUuidShape()` in `common/` + lint che vieta `@IsUUID` + `prisma/dev-ids.ts` condiviso dai due seed
+16. P2-008 (`pinAttempts` con `increment`), P2-009 (articolo archiviato noleggiabile), P1-004 (guardia anonimizzato nei 4 write-path)
+
+*Scoperto eseguendo:* `seed-report-demo.ts` non poteva funzionare su un database appena seedato
+(riferiva id prodotti da un helper divergente da quello di `seed.ts`), e il ramo
+`NEW_CUSTOMER_ANON` della cessione — l'unica guardia «cliente anonimizzato» che *già esisteva* —
+non aveva un solo test: cancellarlo lasciava la suite verde.
 
 ### Fase E — Presidi strutturali *(chiude R-C; migration)*
 17. Indici unici parziali (sospensione aperta, release attiva, rinnovo confermato) · FK su `BookingCoverage.umbrellaId` + trigger che la rende DB-autoritativa
