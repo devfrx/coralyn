@@ -4,13 +4,22 @@
  */
 export type SortDir = 'asc' | 'desc';
 
-export type DataTableColumn = {
+/**
+ * Colonna del DataTable, generica sulla riga. Il default `object` tiene compilanti le poche
+ * dichiarazioni che non hanno una riga tipizzata da offrire (gli spec del componente stesso).
+ *
+ * `T extends object` e NON `Record<string, unknown>`: i DTO di `@coralyn/contracts` sono dichiarati
+ * con `interface`, e un'interface non ha l'index signature implicita che `Record` richiede — il
+ * vincolo "ovvio" li escluderebbe tutti, che è esattamente il motivo per cui i chiamanti erano
+ * finiti a castare.
+ */
+export type DataTableColumn<T extends object = object> = {
   key: string;
   label: string;
   align?: 'left' | 'right';
   numeric?: boolean;
   sortable?: boolean;
-  sortValue?: (row: Record<string, unknown>) => string | number;
+  sortValue?: (row: T) => string | number;
   wrap?: 'wrap' | 'nowrap' | 'truncate';
   maxWidth?: string;
   hideBelow?: 'sm' | 'md' | 'lg';

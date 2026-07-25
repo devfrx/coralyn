@@ -39,13 +39,13 @@ const cols = [
         <StatTile layout="label-first" tone="accent" label="Saldo aperto" :value="formatEuro(balance)" />
         <StatTile layout="label-first" label="Incassato stagione" :value="formatEuro(collected)" />
       </div>
-      <DataTable :columns="cols" :rows="(active as unknown as Record<string, unknown>[])" :row-key="(r) => (r as unknown as CustomerBookingDTO).id" density="compact">
-        <template #cell-period="{ row }">{{ periodLabel(row as unknown as CustomerBookingDTO) }}</template>
-        <template #cell-type="{ row }">{{ TYPE_LABEL[(row as unknown as CustomerBookingDTO).type] }}</template>
-        <template #cell-umbrella="{ row }">{{ positionLabel(row as unknown as CustomerBookingDTO) }} <Badge v-if="(row as unknown as CustomerBookingDTO).umbrellaRetiredAt" tone="neutral">Ritirato</Badge></template>
-        <template #cell-amount="{ row }">{{ formatEuro((row as unknown as CustomerBookingDTO).totalPrice) }}</template>
-        <template #cell-method="{ row }">{{ (row as unknown as CustomerBookingDTO).paymentMethod ? PAYMENT_METHOD_LABEL[(row as unknown as CustomerBookingDTO).paymentMethod!] : '–' }}</template>
-        <template #cell-status="{ row }"><Badge :tone="PAY_TONE[(row as unknown as CustomerBookingDTO).paymentStatus]">{{ PAY_LABEL[(row as unknown as CustomerBookingDTO).paymentStatus] }}</Badge></template>
+      <DataTable :columns="cols" :rows="active" :row-key="(r) => r.id" density="compact">
+        <template #cell-period="{ row }">{{ periodLabel(row) }}</template>
+        <template #cell-type="{ row }">{{ TYPE_LABEL[row.type] }}</template>
+        <template #cell-umbrella="{ row }">{{ positionLabel(row) }} <Badge v-if="row.umbrellaRetiredAt" tone="neutral">Ritirato</Badge></template>
+        <template #cell-amount="{ row }">{{ formatEuro(row.totalPrice) }}</template>
+        <template #cell-method="{ row }">{{ row.paymentMethod ? PAYMENT_METHOD_LABEL[row.paymentMethod!] : '–' }}</template>
+        <template #cell-status="{ row }"><Badge :tone="PAY_TONE[row.paymentStatus]">{{ PAY_LABEL[row.paymentStatus] }}</Badge></template>
       </DataTable>
     </template>
   </SectionCard>

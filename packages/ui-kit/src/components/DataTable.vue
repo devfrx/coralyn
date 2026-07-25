@@ -1,4 +1,4 @@
-<script setup lang="ts">
+<script setup lang="ts" generic="T extends object = Record<string, unknown>">
 import { computed, ref, watch, getCurrentInstance } from 'vue';
 import { sortRows, type DataTableColumn, type SortDir, paginate, pageCount, countLabel } from '../tableData';
 import Icon from './Icon.vue';
@@ -7,19 +7,17 @@ import EmptyState from './EmptyState.vue';
 import Skeleton from './Skeleton.vue';
 import { useDelayedLoading } from '../useDelayedLoading';
 
-type Row = Record<string, unknown>;
-
 const props = withDefaults(
   defineProps<{
-    columns: DataTableColumn[];
-    rows?: Row[];
-    rowKey?: (row: Row) => string;
+    columns: DataTableColumn<T>[];
+    rows?: T[];
+    rowKey?: (row: T) => string;
     density?: 'comfortable' | 'compact';
     pageSize?: number;
     showCount?: boolean;
     emptyMessage?: string;
     maxHeight?: string;
-    rowClass?: (row: Row) => string;
+    rowClass?: (row: T) => string;
     loading?: boolean;
     skeletonRows?: number;
   }>(),
@@ -28,7 +26,18 @@ const props = withDefaults(
 
 const page = defineModel<number>('page', { default: 1 });
 
-const emit = defineEmits<{ 'row-click': [row: Row] }>();
+const emit = defineEmits<{ 'row-click': [row: T] }>();
+
+/**
+ * L'UNICO accesso per chiave dinamica del componente, e l'unico punto in cui una riga viene letta
+ * come dizionario. Prima che il componente fosse generico questa asserzione viveva nei chiamanti,
+ * moltiplicata per 99 `as unknown as` — che sono `@ts-ignore` travestiti, e nessuna regola di lint
+ * li intercetta. Una tabella pilotata da `column.key` non può evitare l'accesso non tipizzato: può
+ * solo tenerlo in un posto solo, dove si legge e si rivede.
+ */
+function cellValue(row: T, key: string): unknown {
+  return (row as Record<string, unknown>)[key];
+}
 
 // Rilevato una volta al setup: con listener la riga diventa cliccabile (cursor + emit).
 const hasRowClick = !!getCurrentInstance()?.vnode.props?.['onRow-click'] || !!getCurrentInstance()?.vnode.props?.onRowClick;
@@ -36,27 +45,27 @@ const hasRowClick = !!getCurrentInstance()?.vnode.props?.['onRow-click'] || !!ge
 // --- ordinamento (client-side, si applica prima della paginazione) ---
 const sortKey = ref<string | null>(null);
 const sortDir = ref<SortDir>('asc');
-function toggleSort(col: DataTableColumn): void {
+function toggleSort(col: DataTableColumn<T>): void {
   page.value = 1;
   if (sortKey.value !== col.key) { sortKey.value = col.key; sortDir.value = 'asc'; return; }
   if (sortDir.value === 'asc') { sortDir.value = 'desc'; return; }
   sortKey.value = null; sortDir.value = 'asc';
 }
-function ariaSort(col: DataTableColumn): 'ascending' | 'descending' | undefined {
+function ariaSort(col: DataTableColumn<T>): 'ascending' | 'descending' | undefined {
   if (!col.sortable || sortKey.value !== col.key) return undefined;
   return sortDir.value === 'asc' ? 'ascending' : 'descending';
 }
-const sorted = computed<Row[]>(() => {
+const sorted = computed<T[]>(() => {
   const base = props.rows ?? [];
   const col = props.columns.find((c) => c.key === sortKey.value);
   if (!col) return base;
-  const accessor = col.sortValue ?? ((r: Row) => r[col.key] as string | number);
+  const accessor = col.sortValue ?? ((r: T) => cellValue(r, col.key) as string | number);
   return sortRows(base, accessor, sortDir.value);
 });
 
 // --- paginazione (client-side; v-model:page opzionale con fallback interno) ---
 const totalPages = computed(() => (props.pageSize ? pageCount(sorted.value.length, props.pageSize) : 1));
-const visible = computed<Row[]>(() => (props.pageSize ? paginate(sorted.value, page.value, props.pageSize) : sorted.value));
+const visible = computed<T[]>(() => (props.pageSize ? paginate(sorted.value, page.value, props.pageSize) : sorted.value));
 watch(() => props.rows, () => { page.value = 1; });
 
 const footerLabel = computed(() =>
@@ -76,12 +85,12 @@ const footerVisible = computed(() => !skeletonBusy.value && !!props.rows && sort
 
 const HIDE = { sm: 'max-sm:hidden', md: 'max-md:hidden', lg: 'max-lg:hidden' } as const;
 
-function key(row: Row, idx: number): string {
+function key(row: T, idx: number): string {
   return props.rowKey ? props.rowKey(row) : String(idx);
 }
 // Unica fonte delle classi cella standard (ex costanti TD* di ADR-0033 §3.6, rimosse
 // a migrazione completata); numeric aggiunge whitespace-nowrap (spec §3.1).
-function cellClass(col: DataTableColumn, isFirst: boolean): string {
+function cellClass(col: DataTableColumn<T>, isFirst: boolean): string {
   const parts = [
     'border-b border-[var(--color-border-row)]',
     props.density === 'compact' ? 'py-2' : 'py-3.5',
@@ -94,14 +103,14 @@ function cellClass(col: DataTableColumn, isFirst: boolean): string {
   if (col.hideBelow) parts.push(HIDE[col.hideBelow]);
   return parts.join(' ');
 }
-function cellStyle(col: DataTableColumn): Record<string, string> | undefined {
+function cellStyle(col: DataTableColumn<T>): Record<string, string> | undefined {
   return col.wrap === 'truncate' && col.maxWidth ? { maxWidth: col.maxWidth } : undefined;
 }
-function cellTitle(col: DataTableColumn, row: Row): string | undefined {
-  return col.wrap === 'truncate' ? String(row[col.key] ?? '') : undefined;
+function cellTitle(col: DataTableColumn<T>, row: T): string | undefined {
+  return col.wrap === 'truncate' ? String(cellValue(row, col.key) ?? '') : undefined;
 }
 
-function rowClasses(row: Row): string {
+function rowClasses(row: T): string {
   const parts = ['hover:bg-[var(--color-raised)]'];
   if (hasRowClick) parts.push('cursor-pointer');
   if (props.rowClass) {
@@ -170,7 +179,7 @@ function rowClasses(row: Row): string {
               :style="cellStyle(c)"
               :title="!$slots[`cell-${c.key}`] ? cellTitle(c, row) : undefined"
             >
-              <slot :name="`cell-${c.key}`" :row="row">{{ row[c.key] }}</slot>
+              <slot :name="`cell-${c.key}`" :row="row">{{ cellValue(row, c.key) }}</slot>
             </td>
           </tr>
         </tbody>

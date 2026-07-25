@@ -56,7 +56,7 @@ function isReactivating(id: string): boolean {
   return reactivate.isPending.value && reactivate.variables.value === id;
 }
 
-const cols: DataTableColumn[] = [
+const cols: DataTableColumn<PlatformEstablishmentDTO>[] = [
   { key: 'name', label: 'Nome' },
   { key: 'createdAt', label: 'Creato', numeric: true },
   { key: 'umbrellas', label: 'Ombrelloni', align: 'right', numeric: true },
@@ -82,44 +82,44 @@ const cols: DataTableColumn[] = [
 
     <DataTable
       :columns="cols"
-      :rows="(establishments as unknown as Record<string, unknown>[])"
-      :row-key="(r) => (r as unknown as PlatformEstablishmentDTO).id"
+      :rows="establishments"
+      :row-key="(r) => r.id"
       :loading="isLoading"
       empty-message="Nessun lido registrato."
     >
       <template #cell-name="{ row }">
-        <span data-testid="est-name" class="font-semibold text-[var(--color-text)]">{{ (row as unknown as PlatformEstablishmentDTO).name }}</span>
+        <span data-testid="est-name" class="font-semibold text-[var(--color-text)]">{{ row.name }}</span>
       </template>
-      <template #cell-createdAt="{ row }">{{ fmtDate((row as unknown as PlatformEstablishmentDTO).createdAt) }}</template>
-      <template #cell-revenueSeasonTotal="{ row }">{{ formatEuro((row as unknown as PlatformEstablishmentDTO).revenueSeasonTotal) }}</template>
-      <template #cell-occupancyPctToday="{ row }">{{ (row as unknown as PlatformEstablishmentDTO).occupancyPctToday }}%</template>
-      <template #cell-lastActivityAt="{ row }">{{ fmtDate((row as unknown as PlatformEstablishmentDTO).lastActivityAt) }}</template>
+      <template #cell-createdAt="{ row }">{{ fmtDate(row.createdAt) }}</template>
+      <template #cell-revenueSeasonTotal="{ row }">{{ formatEuro(row.revenueSeasonTotal) }}</template>
+      <template #cell-occupancyPctToday="{ row }">{{ row.occupancyPctToday }}%</template>
+      <template #cell-lastActivityAt="{ row }">{{ fmtDate(row.lastActivityAt) }}</template>
       <template #cell-suspendedAt="{ row }">
         <span class="inline-flex items-center gap-1.5">
-          <Badge :tone="(row as unknown as PlatformEstablishmentDTO).suspendedAt ? 'neutral' : 'success'">{{ (row as unknown as PlatformEstablishmentDTO).suspendedAt ? 'Sospeso' : 'Attivo' }}</Badge>
-          <Badge v-if="!(row as unknown as PlatformEstablishmentDTO).suspendedAt && !(row as unknown as PlatformEstablishmentDTO).setupComplete" tone="neutral" data-testid="setup-incomplete">Da configurare</Badge>
+          <Badge :tone="row.suspendedAt ? 'neutral' : 'success'">{{ row.suspendedAt ? 'Sospeso' : 'Attivo' }}</Badge>
+          <Badge v-if="!row.suspendedAt && !row.setupComplete" tone="neutral" data-testid="setup-incomplete">Da configurare</Badge>
         </span>
       </template>
       <template #cell-actions="{ row }">
         <ActionBar gap="sm" align="end">
-          <RouterLink :to="`/establishments/${(row as unknown as PlatformEstablishmentDTO).id}`" data-testid="detail-link">
+          <RouterLink :to="`/establishments/${row.id}`" data-testid="detail-link">
             <Button variant="secondary" size="sm">Dettaglio</Button>
           </RouterLink>
           <Button
-            v-if="!(row as unknown as PlatformEstablishmentDTO).suspendedAt"
-            :data-testid="`suspend-${(row as unknown as PlatformEstablishmentDTO).id}`"
+            v-if="!row.suspendedAt"
+            :data-testid="`suspend-${row.id}`"
             variant="secondary"
             size="sm"
-            :loading="isSuspending((row as unknown as PlatformEstablishmentDTO).id)"
-            @click="askSuspend(row as unknown as PlatformEstablishmentDTO)"
+            :loading="isSuspending(row.id)"
+            @click="askSuspend(row)"
           >Sospendi</Button>
           <Button
             v-else
-            :data-testid="`reactivate-${(row as unknown as PlatformEstablishmentDTO).id}`"
+            :data-testid="`reactivate-${row.id}`"
             variant="secondary"
             size="sm"
-            :loading="isReactivating((row as unknown as PlatformEstablishmentDTO).id)"
-            @click="askReactivate(row as unknown as PlatformEstablishmentDTO)"
+            :loading="isReactivating(row.id)"
+            @click="askReactivate(row)"
           >Riattiva</Button>
         </ActionBar>
       </template>

@@ -382,7 +382,7 @@ function typeLabel(t?: BookingType): string {
 function priceHint(r: RateDTO): string {
   return r.type === 'subscription' ? 'forfait/stagione' : '/giorno';
 }
-const rateCols: DataTableColumn[] = [
+const rateCols: DataTableColumn<RateDTO>[] = [
   { key: 'position', label: 'Posizione' },
   { key: 'package', label: 'Pacchetto' },
   { key: 'slot', label: 'Fascia' },
@@ -537,21 +537,21 @@ const rateCols: DataTableColumn[] = [
     <p class="mb-2 text-[12px] text-[var(--color-text-muted)]">
       Quando più tariffe si applicano, vince la più specifica: periodo › fila › settore › pacchetto › fascia › tipo.
     </p>
-    <DataTable :columns="rateCols" :rows="(sortedRates as unknown as Record<string, unknown>[])" :row-key="(r) => (r as unknown as RateDTO).id" :loading="ratesLoading">
-      <template #cell-position="{ row }"><span class="font-semibold text-[var(--color-text)]">{{ positionLabel(row as unknown as RateDTO) }}</span></template>
-      <template #cell-package="{ row }"><span class="text-[var(--color-text-2nd)]">{{ pkgName((row as unknown as RateDTO).packageId) }}</span></template>
-      <template #cell-slot="{ row }"><span class="text-[var(--color-text-2nd)]">{{ slotName((row as unknown as RateDTO).timeSlotId) }}</span></template>
-      <template #cell-type="{ row }"><span class="text-[var(--color-text-2nd)]">{{ typeLabel((row as unknown as RateDTO).type) }}</span></template>
+    <DataTable :columns="rateCols" :rows="sortedRates" :row-key="(r) => r.id" :loading="ratesLoading">
+      <template #cell-position="{ row }"><span class="font-semibold text-[var(--color-text)]">{{ positionLabel(row) }}</span></template>
+      <template #cell-package="{ row }"><span class="text-[var(--color-text-2nd)]">{{ pkgName(row.packageId) }}</span></template>
+      <template #cell-slot="{ row }"><span class="text-[var(--color-text-2nd)]">{{ slotName(row.timeSlotId) }}</span></template>
+      <template #cell-type="{ row }"><span class="text-[var(--color-text-2nd)]">{{ typeLabel(row.type) }}</span></template>
       <template #cell-price="{ row }">
-        <span class="font-bold tabular-nums text-[var(--color-text)]">{{ formatEuro((row as unknown as RateDTO).price) }}</span>
-        <span class="ml-1 text-[11px] text-[var(--color-text-muted)]">{{ priceHint(row as unknown as RateDTO) }}</span>
+        <span class="font-bold tabular-nums text-[var(--color-text)]">{{ formatEuro(row.price) }}</span>
+        <span class="ml-1 text-[11px] text-[var(--color-text-muted)]">{{ priceHint(row) }}</span>
       </template>
       <template #cell-actions="{ row }">
         <ActionBar gap="sm">
           <IconButton icon="edit" label="Modifica" variant="ghost" size="sm"
-            :data-test="`edit-rate-${(row as unknown as RateDTO).id}`" @click="openEditRate(row as unknown as RateDTO)" />
+            :data-test="`edit-rate-${row.id}`" @click="openEditRate(row)" />
           <IconButton icon="trash-2" label="Elimina" variant="danger" size="sm"
-            :data-test="`del-rate-${(row as unknown as RateDTO).id}`" @click="askDeleteRate((row as unknown as RateDTO).id)" />
+            :data-test="`del-rate-${row.id}`" @click="askDeleteRate(row.id)" />
         </ActionBar>
       </template>
     </DataTable>

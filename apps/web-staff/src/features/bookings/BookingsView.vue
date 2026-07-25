@@ -27,7 +27,7 @@ const filtri = [
 const { customerName, umbrellaLabel, retiredUmbrellaIds, packageName } = useEntityLabels();
 const periodLabel = (b: BookingDTO): string => (b.type === 'daily' ? b.startDate : dateRange(b.startDate, b.endDate));
 
-const cols: DataTableColumn[] = [
+const cols: DataTableColumn<BookingDTO>[] = [
   { key: 'cliente', label: 'Cliente' },
   { key: 'ombrellone', label: 'Ombrellone', numeric: true },
   { key: 'tipo', label: 'Tipo', hideBelow: 'md' },
@@ -57,24 +57,24 @@ function openSettle(b: BookingDTO): void {
       <template #right><Button @click="router.push('/map')"><Icon name="plus" :size="16" />Nuova prenotazione</Button></template>
     </PageToolbar>
 
-    <DataTable :columns="cols" :rows="(rows as unknown as Record<string, unknown>[])" :row-key="(r) => (r as unknown as BookingDTO).id" :loading="bookingsLoading" empty-message="Nessuna prenotazione per questa data.">
+    <DataTable :columns="cols" :rows="rows" :row-key="(r) => r.id" :loading="bookingsLoading" empty-message="Nessuna prenotazione per questa data.">
       <template #cell-cliente="{ row }">
         <div class="flex items-center gap-2.5">
-          <Avatar :initials="initials(customerName((row as unknown as BookingDTO).customerId))" size="sm" />
-          <span class="font-semibold text-[var(--color-text)]">{{ customerName((row as unknown as BookingDTO).customerId) }}</span>
+          <Avatar :initials="initials(customerName(row.customerId))" size="sm" />
+          <span class="font-semibold text-[var(--color-text)]">{{ customerName(row.customerId) }}</span>
         </div>
       </template>
-      <template #cell-ombrellone="{ row }"><span class="text-[var(--color-text-2nd)]">{{ umbrellaLabel.get((row as unknown as BookingDTO).umbrellaId) ?? '–' }}</span> <Badge v-if="retiredUmbrellaIds.has((row as unknown as BookingDTO).umbrellaId)" tone="neutral">Ritirato</Badge></template>
-      <template #cell-tipo="{ row }"><span class="text-[var(--color-text-2nd)]">{{ TYPE_LABEL[(row as unknown as BookingDTO).type] }}</span></template>
-      <template #cell-pacchetto="{ row }"><span class="text-[var(--color-text-2nd)]" :title="(row as unknown as BookingDTO).packageId ? (packageName.get((row as unknown as BookingDTO).packageId!) ?? '') : ''">{{ (row as unknown as BookingDTO).packageId ? (packageName.get((row as unknown as BookingDTO).packageId!) ?? '–') : '–' }}</span></template>
-      <template #cell-periodo="{ row }"><span class="text-[var(--color-text-2nd)]">{{ periodLabel(row as unknown as BookingDTO) }}</span></template>
-      <template #cell-stato="{ row }"><Badge :tone="PAY_TONE[(row as unknown as BookingDTO).paymentStatus]">{{ PAY_LABEL[(row as unknown as BookingDTO).paymentStatus] }}</Badge></template>
+      <template #cell-ombrellone="{ row }"><span class="text-[var(--color-text-2nd)]">{{ umbrellaLabel.get(row.umbrellaId) ?? '–' }}</span> <Badge v-if="retiredUmbrellaIds.has(row.umbrellaId)" tone="neutral">Ritirato</Badge></template>
+      <template #cell-tipo="{ row }"><span class="text-[var(--color-text-2nd)]">{{ TYPE_LABEL[row.type] }}</span></template>
+      <template #cell-pacchetto="{ row }"><span class="text-[var(--color-text-2nd)]" :title="row.packageId ? (packageName.get(row.packageId!) ?? '') : ''">{{ row.packageId ? (packageName.get(row.packageId!) ?? '–') : '–' }}</span></template>
+      <template #cell-periodo="{ row }"><span class="text-[var(--color-text-2nd)]">{{ periodLabel(row) }}</span></template>
+      <template #cell-stato="{ row }"><Badge :tone="PAY_TONE[row.paymentStatus]">{{ PAY_LABEL[row.paymentStatus] }}</Badge></template>
       <template #cell-incasso="{ row }">
         <button
           type="button"
           class="font-semibold tabular-nums text-[var(--color-text)] underline-offset-2 hover:underline focus-visible:outline-none focus-visible:[box-shadow:var(--ring-focus)]"
-          @click="openSettle(row as unknown as BookingDTO)"
-        >{{ formatEuro((row as unknown as BookingDTO).amountCollected) }} / {{ formatEuro((row as unknown as BookingDTO).totalPrice) }}</button>
+          @click="openSettle(row)"
+        >{{ formatEuro(row.amountCollected) }} / {{ formatEuro(row.totalPrice) }}</button>
       </template>
     </DataTable>
 

@@ -2,6 +2,20 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { mount } from '@vue/test-utils';
 import DataTable from './DataTable.vue';
 
+/**
+ * ⚠️ Vue Test Utils NON propaga i parametri di tipo di `<script setup generic>`: dentro `mount()`
+ * il `T` di DataTable collassa sempre al suo vincolo (`object`), qualunque riga si passi. È un
+ * limite dello strumento di test, non del componente — nei consumatori `.vue` reali l'inferenza da
+ * `rows` funziona, ed è il motivo per cui le otto viste che usano DataTable non hanno più un solo
+ * cast. Qui i callback vanno quindi tipizzati sul vincolo e ristretti a mano: questi helper sono
+ * l'unico posto in cui accade, invece dei 99 `as unknown as` che stavano nelle viste.
+ */
+const byId = (r: object): string => (r as { id: string }).id;
+const pick =
+  <V,>(key: string) =>
+  (r: object): V =>
+    (r as Record<string, V>)[key];
+
 const columns = [
   { key: 'nome', label: 'Nome' },
   { key: 'eta', label: 'Età', align: 'right' as const, numeric: true },
@@ -40,7 +54,7 @@ describe('DataTable — retro-compatibilità (API a slot esistente)', () => {
 
 describe('DataTable — modalità data-driven (rows/rowKey)', () => {
   it('con rows, genera un <tr> per riga con hover:bg standard e i <td> con le classi cella', () => {
-    const w = mount(DataTable, { props: { columns, rows, rowKey: (r: Record<string, unknown>) => r.id as string } });
+    const w = mount(DataTable, { props: { columns, rows, rowKey: byId } });
     const trs = w.findAll('tbody tr');
     expect(trs).toHaveLength(2);
     expect(trs[0].classes()).toEqual(expect.arrayContaining(['hover:bg-[var(--color-raised)]']));
@@ -49,7 +63,7 @@ describe('DataTable — modalità data-driven (rows/rowKey)', () => {
   });
 
   it('cella default: usa row[column.key], px-[18px] sulla prima colonna, tabular-nums se column.numeric', () => {
-    const w = mount(DataTable, { props: { columns, rows, rowKey: (r: Record<string, unknown>) => r.id as string } });
+    const w = mount(DataTable, { props: { columns, rows, rowKey: byId } });
     const firstRowCells = w.findAll('tbody tr')[0].findAll('td');
     expect(firstRowCells[0].classes()).toEqual(expect.arrayContaining(['px-[18px]']));
     expect(firstRowCells[1].classes()).toEqual(expect.arrayContaining(['tabular-nums', 'text-right']));
@@ -57,7 +71,7 @@ describe('DataTable — modalità data-driven (rows/rowKey)', () => {
 
   it('cella custom: slot #cell-<key> sostituisce il contenuto default per quella colonna', () => {
     const w = mount(DataTable, {
-      props: { columns, rows, rowKey: (r: Record<string, unknown>) => r.id as string },
+      props: { columns, rows, rowKey: byId },
       slots: { 'cell-nome': `<template #cell-nome="{ row }"><b class="custom">{{ row.nome.toUpperCase() }}</b></template>` },
     });
     expect(w.find('td b.custom').text()).toBe('MARIO');
@@ -66,7 +80,7 @@ describe('DataTable — modalità data-driven (rows/rowKey)', () => {
 
 describe('DataTable — colonne estese e densità', () => {
   const rowsX = [{ id: 'r1', nome: 'Mario', note: 'nota lunga' }];
-  const rk = (r: Record<string, unknown>) => r.id as string;
+  const rk = byId;
 
   it('numeric implica whitespace-nowrap', () => {
     const w = mount(DataTable, { props: { columns: [{ key: 'nome', label: 'N', numeric: true }], rows: rowsX, rowKey: rk } });
@@ -118,7 +132,7 @@ describe('DataTable — ordinamento', () => {
     { id: 'r2', nome: 'Anna', eta: 32 },
     { id: 'r3', nome: 'Luca', eta: 28 },
   ];
-  const rk = (r: Record<string, unknown>) => r.id as string;
+  const rk = byId;
   const names = (w: ReturnType<typeof mount>) => w.findAll('tbody tr').map((tr) => tr.findAll('td')[0].text());
 
   it('click sull\'header cicla asc → desc → ordine originale, con aria-sort', async () => {
@@ -137,7 +151,7 @@ describe('DataTable — ordinamento', () => {
   });
 
   it('sortValue accessor usato al posto di row[key]', async () => {
-    const cols = [{ key: 'nome', label: 'Nome', sortable: true, sortValue: (r: Record<string, unknown>) => r.eta as number }];
+    const cols = [{ key: 'nome', label: 'Nome', sortable: true, sortValue: pick<number>('eta') }];
     const w = mount(DataTable, { props: { columns: cols, rows: sortRows3, rowKey: rk } });
     await w.find('th button').trigger('click');
     expect(names(w)).toEqual(['Luca', 'Anna', 'Mario']); // per età: 28, 32, 40
@@ -152,7 +166,7 @@ describe('DataTable — ordinamento', () => {
 describe('DataTable — paginazione e footer', () => {
   const cols1 = [{ key: 'n', label: 'N' }];
   const rows30 = Array.from({ length: 30 }, (_, i) => ({ id: `r${i}`, n: `riga-${i}` }));
-  const rk = (r: Record<string, unknown>) => r.id as string;
+  const rk = byId;
 
   it('pageSize: rende solo la finestra corrente, footer con range e pager', async () => {
     const w = mount(DataTable, { props: { columns: cols1, rows: rows30, rowKey: rk, pageSize: 20 } });
@@ -205,7 +219,7 @@ describe('DataTable — paginazione e footer', () => {
 describe('DataTable — righe interattive e stati', () => {
   const cols1 = [{ key: 'n', label: 'N' }];
   const rows2 = [{ id: 'r1', n: 'uno' }, { id: 'r2', n: 'due' }];
-  const rk = (r: Record<string, unknown>) => r.id as string;
+  const rk = byId;
 
   it('row-click: emesso al click, cursor-pointer solo con listener', async () => {
     const w = mount(DataTable, {
@@ -219,7 +233,7 @@ describe('DataTable — righe interattive e stati', () => {
   });
 
   it('rowClass applica classi per riga', () => {
-    const w = mount(DataTable, { props: { columns: cols1, rows: rows2, rowKey: rk, rowClass: (r) => (r.n === 'due' ? 'opacity-60' : '') } });
+    const w = mount(DataTable, { props: { columns: cols1, rows: rows2, rowKey: rk, rowClass: (r) => (pick<string>('n')(r) === 'due' ? 'opacity-60' : '') } });
     const trs = w.findAll('tbody tr');
     expect(trs[0].classes()).not.toContain('opacity-60');
     expect(trs[1].classes()).toContain('opacity-60');

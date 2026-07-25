@@ -35,7 +35,7 @@ const activeSeasonId = computed(() => {
   return covering?.id ?? list[0]?.id ?? '';
 });
 
-const cols: DataTableColumn[] = [
+const cols: DataTableColumn<RentalDTO>[] = [
   { key: 'articolo', label: 'Articolo' },
   { key: 'tariffa', label: 'Tariffa' },
   { key: 'cliente', label: 'Cliente' },
@@ -132,33 +132,33 @@ function confirmCheckout(): void {
 
     <DataTable
       :columns="cols"
-      :rows="(rentals as unknown as Record<string, unknown>[])"
-      :row-key="(r) => (r as unknown as RentalDTO).id"
+      :rows="rentals"
+      :row-key="(r) => r.id"
       empty-message="Nessun noleggio per questa data."
       :loading="dayLoading"
     >
-      <template #cell-articolo="{ row }"><span class="font-semibold text-[var(--color-text)]">{{ (row as unknown as RentalDTO).rentalItemName }}</span></template>
-      <template #cell-tariffa="{ row }"><span class="text-[var(--color-text-2nd)]">{{ (row as unknown as RentalDTO).tariffLabel }}</span></template>
-      <template #cell-cliente="{ row }"><span class="text-[var(--color-text-2nd)]">{{ (row as unknown as RentalDTO).customerName ?? '–' }}</span></template>
-      <template #cell-unita="{ row }"><span class="text-[var(--color-text-2nd)]">{{ (row as unknown as RentalDTO).units }}</span></template>
+      <template #cell-articolo="{ row }"><span class="font-semibold text-[var(--color-text)]">{{ row.rentalItemName }}</span></template>
+      <template #cell-tariffa="{ row }"><span class="text-[var(--color-text-2nd)]">{{ row.tariffLabel }}</span></template>
+      <template #cell-cliente="{ row }"><span class="text-[var(--color-text-2nd)]">{{ row.customerName ?? '–' }}</span></template>
+      <template #cell-unita="{ row }"><span class="text-[var(--color-text-2nd)]">{{ row.units }}</span></template>
       <template #cell-stato="{ row }">
-        <Badge :tone="RENTAL_STATUS_TONE[(row as unknown as RentalDTO).status]">{{ RENTAL_STATUS_LABEL[(row as unknown as RentalDTO).status] }}</Badge>
+        <Badge :tone="RENTAL_STATUS_TONE[row.status]">{{ RENTAL_STATUS_LABEL[row.status] }}</Badge>
       </template>
       <template #cell-incasso="{ row }">
         <button
           type="button"
           class="font-semibold tabular-nums text-[var(--color-text)] underline-offset-2 hover:underline focus-visible:outline-none focus-visible:[box-shadow:var(--ring-focus)]"
-          :data-test="`settle-${(row as unknown as RentalDTO).id}`"
-          :disabled="(row as unknown as RentalDTO).status === 'cancelled'"
-          @click="openSettle(row as unknown as RentalDTO)"
-        >{{ formatEuro((row as unknown as RentalDTO).amountCollected) }} / {{ formatEuro((row as unknown as RentalDTO).totalPrice) }}</button>
+          :data-test="`settle-${row.id}`"
+          :disabled="row.status === 'cancelled'"
+          @click="openSettle(row)"
+        >{{ formatEuro(row.amountCollected) }} / {{ formatEuro(row.totalPrice) }}</button>
       </template>
       <template #cell-azioni="{ row }">
         <ActionBar gap="sm" align="end">
-          <Button v-if="(row as unknown as RentalDTO).status === 'active'" variant="secondary" size="sm" :data-test="`return-${(row as unknown as RentalDTO).id}`"
-            :loading="returnRental.isPending.value && returnRental.variables.value === (row as unknown as RentalDTO).id"
-            @click="returnRental.mutate((row as unknown as RentalDTO).id)">Rientro</Button>
-          <Button v-if="(row as unknown as RentalDTO).status === 'active'" variant="danger" size="sm" :data-test="`cancel-${(row as unknown as RentalDTO).id}`" @click="askCancel(row as unknown as RentalDTO)">Annulla</Button>
+          <Button v-if="row.status === 'active'" variant="secondary" size="sm" :data-test="`return-${row.id}`"
+            :loading="returnRental.isPending.value && returnRental.variables.value === row.id"
+            @click="returnRental.mutate(row.id)">Rientro</Button>
+          <Button v-if="row.status === 'active'" variant="danger" size="sm" :data-test="`cancel-${row.id}`" @click="askCancel(row)">Annulla</Button>
         </ActionBar>
       </template>
     </DataTable>

@@ -41,10 +41,10 @@ function submit() {
     { onSuccess: () => { firstName.value = ''; lastName.value = ''; phone.value = ''; email.value = ''; notes.value = ''; open.value = false; } },
   );
 }
-const cols: DataTableColumn[] = [
+const cols: DataTableColumn<CustomerDTO>[] = [
   {
     key: 'customer', label: 'Cliente', sortable: true,
-    sortValue: (r) => `${(r as unknown as CustomerDTO).lastName} ${(r as unknown as CustomerDTO).firstName}`.toLowerCase(),
+    sortValue: (r) => `${r.lastName} ${r.firstName}`.toLowerCase(),
   },
   { key: 'phone', label: 'Telefono', numeric: true },
   { key: 'email', label: 'Email', wrap: 'truncate', maxWidth: '220px', hideBelow: 'md' },
@@ -66,26 +66,26 @@ function ini(c: { firstName: string; lastName: string }) { return ((c.firstName[
 
     <DataTable
       :columns="cols"
-      :rows="(filtered as unknown as Record<string, unknown>[])"
-      :row-key="(r) => (r as unknown as CustomerDTO).id"
+      :rows="filtered"
+      :row-key="(r) => r.id"
       :page-size="25"
       :loading="isLoading"
       empty-message="Nessun cliente trovato"
-      @row-click="(r) => router.push({ name: 'customer-detail', params: { id: (r as unknown as CustomerDTO).id } })"
+      @row-click="(r) => router.push({ name: 'customer-detail', params: { id: r.id } })"
     >
       <template #cell-customer="{ row }">
         <div class="flex items-center gap-2.5">
-          <Avatar :initials="ini(row as unknown as CustomerDTO)" size="sm" />
+          <Avatar :initials="ini(row)" size="sm" />
           <RouterLink
-            :to="{ name: 'customer-detail', params: { id: (row as unknown as CustomerDTO).id } }"
+            :to="{ name: 'customer-detail', params: { id: row.id } }"
             class="font-semibold text-[var(--color-text)] hover:text-[var(--color-brand-ink)]"
             @click.stop
-          >{{ (row as unknown as CustomerDTO).firstName }} {{ (row as unknown as CustomerDTO).lastName }}</RouterLink>
+          >{{ row.firstName }} {{ row.lastName }}</RouterLink>
         </div>
       </template>
-      <template #cell-phone="{ row }"><span class="tabular-nums text-[var(--color-text-2nd)]">{{ (row as unknown as CustomerDTO).phone ?? '–' }}</span></template>
-      <template #cell-email="{ row }"><span class="text-[var(--color-text-2nd)]">{{ (row as unknown as CustomerDTO).email ?? '–' }}</span></template>
-      <template #cell-notes="{ row }"><span class="text-[var(--color-text-muted)]" :title="(row as unknown as CustomerDTO).notes ?? ''">{{ (row as unknown as CustomerDTO).notes ?? '' }}</span></template>
+      <template #cell-phone="{ row }"><span class="tabular-nums text-[var(--color-text-2nd)]">{{ row.phone ?? '–' }}</span></template>
+      <template #cell-email="{ row }"><span class="text-[var(--color-text-2nd)]">{{ row.email ?? '–' }}</span></template>
+      <template #cell-notes="{ row }"><span class="text-[var(--color-text-muted)]" :title="row.notes ?? ''">{{ row.notes ?? '' }}</span></template>
     </DataTable>
 
     <Modal v-model:open="open" title="Nuovo cliente">

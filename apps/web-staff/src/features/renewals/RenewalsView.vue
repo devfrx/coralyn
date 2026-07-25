@@ -1,7 +1,11 @@
 <script setup lang="ts">
 import { ref, computed, watchEffect } from 'vue';
 import { Button, Badge, DataTable, Avatar, EmptyState, Select, Option, ConfirmDialog, initials } from '@coralyn/ui-kit';
-import type { RenewalWindowItemDTO, RenewalWindowState, SubscriptionListItemDTO } from '@coralyn/contracts';
+// RenewalWindowItemDTO e SubscriptionListItemDTO non si importano più: le due tabelle di questa
+// vista li INFERISCONO da `rows`. `cols` è condiviso fra le due proprio perché nessuna colonna
+// dichiara `sortValue` — l'unico punto in cui DataTableColumn<T> vincola la riga. Se un domani
+// servisse ordinare, il typecheck lo dirà chiedendo due elenchi di colonne distinti.
+import type { RenewalWindowState } from '@coralyn/contracts';
 import { storeToRefs } from 'pinia';
 import { useSessionStore } from '@/stores/session';
 import { useSubscriptions, useRenewBooking, useRenewalCampaign, useOpenCampaign, useCloseCampaign } from './useRenewals';
@@ -120,44 +124,44 @@ function stateBadge(s: RenewalWindowState): { tone: 'success' | 'warning' | 'neu
       <span class="inline-flex items-center gap-1.5"><Badge tone="warning">Scaduta</Badge> finestra chiusa</span>
     </div>
 
-    <DataTable v-if="campaign || campaignLoading" :columns="cols" :rows="(windowRows as unknown as Record<string, unknown>[])" :row-key="(r) => (r as unknown as RenewalWindowItemDTO).sourceBookingId" :loading="campaignLoading" empty-message="Nessuna finestra di prelazione per questa campagna.">
+    <DataTable v-if="campaign || campaignLoading" :columns="cols" :rows="windowRows" :row-key="(r) => r.sourceBookingId" :loading="campaignLoading" empty-message="Nessuna finestra di prelazione per questa campagna.">
       <template #cell-cliente="{ row }">
         <div class="flex items-center gap-2.5">
-          <Avatar :initials="initials(customerName((row as unknown as RenewalWindowItemDTO).customerId))" size="sm" />
-          <span class="font-semibold text-[var(--color-text)]">{{ customerName((row as unknown as RenewalWindowItemDTO).customerId) }}</span>
+          <Avatar :initials="initials(customerName(row.customerId))" size="sm" />
+          <span class="font-semibold text-[var(--color-text)]">{{ customerName(row.customerId) }}</span>
         </div>
       </template>
-      <template #cell-ombrellone="{ row }"><span class="text-[var(--color-text-2nd)]">{{ umbrellaLabel.get((row as unknown as RenewalWindowItemDTO).umbrellaId) ?? '–' }}</span> <Badge v-if="retiredUmbrellaIds.has((row as unknown as RenewalWindowItemDTO).umbrellaId)" tone="neutral">Ritirato</Badge></template>
-      <template #cell-anzianita="{ row }"><span class="text-[var(--color-text-2nd)]">{{ (row as unknown as RenewalWindowItemDTO).seniority }} {{ (row as unknown as RenewalWindowItemDTO).seniority === 1 ? 'stagione' : 'stagioni' }}</span></template>
+      <template #cell-ombrellone="{ row }"><span class="text-[var(--color-text-2nd)]">{{ umbrellaLabel.get(row.umbrellaId) ?? '–' }}</span> <Badge v-if="retiredUmbrellaIds.has(row.umbrellaId)" tone="neutral">Ritirato</Badge></template>
+      <template #cell-anzianita="{ row }"><span class="text-[var(--color-text-2nd)]">{{ row.seniority }} {{ row.seniority === 1 ? 'stagione' : 'stagioni' }}</span></template>
       <template #cell-stato="{ row }">
-        <Badge :tone="stateBadge((row as unknown as RenewalWindowItemDTO).state).tone">{{ stateBadge((row as unknown as RenewalWindowItemDTO).state).label }}</Badge>
+        <Badge :tone="stateBadge(row.state).tone">{{ stateBadge(row.state).label }}</Badge>
       </template>
       <template #cell-azione="{ row }">
-        <Button size="sm" :disabled="(row as unknown as RenewalWindowItemDTO).state === 'exercised' || !destinationSeasonId"
-          :loading="renew.isPending.value && renew.variables.value?.id === (row as unknown as RenewalWindowItemDTO).sourceBookingId"
-          @click="doRenew((row as unknown as RenewalWindowItemDTO).sourceBookingId)">Rinnova</Button>
+        <Button size="sm" :disabled="row.state === 'exercised' || !destinationSeasonId"
+          :loading="renew.isPending.value && renew.variables.value?.id === row.sourceBookingId"
+          @click="doRenew(row.sourceBookingId)">Rinnova</Button>
       </template>
     </DataTable>
 
     <template v-else>
       <EmptyState v-if="!destinationSeasonId" message="Scegli una stagione di destinazione per gestire i rinnovi." />
       <template v-else>
-        <DataTable :columns="cols" :rows="(rows as unknown as Record<string, unknown>[])" :row-key="(r) => (r as unknown as SubscriptionListItemDTO).id" :loading="subsLoading" empty-message="Nessun abbonato nella stagione di origine.">
+        <DataTable :columns="cols" :rows="rows" :row-key="(r) => r.id" :loading="subsLoading" empty-message="Nessun abbonato nella stagione di origine.">
           <template #cell-cliente="{ row }">
             <div class="flex items-center gap-2.5">
-              <Avatar :initials="initials(customerName((row as unknown as SubscriptionListItemDTO).customerId))" size="sm" />
-              <span class="font-semibold text-[var(--color-text)]">{{ customerName((row as unknown as SubscriptionListItemDTO).customerId) }}</span>
+              <Avatar :initials="initials(customerName(row.customerId))" size="sm" />
+              <span class="font-semibold text-[var(--color-text)]">{{ customerName(row.customerId) }}</span>
             </div>
           </template>
-          <template #cell-ombrellone="{ row }"><span class="text-[var(--color-text-2nd)]">{{ umbrellaLabel.get((row as unknown as SubscriptionListItemDTO).umbrellaId) ?? '–' }}</span> <Badge v-if="retiredUmbrellaIds.has((row as unknown as SubscriptionListItemDTO).umbrellaId)" tone="neutral">Ritirato</Badge></template>
-          <template #cell-anzianita="{ row }"><span class="text-[var(--color-text-2nd)]">{{ (row as unknown as SubscriptionListItemDTO).seniority }} {{ (row as unknown as SubscriptionListItemDTO).seniority === 1 ? 'stagione' : 'stagioni' }}</span></template>
+          <template #cell-ombrellone="{ row }"><span class="text-[var(--color-text-2nd)]">{{ umbrellaLabel.get(row.umbrellaId) ?? '–' }}</span> <Badge v-if="retiredUmbrellaIds.has(row.umbrellaId)" tone="neutral">Ritirato</Badge></template>
+          <template #cell-anzianita="{ row }"><span class="text-[var(--color-text-2nd)]">{{ row.seniority }} {{ row.seniority === 1 ? 'stagione' : 'stagioni' }}</span></template>
           <template #cell-stato="{ row }">
-            <Badge :tone="(row as unknown as SubscriptionListItemDTO).renewed ? 'success' : 'neutral'">{{ (row as unknown as SubscriptionListItemDTO).renewed ? 'Rinnovato' : 'Da rinnovare' }}</Badge>
+            <Badge :tone="row.renewed ? 'success' : 'neutral'">{{ row.renewed ? 'Rinnovato' : 'Da rinnovare' }}</Badge>
           </template>
           <template #cell-azione="{ row }">
-            <Button size="sm" :disabled="(row as unknown as SubscriptionListItemDTO).renewed"
-              :loading="renew.isPending.value && renew.variables.value?.id === (row as unknown as SubscriptionListItemDTO).id"
-              @click="doRenew((row as unknown as SubscriptionListItemDTO).id)">Rinnova</Button>
+            <Button size="sm" :disabled="row.renewed"
+              :loading="renew.isPending.value && renew.variables.value?.id === row.id"
+              @click="doRenew(row.id)">Rinnova</Button>
           </template>
         </DataTable>
       </template>
