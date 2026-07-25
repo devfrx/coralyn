@@ -1,8 +1,7 @@
 <script setup lang="ts">
 import { ref, watch, computed } from 'vue';
-import { Button, Field, Input, Select, Option, ConfirmDialog } from '@coralyn/ui-kit';
+import { Button, Field, Input, Select, Option, ConfirmDialog, pushToast } from '@coralyn/ui-kit';
 import type { StructureSectorDTO, SectorKind } from '@coralyn/contracts';
-import { pushToast } from '@/lib/toasts';
 import { useUpdateSector, useDeleteSector } from '../useEstablishmentStructure';
 
 const props = defineProps<{ sector: StructureSectorDTO; isAdmin: boolean }>();

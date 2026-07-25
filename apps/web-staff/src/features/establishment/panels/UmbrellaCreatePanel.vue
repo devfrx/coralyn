@@ -1,8 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue';
-import { Button, Field, Input, Select, Option } from '@coralyn/ui-kit';
+import { Button, Field, Input, Select, Option, pushToast } from '@coralyn/ui-kit';
 import type { UmbrellaTypeDTO } from '@coralyn/contracts';
-import { pushToast } from '@/lib/toasts';
 import { useCreateUmbrella } from '../useEstablishmentStructure';
 
 const props = defineProps<{ rowId: string; rowLabel: string; types: UmbrellaTypeDTO[] }>();

@@ -1,6 +1,8 @@
 import { computed } from 'vue';
 import { useQuery, useMutation, useQueryClient, type QueryKey } from '@tanstack/vue-query';
-import { pushToast } from './toasts';
+// Subpath, non il barrel: `@coralyn/ui-kit` esporta anche gli SFC e con essi i moduli virtuali
+// `~icons/lucide/*`, che questo package dovrebbe saper compilare per una funzione da dieci righe.
+import { pushToast } from '@coralyn/ui-kit/toasts';
 
 /**
  * Factory dei composable server-state (ADR-0033 §5.3). Riduce il boilerplate di

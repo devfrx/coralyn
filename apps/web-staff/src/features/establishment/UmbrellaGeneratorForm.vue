@@ -1,8 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
-import { Button, Field, Input, Select, Option } from '@coralyn/ui-kit';
+import { Button, Field, Input, Select, Option, pushToast } from '@coralyn/ui-kit';
 import type { UmbrellaTypeDTO } from '@coralyn/contracts';
-import { pushToast } from '@/lib/toasts';
 import { GENERATE_MAX } from './structureSelection';
 import { useGenerateUmbrellas } from './useEstablishmentStructure';
 

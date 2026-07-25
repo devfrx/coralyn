@@ -5,7 +5,7 @@
 import { ref, watch, computed } from 'vue';
 import { Modal, Field, Input, Textarea, Button } from '@coralyn/ui-kit';
 import type { CustomerBookingDTO } from '@coralyn/contracts';
-import { ApiError } from '@/lib/http';
+import { ApiError } from '@coralyn/data-layer';
 import { todayIso } from '@/lib/dates';
 import { useReleaseAbsence } from './useMySubscriptions';
 

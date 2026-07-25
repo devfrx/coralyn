@@ -2,7 +2,7 @@
 import { ref, watch, computed } from 'vue';
 import { Modal, Field, Button, ModalFooter, Select, Option, formatEuro } from '@coralyn/ui-kit';
 import type { RentalDTO, PaymentMethod } from '@coralyn/contracts';
-import { ApiError } from '@/lib/http';
+import { ApiError } from '@coralyn/data-layer';
 import { useSettleRentalPayment } from './useRentals';
 
 // Mirror di SettlePaymentModal (bookings): stessa UX di incasso, ma per RentalDTO (D-052).

@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { apiFetch, ApiError, setRefreshHandler } from './http';
+import { ApiError } from '@coralyn/data-layer';
+import { apiFetch, setRefreshHandler } from './http';
 import { setAccessToken, setRefreshToken } from './authToken';
 
 beforeEach(() => { localStorage.clear(); vi.restoreAllMocks(); });

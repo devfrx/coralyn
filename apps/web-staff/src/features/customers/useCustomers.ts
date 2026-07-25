@@ -1,8 +1,8 @@
 import type { CustomerDTO, CreateCustomerInput, UpdateCustomerInput, CustomerBookingDTO, DeleteCustomerResult, BookingDTO, TerminateSubscriptionInput, SuspendSubscriptionInput, ReactivateSubscriptionInput, CededSubscriptionDTO, TransferSubscriptionInput, SetAbsenceConsentInput, ReleaseAbsenceInput, CustomerAccessStatusDTO, CustomerProvisionResponse } from '@coralyn/contracts';
+import { queryResource, mutationResource } from '@coralyn/data-layer';
 import { apiFetch } from '@/lib/http';
 import { queryKeys } from '@/lib/queryKeys';
 import { useSessionStore } from '@/stores/session';
-import { queryResource, mutationResource } from '@/lib/useQueryResource';
 
 /**
  * Gli id arrivano come THUNK, non per valore (stesso contratto di `useRates`). La ragione non è

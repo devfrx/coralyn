@@ -1,9 +1,9 @@
 import { describe, it, expect, vi, beforeAll, afterAll } from 'vitest';
 import { ref } from 'vue';
 import { flushPromises } from '@vue/test-utils';
+import { ApiError } from '@coralyn/data-layer';
 import { mountApp } from '@/test/utils';
 import type { CustomerBookingDTO } from '@coralyn/contracts';
-import { ApiError } from '@/lib/http';
 import { todayIso } from '@/lib/dates';
 import AbsenceReleaseModal from './AbsenceReleaseModal.vue';
 import { useReleaseAbsence } from './useMySubscriptions';

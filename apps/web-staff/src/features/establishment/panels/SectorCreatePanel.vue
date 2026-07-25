@@ -1,8 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue';
-import { Button, Field, Input, Select, Option } from '@coralyn/ui-kit';
+import { Button, Field, Input, Select, Option, pushToast } from '@coralyn/ui-kit';
 import type { SectorKind, StructureSectorDTO } from '@coralyn/contracts';
-import { pushToast } from '@/lib/toasts';
 import { useCreateSector } from '../useEstablishmentStructure';
 
 const emit = defineEmits<{ close: []; created: [id: string] }>();

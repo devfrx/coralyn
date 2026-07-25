@@ -1,11 +1,10 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
-import { NavDrawer } from '@coralyn/ui-kit';
+import { NavDrawer, ToastHost } from '@coralyn/ui-kit';
 import Topbar from './Topbar.vue';
 import Sidebar from './Sidebar.vue';
 import SidebarNav from './SidebarNav.vue';
-import ToastHost from './ToastHost.vue';
 import { useMediaQuery } from '@/lib/useMediaQuery';
 const route = useRoute();
 const navOpen = ref(false);

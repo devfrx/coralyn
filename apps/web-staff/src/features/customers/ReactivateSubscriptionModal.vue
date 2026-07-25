@@ -2,7 +2,7 @@
 import { ref, watch, computed } from 'vue';
 import { Modal, Field, Button, formatEuro } from '@coralyn/ui-kit';
 import type { CustomerBookingDTO, SuspensionDTO } from '@coralyn/contracts';
-import { ApiError } from '@/lib/http';
+import { ApiError } from '@coralyn/data-layer';
 import { useSessionStore } from '@/stores/session';
 import { addDays, todayIso } from '@/lib/dates';
 import { suggestedSuspensionRefund } from './suspensionRefund';

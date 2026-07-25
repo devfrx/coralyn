@@ -37,7 +37,7 @@ describe('EstablishmentDetailView', () => {
   });
 
   it('reset password admin: conferma → invia invito e mostra toast di successo', async () => {
-    const { useToasts, clearToasts } = await import('@/lib/toasts');
+    const { useToasts, clearToasts } = await import('@coralyn/ui-kit');
     clearToasts();
     const toasts = useToasts();
     const w = mountApp(EstablishmentDetailView, { attachTo: document.body });

@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "@coralyn/contracts": "workspace:*",
+    "@coralyn/data-layer": "workspace:*",
     "@coralyn/legal": "workspace:*",
     "@coralyn/ui-kit": "workspace:*",
     "@fontsource/inter": "^5.2.8",

@@ -1,8 +1,8 @@
 import type { CreatePackageInput, PackageDTO, UpdatePackageInput } from '@coralyn/contracts';
+import { queryResource, mutationResource } from '@coralyn/data-layer';
 import { apiFetch } from '@/lib/http';
 import { queryKeys } from '@/lib/queryKeys';
 import { useSessionStore } from '@/stores/session';
-import { queryResource, mutationResource } from '@/lib/useQueryResource';
 
 /** Lista dei pacchetti del tenant per il selettore del modale. */
 export function usePackages() {

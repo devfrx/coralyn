@@ -1,9 +1,9 @@
 import type { Ref } from 'vue';
 import type { ReportSummaryDTO, ReportPeriod } from '@coralyn/contracts';
+import { queryResource } from '@coralyn/data-layer';
 import { apiFetch } from '@/lib/http';
 import { queryKeys } from '@/lib/queryKeys';
 import { useSessionStore } from '@/stores/session';
-import { queryResource } from '@/lib/useQueryResource';
 
 export function useReportSummary(period: Ref<ReportPeriod>) {
   const session = useSessionStore();

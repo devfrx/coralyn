@@ -3,8 +3,8 @@ import { http, HttpResponse } from 'msw';
 import { flushPromises } from '@vue/test-utils';
 import { mountApp, selectOption } from '@/test/utils';
 import { server } from '@/mocks/server';
-import { useToasts } from '@/lib/toasts';
 import type { RenewalCampaignDetailDTO } from '@coralyn/contracts';
+import { useToasts } from '@coralyn/ui-kit';
 import RenewalsView from './RenewalsView.vue';
 
 const tick = () => new Promise((r) => setTimeout(r, 0));

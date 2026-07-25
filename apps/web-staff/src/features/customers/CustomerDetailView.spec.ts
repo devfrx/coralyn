@@ -4,10 +4,10 @@ import { createPinia } from 'pinia';
 import { VueQueryPlugin, QueryClient } from '@tanstack/vue-query';
 import { http, HttpResponse } from 'msw';
 import { Role } from '@coralyn/contracts';
+import { useToasts, clearToasts } from '@coralyn/ui-kit';
 import { mountApp } from '@/test/utils';
 import { server } from '@/mocks/server';
 import { useSessionStore } from '@/stores/session';
-import { useToasts, clearToasts } from '@/lib/toasts';
 import CustomerDetailView from './CustomerDetailView.vue';
 
 vi.mock('qrcode', () => ({ default: { toDataURL: vi.fn().mockResolvedValue('data:image/png;base64,QRMOCK') } }));

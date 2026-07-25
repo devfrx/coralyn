@@ -1,15 +1,17 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { apiFetch } from './http';
-import { setToken, clearToken } from './authToken';
+import { createApiFetch, readJsonBody, ApiError } from './http';
+
+let token: string | null = null;
+const apiFetch = createApiFetch(() => token);
 
 afterEach(() => {
   vi.restoreAllMocks();
-  clearToken();
+  token = null;
 });
 
-describe('apiFetch', () => {
+describe('createApiFetch', () => {
   it('aggiunge Authorization: Bearer dal token (e non X-Stabilimento-Id)', async () => {
-    setToken('jwt-abc');
+    token = 'jwt-abc';
     const spy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
       new Response(JSON.stringify({ ok: true }), { status: 200, headers: { 'content-type': 'application/json' } }),
     );
@@ -28,6 +30,21 @@ describe('apiFetch', () => {
     await apiFetch('/clienti');
     const [, init] = spy.mock.calls[0];
     expect(new Headers(init?.headers).get('Authorization')).toBeNull();
+  });
+
+  // Il getter è invocato a OGNI chiamata, non catturato alla creazione: la factory è costruita
+  // all'import del modulo, cioè prima di qualunque login. Risolvere il token una volta sola
+  // lascerebbe l'app a mandare `null` per sempre, e nessuno degli altri test se ne accorgerebbe
+  // perché tutti impostano il token prima della prima chiamata.
+  it('rilegge il token a OGNI chiamata, non alla creazione della factory', async () => {
+    // `mockImplementation`, non `mockResolvedValue`: il body di una Response si legge UNA volta
+    // sola, e riusare lo stesso oggetto fa fallire la seconda chiamata per il motivo sbagliato.
+    const spy = vi.spyOn(globalThis, 'fetch').mockImplementation(() => Promise.resolve(new Response('{}', { status: 200 })));
+    await apiFetch('/prima');                       // token ancora null: nessun login
+    token = 'jwt-dopo-il-login';
+    await apiFetch('/seconda');
+    expect(new Headers(spy.mock.calls[0][1]?.headers).get('Authorization')).toBeNull();
+    expect(new Headers(spy.mock.calls[1][1]?.headers).get('Authorization')).toBe('Bearer jwt-dopo-il-login');
   });
 
   it('lancia un ApiError con lo status su risposta non ok', async () => {
@@ -62,7 +79,7 @@ describe('apiFetch', () => {
     });
   });
 
-  it("message array (class-validator) → messaggi uniti e leggibili", async () => {
+  it('message array (class-validator) → messaggi uniti e leggibili', async () => {
     vi.spyOn(globalThis, 'fetch').mockResolvedValue(
       new Response(JSON.stringify({ statusCode: 400, message: ['seasonId must be a UUID', 'price must not be less than 0'], error: 'Bad Request' }), { status: 400 }),
     );
@@ -72,7 +89,7 @@ describe('apiFetch', () => {
     });
   });
 
-  it('body d\'errore non-JSON → fallback al messaggio sintetico', async () => {
+  it("body d'errore non-JSON → fallback al messaggio sintetico", async () => {
     vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response('<html>Bad Gateway</html>', { status: 502 }));
     await expect(apiFetch('/clienti')).rejects.toMatchObject({ status: 502, message: 'HTTP 502 su /clienti' });
   });
@@ -80,5 +97,32 @@ describe('apiFetch', () => {
   it("body d'errore vuoto → fallback al messaggio sintetico", async () => {
     vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response('', { status: 500 }));
     await expect(apiFetch('/clienti')).rejects.toMatchObject({ status: 500, message: 'HTTP 500 su /clienti' });
+  });
+});
+
+// `readJsonBody` è esportato perche' web-customer compone il proprio apiFetch (refresh
+// single-flight, ADR-0049) riusando questa decodifica: va vincolato anche fuori da createApiFetch,
+// altrimenti la sola app che lo chiama direttamente e' quella che nessun test qui copre.
+describe('readJsonBody', () => {
+  it('204 → null senza toccare il body', async () => {
+    await expect(readJsonBody(new Response(null, { status: 204 }))).resolves.toBeNull();
+  });
+
+  it('body testuale vuoto → null (NestJS serializza `null` come body VUOTO)', async () => {
+    await expect(readJsonBody(new Response('', { status: 200 }))).resolves.toBeNull();
+  });
+
+  it('body JSON → oggetto tipizzato', async () => {
+    await expect(readJsonBody<{ a: number }>(new Response('{"a":1}', { status: 200 }))).resolves.toEqual({ a: 1 });
+  });
+});
+
+describe('ApiError', () => {
+  it('senza messaggio dal server usa il sintetico e conserva lo status', () => {
+    const e = new ApiError(503, '/health');
+    expect(e).toBeInstanceOf(Error);
+    expect(e.name).toBe('ApiError');
+    expect(e.status).toBe(503);
+    expect(e.message).toBe('HTTP 503 su /health');
   });
 });

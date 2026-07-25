@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { watch } from 'vue';
 import { RouterView, useRoute, useRouter } from 'vue-router';
-import ToastHost from '@/app/ToastHost.vue';
+import { ToastHost } from '@coralyn/ui-kit';
 import { useSessionStore } from '@/stores/session';
 
 const session = useSessionStore();

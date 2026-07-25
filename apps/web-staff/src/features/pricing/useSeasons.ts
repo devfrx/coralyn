@@ -1,8 +1,8 @@
 import type { CreateSeasonInput, SeasonDTO } from '@coralyn/contracts';
+import { queryResource, mutationResource } from '@coralyn/data-layer';
 import { apiFetch } from '@/lib/http';
 import { queryKeys } from '@/lib/queryKeys';
 import { useSessionStore } from '@/stores/session';
-import { queryResource, mutationResource } from '@/lib/useQueryResource';
 
 export function useSeasons() {
   const session = useSessionStore();

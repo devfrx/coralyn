@@ -1,9 +1,8 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { Button, Icon } from '@coralyn/ui-kit';
+import { Button, Icon, ToastHost } from '@coralyn/ui-kit';
 import { useSessionStore } from '@/stores/session';
-import ToastHost from './ToastHost.vue';
 
 const route = useRoute();
 const router = useRouter();

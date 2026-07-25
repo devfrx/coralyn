@@ -2,6 +2,8 @@ export { default as Icon } from './components/Icon.vue';
 export { default as IconButton } from './components/IconButton.vue';
 export { icons, FALLBACK_ICON } from './icons/registry';
 export { default as Toast } from './components/Toast.vue';
+export { default as ToastHost } from './components/ToastHost.vue';
+export { useToasts, pushToast, dismissToast, clearToasts, type ToastItem } from './toasts';
 export { default as Button } from './components/Button.vue';
 export { default as ActionBar } from './components/ActionBar.vue';
 export { default as Card } from './components/Card.vue';

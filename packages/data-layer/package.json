@@ -1,0 +1,33 @@
+{
+  "name": "@coralyn/data-layer",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "//sideEffects": "Vero, e OGGI inerte: misurato, non dedotto. Togliere l'import di QUERY_DEFAULTS da web-customer (che dal barrel prende solo quello) lascia il bundle a 293.5 kB identici, con o senza questo campo. La differenza con ui-kit — dove lo stesso campo vale 480 KB (P9-007) — e' che li' `echarts.ts` chiama `use([...])` al top level, un effetto che Rollup non puo' dimostrare puro e che lo obbliga a conservare l'intero grafo raggiungibile dal barrel; qui non c'e' un solo modulo impuro (classi, funzioni e due costanti), quindi Rollup gia' dimostra da se' che tutto e' eliminabile. Il campo resta perche' e' vero e perche' e' la convenzione dei package di questo repo: se un domani entra qui un modulo con un effetto al top level, va ELENCATO invece di lasciare `false`, altrimenti sparisce a runtime e il sintomo e' una schermata bianca, non un errore di build.",
+  "sideEffects": false,
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "peerDependencies": {
+    "@tanstack/vue-query": "^5.101.1",
+    "vue": "^3.5.0",
+    "vue-router": "^5.1.0"
+  },
+  "dependencies": {
+    "@coralyn/ui-kit": "workspace:*"
+  },
+  "scripts": {
+    "test": "vitest run",
+    "typecheck": "vue-tsc -b --noEmit"
+  },
+  "devDependencies": {
+    "@tanstack/vue-query": "^5.101.1",
+    "@types/node": "^24.13.2",
+    "@vue/test-utils": "^2.4.11",
+    "jsdom": "^29.1.1",
+    "vitest": "^4.1.9",
+    "vue": "^3.5.38",
+    "vue-router": "^5.1.0",
+    "vue-tsc": "^3.3.5"
+  }
+}

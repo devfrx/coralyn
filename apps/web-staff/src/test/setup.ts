@@ -1,6 +1,6 @@
 import { afterAll, afterEach, beforeAll, beforeEach } from 'vitest';
+import { clearToasts } from '@coralyn/ui-kit';
 import { server, resetCustomersSeed, resetPricingSeed, resetCampaignSeed, resetCustomerBookingsSeed, resetRentalsSeed, resetDayRentalsSeed } from '@/mocks/server';
-import { clearToasts } from '@/lib/toasts';
 
 beforeAll(() => server.listen({ onUnhandledRequest: 'error' }));
 beforeEach(() => { resetCustomersSeed(); resetPricingSeed(); resetCampaignSeed(); resetCustomerBookingsSeed(); resetRentalsSeed(); resetDayRentalsSeed(); clearToasts(); });

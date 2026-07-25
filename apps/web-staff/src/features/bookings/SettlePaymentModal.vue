@@ -2,7 +2,7 @@
 import { ref, watch, computed } from 'vue';
 import { Modal, Field, Button, ModalFooter, Select, Option, formatEuro } from '@coralyn/ui-kit';
 import type { BookingDTO, PaymentMethod } from '@coralyn/contracts';
-import { ApiError } from '@/lib/http';
+import { ApiError } from '@coralyn/data-layer';
 import { useSettlePayment } from './useBookings';
 
 const open = defineModel<boolean>({ required: true });

@@ -1,7 +1,13 @@
 import { reactive } from 'vue';
 
 /** Coda toast module-scope (non Pinia): dev'essere usabile anche fuori dal contesto
- *  componente/store, es. dall'onError di default di mutationResource. */
+ *  componente/store, es. dall'onError di default di `mutationResource` (@coralyn/data-layer).
+ *
+ *  Vive qui e non nel data-layer perché `Toast.vue` (il singolo toast) e `ToastHost.vue` (il
+ *  contenitore che rende la coda) sono già componenti di questo package: item, coda e host sono
+ *  una feature sola, e spaccarla su due package obbligherebbe a toccarne due per aggiungere una
+ *  variante. È stato di PRESENTAZIONE senza contenuto di dominio, quindi rientra nel perimetro
+ *  di ui-kit dichiarato in ADR-0056 (ADR-0058 §2 lo ratifica esplicitamente). */
 export interface ToastItem { id: number; message: string }
 
 const state = reactive<{ items: ToastItem[] }>({ items: [] });

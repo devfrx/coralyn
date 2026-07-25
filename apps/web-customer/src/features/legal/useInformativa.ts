@@ -1,6 +1,6 @@
 import type { PublicTitolareDTO } from '@coralyn/contracts';
+import { queryResource } from '@coralyn/data-layer';
 import { apiFetch } from '@/lib/http';
-import { queryResource } from '@/lib/useQueryResource';
 import { queryKeys } from '@/lib/queryKeys';
 
 export function useMyInformativa(enabled?: () => boolean) {

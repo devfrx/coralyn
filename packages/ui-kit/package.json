@@ -8,8 +8,10 @@
     "**/*.css",
     "**/echarts.ts"
   ],
+  "//exports./toasts": "La coda toast e' raggiungibile anche SENZA passare dal barrel, perche' il barrel trascina i componenti e con essi ~icons/lucide/* e gli SFC: chi ne ha bisogno da codice non-componente (@coralyn/data-layer, che ha zero .vue) dovrebbe altrimenti installarsi @vitejs/plugin-vue, unplugin-icons e @iconify-json/lucide per compilare i test di un wrapper di fetch. Il tree-shaking del bundle e' un'altra cosa e funziona gia' (sideEffects, P9-007): questo risolve la catena di BUILD, non quella di runtime. Le app continuano a importare dal barrel.",
   "exports": {
     ".": "./src/index.ts",
+    "./toasts": "./src/toasts.ts",
     "./styles/theme.css": "./src/styles/theme.css"
   },
   "peerDependencies": {

@@ -1,8 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
-import { Button, IconButton, Icon, Field, Input, Select, Option, ConfirmDialog } from '@coralyn/ui-kit';
+import { Button, IconButton, Icon, Field, Input, Select, Option, ConfirmDialog, pushToast } from '@coralyn/ui-kit';
 import type { EstablishmentStructureDTO, UmbrellaTypeDTO } from '@coralyn/contracts';
-import { pushToast } from '@/lib/toasts';
 import { useCreateUmbrellaType, useUpdateUmbrellaType, useDeleteUmbrellaType, useRetiredUmbrellas, useRestoreUmbrella } from '../useEstablishmentStructure';
 
 const props = defineProps<{ data: EstablishmentStructureDTO; isAdmin: boolean }>();

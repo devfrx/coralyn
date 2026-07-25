@@ -1,7 +1,7 @@
 import type { CreateEstablishmentInput, CreateEstablishmentResponse, PlatformEstablishmentDTO, ResetAdminPasswordResponse } from '@coralyn/contracts';
+import { queryResource, mutationResource } from '@coralyn/data-layer';
 import { apiFetch } from '@/lib/http';
 import { queryKeys } from '@/lib/queryKeys';
-import { queryResource, mutationResource } from '@/lib/useQueryResource';
 
 export function useEstablishmentsList() {
   return queryResource({

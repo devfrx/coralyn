@@ -2,6 +2,8 @@ import { describe, it, expect, vi } from 'vitest';
 import { handleUnauthorized } from './onApiError';
 import { ApiError } from './http';
 
+// Questi sei test esistevano in DUE copie identiche (web-staff e web-platform), diverse solo nei
+// nomi di rotta dei fixture. Consolidati qui vincolano entrambe le app invece di una ciascuna.
 function makeSession(authenticated: boolean) {
   return { authenticated, logout: vi.fn() };
 }

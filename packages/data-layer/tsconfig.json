@@ -1,0 +1,14 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "jsx": "preserve",
+    "noEmit": true,
+    // Data-layer di browser: `fetch`, `Response`, `RequestInit` e `localStorage` vengono dalla lib
+    // DOM (la base ha solo ES2022), altrimenti `vue-tsc --noEmit` fallisce. Stesso motivo di
+    // ui-kit e legal.
+    "lib": ["ES2022", "DOM", "DOM.Iterable"]
+  },
+  "include": ["src"]
+}

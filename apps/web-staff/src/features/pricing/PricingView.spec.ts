@@ -2,9 +2,9 @@ import { describe, it, expect } from 'vitest';
 import { http, HttpResponse } from 'msw';
 import { flushPromises } from '@vue/test-utils';
 import { nextTick } from 'vue';
+import { useToasts } from '@coralyn/ui-kit';
 import { mountApp, selectOption } from '@/test/utils';
 import { server } from '@/mocks/server';
-import { useToasts } from '@/lib/toasts';
 import PricingView from './PricingView.vue';
 
 const settle = async () => {

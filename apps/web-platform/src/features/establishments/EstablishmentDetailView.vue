@@ -1,10 +1,9 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
 import { useRoute } from 'vue-router';
-import { ActionBar, Badge, Button, ConfirmDialog, EmptyState, Skeleton, StatTile, formatEuro, useDelayedLoading } from '@coralyn/ui-kit';
+import { ActionBar, Badge, Button, ConfirmDialog, EmptyState, Skeleton, StatTile, formatEuro, useDelayedLoading, pushToast } from '@coralyn/ui-kit';
 import type { PlatformEstablishmentDTO } from '@coralyn/contracts';
 import { useEstablishmentDetail, useSuspendEstablishment, useReactivateEstablishment, useResetAdminPassword } from './usePlatformEstablishments';
-import { pushToast } from '@/lib/toasts';
 
 const route = useRoute();
 const id = () => String(route.params.id);

@@ -1,9 +1,9 @@
 import { type Ref } from 'vue';
 import type { BookingDTO, RenewalCampaignDetailDTO, SubscriptionListItemDTO } from '@coralyn/contracts';
+import { queryResource, mutationResource } from '@coralyn/data-layer';
 import { apiFetch } from '@/lib/http';
 import { queryKeys } from '@/lib/queryKeys';
 import { useSessionStore } from '@/stores/session';
-import { queryResource, mutationResource } from '@/lib/useQueryResource';
 
 /** Abbonati della stagione `seasonId` (campagna rinnovi). */
 export function useSubscriptions(seasonId: Ref<string>) {

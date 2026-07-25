@@ -1,10 +1,9 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
 import { useRouter } from 'vue-router';
-import { Card, StatTile, Badge, Button, Avatar, Icon, Modal, Field, Input, Select, Option, ConfirmDialog, ActionBar, SkeletonText, Callout, useDelayedLoading } from '@coralyn/ui-kit';
+import { Card, StatTile, Badge, Button, Avatar, Icon, Modal, Field, Input, Select, Option, ConfirmDialog, ActionBar, SkeletonText, Callout, useDelayedLoading, pushToast } from '@coralyn/ui-kit';
 import { Role } from '@coralyn/contracts';
 import { useSessionStore } from '@/stores/session';
-import { pushToast } from '@/lib/toasts';
 import { useSetupStatus } from '@/features/onboarding/useSetupStatus';
 import { useEstablishmentOverview, useRenameEstablishment, useCreateStaffUser, useSetStaffUserDisabled, useResetStaffPassword } from './useEstablishment';
 import LegalProfileModal from './LegalProfileModal.vue';

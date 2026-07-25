@@ -1,8 +1,8 @@
 import type { CreateTimeSlotInput, TimeSlotDTO, UpdateTimeSlotInput } from '@coralyn/contracts';
+import { queryResource, mutationResource } from '@coralyn/data-layer';
 import { apiFetch } from '@/lib/http';
 import { queryKeys } from '@/lib/queryKeys';
 import { useSessionStore } from '@/stores/session';
-import { queryResource, mutationResource } from '@/lib/useQueryResource';
 
 /** Le mutazioni fasce invalidano sia la lista sia la mappa (le fasce cambiano la cella e le opzioni tariffa). */
 export function useTimeSlots() {

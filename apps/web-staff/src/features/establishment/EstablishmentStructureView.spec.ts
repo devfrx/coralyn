@@ -197,7 +197,7 @@ describe('EstablishmentStructureView — shell Cantiere', () => {
     Array.from(document.body.querySelectorAll('button')).find((b) => b.textContent?.trim() === 'Svuota')!.click();
     await settle();
     expect(bulk).toEqual({ ids: ['u-1', 'u-2'] });
-    const { useToasts } = await import('@/lib/toasts');
+    const { useToasts } = await import('@coralyn/ui-kit');
     expect(useToasts().items.some((t) => t.message.includes('Eliminati 1') && t.message.includes('saltati 1'))).toBe(true);
     w.unmount();
   });
@@ -230,7 +230,7 @@ describe('EstablishmentStructureView — shell Cantiere', () => {
     await settle();
     expect(createdRow).toEqual({ sectorId: 's-1', label: 'Fila 2' });
     expect(generated).toEqual({ rowId: 'r-2', prefix: '', start: 1, count: 4, umbrellaTypeId: null });
-    const { useToasts } = await import('@/lib/toasts');
+    const { useToasts } = await import('@coralyn/ui-kit');
     expect(useToasts().items.some((t) => t.message.includes('Fila creata') && t.message.includes('4 ombrelloni'))).toBe(true);
   });
 
@@ -300,7 +300,7 @@ describe('EstablishmentStructureView — shell Cantiere', () => {
     await insp.find('[data-testid="umbrella-form"]').trigger('submit');
     await settle();
     expect(patched).toEqual({ label: 'A1-bis', umbrellaTypeId: null });
-    const { useToasts } = await import('@/lib/toasts');
+    const { useToasts } = await import('@coralyn/ui-kit');
     expect(useToasts().items.some((t) => t.message.includes('Ombrellone aggiornato'))).toBe(true);
   });
 
@@ -363,7 +363,7 @@ describe('EstablishmentStructureView — shell Cantiere', () => {
     Array.from(document.body.querySelectorAll('button')).find((b) => b.textContent?.trim() === 'Ritira')!.click();
     await settle();
     expect(retiredId).toBe('u-1');
-    const { useToasts } = await import('@/lib/toasts');
+    const { useToasts } = await import('@coralyn/ui-kit');
     expect(useToasts().items.some((t) => t.message.includes('Ombrellone ritirato'))).toBe(true);
     expect(w.find('[data-testid="inspector"]').text()).toContain('Spiaggia'); // close → beach
     w.unmount();
@@ -467,7 +467,7 @@ describe('EstablishmentStructureView — shell Cantiere', () => {
     await flushPromises();
     Array.from(document.body.querySelectorAll('button')).find((b) => b.textContent?.trim() === 'Elimina')!.click();
     await settle();
-    const { useToasts } = await import('@/lib/toasts');
+    const { useToasts } = await import('@coralyn/ui-kit');
     expect(useToasts().items.some((t) => t.message.includes('Eliminati 2'))).toBe(true);
     w.unmount();
   });
@@ -582,7 +582,7 @@ describe('EstablishmentStructureView — shell Cantiere', () => {
     await settle();
     expect(restoredId).toBe('u-r');
     expect(restoredBody).toEqual({ rowId: 'r-1' });
-    const { useToasts } = await import('@/lib/toasts');
+    const { useToasts } = await import('@coralyn/ui-kit');
     expect(useToasts().items.some((t) => t.message.includes('Ombrellone ripristinato'))).toBe(true);
   });
 

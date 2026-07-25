@@ -31,9 +31,16 @@ validato dai mock ([ADR-0009](0009-documentazione-di-design.md):
   layout e UI (`EmptyState`, `Select`, `ModalFooter`, `PageToolbar`, `DataTable`), utility di
   **formattazione pure** (`formatEuro`, `initials`, `dateRange`).
 - **`web-staff` (shared)** ospita le astrazioni **che conoscono il dominio**: composable di
-  risoluzione entità (`useEntityLabels`), mappe stato→presentazione (`statusMaps`), factory
-  dei composable server-state (`useQueryResource`). Vivono in `apps/web-staff/src/lib/` (o
-  `src/shared/`), non in `ui-kit`.
+  risoluzione entità (`useEntityLabels`), mappe stato→presentazione (`statusMaps`). Vivono in
+  `apps/web-staff/src/lib/` (o `src/shared/`), non in `ui-kit`.
+  > ⚠️ **Corretto il 2026-07-25 ([ADR-0058](0058-package-data-layer-condiviso.md)):** questa riga
+  > elencava anche la **factory dei composable server-state** (`useQueryResource`) fra le astrazioni
+  > «che conoscono il dominio», e la collocava in `apps/web-staff/src/lib/`. Erano sbagliate
+  > entrambe le cose, e la seconda discendeva dalla prima: `queryResource`/`mutationResource` sono
+  > generiche su `T` e non nominano **nessuna** entità, quindi il criterio di questa sezione non le
+  > selezionava. Vivono ora in `@coralyn/data-layer`, condivise dalle tre app. La **regola in fondo
+  > alla sezione resta valida e non cambia**: è il criterio giusto, era la classificazione di questo
+  > singolo artefatto a essere sbagliata.
 
 Regola: se un componente/funzione dovrebbe conoscere `Customer`/`Booking`/`Umbrella` per
 funzionare, **non** va in `ui-kit`.

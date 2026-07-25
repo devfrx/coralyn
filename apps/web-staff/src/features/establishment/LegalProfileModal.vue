@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue';
-import { Modal, Field, Input, Select, Option, Button } from '@coralyn/ui-kit';
-import { pushToast } from '@/lib/toasts';
+import { Modal, Field, Input, Select, Option, Button, pushToast } from '@coralyn/ui-kit';
 import { useLegalProfile, useUpdateLegalProfile } from './useEstablishment';
 
 const open = defineModel<boolean>('open', { required: true });

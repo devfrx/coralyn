@@ -1,8 +1,8 @@
 import type { CreateEquipmentTypeInput, EquipmentTypeDTO, UpdateEquipmentTypeInput } from '@coralyn/contracts';
+import { queryResource, mutationResource } from '@coralyn/data-layer';
 import { apiFetch } from '@/lib/http';
 import { queryKeys } from '@/lib/queryKeys';
 import { useSessionStore } from '@/stores/session';
-import { queryResource, mutationResource } from '@/lib/useQueryResource';
 
 /** Lista dei tipi di dotazione attivi (per il compositore pacchetto). */
 export function useEquipmentTypes() {

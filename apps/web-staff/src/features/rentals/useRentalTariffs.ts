@@ -1,8 +1,8 @@
 import type { CreateRentalTariffInput, RentalTariffDTO, UpdateRentalTariffInput } from '@coralyn/contracts';
+import { queryResource, mutationResource } from '@coralyn/data-layer';
 import { apiFetch } from '@/lib/http';
 import { queryKeys } from '@/lib/queryKeys';
 import { useSessionStore } from '@/stores/session';
-import { queryResource, mutationResource } from '@/lib/useQueryResource';
 
 /** `getItemId`/`getSeasonId` sono thunk: articolo e stagione selezionati sono stato reattivo della vista
  *  (stesso pattern di `useRates`). Include sempre gli archiviati: l'editor cataogo li mostra a scomparsa. */

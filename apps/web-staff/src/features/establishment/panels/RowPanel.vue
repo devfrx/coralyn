@@ -1,8 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, watch, onMounted, nextTick } from 'vue';
-import { Button, Field, Input, ConfirmDialog } from '@coralyn/ui-kit';
+import { Button, Field, Input, ConfirmDialog, pushToast } from '@coralyn/ui-kit';
 import type { StructureRowDTO, UmbrellaTypeDTO } from '@coralyn/contracts';
-import { pushToast } from '@/lib/toasts';
 import { useUpdateRow, useDeleteRow, useBulkDeleteUmbrellas } from '../useEstablishmentStructure';
 import UmbrellaGeneratorForm from '../UmbrellaGeneratorForm.vue';
 

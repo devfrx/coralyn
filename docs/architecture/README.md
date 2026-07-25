@@ -138,3 +138,4 @@ componenti) è la spec d'implementazione di `ui-kit` ([ADR-0017](decisions/0017-
 - [ADR-0055](decisions/0055-informativa-art13-multi-tenant.md) — Informativa Art. 13 al bagnante e ruoli titolare/responsabile multi-tenant
 - [ADR-0056](decisions/0056-package-legale-condiviso.md) — Package legale condiviso `@coralyn/legal` per i testi rivolti agli operatori
 - [ADR-0057](decisions/0057-autorizzazione-fail-closed-permessi.md) — Autorizzazione fail-closed, dichiarata per permesso (emenda 0039)
+- [ADR-0058](decisions/0058-package-data-layer-condiviso.md) — Package `@coralyn/data-layer` condiviso, fattorizzato per strati e non per app

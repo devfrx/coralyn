@@ -1,8 +1,8 @@
 import type { CreateRentalItemInput, RentalItemDTO, UpdateRentalItemInput } from '@coralyn/contracts';
+import { queryResource, mutationResource } from '@coralyn/data-layer';
 import { apiFetch } from '@/lib/http';
 import { queryKeys } from '@/lib/queryKeys';
 import { useSessionStore } from '@/stores/session';
-import { queryResource, mutationResource } from '@/lib/useQueryResource';
 
 /** Lista dei soli articoli attivi (per superfici che non gestiscono l'archivio, es. banco). */
 export function useRentalItems() {

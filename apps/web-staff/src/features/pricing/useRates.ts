@@ -1,8 +1,8 @@
 import type { CreateRateInput, RateDTO, UpdateRateInput } from '@coralyn/contracts';
+import { queryResource, mutationResource } from '@coralyn/data-layer';
 import { apiFetch } from '@/lib/http';
 import { queryKeys } from '@/lib/queryKeys';
 import { useSessionStore } from '@/stores/session';
-import { queryResource, mutationResource } from '@/lib/useQueryResource';
 
 /** `getSeasonId` è un thunk: la stagione attiva è stato reattivo della vista. */
 export function useRates(getSeasonId: () => string) {

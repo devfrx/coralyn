@@ -1,23 +1,11 @@
 import { describe, it, expect, vi } from 'vitest';
 import { flushPromises } from '@vue/test-utils';
-import { defineComponent, h, ref } from 'vue';
-import { mountApp } from '@/test/utils';
+import { ref } from 'vue';
+import { clearToasts, useToasts } from '@coralyn/ui-kit/toasts';
+import { mountHook } from './test/host';
 import { queryResource, mutationResource } from './useQueryResource';
-import { clearToasts, useToasts } from './toasts';
 
 const tick = () => new Promise((r) => setTimeout(r, 0));
-
-function mountHook<T>(setupFn: () => T) {
-  let api!: T;
-  const Host = defineComponent({
-    setup() {
-      api = setupFn();
-      return () => h('div');
-    },
-  });
-  const w = mountApp(Host);
-  return { w, api: () => api };
-}
 
 describe('queryResource', () => {
   it('esegue queryFn e ritorna .data reattivo', async () => {
@@ -55,7 +43,7 @@ describe('mutationResource', () => {
 });
 
 describe('mutationResource — feedback errori (Slice A)', () => {
-  it('su errore pubblica un toast col message dell\'errore', async () => {
+  it("su errore pubblica un toast col message dell'errore", async () => {
     clearToasts();
     const mutationFn = vi.fn().mockRejectedValue(new Error('Pacchetto in uso: non eliminabile.'));
     const { api } = mountHook(() => mutationResource({ mutationFn, invalidates: () => [] }));

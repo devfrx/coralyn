@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "@coralyn/contracts": "workspace:*",
+    "@coralyn/data-layer": "workspace:*",
     "@coralyn/ui-kit": "workspace:*",
     "@fontsource/inter": "^5.2.8",
     "@tanstack/vue-query": "^5.101.1",

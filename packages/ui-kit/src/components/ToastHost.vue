@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { Toast } from '@coralyn/ui-kit';
-import { useToasts, dismissToast } from '@/lib/toasts';
+import Toast from './Toast.vue';
+import { useToasts, dismissToast } from '../toasts';
 const toasts = useToasts();
 </script>
 <template>

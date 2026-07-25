@@ -1,9 +1,9 @@
 import { type Ref } from 'vue';
 import type { CheckoutRentalInput, RentalDTO, RentalsDayDTO, SettlePaymentInput } from '@coralyn/contracts';
+import { queryResource, mutationResource } from '@coralyn/data-layer';
 import { apiFetch } from '@/lib/http';
 import { queryKeys } from '@/lib/queryKeys';
 import { useSessionStore } from '@/stores/session';
-import { queryResource, mutationResource } from '@/lib/useQueryResource';
 
 /** Banco noleggi del giorno: noleggi attivi/rientrati/annullati + disponibilità per articolo (D-052). */
 export function useRentals(date: Ref<string>) {

@@ -208,10 +208,25 @@ PIN), `MySubscriptionsView` (lista abbonamenti + segnalazione/storico assenze in
 **Interceptor `401` → refresh single-flight (D-037).** `src/lib/http.ts` intercetta ogni `401` globalmente: se
 non è già in corso un refresh, ne avvia uno (`POST /customer/refresh`), **accoda** le richieste concorrenti
 fallite in attesa dell'esito (single-flight — un solo refresh anche con più `401` simultanei), poi le riprova
-con il nuovo access token; se il refresh stesso fallisce, `session.logout()` + redirect a `/attiva`. Gli
+con il nuovo access token; se il refresh stesso fallisce, l'handler registrato dalla store azzera la sessione
+(`onAuthFailure: clearSession`) e **il ritorno all'attivazione lo fa `CustomerShell`**, che osserva
+`authenticated` ed esclude le rotte `meta.public`. Gli
 endpoint di `customer-auth` (`activate`/`refresh`/`logout`) sono marcati `retryOn401:false` per evitare
 **ricorsione** (un `401` di `refresh` non deve tentare di nuovo un `refresh`). Questo pattern **chiude D-037
 per `web-customer`**; resta applicabile a `web-staff` come follow-up (vedi [deferred.md](../deferred.md)).
+
+> ⚠️ **Corretto il 2026-07-25.** Questo paragrafo diceva «se il refresh stesso fallisce, `session.logout()`
+> \+ redirect a `/attiva`», ed era **falso nel momento in cui è stato scritto**, non diventato tale:
+> l'handler è sempre stato `clearSession`, che azzera lo stato e **non naviga**, e il guard del router
+> scatta solo sulle navigazioni. Il bagnante restava su «I miei abbonamenti» con un `EmptyState` — una
+> sessione morta travestita da risposta legittima (AUD-010/P4-001, Fase D). Il redirect è **vero da
+> allora** e vive in `CustomerShell`. La riga qui sopra ora descrive il codice.
+>
+> **Correzione 2026-07-25 ([ADR-0058](0058-package-data-layer-condiviso.md)):** `src/lib/http.ts` di
+> `web-customer` conserva **solo** l'interceptor descritto qui. `ApiError`, la lettura del messaggio
+> d'errore NestJS e la decodifica del body — che erano identiche alle altre due app — vengono ora da
+> `@coralyn/data-layer`. La rotazione single-flight **non** è stata accorpata, ed è la ragione per cui
+> questa app non usa `createApiFetch`.
 
 **Nessuna nuova tabella o migration**: le tabelle (`AbsenceRelease` con `source`, `CustomerEnrollmentToken`,
 `CustomerSession`) esistevano già da S1/S2/S3; S4 è puramente additiva su schema invariato.

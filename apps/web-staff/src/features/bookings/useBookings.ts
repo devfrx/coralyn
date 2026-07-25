@@ -1,9 +1,9 @@
 import { type Ref } from 'vue';
 import type { BookingDTO, CreateBookingInput, SettlePaymentInput } from '@coralyn/contracts';
+import { queryResource, mutationResource } from '@coralyn/data-layer';
 import { apiFetch } from '@/lib/http';
 import { queryKeys } from '@/lib/queryKeys';
 import { useSessionStore } from '@/stores/session';
-import { queryResource, mutationResource } from '@/lib/useQueryResource';
 
 export function useDayBookings(date: Ref<string>) {
   const session = useSessionStore();

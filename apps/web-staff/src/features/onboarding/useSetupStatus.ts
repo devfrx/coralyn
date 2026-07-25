@@ -1,9 +1,9 @@
 import type { SetupStatusDTO } from '@coralyn/contracts';
 import { Role } from '@coralyn/contracts';
+import { queryResource } from '@coralyn/data-layer';
 import { apiFetch } from '@/lib/http';
 import { queryKeys } from '@/lib/queryKeys';
 import { useSessionStore } from '@/stores/session';
-import { queryResource } from '@/lib/useQueryResource';
 
 /** Stato di completezza della prima configurazione (admin-only: disabilitata per lo staff). */
 export function useSetupStatus() {

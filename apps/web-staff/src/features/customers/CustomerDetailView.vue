@@ -1,10 +1,9 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue';
 import { useRouter } from 'vue-router';
-import { Card, Avatar, Button, ActionBar, Icon, SectionCard, ConfirmDialog, Callout, Skeleton, SkeletonText, useDelayedLoading } from '@coralyn/ui-kit';
+import { Card, Avatar, Button, ActionBar, Icon, SectionCard, ConfirmDialog, Callout, Skeleton, SkeletonText, useDelayedLoading, pushToast } from '@coralyn/ui-kit';
 import { Role } from '@coralyn/contracts';
 import { useSessionStore } from '@/stores/session';
-import { pushToast } from '@/lib/toasts';
 import { todayIso } from '@/lib/dates';
 import { useCustomer, useCustomerBookings, useDeleteCustomer, useCededSubscriptions, useSetAbsenceConsent, useCancelAbsenceRelease } from './useCustomers';
 import CustomerHistoryCard from './CustomerHistoryCard.vue';

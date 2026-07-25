@@ -1,11 +1,11 @@
 import { describe, it, expect, afterEach } from 'vitest';
 import { flushPromises } from '@vue/test-utils';
 import { Role } from '@coralyn/contracts';
+import { useToasts } from '@coralyn/ui-kit';
 import { http, HttpResponse } from 'msw';
 import { mountApp } from '@/test/utils';
 import { server } from '@/mocks/server';
 import { useSessionStore } from '@/stores/session';
-import { useToasts } from '@/lib/toasts';
 import EstablishmentView from './EstablishmentView.vue';
 
 const settle = async () => { await flushPromises(); await new Promise((r) => setTimeout(r, 0)); await flushPromises(); };
