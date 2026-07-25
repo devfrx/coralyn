@@ -127,5 +127,37 @@ addendum, `flows.md` §7 (nota `source='customer'`), 4 mockup `web-customer-*.ht
   (entrambe le tabelle), come nella Scheda cliente. Alternativa rigettata: label in projection sui
   DTO di lista (seconda fonte di verità). Nessuna migration, nessun contratto nuovo.
 
+- **D-063** — **Permessi dello staff configurabili dall'admin del lido.** Oggi la corrispondenza
+  permesso → ruoli è una tabella statica in `apps/api/src/identity/permission.ts`, uguale per tutti
+  i lidi. L'admin deve poter decidere cosa il proprio staff può fare (modificare il listino, aprire
+  campagne di rinnovo, gestire il catalogo noleggi…).
+  **Il prerequisito è già fatto** ([ADR-0057](decisions/0057-autorizzazione-fail-closed-permessi.md),
+  Fase C dell'audit): il guard è fail-closed e **tutti** gli endpoint dichiarano un permesso, quindi
+  questa slice cambia *come il permesso viene risolto* — non richiede di riannotare ~60 rotte.
+  **Il brief completo — punto di partenza, decisioni aperte, principi, gotcha verificati, findings
+  correlati e come verificare — è in
+  [2026-07-25-permessi-configurabili-design.md](../superpowers/specs/2026-07-25-permessi-configurabili-design.md).**
+  Le tre decisioni che aprono la slice: per-lido o per-operatore; permessi nel JWT (stantii fino a
+  8h, eredita D-026) o riletti a ogni richiesta; se e quando spostare `Permission` in
+  `@coralyn/contracts` per far seguire al frontend ciò che il backend nega.
+  *Trigger*: il primo lido che chiede una divisione dei compiti diversa da admin/staff.
+  *Impatto se ignorata*: bassa — il default di fabbrica riproduce il comportamento attuale, quindi
+  nessun lido regredisce; ma ogni richiesta di personalizzazione resta una modifica al codice.
+
+- **D-064** — **`GET /establishment/overview` espone `team[]` (email di tutti gli operatori) a chi
+  ha `establishment.read`, cioè anche allo staff.** È il caso PII che ha motivato AUD-004, e
+  l'inversione fail-closed **non lo chiude**: l'endpoint resta leggibile dallo staff perché
+  l'app-shell lo chiama a ogni caricamento per il nome della stagione attiva (`SidebarNav.vue` →
+  `useActiveSeason` → `useEstablishmentOverview`), quindi restringerlo lo romperebbe.
+  La risposta corretta non è un decoratore ma **separare il payload**: la parte che serve allo
+  shell da quella con PII (endpoint distinto per `team[]`, sotto `team.manage`), più il gating della
+  rotta `/establishment` nel router di `web-staff`, che oggi non ha `meta.role` — il link è nascosto
+  dal menu ma l'URL è raggiungibile.
+  *Perché rimandata*: è un **cambio di contratto FE/BE** (`EstablishmentOverviewDTO` in
+  `@coralyn/contracts` + le viste che lo consumano), fuori dal perimetro di una slice di
+  autorizzazione. *Trigger*: la prossima modifica alla scheda Stabilimento, o l'ingresso di un lido
+  con più di due o tre operatori. *Impatto se ignorata*: **media** — è PII di operatori resa a un
+  ruolo che non ne ha bisogno, su una superficie che i documenti legali descrivono.
+
 > Nota: le voci sopra sono il punto di partenza emerso dal brainstorming iniziale e
 > verranno raffinate man mano.

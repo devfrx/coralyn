@@ -5,8 +5,9 @@ Perimetro: **tutto il repo**, partizionato in 9 aree × 11 livelli. Modalità: r
 
 > ## Stato della remediation
 >
-> **Fase A e Fase B eseguite e verificate** il 2026-07-25 sul branch `chore/audit-2026-07-25-fase-a-b`
-> (commit `374007e`, `6f618f5`). **Non mergiate su `main`.**
+> **Fasi A, B e C eseguite e verificate** il 2026-07-25. **Nessuna mergiata su `main`.**
+> Fasi A/B sul branch `chore/audit-2026-07-25-fase-a-b` (`374007e`, `6f618f5`);
+> **Fase C** sul branch `chore/audit-2026-07-25-fase-c`, che parte dal precedente.
 >
 > | Finding | Stato |
 > |---|---|
@@ -17,7 +18,26 @@ Perimetro: **tutto il repo**, partizionato in 9 aree × 11 livelli. Modalità: r
 > | Doppio conteggio ui-kit (P6-014, P7-018, P8-002) | ✅ **CORRETTO** — rimosso l'include da `web-staff/vitest.config.ts` |
 > | Lint (P6-015, P7-008) | ✅ **CORRETTO** — 73 errori → **0**; copertura da 494 a **603 file**, inclusi i 109 `.vue` prima invisibili |
 > | P6-020 scaffolding morto nelle e2e | ⚠️ **PARZIALE** — variabili rimosse, ma **il test cross-tenant lato operatore che le giustificava non è stato scritto**: resta aperto |
-> | **Tutto il resto** | 🔓 **APERTO** — fasi C → H del §4 |
+> | **AUD-004** autorizzazione opt-in (9 controller scoperti) | ✅ **CORRETTO** (Fase C) — guard fail-closed + `@RequiresPermission`, [ADR-0057](../architecture/decisions/0057-autorizzazione-fail-closed-permessi.md). ⚠️ Il **passo intermedio proposto al §4/7 era sbagliato**: vedi sotto |
+> | **AUD-002** `trust proxy` mai impostato | ✅ **CORRETTO** (Fase C) — `configureApp` condivisa fra `main.ts` e le e2e + `TRUST_PROXY_HOPS` (2 in produzione) |
+> | **AUD-003** login staff esposto senza throttling né anti-enumerazione | ✅ **CORRETTO** (Fase C) — `ThrottlerGuard` method-scoped sulle 3 rotte `@Public` di `AuthController`, hash civetta, `@MaxLength(128)`. D-026 (revoca a sessione in corso) **resta aperta** |
+> | **AUD-016/017** configurazione non validata, 11 env non documentate | ✅ **CORRETTO** (Fase C) — `validate` in `common/env.validation.ts`; chiude **P7-011** per costruzione: il compose dev senza `CUSTOMER_APP_URL` ora non parte |
+> | **AUD-005** guardia del seed annullata dall'entrypoint | ✅ **CORRETTO** (Fase C) — `prisma/dev-database.ts` su `current_database()`, fallback letterali rimossi, `\|\| echo` tolto dall'entrypoint |
+> | PII in `GET /establishment/overview` | 🔓 **APERTO** — [D-064](../architecture/deferred.md). L'inversione **non** lo chiude: l'app-shell chiama quell'endpoint a ogni caricamento, quindi separare `team[]` è un cambio di contratto FE/BE |
+> | Permessi configurabili dall'admin | 🔓 **PIANIFICATO** — [D-063](../architecture/deferred.md) + [brief di delega](../superpowers/specs/2026-07-25-permessi-configurabili-design.md) |
+> | **Tutto il resto** | 🔓 **APERTO** — fasi D → H del §4 |
+>
+> ### ⛔ Correzione al §4/7 di questo report
+>
+> Il passo intermedio «*a costo zero*» — `@Roles(Role.Admin)` di classe sui 9 controller scoperti
+> più `overview` — **è sbagliato**, verificato aprendo il frontend. Quei controller servono
+> `/pricing`, `/rentals`, `/rentals/catalogo` e `/renewals`, che `SidebarNav.vue` mostra a **ogni**
+> ruolo; `overview` è chiamata dall'app-shell a ogni caricamento via `useActiveSeason`. Il passo
+> avrebbe rotto quattro sezioni per lo `staff` — **e la suite sarebbe rimasta verde**, perché
+> nessuno dei 9 file e2e di quei controller crea un utente `staff`: fanno tutti login come `admin`.
+> Anche l'affermazione «la migrazione è verificabile, 40+ file e2e coprono ogni controller» va letta
+> così: coprono ogni *controller*, non ogni *ruolo*. Il buco era esattamente sul ruolo colpito.
+> Da qui `authorization-staff.e2e-spec.ts`, che quel ruolo lo esercita.
 >
 > Le sezioni §0 e §2-§3 restano la **misura al momento dell'audit** e non sono state riscritte:
 > servono a spiegare *perché* i fix esistono. Lo stato corrente è questo riquadro.
@@ -207,11 +227,12 @@ doppio type-check, oggi fatto una volta da `tsc` e una volta per worker da ts-je
 5. Rimuovere l'include ui-kit da `web-staff/vitest.config.ts` → baseline vera, e stesso file non più eseguito in due ambienti diversi
 6. Lint: `varsIgnorePattern: '^_'` + `no-explicit-any` a `warn` negli spec (**azzera 66 errori su 73 senza toccare la produzione**) + `eslint-plugin-vue` per i 109 `.vue`
 
-### Fase C — Da opt-in a opt-out *(chiude R-B; ⚠️ decisioni strutturali)*
-7. **AUD-004** — invertire `RolesGuard` (fail-closed) · *interim a costo zero*: `@Roles(Role.Admin)` di classe sui 9 controller + su `overview`
-8. **AUD-016/017** — schema di validazione env (chiude anche P7-011 per costruzione)
-9. **AUD-002/003** — `trust proxy` esplicito + `ThrottlerGuard` su `AuthController` + `@MaxLength(128)` + hash civetta
-10. **AUD-005** — guardia del seed su `current_database()`
+### ✅ Fase C — Da opt-in a opt-out — **ESEGUITA** *(chiude R-B; branch `chore/audit-2026-07-25-fase-c`)*
+*⚠️ L'«interim a costo zero» del punto 7 era sbagliato: correzione nel riquadro in cima.*
+7. **AUD-004** — guard **fail-closed** e vocabolario a **permessi** invece che a ruoli ([ADR-0057](../architecture/decisions/0057-autorizzazione-fail-closed-permessi.md)), perché la destinazione — permessi configurabili dall'admin ([D-063](../architecture/deferred.md)) — cambia solo la *risoluzione* e non le ~60 annotazioni
+8. **AUD-002/003** — `configureApp` condivisa + `trust proxy` da env + `ThrottlerGuard` **method-scoped** (non di classe: `/auth/me` è chiamata a ogni caricamento) + `@MaxLength(128)` + hash civetta
+9. **AUD-016/017** — `validate` con class-validator, nessuna dipendenza nuova; valida senza trasformare, per non rompere i lettori esistenti
+10. **AUD-005** — guardia del seed su `current_database()`, condivisa con `reset-dev`
 
 ### Fase D — Bug di correttezza *(indipendenti, riproducibili)*
 11. **AUD-007** — estrarre `carveInterval` puro (usato da suspend/releaseAbsence/terminate) + `CHECK (startDate <= endDate)`

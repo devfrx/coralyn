@@ -11,14 +11,17 @@
 
 ## 0. In una riga
 
-`main` è invariata a `62eb63f`. Tutto il lavoro di questa sessione vive su
-**`chore/audit-2026-07-25-fase-a-b`** (3 commit), **non mergiato**: serve ok esplicito.
+`main` è invariata a `62eb63f`. Il lavoro vive su due branch, **nessuno mergiato**: serve ok esplicito.
+**`chore/audit-2026-07-25-fase-a-b`** (4 commit) e **`chore/audit-2026-07-25-fase-c`**, che parte dal
+primo e aggiunge la Fase C.
 
 | Commit | Contenuto |
 |---|---|
 | `d8ceafe` | `docs(audit)` — il report completo + 9 report di partizione + baseline |
 | `374007e` | `fix(sicurezza)` — Fase A: guardia DB nelle e2e, allow-list `.dockerignore` |
 | `6f618f5` | `chore(qualita)` — Fase B: `verify` + CI, config Jest, lint |
+| `32ff919` | `docs(handoff)` — questo documento |
+| ↳ *branch Fase C* | autorizzazione fail-closed a permessi · trust proxy + throttling login · schema env · guardia del seed · ADR-0057 + D-063/D-064 |
 
 ---
 
@@ -103,13 +106,14 @@ deny-list dimentica per costruzione i file nuovi.
 | `web-platform` | `pnpm --filter @coralyn/web-platform test` | 23/23 |
 | `web-customer` | `pnpm --filter @coralyn/web-customer test` | 29/29 |
 | `web-staff` | `pnpm --filter @coralyn/web-staff test` | **427/427 (60 file)** |
-| api unit | `pnpm --filter @coralyn/api test` | **283/283 (50/50 suite)** |
-| api e2e | `pnpm --filter @coralyn/api test:e2e` | 406/406 (39 suite) |
+| api unit | `pnpm --filter @coralyn/api test` | 283 → **310/310 (52 suite)** dopo la Fase C |
+| api e2e | `pnpm --filter @coralyn/api test:e2e` | 406 → **450/450 (41 suite)** dopo la Fase C |
 | tutto insieme | **`pnpm run verify`** | **exit 0** |
 | lint | `pnpm run lint` | **0 errori**, 66 warning, 603 file |
 | typecheck | `pnpm run typecheck` | exit 0, **7 progetti** |
 
-**Totale: 1369 test distinti.** Non 1559: quella somma contava due volte i 190 di ui-kit.
+**Totale dopo la Fase A+B: 1369 test distinti** (non 1559: quella somma contava due volte i 190 di
+ui-kit). **Dopo la Fase C: 1440.**
 
 ---
 
@@ -163,10 +167,16 @@ affermazioni false** (cita `/privacy` dove il codice usa `/legale/informativa`).
 
 ### API
 
-- `JwtAuthGuard` + `RolesGuard` **globali** → ogni rotta non-staff vuole `@Public()`. `@Public()`
-  scavalca la guardia staff, **non** l'autenticazione.
-- **`RolesGuard` passa in ASSENZA di metadato** → 9 controller sono scoperti a `staff`. Finding
-  AUD-004, aperto.
+- `JwtAuthGuard` + `PermissionsGuard` **globali** → ogni rotta non-staff vuole `@Public()`.
+  `@Public()` scavalca **entrambi**, non l'autenticazione del canale cliente (`CustomerJwtGuard`).
+- ⚠️ **AGGIORNATO in Fase C**: `RolesGuard` non esiste più. Il guard **nega in assenza di
+  dichiarazione** e la dichiarazione è `@RequiresPermission(Permission.X)`
+  ([ADR-0057](../architecture/decisions/0057-autorizzazione-fail-closed-permessi.md)). Una rotta
+  nuova senza decoratore dà **403**, e `authorization-coverage.spec.ts` la intercetta in CI prima.
+  Il comportamento per admin/staff è invariato: `PERMISSION_ROLES` riproduce la copertura di prima.
+- **Le e2e dei controller di dominio fanno login come `admin`**: il ruolo `staff` è esercitato solo
+  da `authorization-staff.e2e-spec.ts`. Se stringi un permesso, **estendi quel file** o la suite
+  resta verde mentre il prodotto si rompe.
 - `PrismaExceptionFilter` lascia **P2025 a 500 di proposito**; **P2003 pure**, e questo produce 500
   su `DELETE /seasons/:id` (AUD-008, aperto).
 - RLS via `forTenant` + policy `tenant_isolation` (**idioma da copiare verbatim**). Migration sempre
@@ -204,7 +214,7 @@ affermazioni false** (cita `/privacy` dove il codice usa `/legale/informativa`).
 - **`git log --all` copre solo i ref LOCALI. Fai `git fetch` prima di dichiarare che qualcosa non
   esiste.** Il repo ha **più di un clone attivo**.
 - `.superpowers/` gitignorato. **Prossimo prefisso scratch libero: `task-sl-N`.**
-- **Prossimo ADR libero: 0057. Prossima deferred libera: D-063.**
+- **Prossimo ADR libero: 0058. Prossima deferred libera: D-065.** (0057, D-063 e D-064 presi in Fase C.)
 - **Nessun merge su `main` senza ok esplicito.**
 
 ---
@@ -244,10 +254,15 @@ affermazioni false** (cita `/privacy` dove il codice usa `/legale/informativa`).
 1. ⚠️ **Ruotare il `JWT_SECRET`.** Il valore di `RUNBOOK.local.md` **è già nei layer di ogni immagine
    API costruita finora**. `.dockerignore` chiude il futuro, non sana il passato: le immagini
    esistenti vanno ricostruite.
-2. **Mergiare (o no) `chore/audit-2026-07-25-fase-a-b`.** 3 commit, `verify` verde.
+2. **Mergiare (o no) i due branch.** `chore/audit-2026-07-25-fase-a-b` (4 commit) e
+   `chore/audit-2026-07-25-fase-c`, che parte dal primo. Entrambi con `verify` verde.
 3. **La CI non è mai stata eseguita.** Il primo push la esercita: il job `e2e` (setup del ruolo DB,
-   `migrate deploy`) potrebbe aver bisogno di ritocchi.
-4. **`.env.test` locale ancora su `:5433`** mentre il container espone `:5432`.
+   `migrate deploy`) potrebbe aver bisogno di ritocchi. ⚠️ In Fase C `.env.test.example` ha
+   guadagnato `CUSTOMER_APP_URL`, che la CI copia: senza, nessuna e2e partirebbe.
+4. ~~`.env.test` locale su `:5433`~~ → **risolto in Fase C**: allineato a `:5432` (la porta che il
+   container espone) e completato con `CUSTOMER_APP_URL`. Le e2e girano senza override inline.
+   Resta disallineato `apps/api/.env`, che punta ancora a `:5433` per `coralyn_dev`: è il file che
+   `start:dev` legge, quindi il server di sviluppo locale **non si connette** finché non lo allinei.
 5. Restano i bloccanti legali pregressi: dati societari di Coralyn, scelta infrastruttura
    (hosting + email → sub-responsabili e trasferimenti extra-SEE), revisione dei 18 punti ⚖️.
 
@@ -256,10 +271,18 @@ affermazioni false** (cita `/privacy` dove il codice usa `/legale/informativa`).
 Il piano completo con i trade-off è in
 [`docs/audit/2026-07-25-audit-completo.md`](../audit/2026-07-25-audit-completo.md) §4.
 
-**Fase C — da opt-in a opt-out** *(⚠️ decisioni strutturali, esporle prima)*
-`RolesGuard` fail-closed (interim a costo zero: `@Roles(Role.Admin)` sui 9 controller + su
-`overview`) · schema di validazione env (chiude 3 finding insieme) · `trust proxy` + throttling sul
-login staff + `@MaxLength` sulle password · guardia del seed su `current_database()`.
+**✅ Fase C — da opt-in a opt-out — ESEGUITA** *(branch `chore/audit-2026-07-25-fase-c`)*
+Guard **fail-closed** con vocabolario a **permessi** ([ADR-0057](../architecture/decisions/0057-autorizzazione-fail-closed-permessi.md))
+· `configureApp` condivisa + `trust proxy` + throttling method-scoped del login + hash civetta +
+`@MaxLength(128)` · schema di validazione env (chiude anche P7-011) · guardia del seed su
+`current_database()`.
+⛔ L'«interim a costo zero» che questo handoff riportava **era sbagliato**: `@Roles(Role.Admin)` sui
+9 controller avrebbe rotto Listino, Listino noleggi, Rinnovi e Noleggi per lo `staff` — che la
+sidebar mostra a ogni ruolo — **lasciando la suite verde**, perché quei 9 file e2e fanno login solo
+come `admin`. Dettaglio nel riquadro in cima al report.
+Restano aperti: [D-063](../architecture/deferred.md) (permessi configurabili dall'admin, con
+[brief di delega](../superpowers/specs/2026-07-25-permessi-configurabili-design.md)) e
+[D-064](../architecture/deferred.md) (`team[]` nella overview, cambio di contratto FE/BE).
 
 **Fase D — bug di correttezza** *(indipendenti, riproducibili)*
 `carveInterval` puro condiviso da suspend/releaseAbsence/terminate + `CHECK (startDate <= endDate)` ·

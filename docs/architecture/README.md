@@ -132,3 +132,9 @@ componenti) è la spec d'implementazione di `ui-kit` ([ADR-0017](decisions/0017-
 - [ADR-0049](decisions/0049-auth-cliente-provisioned-tenant-pubblico.md) — Auth canale cliente — provisioned, tenant dal token
 - [ADR-0050](decisions/0050-noleggio-mezzi-servizi.md) — Noleggio mezzi/servizi come bounded context
 - [ADR-0051](decisions/0051-responsive-drawer-e-telefono-graceful.md) — Responsive `web-staff`: drawer sotto `lg`, telefono graceful (emenda 0019/0004)
+- [ADR-0052](decisions/0052-editor-struttura-cantiere.md) — Editor struttura «il Cantiere»: canvas + ispettore sulla scena Riva a riposo
+- [ADR-0053](decisions/0053-ritiro-ombrellone-soft-delete.md) — Ritiro ombrellone (soft-delete): `retiredAt` + sgancio dalla fila
+- [ADR-0054](decisions/0054-onboarding-incrementale-setup-status.md) — Onboarding incrementale con completezza misurata server-side
+- [ADR-0055](decisions/0055-informativa-art13-multi-tenant.md) — Informativa Art. 13 al bagnante e ruoli titolare/responsabile multi-tenant
+- [ADR-0056](decisions/0056-package-legale-condiviso.md) — Package legale condiviso `@coralyn/legal` per i testi rivolti agli operatori
+- [ADR-0057](decisions/0057-autorizzazione-fail-closed-permessi.md) — Autorizzazione fail-closed, dichiarata per permesso (emenda 0039)
