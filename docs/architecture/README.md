@@ -119,7 +119,7 @@ componenti) è la spec d'implementazione di `ui-kit` ([ADR-0017](decisions/0017-
 - [ADR-0036](decisions/0036-equipment-catalogo-e-composizione.md) — Dotazione: catalogo di tipi + composizione normalizzata
 - [ADR-0037](decisions/0037-anti-overlap-exclusion-constraint.md) — Anti-overlap garantito a livello DB (EXCLUDE constraint)
 - [ADR-0038](decisions/0038-libreria-grafici-echarts.md) — Libreria grafici: Apache ECharts (SVG)
-- [ADR-0039](decisions/0039-rbac-role-guard.md) — RBAC: role-guard applicativo (`@Roles`/`RolesGuard`)
+- [ADR-0039](decisions/0039-rbac-role-guard.md) — RBAC: role-guard applicativo (`@Roles`/`RolesGuard`) — *emendato da [ADR-0057](decisions/0057-autorizzazione-fail-closed-permessi.md)*
 - [ADR-0040](decisions/0040-lettura-aggregata-cross-tenant.md) — Lettura aggregata cross-tenant via loop `forTenant`
 - [ADR-0041](decisions/0041-app-frontend-dedicata-platform.md) — App frontend dedicata `web-platform` (Console distributore)
 - [ADR-0042](decisions/0042-trasporto-email-e-consegna-credenziali.md) — Trasporto email e consegna credenziali (link set-password)

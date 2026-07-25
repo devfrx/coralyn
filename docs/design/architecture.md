@@ -57,7 +57,7 @@ core condiviso.
 
 ```mermaid
 flowchart TB
-    GUARD["Ingresso /api<br/>JwtAuthGuard globale + RolesGuard (RBAC, ADR-0039)"]
+    GUARD["Ingresso /api<br/>JwtAuthGuard globale + PermissionsGuard fail-closed (ADR-0057)"]
 
     subgraph platformplane["Piano PIATTAFORMA — cross-tenant"]
         IDN["identity<br/>login staff/superuser, emette JWT"]
@@ -162,7 +162,7 @@ sequenceDiagram
     autonumber
     participant U as Browser
     participant N as nginx (SPA)
-    participant G as JwtAuthGuard + RolesGuard
+    participant G as JwtAuthGuard + PermissionsGuard
     participant S as Service (es. BookingsService)
     participant P as PrismaService.forTenant
     participant DB as PostgreSQL (RLS)
