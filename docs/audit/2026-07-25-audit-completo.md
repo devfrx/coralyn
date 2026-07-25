@@ -3,6 +3,25 @@
 Commit `62eb63f` (`main` = `origin/main`), working tree pulito.
 Perimetro: **tutto il repo**, partizionato in 9 aree × 11 livelli. Modalità: report + fix su conferma.
 
+> ## Stato della remediation
+>
+> **Fase A e Fase B eseguite e verificate** il 2026-07-25 sul branch `chore/audit-2026-07-25-fase-a-b`
+> (commit `374007e`, `6f618f5`). **Non mergiate su `main`.**
+>
+> | Finding | Stato |
+> |---|---|
+> | **AUD-001** e2e che cancellano il DB dev | ✅ **CORRETTO** — guardia sul nome della risorsa in `jest-setup-env.ts` + `.env.test.example` versionato |
+> | **AUD-006** `JWT_SECRET` nelle immagini Docker | ⚠️ **CORRETTO A META'** — `.dockerignore` è ora allow-list e il file non entra più nel contesto, ma **il valore è già nei layer delle immagini costruite finora: va RUOTATO** (azione utente, non eseguibile qui) |
+> | **AUD-018** nessuna CI / nessuno script `verify` | ✅ **CORRETTO** — `pnpm run verify` + `.github/workflows/verify.yml`; `packages/contracts` ha ora `typecheck` (6/7 → 7/7). ⚠️ La CI **non è mai stata eseguita**: scritta contro il comportamento verificato in locale, il job `e2e` gira su un runner non provato |
+> | Flake OOM di Jest | ✅ **CORRETTO** — `maxWorkers: '50%'` + `workerIdleMemoryLimit`. Da 49/50 suite a **50/50** |
+> | Doppio conteggio ui-kit (P6-014, P7-018, P8-002) | ✅ **CORRETTO** — rimosso l'include da `web-staff/vitest.config.ts` |
+> | Lint (P6-015, P7-008) | ✅ **CORRETTO** — 73 errori → **0**; copertura da 494 a **603 file**, inclusi i 109 `.vue` prima invisibili |
+> | P6-020 scaffolding morto nelle e2e | ⚠️ **PARZIALE** — variabili rimosse, ma **il test cross-tenant lato operatore che le giustificava non è stato scritto**: resta aperto |
+> | **Tutto il resto** | 🔓 **APERTO** — fasi C → H del §4 |
+>
+> Le sezioni §0 e §2-§3 restano la **misura al momento dell'audit** e non sono state riscritte:
+> servono a spiegare *perché* i fix esistono. Lo stato corrente è questo riquadro.
+
 ---
 
 ## 0. Baseline (misurata, non ereditata)
@@ -173,11 +192,16 @@ Secondo vettore attivo anche col file presente: `jest-setup-env.ts:20` usa `if (
 
 Le radici prima di ciò che ci sta sopra. Le fasi B e C sbloccano la verificabilità di tutto il resto.
 
-### Fase A — Fermare i danni attivi *(piccolo, reversibile)*
+### ✅ Fase A — Fermare i danni attivi — **ESEGUITA** *(commit `374007e`)*
 1. **AUD-001** — asserzione hard sul nome DB in `jest-setup-env.ts` + `.env.test.example` versionato + inversione della precedenza env
 2. **AUD-006** — `.dockerignore` da deny-list ad **allow-list** · ⚠️ richiede **rotazione di `JWT_SECRET`** (azione tua)
 
-### Fase B — Il gate eseguibile *(chiude R-A; rende misurabile tutto il resto)*
+### ✅ Fase B — Il gate eseguibile — **ESEGUITA** *(commit `6f618f5`)*
+*Eccezione dichiarata*: `isolatedModules` **non applicata**. In ts-jest 29.4 l'opzione nel transform
+è deprecata e va impostata nel `tsconfig`, cambiando il contratto del compilatore per tutta l'API:
+è una decisione strutturale, non un ritocco di config. Il fix su `maxWorkers` attacca comunque la
+causa misurata e l'OOM è chiuso; `isolatedModules` resta una proposta aperta (eliminerebbe il
+doppio type-check, oggi fatto una volta da `tsc` e una volta per worker da ts-jest).
 3. Script `verify` a root (`lint && typecheck && test`) + `typecheck` a `packages/contracts` (chiude il 6/7) + CI minimale
 4. **Config Jest**: `isolatedModules` + `maxWorkers: '50%'` → chiude l'OOM (oggi il type-check è fatto **due volte**, una delle quali 31 volte in parallelo)
 5. Rimuovere l'include ui-kit da `web-staff/vitest.config.ts` → baseline vera, e stesso file non più eseguito in due ambienti diversi
