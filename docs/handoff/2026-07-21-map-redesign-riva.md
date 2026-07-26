@@ -17,7 +17,7 @@
 Un token JWT scaduto in navigazione client-side mostrava lo stato d'errore di **ogni vista** invece di
 rimandare al login. Fix: `onError` globale del `QueryClient` (non un interceptor in `http.ts`, che è
 volutamente disaccoppiato da Pinia/router). Logica pura in
-[`apps/web-staff/src/lib/onApiError.ts`](../../apps/web-staff/src/lib/onApiError.ts)
+`apps/web-staff/src/lib/onApiError.ts`
 (`handleUnauthorized`), agganciata a `QueryCache`/`MutationCache` in
 [`queryClient.ts`](../../apps/web-staff/src/lib/queryClient.ts). **Agisce solo se `session.authenticated`**
 → un 401 da login errato o da `rehydrate` scaduto resta gestito localmente, niente redirect-loop.

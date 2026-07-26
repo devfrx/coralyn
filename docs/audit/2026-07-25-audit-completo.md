@@ -465,12 +465,17 @@ guardiano è a un livello solo, ed è quello lento (radice **R4**, non R3).
     iniziano per punto, e **saltava del tutto** quelli scritti nudi (`docs/architecture/...`), che
     sono ~32. Corretti **52 + 27** in due passate: profondità relative sbagliate, un segmento `docs/`
     di troppo, e riferimenti `file.ts:NN` il cui numero di riga rompeva l'href (ora resta nel testo).
-    I **19 residui** sono **2 falsi positivi** (il placeholder `NNNN-....md` del template ADR e un
+    I **19 residui** erano **2 falsi positivi** (il placeholder `NNNN-....md` del template ADR e un
     `url` dentro un esempio di codice) e **17 target realmente spariti** in documenti **storici
     datati** — `clienti/`→`customers/`, `tenant.middleware.ts`, `onApiError.ts` e `toasts.ts` spostati
-    da D-065, una migration rinominata, due riferimenti fuori dal repo. **Lasciati di proposito**:
-    erano corretti quando furono scritti, e riscriverli farebbe dire a un handoff di giugno un path
-    che a giugno non esisteva.
+    da D-065, una migration rinominata, due riferimenti fuori dal repo.
+    ⚠️ **Chiuso il 2026-07-26, e il «lasciati di proposito» che stava qui era una falsa alternativa.**
+    Il vincolo vero è non far dire a un handoff di giugno un path che a giugno non esisteva — e lo si
+    rispetta anche **togliendo il link** e lasciando il path in `code`, perché in 14 casi su 17 il
+    path *era già il testo visibile*: la frase resta byte per byte, il 404 sparisce. Altri **2** sono
+    stati riparati (`git log --diff-filter=A` dimostra che i filename di ADR-0010 e ADR-0015 citati lì
+    **non sono mai esistiti**: rotti dalla nascita, quindi nessun verbale da falsificare). Resta
+    **1** dichiarato, con la sua ragione. Vedi [ADR-0059](../architecture/decisions/0059-gate-link-documenti.md).
     ⚠️ **Anchor: 0 rotti su 2169 link relativi** (solo 2 ne hanno uno). L'avvertenza del §5 di questo
     report — «gli anchor non sono mai stati verificati, quindi il numero vero è più alto» — è
     **decaduta**. Due «anchor rotti» inizialmente segnalati erano un **bug del misuratore**: GitHub
@@ -488,9 +493,17 @@ guardiano è a un livello solo, ed è quello lento (radice **R4**, non R3).
     D-032, **già implementate da settimane**) · **`reset-dev.ts`** (porta **5433** e «18 tabelle» →
     5432 e 22: è la radice versionata di **AUD-019**).
     ⚠️ **Decaduta**: «l'indice ADR si ferma a 0051» — arriva a **0058**, verificato.
-25. 🔓 **Restano**: igiene di `deferred.md` (~74k caratteri, ≥7 voci chiuse ancora in tabella) ·
-    spostare le asserzioni verificabili dai documenti ai test (il checker dei link come **gate**, sul
-    modello di `single-source.spec.ts`) · README di `web-staff` e guida deploy.
+25. ✅ **Le asserzioni verificabili dai documenti ai test** — il checker dei link è un **gate**, sul
+    modello di `single-source.spec.ts`: `packages/docs-lint`, 47 test, dentro `pnpm -r test` e
+    `pnpm -r typecheck` senza toccare né `verify` né il workflow della CI.
+    ⚠️ **Lo strumento aveva sette bug e l'oggetto misurato zero** — quattro trovati costruendolo
+    (inline-code negli heading, la variation selector U+FE0F, backslash raddoppiati da una patch via
+    shell, il grassetto spezzato letto come reference definition: da solo faceva 18 rotti invece di
+    17), tre ereditati. Per questo lo strumento ha uno spec suo con i casi che li hanno smascherati,
+    ed è la ragione per cui il gate è un package e non uno script alla radice.
+    Sette mutazioni, sette rossi con attribuzione. [ADR-0059](../architecture/decisions/0059-gate-link-documenti.md).
+26. 🔓 **Restano**: igiene di `deferred.md` (~74k caratteri, ≥7 voci chiuse ancora in tabella) ·
+    README di `web-staff` e guida deploy.
 
 ---
 

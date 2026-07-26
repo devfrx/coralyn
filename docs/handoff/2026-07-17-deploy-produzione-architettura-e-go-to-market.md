@@ -5,7 +5,7 @@
 > (compose prod + Caddy + init RLS prod + backup + bootstrap superuser), una **guida di deploy
 > passo-passo** e un **runbook di manutenzione**, più il **doc d'architettura di sistema**
 > (`docs/design/architecture.md`). In parallelo, in `../coralyn-lp` (cartella **separata, non git**)
-> è stata costruita la **landing page** — handoff dedicato lì: [`../coralyn-lp/HANDOFF.md`](../../../coralyn-lp/HANDOFF.md).
+> è stata costruita la **landing page** — handoff dedicato lì: `../coralyn-lp/HANDOFF.md`.
 > Discusso e definito il **pricing** (non ancora formalizzato in ADR). Coerenza doc↔codice verificata.
 
 ---
@@ -108,6 +108,6 @@ senza `--prod`). Esecuzione: `docker compose -f docker-compose.prod.yml exec api
 
 - Guida: [docs/deploy/README.md](../deploy/README.md) · Runbook: [docs/deploy/MANUTENZIONE.md](../deploy/MANUTENZIONE.md)
 - Architettura: [docs/design/architecture.md](../design/architecture.md)
-- Landing (repo separato non-git): [`../coralyn-lp/HANDOFF.md`](../../../coralyn-lp/HANDOFF.md)
+- Landing (repo separato non-git): `../coralyn-lp/HANDOFF.md`
 - Isolamento multi-tenant: [ADR-0010](../architecture/decisions/0010-isolamento-multi-tenant.md) ·
   Auth: [ADR-0024](../architecture/decisions/0024-strategia-auth.md)/[0026](../architecture/decisions/0026-identita-rls-utente.md)

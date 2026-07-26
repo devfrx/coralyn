@@ -62,7 +62,7 @@ await app.listen(process.env.PORT ?? 3000);
 ```
 Tutte le rotte sotto `/api`; `/health` a root. **Qui** andrà `app.useGlobalPipes(new ValidationPipe(...))`.
 
-### A.2 Controller — [`src/clienti/clienti.controller.ts`](../../apps/api/src/clienti/clienti.controller.ts)
+### A.2 Controller — `src/clienti/clienti.controller.ts`
 ```ts
 @Controller('clienti')
 export class ClientiController {
@@ -72,7 +72,7 @@ export class ClientiController {
 ```
 Da aggiungere: `@Get(':id')` → `getById(@Param('id') id)`, `@Patch(':id')` → `update(@Param('id') id, @Body() dto)`.
 
-### A.3 Service — [`src/clienti/clienti.service.ts`](../../apps/api/src/clienti/clienti.service.ts)
+### A.3 Service — `src/clienti/clienti.service.ts`
 ```ts
 async list(): Promise<ClienteDTO[]> {
   const tenantId = this.tenant.require();
@@ -89,7 +89,7 @@ async create(input): Promise<ClienteDTO> {
 
 ### A.4 Tenant + RLS (non toccare; usa così)
 - [`src/tenant/tenant-context.ts`](../../apps/api/src/tenant/tenant-context.ts): `require()` → `BadRequestException('Tenant non risolto')` se assente (**400**).
-- [`src/tenant/tenant.middleware.ts`](../../apps/api/src/tenant/tenant.middleware.ts): legge `X-Stabilimento-Id`, valida UUID, set `req.tenantId`. Applicato a `*` in [`src/app.module.ts`](../../apps/api/src/app.module.ts).
+- `src/tenant/tenant.middleware.ts`: legge `X-Stabilimento-Id`, valida UUID, set `req.tenantId`. Applicato a `*` in [`src/app.module.ts`](../../apps/api/src/app.module.ts).
 - [`src/prisma/prisma.service.ts`](../../apps/api/src/prisma/prisma.service.ts):
 ```ts
 async forTenant<T>(tenantId, fn) {
@@ -113,7 +113,7 @@ Oggi **non c'è** validazione (niente `class-validator`, niente `ValidationPipe`
 - **Attenzione**: con `whitelist:true` campi extra vengono scartati — verifica che gli **e2e esistenti** restino verdi. Email malformata → **400**.
 - Esito: **D-022 risolto** → rimuovilo da [deferred.md](../architecture/deferred.md) con riferimento all'implementazione.
 
-### A.7 E2E — [`test/clienti.e2e-spec.ts`](../../apps/api/test/clienti.e2e-spec.ts)
+### A.7 E2E — `test/clienti.e2e-spec.ts`
 Jest + supertest; setup crea due Stabilimenti `s1`/`s2`. Pattern da copiare per i nuovi endpoint:
 ```ts
 await request(app.getHttpServer()).post('/api/clienti').set('X-Stabilimento-Id', s1).send({ nome:'Mario', cognome:'Rossi' }).expect(201);

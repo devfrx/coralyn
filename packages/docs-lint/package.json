@@ -1,0 +1,16 @@
+{
+  "name": "@coralyn/docs-lint",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "//exports": "Assente di proposito: questo package non ha consumatori. Non e' una libreria, e' il posto dove vivono le asserzioni sui DOCUMENTI del repo, come `single-source.spec.ts` e' il posto dove vive quella su `ApiError`. Aggiungere una mappa `exports` suggerirebbe che qualcuno debba importarlo. Vedi ADR-0059.",
+  "scripts": {
+    "test": "vitest run",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "devDependencies": {
+    "@types/node": "^24.13.2",
+    "typescript": "^5.6.3",
+    "vitest": "^4.1.9"
+  }
+}

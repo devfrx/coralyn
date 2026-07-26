@@ -14,7 +14,7 @@
 - **Nessuna migrazione pendente.** Nessun cambio schema in questa sessione.
 
 ## 1. Cosa è COMPLETO su `main` (questa sessione, 2026-07-06) — filone "rendile vere" §3 CHIUSO
-Cinque slice, ciascuna: brainstorming → spec → piano TDD → subagent-driven → review 2 stadi + whole-branch **opus (Ready to merge, 0 Crit/0 Imp)** → verifica LIVE → FF merge + push. Ledger completo in [.superpowers/sdd/progress.md](../../.superpowers/sdd/progress.md).
+Cinque slice, ciascuna: brainstorming → spec → piano TDD → subagent-driven → review 2 stadi + whole-branch **opus (Ready to merge, 0 Crit/0 Imp)** → verifica LIVE → FF merge + push. Ledger completo in `.superpowers/sdd/progress.md`.
 
 1. **Navigazione data** (`activeDate`): frecce ±1 + picker `<input type=date>`, default **oggi** Europe/Rome (`lib/dates.ts` `addDays`/`todayIso` UTC-safe DST), gating route-meta `usesDate` (solo `/map`,`/bookings`), hint erasure GDPR scollegato da `activeDate`→`todayIso()`. Spec `2026-07-06-date-navigation-design.md`.
 2. **Modifica cliente**: modale **unica** di edit (`EditCustomerModal.vue`, nome+cognome+contatti precompilati → `useUpdateCustomer` PATCH), card "Anagrafica" resa **read-only**; via il bottone morto + la doppia affordance; **nome ora modificabile**. Spec `2026-07-06-edit-customer-design.md`.

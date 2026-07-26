@@ -61,7 +61,7 @@ CREATE POLICY tenant_isolation ON "<T>"
   WITH CHECK (nullif(current_setting('app.current_tenant', true), '')::uuid = "stabilimentoId");
 ```
 
-Identico al pattern di [`20260628175658_rls`](../../apps/api/prisma/migrations/20260628175658_rls/migration.sql).
+Identico al pattern di `20260628175658_rls`.
 Tutte le query passano da `PrismaService.forTenant(tenantId, …)` (GUC `app.current_tenant`).
 
 ## 3. Endpoint `GET /api/mappa`

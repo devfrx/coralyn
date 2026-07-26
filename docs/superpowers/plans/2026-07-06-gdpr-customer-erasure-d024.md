@@ -306,7 +306,7 @@ git commit -m "feat(customers): DELETE cliente GDPR (D-024) — delete/anonymize
 - Modify: `apps/web-staff/src/features/customers/CustomerDetailView.spec.ts`
 
 **Interfaces:**
-- Consumes: `DELETE /api/customers/:id` → `DeleteCustomerResult` (Task 1); `useCustomerBookings` (storico già caricato); `pushToast` ([lib/toasts.ts](../../../apps/web-staff/src/lib/toasts.ts)); `ConfirmDialog` da `@coralyn/ui-kit`; `session.role === Role.Admin`.
+- Consumes: `DELETE /api/customers/:id` → `DeleteCustomerResult` (Task 1); `useCustomerBookings` (storico già caricato); `pushToast` (`lib/toasts.ts`); `ConfirmDialog` da `@coralyn/ui-kit`; `session.role === Role.Admin`.
 - Produces: `useDeleteCustomer(id)` mutation (invalida la lista clienti + il dettaglio).
 
 - [ ] **Step 1: Aggiungi l'handler MSW**

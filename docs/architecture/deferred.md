@@ -206,5 +206,30 @@ addendum, `flows.md` §7 (nota `source='customer'`), 4 mockup `web-customer-*.ht
   gate che tutto il resto usa per dirsi verificato, e un gate che fallisce per ragioni ambientali
   insegna a ignorarne il rosso. In CI oggi non si manifesta (runner dedicato, un job per volta).
 
+  ⚠️ **Addendum 2026-07-26 — la diagnosi sopra è incompleta, e la correzione proposta non basterebbe.**
+  Misurato con **3,7–5,1 GB liberi** e lo stack Docker acceso (5 container), lanciando **una suite
+  alla volta**, cioè con la concorrenza fra pacchetti già a 1:
+
+  | Comando | Esito | Il vero numero |
+  |---|---|---|
+  | `pnpm --filter @coralyn/api test` | `FATAL ERROR: Zone Allocation failed` ×6 → **`Test Suites: 26 failed, 33 passed`** con **`Tests: 230 passed, 0 failed`** | 384 su 59 suite |
+  | `pnpm --filter @coralyn/ui-kit test` | `Error: spawn UNKNOWN` (errno −4094) → `Test Files 21 passed (26)`, poi `23 passed (24)` **sulla stessa revisione** | 212 su **39** file |
+  | `pnpm --filter @coralyn/web-staff test` | `Errors 24` → `Tests 203 passed` | 413 su **57** file |
+
+  Con `--maxWorkers=2` tutte e tre escono **verdi ai numeri di baseline**. Tre conseguenze:
+
+  1. **«le sette suite lanciate una alla volta sono tutte verdi» non è più vero**, e la riga qui
+     sopra che lo dice va letta come vera *a 5,5 GB*, non in assoluto. La verifica valida sotto
+     pressione è una alla volta **e con i worker limitati**.
+  2. **`--workspace-concurrency=N` da solo non chiude questa voce.** Oggi il crash è arrivato con la
+     concorrenza fra pacchetti già a 1: il moltiplicatore residuo è la concorrenza **dentro** ogni
+     runner (jest è a `maxWorkers: '50%'`, che su molti core resta tanto; le vitest non hanno alcun
+     limite). La decisione dell'utente riguarda quindi **due** assi, non uno.
+  3. ⚠️ **Il modo in cui fallisce è peggio del fallimento.** Una suite che non parte contribuisce
+     **zero** test al totale, quindi l'esito somiglia a «suite più piccola ma verde»: `Tests: 230
+     passed, 0 failed` senza un solo rosso. Nel caso di `ui-kit` era sbagliato anche il
+     **denominatore** — vitest dichiarava 26 e 24 file totali dove sono 39. **Il totale dei test va
+     sempre letto insieme al conteggio delle suite/file, e confrontato con la baseline.**
+
 > Nota: le voci sopra sono il punto di partenza emerso dal brainstorming iniziale e
 > verranno raffinate man mano.

@@ -38,7 +38,7 @@ d'integrazione. Niente auth (l'header tenant provvisorio resta), niente modifich
   - [`src/lib/http.ts`](../../apps/web-staff/src/lib/http.ts) — `BASE = '/api'`, header `X-Stabilimento-Id` (riga 10).
   - [`src/stores/session.ts`](../../apps/web-staff/src/stores/session.ts) — `stabilimentoId` inizializzato a
     `TENANT_DEV = '00000000-0000-0000-0000-000000000001'` (riga 5; commento "provvisorio, Piano 2 → JWT").
-  - [`src/features/clienti/useClienti.ts`](../../apps/web-staff/src/features/clienti/useClienti.ts) —
+  - `src/features/clienti/useClienti.ts` —
     `useClienti()` (GET, query key `['clienti', tenantId]`) e `useCreaCliente()` (POST `{nome,cognome}`,
     invalida la lista). Consumati da `features/clienti/ClientiView.vue`.
   - **MSW**: [`src/mocks/handlers.ts`](../../apps/web-staff/src/mocks/handlers.ts) mocka **solo `/api/mappa`**.
@@ -92,7 +92,7 @@ I test (`vitest`) girano in **Node con MSW `server.ts`**, che mocka `/api/client
 `onUnhandledRequest: 'error'` ([`src/test/setup.ts`](../../apps/web-staff/src/test/setup.ts)). Il cambio
 del **proxy** riguarda **solo il runtime browser (dev)**, non i test. Quindi:
 - **NON rimuovere** i mock `/api/clienti` da `server.ts`: servono ai test unit/component
-  ([`features/clienti/ClientiView.spec.ts`](../../apps/web-staff/src/features/clienti/ClientiView.spec.ts)).
+  (`features/clienti/ClientiView.spec.ts`).
 - Dopo il fix del proxy, esegui `pnpm --filter @coralyn/web-staff test` e verifica che resti **verde**.
 
 Se decidi di aggiungere un test d'integrazione *reale* (browser ↔ backend), fallo come prova manuale o

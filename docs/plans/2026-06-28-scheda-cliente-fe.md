@@ -506,7 +506,7 @@ Sostituire la `Card` "Anagrafica" con:
 </Card>
 ```
 
-> Nota: `Input` ([Input.vue](../../packages/ui-kit/src/components/Input.vue)) ha un unico root `<input>`, quindi l'attributo `name` raggiunge il DOM via *fallthrough* — il selettore `input[name="telefono"]` del test è valido. `Field`/`Input` si usano come in [ClientiView.vue](../../apps/web-staff/src/features/clienti/ClientiView.vue).
+> Nota: `Input` ([Input.vue](../../packages/ui-kit/src/components/Input.vue)) ha un unico root `<input>`, quindi l'attributo `name` raggiunge il DOM via *fallthrough* — il selettore `input[name="telefono"]` del test è valido. `Field`/`Input` si usano come in `ClientiView.vue`.
 
 - [ ] **Step 4: Eseguire (deve passare)**
 

@@ -1,0 +1,12 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "noEmit": true
+    // Nessuna `lib` aggiuntiva: qui non c'e' un solo riferimento al DOM. E' l'unico package del
+    // repo che gira solo su Node, quindi typecheck con `tsc` invece di `vue-tsc` (idioma di
+    // `@coralyn/contracts`).
+  },
+  "include": ["src"]
+}

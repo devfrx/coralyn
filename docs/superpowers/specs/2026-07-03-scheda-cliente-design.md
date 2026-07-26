@@ -11,7 +11,7 @@
 - **ADR di riferimento:** [ADR-0006](../../architecture/decisions/0006-dominio-prenotazioni-e-pricing.md)
   (dominio prenotazioni), [ADR-0013](../../architecture/decisions/0013-granularita-disponibilita-a-slot.md)
   (fascia), [ADR-0034](../../architecture/decisions/0034-prelazione-finestre-lazy.md) (prelazione/anzianità),
-  [ADR-0010](../../docs/architecture/decisions/0010-rls-tenant-isolation.md) (RLS), [ADR-0009](../../architecture/decisions/0009-documentazione-di-design.md)
+  [ADR-0010](../../architecture/decisions/0010-isolamento-multi-tenant.md) (RLS), [ADR-0009](../../architecture/decisions/0009-documentazione-di-design.md)
   (workflow). **Nessun nuovo ADR** previsto: è un incremento di lettura sull'architettura già decisa (nessuna nuova
   decisione strutturale; la prelazione riusa ADR-0034). Se in fase di piano emergesse una scelta strutturale, si
   valuterà un ADR.

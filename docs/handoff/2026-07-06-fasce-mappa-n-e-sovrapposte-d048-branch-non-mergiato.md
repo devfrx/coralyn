@@ -24,7 +24,7 @@
 - **Nessuna migrazione pendente.** Nessun cambio schema in queste slice (solo tipi in `contracts` + logica projection/FE).
 
 ## 1. Cosa è COMPLETO sul branch (2026-07-06) — due slice
-Ledger dettagliato: [.superpowers/sdd/progress.md](../../.superpowers/sdd/progress.md).
+Ledger dettagliato: `.superpowers/sdd/progress.md`.
 
 ### 1a. N-fasce ↔ mappa (rende N fasce **disgiunte** arbitrarie) — assorbe 3 bug
 Spec [2026-07-06-timeslots-map-design.md](../superpowers/specs/2026-07-06-timeslots-map-design.md), piano [2026-07-06-timeslots-map.md](../superpowers/plans/2026-07-06-timeslots-map.md). FE-only (§5 verificata: `map.projection.ts` popolava già `stateBySlot` per ogni fascia). `UmbrellaCell` da `morning/afternoonState` → **`slotStates: SlotState[]`** a spicchi conic-gradient (tinta piena se uniforme). `MapView`: celle a N spicchi, drawer con **N box reali** (nome/orario/stato, selezionabili), messaggio disponibilità **computato**. Rimossa ogni compressione N→2. Bug risolti: fasce centrali sparite / nomi ignorati / messaggio "intera giornata" errato.

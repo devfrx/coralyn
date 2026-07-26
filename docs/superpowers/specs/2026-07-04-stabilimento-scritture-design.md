@@ -25,7 +25,7 @@ lido) e **`Inviti e gestione`** (gestione utenti), lasciando **`Configura`** = *
 - **Invarianti anti-lockout** (non-pigra): l'admin **non** può disabilitare **sé stesso**, né **l'ultimo admin attivo**.
 - **Role-guard admin-only** per tutte le scritture (`@Roles('admin')`); le letture restano com'è. Il **superuser** (di
   piattaforma) **non** gestisce lo staff di un tenant da questo gestionale → riceve **403** sulle scritture tenant (la
-  sua console cross-tenant è fuori scope, [ADR-0015](../../architecture/decisions/0015-modello-utente-ruoli.md)).
+  sua console cross-tenant è fuori scope, [ADR-0015](../../architecture/decisions/0015-osservabilita-e-console-superuser.md)).
 - **RBAC come [ADR-0039]** (nuovo): decisione d'architettura riusabile (decoratore `@Roles` + `RolesGuard`).
 
 ## 3. Fondazione RBAC — ADR-0039 (Fase 1)
