@@ -506,8 +506,20 @@ guardiano è a un livello solo, ed è quello lento (radice **R4**, non R3).
     tree invece che sul repo), tre ereditati. Per questo lo strumento ha uno spec suo con i casi che
     li hanno smascherati, ed è la ragione per cui il gate è un package e non uno script alla radice.
     Otto mutazioni, otto rossi con attribuzione. [ADR-0059](../architecture/decisions/0059-gate-link-documenti.md).
-26. 🔓 **Restano**: igiene di `deferred.md` (~74k caratteri, ≥7 voci chiuse ancora in tabella) ·
-    README di `web-staff` e guida deploy.
+26. ✅ **Igiene di `deferred.md`** — il registro **mentiva su cosa resta da fare**: **6 voci chiuse
+    nella tabella delle aperte**, **4 aperte sotto «Risolte»** (fra cui **D-064** e **D-066**, le due
+    decisioni in attesa dell'utente) e **2 duplicate**. Causa meccanica, non disattenzione:
+    `## Risolte` cominciava a riga 67 su 236, quindi ogni voce nuova appesa in fondo ci finiva dentro.
+    Ora: `## Aperte` (41) / `## Chiuse` (24), un **indice** in testa con ID · tema · stato, un
+    **anchor stabile per voce** (`#d-0nn`) e un presidio — `deferred-registry.spec.ts` — che fa rosso
+    su ID duplicati, indice discordante dalle voci, anchor mancante, voce chiusa che non dice da cosa.
+    ⚠️ **Il conteggio è stato sbagliato due volte**: le voci dichiarano la chiusura in coda o
+    nell'ultima colonna, mentre il filtro leggeva i primi 700 caratteri. E **D-061 contiene «CHIUSA»
+    ma è aperta** — per questo il test controlla in una direzione sola.
+    ⚠️ **D-035 renderizzava come 12 righe**, 11 delle quali orfane con 4 colonne vuote (riga di
+    tabella spezzata su 12 righe fisiche). Verificato **sul renderer di GitHub**, non dedotto: la mia
+    deduzione dalla specifica GFM diceva una cosa più grave e sbagliata.
+27. 🔓 **Restano**: README di `web-staff` e guida deploy.
 
 ---
 
