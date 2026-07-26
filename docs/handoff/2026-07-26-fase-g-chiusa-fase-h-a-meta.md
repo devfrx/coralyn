@@ -2,7 +2,8 @@
 
 > **Punto d'ingresso unico.** Sostituisce
 > [2026-07-25 D-065 eseguita, restano G e H](2026-07-25-d065-eseguita-restano-g-h.md), che resta
-> valido per il **metodo** (§4) ma è **superato** per stato, baseline e gotcha.
+> **superato**. Questo documento è **autosufficiente**: metodo e regole di ingaggio sono al §4, non
+> più per rimando.
 
 ---
 
@@ -159,7 +160,39 @@ sotto RLS, il barrel di `ui-kit` e i marker validi per ECharts, Vue Test Utils e
 
 ## 4. Metodo
 
-### 4a. Cosa ha pagato
+### 4a. Regole di ingaggio *(valgono sempre, non solo per la fase in corso)*
+
+- **Skill `dev-discipline` + `dev-communication` sempre**, in apertura. `systematic-debugging`
+  **prima** di proporre un fix. `compliance-docs` per legale/GDPR. `design-docs` se tocchi dominio,
+  dati, flussi o decisioni. `repo-audit` se il lavoro torna a essere sistemico.
+- **Le decisioni strutturali sono dell'utente**, e si espongono **prima** di implementare, con
+  opzioni e trade-off **reali** — non un'opzione buona e due di paglia. In questa sessione è
+  successo tre volte, e due hanno cambiato il piano. ⚠️ Vale **anche a decisione già presa**: se una
+  misura successiva mostra che l'opzione approvata non compra ciò che avevi promesso, **torni
+  dall'utente con i numeri** invece di eseguirla per coerenza.
+- **Nessun merge su `main` senza ok esplicito.** Il modo usato in questa sessione: una slice = un
+  branch = un commit denso, poi fast-forward su `main` e push, con l'ok chiesto ogni volta.
+- **Ogni fix alla radice.** Se la radice è fuori portata, dillo e lascia il finding aperto — non
+  mascherarlo con un palliativo.
+- **Dati societari e scelte d'infrastruttura si chiedono, mai si inventano.**
+- **Un finding è un'ipotesi, non un verbale.** Misura il **problema** prima di risolverlo: sette
+  enunciati su otto sono stati smentiti in questa sessione, e la misura ha cambiato il *perimetro*,
+  non i dettagli.
+- **Riproduci prima di correggere, e prova la mutazione nei due versi.** Per un bug provi che il fix
+  serve; per un refactor provi che il codice è **scoperto**, degradandolo e guardando se qualcosa
+  diventa rosso. Cancellare l'oggetto prova che serve, **degradarlo prova che serve così**.
+- **Misura invece di stimare, e dichiara lo scope del conteggio.** Il numero senza lo scope è il
+  modo in cui nascono le cifre che poi divergono (`configureApp` in «37 su 42», i link «67»).
+- **Correggi il testo falso, non annotarlo sotto**, e distingui sempre «è sempre stato vero» da «lo è
+  diventato»: chi rilegge deve poterlo capire senza aprire `git log`.
+- **Se un documento afferma un fatto sul codice, la domanda non è «è ancora vera?» ma «cosa la
+  renderebbe rossa se smettesse di esserlo?»** I modelli sono
+  [`single-source.spec.ts`](../../packages/data-layer/src/single-source.spec.ts) e
+  [`tenant-id.spec.ts`](../../apps/api/src/tenant/tenant-id.spec.ts).
+- **Quando una misura è controintuitiva, scrivila nel codice**, non solo nel commit: è l'unico posto
+  dove la leggerà chi sta per "correggere" quella riga.
+
+### 4b. Cosa ha pagato
 
 - **Misura il PROBLEMA, non solo la soluzione.** Sette enunciati di finding su otto sono stati
   corretti dalla misura, e in **due casi** hanno cambiato la decisione: il tipo `TenantId` (che il
@@ -176,7 +209,7 @@ sotto RLS, il barrel di `ui-kit` e i marker validi per ECharts, Vue Test Utils e
   503/503 verdi» è annotato accanto alla riga: è l'unico modo perché il prossimo lettore non la
   cancelli come morta né la "corregga".
 
-### 4b. Errori miei, da non ripetere
+### 4c. Errori miei, da non ripetere
 
 1. **Tre mutazioni non compilavano**, e la suite riportava «32 passed» **senza un solo rosso** —
    perché una suite che non transpila contribuisce **zero** test al totale. Stavo misurando il
@@ -194,6 +227,38 @@ Prima di credere a un numero, prova lo strumento su un caso di cui conosci la ri
 ---
 
 ## 5. Lavori aperti
+
+### 5.0 Da dove ripartire, e perché in quest'ordine
+
+Il piano E→H dell'audit è quasi esaurito: **restano il residuo di H** e poi ciò che era stato tenuto
+**fuori dal piano di proposito**. Ordine consigliato, con la ragione accanto — non è un vincolo, ma
+la ragione sì:
+
+1. **Il checker dei link come gate** (§5.2). È piccolo e sblocca il resto: in questa sola sessione ne
+   ho introdotti **due io**, e li ha presi lo strumento, non la rilettura. Ogni documento scritto da
+   qui in poi senza quel gate è debito nuovo. ⚠️ Tocca `verify`/CI → **decisione da esporre**.
+2. **Igiene di `deferred.md`** (§5.2). È il registro che dice cosa resta da fare, ed è illeggibile:
+   ~74k caratteri, ≥7 voci chiuse ancora in tabella, la riga di D-037 da sola è un monolito con sette
+   livelli di correzione annidati. Il costo non è estetico — **una deferred chiusa per sbaglio è già
+   successa**, e nessuno rilegge le voci chiuse.
+3. **D-064** (§5.1), se l'utente decide. È l'unico finding di **sicurezza dei dati** ancora aperto.
+4. Poi le tre famiglie fuori dal piano, in ordine di quanto mordono:
+   - **AUD-015 — l'immagine Docker dell'API è single-stage e gira come root**, con l'intera toolchain
+     di sviluppo dentro: 29 advisory, 9 HIGH. I tre Dockerfile web sono già multi-stage: solo l'API
+     no. È l'unico residuo che diventa **urgente il giorno del primo deploy**, non prima.
+   - **AUD-022 — `generate` ombrelloni fa 500 INSERT sequenziali** in una transazione col timeout di
+     default → P2028 e rollback totale con RTT ≥10 ms. **Regge in dev e si rompe in produzione**, cioè
+     esattamente sul lido grande in onboarding.
+   - **AUD-020 / AUD-021 — prestazioni**: il pre-check anti-overlap carica **tutta** la storia di
+     coperture dell'ombrellone (nessun predicato di data), e **non esiste paginazione in tutto lo
+     stack** (0 `take`/`skip`/`cursor` su 58 `findMany`). Nessuno dei due morde finché i lidi sono
+     piccoli e le stagioni poche.
+5. **Nessuna di queste è una precondizione al deploy tranne AUD-015**, e il deploy non è imminente:
+   **non esiste alcun VPS**. Non riaprire l'azione sul `JWT_SECRET` di produzione — è **decaduta**,
+   ed è già presidiata da `deploy/README.md`.
+
+⚠️ **Prima di aprire una fase nuova**, rileggi il §4a: le regole di ingaggio valgono a prescindere
+dalla fase, e il §4c elenca gli errori di metodo che questa sessione ha già pagato.
 
 ### 5.1 Azioni dell'utente
 
@@ -213,7 +278,7 @@ Prima di credere a un numero, prova lo strumento su un caso di cui conosci la ri
   lo strumento, non la rilettura. Serve una **allow-list esplicita** per i 17 storici, così un link
   rotto **nuovo** fa rosso e quelli dichiarati no. ⚠️ Tocca `verify`/CI → decisione da esporre.
   Lo script di misura di questa sessione è ricostruibile dal §1a di questo documento; i due bug da
-  non rifare sono al §4b.
+  non rifare sono al §4c.
 - **Igiene di `deferred.md`**: ~74k caratteri, ≥7 voci chiuse ancora in tabella. La riga di D-037 è
   da sola un monolito di diecimila caratteri con sette livelli di correzione annidati.
 - **README di `web-staff`** e **guida deploy**: non riaperti in questa sessione.
