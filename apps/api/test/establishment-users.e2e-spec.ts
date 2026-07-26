@@ -56,17 +56,30 @@ describe('Establishment users (e2e)', () => {
     await request(app.getHttpServer()).post('/api/establishment/users').set(...bearer(staffT)).send({ email: 'u.new@e2e.test', role: 'staff' }).expect(403);
   });
 
+  // D-064: è qui che vivono le email degli operatori da quando sono uscite dall'overview, e la
+  // ragione per cui ci vivono è esattamente questo 403 — l'overview lo staff la legge, questa no.
+  it('staff → 403 sulla lista del team', async () => {
+    await request(app.getHttpServer()).get('/api/establishment/users').set(...bearer(staffT)).expect(403);
+  });
+
+  it('admin: lista il team del tenant, admin-first poi email asc', async () => {
+    const res = await request(app.getHttpServer()).get('/api/establishment/users').set(...bearer(adminT)).expect(200);
+    const emails = res.body.map((m: { email: string }) => m.email);
+    expect(emails).toEqual(['u.admin@e2e.test', 'u.admin2@e2e.test', 'u.staff@e2e.test']);
+    expect(res.body[0].role).toBe('admin');
+  });
+
   it('role "superuser" → 400', async () => {
     await request(app.getHttpServer()).post('/api/establishment/users').set(...bearer(adminT)).send({ email: 'u.new@e2e.test', role: 'superuser' }).expect(400);
   });
 
-  it('admin invita uno staff → 201, compare nell’overview, NON fa login finché non fa redeem', async () => {
+  it('admin invita uno staff → 201, compare nella lista del team, NON fa login finché non fa redeem', async () => {
     mailer.reset();
     const res = await request(app.getHttpServer()).post('/api/establishment/users').set(...bearer(adminT)).send({ email: 'u.new@e2e.test', role: 'staff' }).expect(201);
     expect(res.body).toEqual(expect.objectContaining({ email: 'u.new@e2e.test', role: 'staff', disabledAt: null }));
 
-    const overview = await request(app.getHttpServer()).get('/api/establishment/overview').set(...bearer(adminT)).expect(200);
-    expect(overview.body.team.find((m: { email: string }) => m.email === 'u.new@e2e.test')).toEqual(expect.objectContaining({ role: 'staff', disabledAt: null }));
+    const team = await request(app.getHttpServer()).get('/api/establishment/users').set(...bearer(adminT)).expect(200);
+    expect(team.body.find((m: { email: string }) => m.email === 'u.new@e2e.test')).toEqual(expect.objectContaining({ role: 'staff', disabledAt: null }));
 
     expect(mailer.last().purpose).toBe('invite');
     await request(app.getHttpServer()).post('/api/auth/login').send({ email: 'u.new@e2e.test', password: 'staff-scelta-1' }).expect(401);
@@ -102,11 +115,15 @@ describe('Establishment users (e2e)', () => {
     await request(app.getHttpServer()).post(`/api/establishment/users/${staffId}/reset-password`).expect(401);
   });
 
-  it('reset di un id fuori tenant → 404', async () => {
+  it('reset di un id fuori tenant → 404, e quell’utente non compare nella lista del team', async () => {
     const otherEst = await prisma.establishment.create({ data: { name: 'USERS B' } });
     await createUser(prisma, { email: 'u.other@e2e.test', password: 'pw-o-1', role: Role.staff, establishmentId: otherEst.id });
     const otherId = (await prisma.user.findUniqueOrThrow({ where: { email: 'u.other@e2e.test' } })).id;
     await request(app.getHttpServer()).post(`/api/establishment/users/${otherId}/reset-password`).set(...bearer(adminT)).expect(404);
+    // Il fixture cross-tenant esiste solo qui: è l'unico punto in cui «lista solo il mio tenant»
+    // è una misura invece di un'asserzione vuota.
+    const res = await request(app.getHttpServer()).get('/api/establishment/users').set(...bearer(adminT)).expect(200);
+    expect(res.body.map((m: { email: string }) => m.email)).not.toContain('u.other@e2e.test');
   });
 
   it('reset di un utente disabilitato → 422', async () => {

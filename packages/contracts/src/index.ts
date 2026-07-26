@@ -528,7 +528,8 @@ export interface CreatePackageInput {
 /** Input modifica pacchetto: tutti i campi opzionali. */
 export type UpdatePackageInput = Partial<CreatePackageInput>;
 
-/** Membro del team dello stabilimento (superuser escluso: è di piattaforma). */
+/** Membro del team dello stabilimento (superuser escluso: è di piattaforma).
+ *  Servito da GET /api/establishment/users, sotto `team.manage` (admin). */
 export interface EstablishmentMemberDTO {
   id: string;
   email: string;
@@ -536,7 +537,14 @@ export interface EstablishmentMemberDTO {
   disabledAt: string | null; // ISO datetime = disabilitato (soft); null = attivo
 }
 
-/** Proiezione read-only della schermata Stabilimento (GET /api/establishment/overview). */
+/** Proiezione read-only della schermata Stabilimento (GET /api/establishment/overview).
+ *
+ *  ⚠️ NIENTE PII qui dentro. È il read-model dell'app-shell: `SidebarNav` lo carica a ogni
+ *  navigazione per il nome della stagione attiva, quindi è leggibile con `establishment.read`,
+ *  cioè anche dallo staff. Finché conteneva `team[]` esponeva le email di tutti gli operatori a
+ *  chi non ne ha bisogno (D-064, AUD-004): il team vive ora su GET /api/establishment/users,
+ *  sotto `team.manage`. Un campo con dati personali aggiunto qui torna a essere leggibile da
+ *  tutto lo staff — `establishment.e2e-spec.ts` fa rosso se ricompare un'email nel payload. */
 export interface EstablishmentOverviewDTO {
   establishment: { id: string; name: string };
   activeSeason: { name: string; startDate: string; endDate: string } | null; // copre oggi, else null
@@ -547,7 +555,6 @@ export interface EstablishmentOverviewDTO {
     types: number;
     packages: number; // solo non archiviati
   };
-  team: EstablishmentMemberDTO[]; // admin-first, poi email asc
 }
 
 /** Input rinomina stabilimento (admin-only). */

@@ -1,4 +1,4 @@
-import type { EstablishmentOverviewDTO, EstablishmentMemberDTO } from '@coralyn/contracts';
+import type { EstablishmentOverviewDTO } from '@coralyn/contracts';
 
 export interface RawSeason {
   name: string;
@@ -11,11 +11,8 @@ export interface OverviewRaw {
   seasons: RawSeason[];
   timeSlots: { id: string; name: string }[];
   structure: EstablishmentOverviewDTO['structure'];
-  users: { id: string; email: string; role: string; disabledAt: Date | null }[];
   todayIso: string;
 }
-
-const ROLE_RANK: Record<string, number> = { admin: 0, staff: 1 };
 
 function iso(d: Date): string {
   return d.toISOString().slice(0, 10);
@@ -30,16 +27,12 @@ export function pickActiveSeason(
   return active ? { name: active.name, startDate: iso(active.startDate), endDate: iso(active.endDate) } : null;
 }
 
+// Nessun dato personale in questa proiezione: vedi il commento su EstablishmentOverviewDTO (D-064).
 export function toEstablishmentOverview(raw: OverviewRaw): EstablishmentOverviewDTO {
-  const team: EstablishmentMemberDTO[] = raw.users
-    .filter((u) => u.role === 'admin' || u.role === 'staff')
-    .map((u) => ({ id: u.id, email: u.email, role: u.role as 'admin' | 'staff', disabledAt: u.disabledAt ? u.disabledAt.toISOString() : null }))
-    .sort((a, b) => ROLE_RANK[a.role] - ROLE_RANK[b.role] || a.email.localeCompare(b.email));
   return {
     establishment: raw.establishment,
     activeSeason: pickActiveSeason(raw.seasons, raw.todayIso),
     timeSlots: raw.timeSlots,
     structure: raw.structure,
-    team,
   };
 }

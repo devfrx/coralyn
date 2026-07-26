@@ -1,5 +1,5 @@
 import { ConflictException, Injectable, NotFoundException, UnprocessableEntityException } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
+import { Prisma, Role } from '@prisma/client';
 import { randomBytes } from 'node:crypto';
 import type { CreateStaffUserInput, EstablishmentMemberDTO, ResetStaffPasswordResponse } from '@coralyn/contracts';
 import { PrismaService } from '../prisma/prisma.service';
@@ -9,6 +9,7 @@ import { CredentialSetupService } from '../credential/credential-setup.service';
 
 type UserRow = { id: string; email: string; role: string; disabledAt: Date | null };
 const MEMBER_SELECT = { id: true, email: true, role: true, disabledAt: true } as const;
+const ROLE_RANK: Record<'admin' | 'staff', number> = { admin: 0, staff: 1 };
 
 @Injectable()
 export class EstablishmentUsersService {
@@ -21,6 +22,22 @@ export class EstablishmentUsersService {
 
   private toMember(u: UserRow): EstablishmentMemberDTO {
     return { id: u.id, email: u.email, role: u.role as 'admin' | 'staff', disabledAt: u.disabledAt ? u.disabledAt.toISOString() : null };
+  }
+
+  /** Team del lido: admin-first, poi email crescente. Il superuser è già fuori per costruzione
+   *  (`establishmentId` null, ADR-0026); il filtro sul ruolo è difesa in profondità e allinea la
+   *  query al tipo del DTO. L'ordinamento resta in JS (`localeCompare`) e non in SQL: la collation
+   *  di Postgres non ordina come il confronto locale-aware, e questo è l'ordine che la UI mostrava
+   *  quando la lista viveva nell'overview. */
+  async list(): Promise<EstablishmentMemberDTO[]> {
+    const tenantId = this.tenant.require();
+    const users = await this.prisma.user.findMany({
+      where: { establishmentId: tenantId, role: { in: [Role.admin, Role.staff] } },
+      select: MEMBER_SELECT,
+    });
+    return users
+      .map((u) => this.toMember(u))
+      .sort((a, b) => ROLE_RANK[a.role] - ROLE_RANK[b.role] || a.email.localeCompare(b.email));
   }
 
   async create(input: CreateStaffUserInput, adminId: string): Promise<EstablishmentMemberDTO> {

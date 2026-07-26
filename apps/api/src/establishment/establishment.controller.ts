@@ -14,8 +14,9 @@ export class EstablishmentController {
   ) {}
 
   // ⚠️ Leggibile anche dallo staff perché l'app-shell la usa per il nome della stagione attiva
-  // (SidebarNav → useActiveSeason). Ma il payload include `team[]` = email di TUTTI gli operatori:
-  // la separazione fra la parte che serve allo shell e la parte con PII è aperta (AUD-004, D-064).
+  // (SidebarNav → useActiveSeason): il permesso è inchiodato al consumatore più debole, quindi
+  // il payload NON può contenere dati personali. Il team è su GET establishment/users, sotto
+  // `team.manage` (D-064, AUD-004). Presidio: `establishment.e2e-spec.ts`.
   @Get('overview')
   @RequiresPermission(Permission.EstablishmentRead)
   overview(): Promise<EstablishmentOverviewDTO> {

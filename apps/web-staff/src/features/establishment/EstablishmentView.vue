@@ -5,7 +5,7 @@ import { Card, StatTile, Badge, Button, Avatar, Icon, Modal, Field, Input, Selec
 import { Role } from '@coralyn/contracts';
 import { useSessionStore } from '@/stores/session';
 import { useSetupStatus } from '@/features/onboarding/useSetupStatus';
-import { useEstablishmentOverview, useRenameEstablishment, useCreateStaffUser, useSetStaffUserDisabled, useResetStaffPassword } from './useEstablishment';
+import { useEstablishmentOverview, useEstablishmentTeam, useRenameEstablishment, useCreateStaffUser, useSetStaffUserDisabled, useResetStaffPassword } from './useEstablishment';
 import LegalProfileModal from './LegalProfileModal.vue';
 
 const session = useSessionStore();
@@ -13,6 +13,10 @@ const router = useRouter();
 const { data, isPending, isError } = useEstablishmentOverview();
 const skeletonVisible = useDelayedLoading(() => isPending.value);
 const { data: setupStatus } = useSetupStatus();
+// Il team è una query a parte, admin-only: le email degli operatori non stanno nell'overview,
+// che l'app-shell carica per tutti (D-064). Per lo staff resta disabilitata e `data` è undefined.
+const { data: teamData, isPending: teamPending } = useEstablishmentTeam();
+const teamSkeletonVisible = useDelayedLoading(() => teamPending.value);
 
 function signOut() {
   session.logout();
@@ -43,7 +47,7 @@ const currentUserRoleLabel = computed(() =>
   session.role === Role.Admin ? 'Amministratore' : session.role === Role.Superuser ? 'Superuser' : 'Staff',
 );
 const team = computed(() =>
-  (data.value?.team ?? []).map((m) => ({
+  (teamData.value ?? []).map((m) => ({
     id: m.id,
     email: m.email,
     roleLabel: ROLE_LABEL[m.role],
@@ -183,16 +187,18 @@ function onConfirmReset() {
       </div>
     </Card>
 
-    <Card class="mb-4">
+    <!-- Card admin-only: le email degli operatori sono PII e lo staff non ne ha bisogno (D-064).
+         Prima era visibile a tutti in sola lettura, con un badge «in arrivo» al posto delle
+         azioni: era proprio quella lettura il finding. -->
+    <Card v-if="isAdmin" class="mb-4">
       <div class="p-5">
         <div class="mb-1.5 flex items-center justify-between">
           <span class="text-sm font-bold text-[var(--color-text)]">Utenti e ruoli</span>
-          <Button v-if="isAdmin" data-testid="add-user" variant="secondary" size="sm" @click="openAddUser"><Icon name="plus" :size="13" />Aggiungi utente</Button>
-          <Badge v-else tone="soon"><Icon name="plus" :size="13" />Inviti e gestione · in arrivo</Badge>
+          <Button data-testid="add-user" variant="secondary" size="sm" @click="openAddUser"><Icon name="plus" :size="13" />Aggiungi utente</Button>
         </div>
         <p class="mb-3 text-xs leading-relaxed text-[var(--color-text-muted)]">Il team dello stabilimento ha ruoli <strong class="text-[var(--color-text-2nd)]">Amministratore</strong> e <strong class="text-[var(--color-text-2nd)]">Staff</strong>. Il ruolo <strong class="text-[var(--color-text-2nd)]">Superuser</strong> è di piattaforma (console cross-stabilimento) e non appartiene al team del lido.</p>
-        <p v-if="!isPending && team.length === 0" class="py-3 text-sm text-[var(--color-text-muted)]">Nessun utente nel team.</p>
-        <div v-if="skeletonVisible" aria-busy="true">
+        <p v-if="!teamPending && team.length === 0" class="py-3 text-sm text-[var(--color-text-muted)]">Nessun utente nel team.</p>
+        <div v-if="teamSkeletonVisible" aria-busy="true">
           <SkeletonText :lines="3" />
         </div>
         <div v-else class="flex flex-col">
@@ -204,7 +210,7 @@ function onConfirmReset() {
               <Badge v-if="u.disabled" tone="neutral">Disabilitato</Badge>
             </div>
             <Badge :tone="u.tone">{{ u.roleLabel }}</Badge>
-            <ActionBar v-if="isAdmin && !u.you" gap="sm">
+            <ActionBar v-if="!u.you" gap="sm">
               <Button data-testid="toggle-user-disabled" variant="secondary" size="sm" :loading="togglingDisabled" @click="toggleDisabled(u)">{{ u.disabled ? 'Riabilita' : 'Disabilita' }}</Button>
               <Button v-if="!u.disabled" data-testid="reset-user-password" variant="secondary" size="sm" :loading="resetStaff.isPending.value" @click="askReset(u)">Reset password</Button>
             </ActionBar>

@@ -482,11 +482,14 @@ export const server = setupServer(
         { id: 'ts-3', name: 'Pomeriggio' },
       ],
       structure: { sectors: 3, umbrellas: 41, types: 3, packages: 3 },
-      team: [
-        { id: 'u-1', email: 'admin@coralyn.dev', role: 'admin', disabledAt: null },
-        { id: 'u-2', email: 'marco@lidomaestrale.it', role: 'staff', disabledAt: null },
-      ],
     }),
+  ),
+  // Il team è un endpoint a sé, admin-only: nell'overview non ci sono PII (D-064).
+  http.get('/api/establishment/users', () =>
+    HttpResponse.json([
+      { id: 'u-1', email: 'admin@coralyn.dev', role: 'admin', disabledAt: null },
+      { id: 'u-2', email: 'marco@lidomaestrale.it', role: 'staff', disabledAt: null },
+    ]),
   ),
   http.post('/api/establishment/users', async ({ request }) => {
     const b = (await request.json()) as { email: string; role: 'admin' | 'staff' };

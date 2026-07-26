@@ -97,6 +97,11 @@ describe('Autorizzazione del ruolo staff (e2e)', () => {
     it('GET /establishment/legal-profile', async () => {
       await request(app.getHttpServer()).get('/api/establishment/legal-profile').set(...bearer(staffT)).expect(403);
     });
+    // D-064: le email degli operatori sono PII che lo staff non ha ragione di leggere. Stanno qui
+    // e non nell'overview, che invece resta concessa (lista sopra) perché la usa l'app-shell.
+    it('GET /establishment/users (email degli operatori)', async () => {
+      await request(app.getHttpServer()).get('/api/establishment/users').set(...bearer(staffT)).expect(403);
+    });
     it('POST /establishment/sectors', async () => {
       await request(app.getHttpServer()).post('/api/establishment/sectors').set(...bearer(staffT)).send({ name: 'S' }).expect(403);
     });

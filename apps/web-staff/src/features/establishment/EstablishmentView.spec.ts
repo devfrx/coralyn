@@ -13,14 +13,21 @@ const settle = async () => { await flushPromises(); await new Promise((r) => set
 describe('EstablishmentView', () => {
   afterEach(() => server.resetHandlers());
 
-  it('rende nome, conteggi struttura, fasce e righe team dai dati reali', async () => {
+  it('rende nome, conteggi struttura e fasce dai dati reali', async () => {
     const w = mountApp(EstablishmentView);
     await settle();
     expect(w.text()).toContain('Lido Maestrale');
     expect(w.text()).toContain('41');
     expect(w.text()).toContain('Giornata · Mattina · Pomeriggio');
-    expect(w.text()).toContain('marco@lidomaestrale.it');
     expect(w.text()).toContain('Estate 2026');
+  });
+
+  it('admin: rende le righe team dall\'endpoint dedicato', async () => {
+    const w = mountApp(EstablishmentView);
+    const session = useSessionStore();
+    session.user = { id: 'u-1', email: 'admin@coralyn.dev', role: Role.Admin, establishmentId: 'e-1', establishmentName: 'Lido Maestrale' };
+    await settle();
+    expect(w.text()).toContain('marco@lidomaestrale.it');
   });
 
   it('marca "Tu" solo sull\'utente corrente', async () => {
@@ -42,7 +49,6 @@ describe('EstablishmentView', () => {
         activeSeason: null,
         timeSlots: [{ id: 'ts-1', name: 'Giornata' }],
         structure: { sectors: 0, umbrellas: 0, types: 0, packages: 0 },
-        team: [],
       })));
     const w = mountApp(EstablishmentView);
     await settle();
@@ -148,45 +154,39 @@ describe('EstablishmentView', () => {
     expect(seen).toEqual([{ id: 'u-2', disabled: true }]);
   });
 
-  it('staff: lista team read-only (nessun bottone gestione)', async () => {
+  // D-064: allo staff la lista non è read-only, non c'è. Prima vedeva le email di tutti gli
+  // operatori; il finding era esattamente quella lettura, non l'assenza dei bottoni.
+  it('staff: nessuna lista team e nessuna email di colleghi', async () => {
     const w = mountApp(EstablishmentView);
     const session = useSessionStore();
     session.user = { id: 'u-2', email: 'marco@lidomaestrale.it', role: Role.Staff, establishmentId: 'e-1', establishmentName: 'Lido Maestrale' };
     await settle();
     expect(w.find('[data-testid="add-user"]').exists()).toBe(false);
     expect(w.find('[data-testid="toggle-user-disabled"]').exists()).toBe(false);
+    expect(w.findAll('[data-testid="team-row"]')).toHaveLength(0);
+    expect(w.text()).not.toContain('admin@coralyn.dev');
   });
 
   it('mostra lo stato "Disabilitato" per i membri disabilitati', async () => {
-    server.use(http.get('/api/establishment/overview', () =>
-      HttpResponse.json({
-        establishment: { id: 'e-1', name: 'Lido Maestrale' },
-        activeSeason: null,
-        timeSlots: [{ id: 'ts-1', name: 'Giornata' }],
-        structure: { sectors: 0, umbrellas: 0, types: 0, packages: 0 },
-        team: [
-          { id: 'u-1', email: 'admin@coralyn.dev', role: 'admin', disabledAt: null },
-          { id: 'u-2', email: 'marco@lidomaestrale.it', role: 'staff', disabledAt: '2026-07-04T10:00:00.000Z' },
-        ],
-      })));
+    server.use(http.get('/api/establishment/users', () =>
+      HttpResponse.json([
+        { id: 'u-1', email: 'admin@coralyn.dev', role: 'admin', disabledAt: null },
+        { id: 'u-2', email: 'marco@lidomaestrale.it', role: 'staff', disabledAt: '2026-07-04T10:00:00.000Z' },
+      ])));
     const w = mountApp(EstablishmentView);
+    const session = useSessionStore();
+    session.user = { id: 'u-1', email: 'admin@coralyn.dev', role: Role.Admin, establishmentId: 'e-1', establishmentName: 'Lido Maestrale' };
     await settle();
     const row = w.findAll('[data-testid="team-row"]').find((r) => r.text().includes('marco@lidomaestrale.it'))!;
     expect(row.text()).toContain('Disabilitato');
   });
 
   it('admin: riabilita una riga disabilitata (PATCH disabled:false)', async () => {
-    server.use(http.get('/api/establishment/overview', () =>
-      HttpResponse.json({
-        establishment: { id: 'e-1', name: 'Lido Maestrale' },
-        activeSeason: null,
-        timeSlots: [{ id: 'ts-1', name: 'Giornata' }],
-        structure: { sectors: 0, umbrellas: 0, types: 0, packages: 0 },
-        team: [
-          { id: 'u-1', email: 'admin@coralyn.dev', role: 'admin', disabledAt: null },
-          { id: 'u-2', email: 'marco@lidomaestrale.it', role: 'staff', disabledAt: '2026-07-04T10:00:00.000Z' },
-        ],
-      })));
+    server.use(http.get('/api/establishment/users', () =>
+      HttpResponse.json([
+        { id: 'u-1', email: 'admin@coralyn.dev', role: 'admin', disabledAt: null },
+        { id: 'u-2', email: 'marco@lidomaestrale.it', role: 'staff', disabledAt: '2026-07-04T10:00:00.000Z' },
+      ])));
     const seen: Array<{ id: string; disabled: boolean }> = [];
     server.use(http.patch('/api/establishment/users/:id', async ({ params, request }) => {
       const b = (await request.json()) as { disabled: boolean };

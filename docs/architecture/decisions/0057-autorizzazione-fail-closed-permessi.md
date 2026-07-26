@@ -115,5 +115,8 @@ scoperti — è stato **verificato e scartato**: si veda *Alternatives considere
 3. **Modularità** — un solo meccanismo di autorizzazione; il vocabolario (`permission.ts`), il
    decoratore e il guard sono file distinti con una responsabilità ciascuno.
 4. **Zero debito** — il debito residuo è tracciato: [D-063](../deferred.md) per la
-   configurabilità e [D-064](../deferred.md) per la separazione di `team[]` dalla overview, che
-   resta leggibile dallo staff perché l'app-shell ne dipende.
+   configurabilità e [D-064](../deferred.md#d-064) per la separazione di `team[]` dalla overview, che
+   resta leggibile dallo staff perché l'app-shell ne dipende. ✅ **D-064 è chiusa dal 2026-07-26**
+   ([ADR-0060](0060-read-model-shell-senza-pii.md)): l'overview resta leggibile dallo staff — quella
+   parte della frase è ancora vera — ma non porta più dati personali, e il team ha un endpoint suo
+   sotto `team.manage`. Resta aperta la sola D-063.

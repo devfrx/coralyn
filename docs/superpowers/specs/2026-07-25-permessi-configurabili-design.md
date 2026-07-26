@@ -87,7 +87,9 @@ spec, non improvvisato.
   l'unico presidio è `authorization-staff.e2e-spec.ts`, che va **esteso** a ogni permesso nuovo.
 - **`GET /establishment/overview` è chiamata dall'app-shell a ogni caricamento** (`SidebarNav.vue`
   → `useActiveSeason` → `useEstablishmentOverview`). Renderla admin-only sloggia visivamente lo
-  staff dal nome della stagione. Vedi anche D-064.
+  staff dal nome della stagione. ⚠️ Da qui la regola di [ADR-0060](../../architecture/decisions/0060-read-model-shell-senza-pii.md):
+  quel payload ha il permesso del consumatore più debole, quindi **non può portare dati personali**
+  — presidiato dalle chiavi esatte del DTO e da «nessun `@` nella risposta».
 - **`SidebarNav.vue` mostra `operativeNav` a ogni ruolo**: Mappa, Prenotazioni, Noleggi, Rinnovi,
   Clienti, Listino, Listino noleggi, Report. È la mappa reale di «cosa fa lo staff oggi», e va
   aggiornata insieme ai permessi o le due letture divergono.
@@ -105,7 +107,7 @@ spec, non improvvisato.
 
 | ID | Cosa | Perché tocca questa slice |
 |---|---|---|
-| **D-064** | `GET /establishment/overview` restituisce `team[]` (email di tutti gli operatori) a chi ha `establishment.read`, cioè anche allo staff | è il caso PII che ha motivato AUD-004; separarlo è un cambio di contratto FE/BE |
+| ~~**D-064**~~ ✅ **chiusa 2026-07-26** | `GET /establishment/overview` **restituiva** `team[]` (email di tutti gli operatori) a chi ha `establishment.read`, cioè anche allo staff | era il caso PII che ha motivato AUD-004. Chiusa da [ADR-0060](../../architecture/decisions/0060-read-model-shell-senza-pii.md): il team è `GET /establishment/users` sotto `team.manage`. **Resta rilevante per questa slice** in senso opposto — è il precedente da seguire: un permesso più fine si ottiene separando il payload, non moltiplicando i decoratori sullo stesso |
 | **D-026** | nessuna revoca di un token già emesso (8h) | se i permessi viaggiano nel token, è lo stesso problema |
 | **AUD-026** | il fake `forTenant: (_t, cb) => cb(tx)` scarta il `tenantId`: nessun unit test può accorgersi di un tenant sbagliato | una risoluzione per-tenant va testata con un fake che **asserisce** il tenant |
 | **AUD-012** | 9 viste su 12 non consultano mai `isError` | un 403 nuovo si presenterebbe come schermata vuota, non come «non autorizzato» |

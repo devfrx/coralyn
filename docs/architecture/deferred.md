@@ -88,7 +88,7 @@ applicata ai link.
 | [D-061](#d-061) | Privacy policy operatori + cookie/imprint app interne | 🔓 aperta |
 | [D-062](#d-062) | DPA Coralyn↔lido e registro dei trattamenti | 🔓 aperta |
 | [D-063](#d-063) | Permessi dello staff configurabili dall'admin del lido | 🔓 aperta |
-| [D-064](#d-064) | `GET /establishment/overview` espone le email degli operatori | 🔓 aperta |
+| [D-064](#d-064) | `GET /establishment/overview` espone le email degli operatori | ✅ chiusa |
 | [D-065](#d-065) | Package frontend condiviso per il data-layer | ✅ chiusa |
 | [D-066](#d-066) | `pnpm run verify` va in OOM sotto pressione di memoria | 🔓 aperta |
 
@@ -157,22 +157,6 @@ Non stanno in una cella di tabella: contengono elenchi, blocchi di codice o tabe
   *Trigger*: il primo lido che chiede una divisione dei compiti diversa da admin/staff.
   *Impatto se ignorata*: bassa — il default di fabbrica riproduce il comportamento attuale, quindi
   nessun lido regredisce; ma ogni richiesta di personalizzazione resta una modifica al codice.
-
-
-- <a id="d-064"></a>**D-064** — **`GET /establishment/overview` espone `team[]` (email di tutti gli operatori) a chi
-  ha `establishment.read`, cioè anche allo staff.** È il caso PII che ha motivato AUD-004, e
-  l'inversione fail-closed **non lo chiude**: l'endpoint resta leggibile dallo staff perché
-  l'app-shell lo chiama a ogni caricamento per il nome della stagione attiva (`SidebarNav.vue` →
-  `useActiveSeason` → `useEstablishmentOverview`), quindi restringerlo lo romperebbe.
-  La risposta corretta non è un decoratore ma **separare il payload**: la parte che serve allo
-  shell da quella con PII (endpoint distinto per `team[]`, sotto `team.manage`), più il gating della
-  rotta `/establishment` nel router di `web-staff`, che oggi non ha `meta.role` — il link è nascosto
-  dal menu ma l'URL è raggiungibile.
-  *Perché rimandata*: è un **cambio di contratto FE/BE** (`EstablishmentOverviewDTO` in
-  `@coralyn/contracts` + le viste che lo consumano), fuori dal perimetro di una slice di
-  autorizzazione. *Trigger*: la prossima modifica alla scheda Stabilimento, o l'ingresso di un lido
-  con più di due o tre operatori. *Impatto se ignorata*: **media** — è PII di operatori resa a un
-  ruolo che non ne ha bisogno, su una superficie che i documenti legali descrivono.
 
 
 - <a id="d-066"></a>**D-066** — **`pnpm run verify` va in OOM quando la macchina è sotto pressione di memoria.**
@@ -308,6 +292,29 @@ stata rimandata, non solo che è stata fatta.
   (entrambe le tabelle), come nella Scheda cliente. Alternativa rigettata: label in projection sui
   DTO di lista (seconda fonte di verità). Nessuna migration, nessun contratto nuovo.
 
+
+- <a id="d-064"></a>**D-064** — **`GET /establishment/overview` esponeva `team[]` (email di tutti gli
+  operatori) a chi ha `establishment.read`, cioè anche allo staff.**
+  ✅ **CHIUSA il 2026-07-26** — [ADR-0060](decisions/0060-read-model-shell-senza-pii.md): `team[]`
+  esce dall'overview, il team è `GET /establishment/users` sotto `team.manage` (il controller aveva
+  già quel permesso di classe e POST/PATCH: mancava solo il GET).
+  *Perché era stata rimandata*: è un **cambio di contratto FE/BE** (`EstablishmentOverviewDTO` in
+  `@coralyn/contracts` + le due viste che lo consumano), fuori dal perimetro della slice di
+  autorizzazione che aveva chiuso AUD-004.
+  L'esecuzione ha **corretto due enunciati di questa voce**, e uno cambiava la gravità:
+  1. «il link è nascosto dal menu ma l'URL è raggiungibile» era **falso**: il bottone col nome del
+     lido in `SidebarNav.vue` fa `router.push('/establishment')` ed è **incondizionato**. Lo staff
+     ci arrivava con un click.
+  2. «più il gating della rotta `/establishment`» è stato **scartato con la ragione**: rilette tutte
+     le card della pagina, ognuna delle superfici admin ha già `v-if="isAdmin"`, quindi tolte le
+     email non resta nulla da nascondere — mentre il gate toglierebbe allo staff una pagina che usa
+     legittimamente. Si è resa la rotta **innocua** invece di negarla.
+
+  Il presidio è sul **payload**, non sul permesso, perché è il payload che può crescere: le chiavi
+  esatte del DTO nel job veloce, «nessun `@` nella risposta» nelle e2e. Provato per mutazione:
+  rimettere un campo con un'email fa **2 rossi**, uno per livello. Sul fronte le guardie sono due
+  (query `enabled` admin-only **e** card `v-if`), e la mutazione ha mostrato che non sono ridondanti
+  — togliendo solo la card le email **non** arrivavano a schermo, togliendo entrambe sì.
 
 - <a id="d-065"></a>**D-065** — **Package FE condiviso per il data-layer.**
   ✅ **CHIUSA il 2026-07-25** — [ADR-0058](decisions/0058-package-data-layer-condiviso.md),

@@ -26,28 +26,8 @@ describe('toEstablishmentOverview', () => {
     seasons: [{ name: 'Estate 2026', startDate: d('2026-06-01'), endDate: d('2026-09-15') }],
     timeSlots: [{ id: 't1', name: 'Mattina' }, { id: 't2', name: 'Pomeriggio' }],
     structure: { sectors: 3, umbrellas: 41, types: 3, packages: 3 },
-    users: [
-      { id: 'u3', email: 'sara@lido.it', role: 'staff', disabledAt: d('2026-07-01') },
-      { id: 'u1', email: 'giulia@lido.it', role: 'admin', disabledAt: null },
-      { id: 'u2', email: 'marco@lido.it', role: 'staff', disabledAt: null },
-      { id: 'u4', email: 'root@platform.it', role: 'superuser', disabledAt: null },
-    ],
     todayIso: '2026-07-04',
   };
-
-  it('esclude il superuser e ordina admin-first poi email asc', () => {
-    const dto = toEstablishmentOverview(raw);
-    expect(dto.team.map((m) => m.email)).toEqual(['giulia@lido.it', 'marco@lido.it', 'sara@lido.it']);
-    expect(dto.team.some((m) => (m.role as string) === 'superuser')).toBe(false);
-  });
-
-  it('espone disabledAt come ISO per i disabilitati, null per gli attivi', () => {
-    const dto = toEstablishmentOverview(raw);
-    const byEmail = Object.fromEntries(dto.team.map((m) => [m.email, m.disabledAt]));
-    expect(byEmail['sara@lido.it']).toBe('2026-07-01T00:00:00.000Z');
-    expect(byEmail['giulia@lido.it']).toBeNull();
-    expect(byEmail['marco@lido.it']).toBeNull();
-  });
 
   it('compone establishment, activeSeason, timeSlots e structure', () => {
     const dto = toEstablishmentOverview(raw);
@@ -55,5 +35,13 @@ describe('toEstablishmentOverview', () => {
     expect(dto.activeSeason).toEqual({ name: 'Estate 2026', startDate: '2026-06-01', endDate: '2026-09-15' });
     expect(dto.timeSlots).toHaveLength(2);
     expect(dto.structure).toEqual({ sectors: 3, umbrellas: 41, types: 3, packages: 3 });
+  });
+
+  // D-064: questo payload è leggibile con `establishment.read`, cioè da tutto lo staff. La lista
+  // esatta delle chiavi è il presidio nel job veloce (le e2e girano nel job con Postgres): un campo
+  // nuovo qui dentro deve passare da questa riga, e chi la aggiorna decide consapevolmente se è
+  // materiale che ogni operatore può leggere.
+  it('non espone dati personali: le chiavi sono esattamente quelle dello shell', () => {
+    expect(Object.keys(toEstablishmentOverview(raw)).sort()).toEqual(['activeSeason', 'establishment', 'structure', 'timeSlots']);
   });
 });

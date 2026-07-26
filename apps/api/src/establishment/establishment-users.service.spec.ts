@@ -5,9 +5,9 @@ import { EstablishmentUsersService } from './establishment-users.service';
 const TENANT = 't-1';
 
 function makeService(overrides: {
-  user?: Partial<{ create: jest.Mock; findFirst: jest.Mock; count: jest.Mock; update: jest.Mock }>;
+  user?: Partial<{ create: jest.Mock; findFirst: jest.Mock; findMany: jest.Mock; count: jest.Mock; update: jest.Mock }>;
 } = {}) {
-  const user = { create: jest.fn(), findFirst: jest.fn(), count: jest.fn(), update: jest.fn(), ...overrides.user };
+  const user = { create: jest.fn(), findFirst: jest.fn(), findMany: jest.fn(), count: jest.fn(), update: jest.fn(), ...overrides.user };
   const prisma = { user } as any;
   const tenant = { require: () => TENANT } as any;
   const hasher = { hash: jest.fn().mockResolvedValue('HASH') } as any;
@@ -16,6 +16,31 @@ function makeService(overrides: {
 }
 
 describe('EstablishmentUsersService', () => {
+  // D-064: la lista è arrivata qui dall'overview, che resta leggibile da tutto lo staff.
+  // L'ordine è quello che la UI mostrava prima dello spostamento, non uno nuovo.
+  describe('list', () => {
+    it('ordina admin-first poi email asc, e mappa disabledAt in ISO', async () => {
+      const { service, user } = makeService();
+      user.findMany.mockResolvedValue([
+        { id: 'u3', email: 'sara@lido.it', role: 'staff', disabledAt: new Date('2026-07-01T00:00:00Z') },
+        { id: 'u1', email: 'giulia@lido.it', role: 'admin', disabledAt: null },
+        { id: 'u2', email: 'marco@lido.it', role: 'staff', disabledAt: null },
+      ]);
+      const res = await service.list();
+      expect(res.map((m) => m.email)).toEqual(['giulia@lido.it', 'marco@lido.it', 'sara@lido.it']);
+      expect(res.map((m) => m.disabledAt)).toEqual([null, null, '2026-07-01T00:00:00.000Z']);
+    });
+
+    it('interroga solo il proprio tenant e solo i ruoli del lido', async () => {
+      const { service, user } = makeService();
+      user.findMany.mockResolvedValue([]);
+      await service.list();
+      expect(user.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({ where: { establishmentId: TENANT, role: { in: ['admin', 'staff'] } } }),
+      );
+    });
+  });
+
   describe('create', () => {
     it('crea con hash inutilizzabile ed emette un invito (issueAndSend invite)', async () => {
       const { service, user, hasher, credentials } = makeService();

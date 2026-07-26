@@ -1,4 +1,4 @@
-import { Body, Controller, Param, Patch, Post } from '@nestjs/common';
+import { Body, Controller, Get, Param, Patch, Post } from '@nestjs/common';
 import type { EstablishmentMemberDTO, ResetStaffPasswordResponse } from '@coralyn/contracts';
 import { Permission } from '../identity/permission';
 import { RequiresPermission } from '../identity/permission.decorator';
@@ -12,6 +12,13 @@ import { UpdateStaffUserDto } from './dto/update-staff-user.dto';
 @RequiresPermission(Permission.TeamManage)
 export class EstablishmentUsersController {
   constructor(private readonly users: EstablishmentUsersService) {}
+
+  // Le email degli operatori vivono qui e non nell'overview: il permesso di classe è `team.manage`,
+  // cioè admin, mentre l'overview è leggibile da tutto lo staff (D-064).
+  @Get()
+  list(): Promise<EstablishmentMemberDTO[]> {
+    return this.users.list();
+  }
 
   @Post()
   create(@Body() body: CreateStaffUserDto, @CurrentUser() user: AuthUser): Promise<EstablishmentMemberDTO> {

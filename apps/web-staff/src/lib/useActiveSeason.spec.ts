@@ -37,7 +37,6 @@ describe('useActiveSeason', () => {
           activeSeason: null,
           timeSlots: [],
           structure: { sectors: 0, umbrellas: 0, types: 0, packages: 0 },
-          team: [],
         }),
       ),
     );

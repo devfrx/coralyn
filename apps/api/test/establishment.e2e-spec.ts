@@ -67,11 +67,14 @@ describe('Establishment overview (e2e)', () => {
     expect(res.body.timeSlots.map((t: { name: string }) => t.name)).toEqual(['Mattina', 'Pomeriggio']);
   });
 
-  it('team: solo utenti del tenant (superuser escluso), admin-first', async () => {
+  // D-064. Il tenant ha due operatori con email note, quindi l'assenza è una misura e non
+  // un'assunzione: se `team[]` tornasse nell'overview questo test le troverebbe. Il permesso
+  // dell'endpoint è inchiodato al consumatore più debole (l'app-shell lo carica a ogni
+  // navigazione, con `establishment.read`), perciò la difesa è sul payload, non sul permesso.
+  it('nessun dato personale nel payload dello shell', async () => {
     const res = await request(app.getHttpServer()).get('/api/establishment/overview').set(...bearer(t1)).expect(200);
-    const emails = res.body.team.map((m: { email: string }) => m.email);
-    expect(emails).toEqual(['est.admin@e2e.test', 'est.staff@e2e.test']);
-    expect(res.body.team[0].role).toBe('admin');
+    expect(res.body).not.toHaveProperty('team');
+    expect(JSON.stringify(res.body)).not.toMatch(/@/);
   });
 });
 
