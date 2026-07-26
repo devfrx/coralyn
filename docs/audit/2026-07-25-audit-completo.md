@@ -26,8 +26,15 @@ Perimetro: **tutto il repo**, partizionato in 9 aree × 11 livelli. Modalità: r
 > ⚠️ **Aggiornato il 2026-07-25 (sessione 7):** D-065 è **mergiata** su `main` (CI verde, e2e
 > comprese) e la **Fase G è chiusa** (G1, G2, G3): **AUD-024**, **AUD-025**, **AUD-026**,
 > **AUD-027**, **AUD-028**, **P6-001**, **P6-002**, **P6-003**, **P6-006**, **P6-009**, **P6-010**,
-> **P6-018**, **P6-020**. Resta la **Fase H**. Aperta [D-066](../architecture/deferred.md) —
+> **P6-018**, **P6-020**. ~~Resta la **Fase H**.~~ Aperta [D-066](../architecture/deferred.md) —
 > fragilità del gate `verify`, trovata eseguendo.
+>
+> ⚠️ **Aggiornato il 2026-07-26 (sessione 9): tutte le fasi del piano sono chiuse.** La **Fase H**
+> è finita (README di `web-staff`, guida deploy), e **D-064** — l'unico finding di sicurezza dei
+> dati ancora aperto — è chiusa da [ADR-0060](../architecture/decisions/0060-read-model-shell-senza-pii.md).
+> Restano fuori dal piano, **di proposito**: AUD-015 (immagine API single-stage come root, urgente il
+> giorno del primo deploy), AUD-022 (500 INSERT sequenziali), AUD-020/021 (prestazioni). E resta
+> aperta **D-066**, che è una decisione dell'utente su due assi.
 >
 > ⚠️ **AUD-027 va letta con la misura accanto**: «1024 LOC, zero unit test» è vero, «quindi è
 > scoperto» **no** — le e2e ne eseguivano già il **96,4 %** delle righe e 7 mutazioni su 8 cadono.
@@ -459,7 +466,7 @@ guardiano è a un livello solo, ed è quello lento (radice **R4**, non R3).
 1005-1006). Richiedono una race vera; il constraint è coperto a livello DB da
 `booking-overlap-constraint.e2e-spec.ts`. Annotato nel codice per non farli "coprire" con test finti.
 
-### 🟡 Fase H — Documentazione *(chiude R-G)* — **in corso**
+### ✅ Fase H — Documentazione *(chiude R-G)* — **chiusa il 2026-07-26**
 23. ✅ **Link markdown** — da **~100** rotti a **19**. ⚠️ Il numero storico «67 in 22 documenti» era
     misurato con lo stesso punto cieco della prima versione del checker: contava **solo** i link che
     iniziano per punto, e **saltava del tutto** quelli scritti nudi (`docs/architecture/...`), che
@@ -519,7 +526,21 @@ guardiano è a un livello solo, ed è quello lento (radice **R4**, non R3).
     ⚠️ **D-035 renderizzava come 12 righe**, 11 delle quali orfane con 4 colonne vuote (riga di
     tabella spezzata su 12 righe fisiche). Verificato **sul renderer di GitHub**, non dedotto: la mia
     deduzione dalla specifica GFM diceva una cosa più grave e sbagliata.
-27. 🔓 **Restano**: README di `web-staff` e guida deploy.
+27. ✅ **README di `web-staff` (P8-010)** — diceva due cose false, entrambe verificate sul codice:
+    «MSW mocka la Mappa» in dev (MSW è agganciato **solo** da `vitest.config.ts` →
+    `src/test/setup.ts`, e `main.ts` de-registra un eventuale worker rimasto) e `/api/clienti`
+    (zero occorrenze in `apps/api/src` da [ADR-0030](../architecture/decisions/0030-codice-e-db-in-inglese.md)).
+    Riscritto: cosa fa il dev server, dove vive davvero MSW, e la dipendenza da `@coralyn/data-layer`
+    che nel 2026-06-30 non esisteva.
+28. ✅ **Guida deploy (P8-011)** — il Passo 7 faceva cercare nei log «avvio API su :3000», che
+    **nessuno stampava**. Corretto **alla radice**: `main.ts` logga ora quella riga via il `Logger`
+    di Nest (già in uso in 2 service), con la porta interpolata da `PORT`. ⚠️ Le due metà stanno per
+    forza in due file, quindi la coerenza è presidiata:
+    [`deploy-guide.spec.ts`](../../packages/docs-lint/src/deploy-guide.spec.ts) legge la stringa fra
+    virgolette del Passo 7 e pretende che `main.ts` la stampi. **Tre mutazioni, tre rossi**: messaggio
+    cambiato nel codice, testo cambiato nella guida, log rimosso del tutto.
+
+**La Fase H è chiusa.**
 
 ---
 
