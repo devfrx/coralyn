@@ -31,11 +31,20 @@ trovati **quattro** bug al suo interno, tutti da casi a risposta nota e nessuno 
 | 2 | la variation selector U+FE0F (categoria `Mn`) sopravviveva al filtro | un carattere invisibile nello slug → anchor corretti segnalati rotti |
 | 3 | una patch applicata via shell ha raddoppiato i backslash | il filtro cancellava le lettere `u/F/E/0/D` da **ogni** slug: 6 casi rossi |
 | 4 | `**DoD [ADR-0009]:**`, grassetto spezzato su due righe, letto come *link reference definition* con destinazione `**` | **18 rotti dichiarati invece di 17** |
+| 5 | l'esistenza di un target giudicata sul **working tree** invece che su cosa il repo contiene | un link a `RUNBOOK.local.md`, **gitignorato**, verde in locale e **rosso in CI** |
 
 Sommati ai tre della sessione precedente (link nudi non contati, slug con `\s+` invece di ` `,
-`fs.existsSync` case-insensitive su Windows), fanno **sette bug nello strumento** contro **zero**
+`fs.existsSync` case-insensitive su Windows), fanno **otto bug nello strumento** contro **zero**
 scoperte sbagliate sull'oggetto misurato. Un gate che sbaglia è peggio di nessun gate: il primo tipo
 di errore lascia passare il debito, il secondo insegna a ignorare il rosso.
+
+⚠️ **L'ottavo l'ha trovato la CI, non la fixture, ed è il più istruttivo.** La prima versione di
+questo gate è stata mergiata verde in locale e ha fatto **rosso il job `static`** al primo push. La
+causa non era la concorrenza né l'ambiente: `readdir` vede anche i file **gitignorati**, e
+`docs/handoff/2026-07-25-legale-...md` linkava `../../RUNBOOK.local.md`, che su quella macchina
+esiste e nel repo no. Il gate costruito per prendere i link che sono rotti *per chi legge su GitHub*
+stava usando come verità il disco di chi scrive — cioè commetteva esattamente l'errore che doveva
+sorvegliare. La fixture non poteva vederlo: era costruita sul filesystem.
 
 ## Decision
 
@@ -57,14 +66,20 @@ esistente con il case sbagliato, il grassetto spezzato su due righe, l'inline-co
 Spedire il misuratore senza casi a risposta nota sarebbe stato istituzionalizzare l'errore invece di
 chiuderlo.
 
-**4. L'elenco dei file viene da `git ls-files`, non da una `readdir`.** `RUNBOOK.local.md` e tutto
-`.superpowers/` sono gitignorati: scandirli farebbe fallire il gate su file che non stanno nel repo,
-cioè rosso su una macchina e verde su un'altra.
+**4. L'esistenza di un target si giudica su ciò che il repo CONTIENE, non sul working tree.** Un
+solo `git ls-files --cached --others --exclude-standard` produce sia l'elenco dei documenti da
+leggere sia l'indice di ciò che esiste (`RepoIndex`). Le due cose erano una sola all'inizio, ed è
+stato l'ottavo bug: il disco contiene anche i gitignorati, che su GitHub non ci sono. La `readdir` è
+sparita del tutto — `root` serve ora soltanto a **leggere** i contenuti per gli anchor.
+`--others --exclude-standard` accanto a `--cached` è deliberato: un documento appena scritto e non
+ancora `git add`-ato dev'essere controllato, altrimenti il gate è verde proprio sul file che sta per
+introdurre il link rotto.
 
-**5. Il confronto dei path è case-sensitive per costruzione**, segmento per segmento contro
-`readdir`, e non tramite `fs.existsSync`. Su Windows e macOS un link con il case sbagliato passa in
-locale e dà 404 su GitHub e in CI: è la classe di difetto che un gate *deve* prendere, ed è invisibile
-alla macchina su cui questo repo viene sviluppato.
+**5. Il confronto dei path è case-sensitive per costruzione**, contro l'indice di git e non contro il
+filesystem. Su Windows e macOS un link con il case sbagliato passa in locale e dà 404 su GitHub: è la
+classe di difetto che un gate *deve* prendere, ed è invisibile alla macchina su cui questo repo viene
+sviluppato. Giudicare sull'indice lo rende esatto due volte — git è case-sensitive **e** registra il
+nome canonico, mentre `readdir` su Windows restituisce quello del disco.
 
 **6. L'allow-list ha una voce sola, e non può invecchiare.** Una voce dichiarata che non risulta più
 rotta **fa rosso** il gate e va cancellata. Senza questa regola l'allow-list diventerebbe
@@ -72,12 +87,14 @@ rotta **fa rosso** il gate e va cancellata. Senza questa regola l'allow-list div
 la **ragione** per cui il link non è riparabile, e il test pretende che ci sia.
 
 **7. I link rotti storici si riparano o si de-linkano; si dichiarano solo se non c'è altra via.**
-L'audit ne dava 17 da mettere in allow-list. Riesaminati caso per caso:
+L'audit ne dava **17** da mettere in allow-list; misurati con il checker corretto sulla revisione
+`c0dcba9` sono **18** — il diciottesimo è proprio il `RUNBOOK.local.md` che il bug #5 nascondeva.
+Riesaminati caso per caso:
 
 | Trattamento | Quanti | Criterio |
 |---|---|---|
 | **Riparati** | 2 | ADR-0010 e ADR-0015: il testo visibile è «ADR-00NN» e resta vero. `git log --diff-filter=A` dimostra che i due filename citati **non sono mai esistiti** — quei link erano rotti dalla nascita, quindi ripararli non falsifica un verbale |
-| **De-linkati** | 14 | il path era **già il testo visibile** del link: togliere il link e lasciare il path in `code` conserva la frase **byte per byte** e non lascia un 404 |
+| **De-linkati** | 15 | il path era **già il testo visibile** del link: togliere il link e lasciare il path in `code` conserva la frase **byte per byte** e non lascia un 404 |
 | **Dichiarati** | 1 | il placeholder `NNNN-....md` del template ADR, che deve restare un link perché insegna la forma da copiare |
 
 Il de-link è la via che l'audit non aveva considerato, ed è migliore delle due che aveva: dichiarare
@@ -112,15 +129,19 @@ lascia un 404 in piedi, ripuntare l'href a `packages/data-layer` farebbe dire a 
   `deferred.md` — uno verso un file inesistente e uno verso `0058-package-data-layer-CONDIVISO.md`,
   che esiste solo in minuscolo: il gate li ha presi entrambi, e sul secondo ha stampato il nome
   reale del file. Quel secondo caso è invisibile al filesystem di questa macchina.
-- **Sette mutazioni, sette rossi, con attribuzione.** Nessuna è passata inosservata: `\s+` negli
-  slug → **4 rossi**; `DEFINITION` senza ancora → **2**; confronto case-insensitive → **2**;
-  estrazione che non salta i fence → **2**; link rotto nuovo → **1**; allow-list svuotata → **2**;
-  rotto dichiarato riparato → **2** (fra cui «nessuna voce inutile»).
+- **Otto mutazioni, otto rossi, con attribuzione.** Nessuna è passata inosservata: `\s+` negli
+  slug → **4 rossi**; `DEFINITION` senza ancora → **2**; risoluzione case-insensitive → **2**;
+  «tutto esiste» (il target non trovato diventa un file) → **7**; estrazione che non salta i fence
+  → **2**; link rotto nuovo → **1**; allow-list svuotata → **2**; rotto dichiarato riparato → **2**
+  (fra cui «nessuna voce inutile»).
+- **Il repo-invece-del-disco ha un caso di regressione permanente**: nella fixture, un file scritto
+  sul filesystem e assente dall'elenco del repo dev'essere `broken-path`. È il caso che la CI ha
+  dovuto insegnare alla fixture.
 - **Il gate ha un controllo positivo sui dati veri**, non solo su una fixture: la voce di allow-list
   è un link rotto reale, e il test «riconosce ancora un link rotto quando c'è» diventa rosso se il
   checker smettesse di vederne. Un misuratore che si azzera non può più dare falsi verdi.
-- **+47 test** (1613 → **1660**), **0 warning di lint nuovi**, `typecheck` da 8 a **9** progetti.
-- **Il repo passa da 17 link rotti a 1**, e quell'uno ha una ragione scritta.
+- **+49 test** (1613 → **1662**), **0 warning di lint nuovi**, `typecheck` da 8 a **9** progetti.
+- **Il repo passa da 18 link rotti a 1**, e quell'uno ha una ragione scritta.
 
 ### Negative / Trade-off
 
@@ -136,15 +157,16 @@ lascia un 404 in piedi, ripuntare l'href a `packages/data-layer` farebbe dire a 
 - **14 documenti storici hanno un link in meno.** La frase è identica, la navigazione no: dove prima
   c'era un link cliccabile ora c'è un path in `code`. È il prezzo scelto per non riscrivere verbali
   datati.
-- **Il filtro degli invisibili copre il solo U+FE0F**, perché è l'unico misurato (18 heading su 315
+- **Il filtro degli invisibili copre il solo U+FE0F**, perché è l'unico misurato (18 heading su 316
   documenti; U+FE0E, ZWJ e modificatori di tono: **zero**). Un heading con un'emoji composta da ZWJ
   produrrebbe un falso positivo. È dichiarato nel commento accanto alla riga.
 
 ### Neutre / Note
 
-- Perimetro dichiarato: **315 file `.md` versionati, 3117 link** (inline, immagini, `<a href>`,
-  reference-definition), esclusi quelli dentro fence e inline-code. Durata del solo checker: 328 ms.
-- **2 link su 3117 usano un anchor.** La verifica degli anchor c'è ed è vincolata, ma non è lì che
+- Perimetro dichiarato: **316 file `.md`** su 1082 file del repo, **3111 link** (inline, immagini,
+  `<a href>`, reference-definition), esclusi quelli dentro fence e inline-code. Durata della
+  classificazione: **186 ms**.
+- **2 link su 3111 usano un anchor.** La verifica degli anchor c'è ed è vincolata, ma non è lì che
   questo gate guadagna: il valore è nell'esistenza dei path e nel case.
 
 ## Rubric check

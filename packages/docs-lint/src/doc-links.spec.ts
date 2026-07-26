@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import path from 'node:path';
 import { ALLOWED_BROKEN_LINKS } from './doc-links.allow';
-import { BROKEN_VERDICTS, classifyLinks, formatLink, listMarkdownFiles, type ClassifiedLink } from './link-check';
+import { BROKEN_VERDICTS, classifyLinks, formatLink, listRepoFiles, type ClassifiedLink } from './link-check';
 
 /**
  * Il gate: nessun link relativo rotto nei `.md` versionati, tranne quelli dichiarati in
@@ -19,8 +19,11 @@ import { BROKEN_VERDICTS, classifyLinks, formatLink, listMarkdownFiles, type Cla
  */
 const ROOT = path.resolve(import.meta.dirname, '../../..');
 
-const files = listMarkdownFiles(ROOT);
-const links = classifyLinks(ROOT, files);
+// `repoFiles` decide cosa ESISTE, `files` cosa viene LETTO. Passare due volte lo stesso elenco
+// direbbe che l'unica cosa esistente nel repo sono i `.md`, e ogni link a un sorgente sarebbe rotto.
+const repoFiles = listRepoFiles(ROOT);
+const files = repoFiles.filter((f) => f.endsWith('.md'));
+const links = classifyLinks(ROOT, files, repoFiles);
 const broken = links.filter((l) => BROKEN_VERDICTS.has(l.verdict));
 
 const key = (l: { file: string; target: string }): string => `${l.file} → ${l.target}`;

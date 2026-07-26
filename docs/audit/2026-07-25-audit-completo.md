@@ -471,11 +471,15 @@ guardiano è a un livello solo, ed è quello lento (radice **R4**, non R3).
     da D-065, una migration rinominata, due riferimenti fuori dal repo.
     ⚠️ **Chiuso il 2026-07-26, e il «lasciati di proposito» che stava qui era una falsa alternativa.**
     Il vincolo vero è non far dire a un handoff di giugno un path che a giugno non esisteva — e lo si
-    rispetta anche **togliendo il link** e lasciando il path in `code`, perché in 14 casi su 17 il
+    rispetta anche **togliendo il link** e lasciando il path in `code`, perché in 15 casi su 18 il
     path *era già il testo visibile*: la frase resta byte per byte, il 404 sparisce. Altri **2** sono
     stati riparati (`git log --diff-filter=A` dimostra che i filename di ADR-0010 e ADR-0015 citati lì
     **non sono mai esistiti**: rotti dalla nascita, quindi nessun verbale da falsificare). Resta
     **1** dichiarato, con la sua ragione. Vedi [ADR-0059](../architecture/decisions/0059-gate-link-documenti.md).
+    ⚠️ **Erano 18, non 17**: il diciottesimo puntava a `RUNBOOK.local.md`, che è **gitignorato**. Ogni
+    misuratore usato finora — compresa la prima versione del gate — lo dichiarava verde, perché
+    guardava il *working tree* di chi scrive invece dell'elenco di ciò che il repo contiene. È
+    l'ottavo bug dello strumento, e l'ha trovato la CI al primo push.
     ⚠️ **Anchor: 0 rotti su 2169 link relativi** (solo 2 ne hanno uno). L'avvertenza del §5 di questo
     report — «gli anchor non sono mai stati verificati, quindi il numero vero è più alto» — è
     **decaduta**. Due «anchor rotti» inizialmente segnalati erano un **bug del misuratore**: GitHub
@@ -494,14 +498,14 @@ guardiano è a un livello solo, ed è quello lento (radice **R4**, non R3).
     5432 e 22: è la radice versionata di **AUD-019**).
     ⚠️ **Decaduta**: «l'indice ADR si ferma a 0051» — arriva a **0058**, verificato.
 25. ✅ **Le asserzioni verificabili dai documenti ai test** — il checker dei link è un **gate**, sul
-    modello di `single-source.spec.ts`: `packages/docs-lint`, 47 test, dentro `pnpm -r test` e
+    modello di `single-source.spec.ts`: `packages/docs-lint`, 49 test, dentro `pnpm -r test` e
     `pnpm -r typecheck` senza toccare né `verify` né il workflow della CI.
-    ⚠️ **Lo strumento aveva sette bug e l'oggetto misurato zero** — quattro trovati costruendolo
+    ⚠️ **Lo strumento aveva otto bug e l'oggetto misurato zero** — cinque trovati costruendolo
     (inline-code negli heading, la variation selector U+FE0F, backslash raddoppiati da una patch via
-    shell, il grassetto spezzato letto come reference definition: da solo faceva 18 rotti invece di
-    17), tre ereditati. Per questo lo strumento ha uno spec suo con i casi che li hanno smascherati,
-    ed è la ragione per cui il gate è un package e non uno script alla radice.
-    Sette mutazioni, sette rossi con attribuzione. [ADR-0059](../architecture/decisions/0059-gate-link-documenti.md).
+    shell, il grassetto spezzato letto come reference definition, e l'esistenza giudicata sul working
+    tree invece che sul repo), tre ereditati. Per questo lo strumento ha uno spec suo con i casi che
+    li hanno smascherati, ed è la ragione per cui il gate è un package e non uno script alla radice.
+    Otto mutazioni, otto rossi con attribuzione. [ADR-0059](../architecture/decisions/0059-gate-link-documenti.md).
 26. 🔓 **Restano**: igiene di `deferred.md` (~74k caratteri, ≥7 voci chiuse ancora in tabella) ·
     README di `web-staff` e guida deploy.
 

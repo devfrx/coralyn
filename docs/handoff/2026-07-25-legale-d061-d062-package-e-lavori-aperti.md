@@ -141,7 +141,7 @@ build arg che riusa `CUSTOMER_APP_URL` da `.env.prod` (una sola fonte per l'orig
 - **Il DB è sulla 5433**, non 5432 (viene da un `docker-compose.override.yml` gitignorato e assente).
 - **File locali gitignorati e assenti dopo un clone**: `node_modules/`, `.env`, `.env.test`,
   `apps/api/.env`, `apps/web-staff/.env`, `docker-compose.override.yml`, `.superpowers/`.
-  **Tutti i comandi di bootstrap sono in [`RUNBOOK.local.md`](../../RUNBOOK.local.md)** (gitignorato,
+  **Tutti i comandi di bootstrap sono in `RUNBOOK.local.md`** (gitignorato,
   scritto in questa sessione, con credenziali dev verificate e flusso token cliente end-to-end).
 - **L'API legge `apps/api/.env`**, non il `.env` della root (`ConfigModule` senza `envFilePath` →
   cwd del processo, che con `pnpm --filter` è la cartella del package). Tienili allineati.

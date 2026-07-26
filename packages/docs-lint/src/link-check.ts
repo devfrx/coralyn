@@ -203,51 +203,62 @@ export function extractLinks(file: string, content: string): Link[] {
   return links;
 }
 
-// ------------------------------------------------------------------ esistenza case-sensitive
+// ---------------------------------------------------------- esistenza: il repo, non il disco
 
 /**
- * Risolve un path **confrontando i nomi segmento per segmento** invece di chiedere al filesystem.
- * `fs.existsSync('OK.md')` risponde `true` su Windows e su macOS quando il file e' `ok.md`: il
- * link passerebbe in locale e darebbe 404 su GitHub e in CI (bug #3).
+ * L'indice di cio' che il repo CONTIENE, costruito dall'elenco dei file e non dal filesystem.
+ *
+ * ⚠️ Questa distinzione e' l'ottavo bug dello strumento, e l'ha trovato la CI e non la fixture.
+ * La prima versione risolveva i path con `readdir` sul working tree, che contiene anche i file
+ * **gitignorati**: `docs/handoff/2026-07-25-legale-...md` linkava `../../RUNBOOK.local.md`, che su
+ * questa macchina esiste e nel repo no. Verde in locale, **rosso in CI**, e 404 per chiunque apra
+ * il documento su GitHub — cioe' esattamente la classe di difetto per cui questo gate esiste.
+ *
+ * Giudicare sull'elenco del repo rende la risposta indipendente dallo stato del working tree, ed
+ * e' anche cio' che rende esatto il controllo sul case: l'indice di git e' case-sensitive e
+ * registra il nome canonico, mentre `readdir` su Windows restituisce quello del disco.
  */
-export type Resolution = { readonly kind: 'file' | 'dir' } | { readonly kind: 'case'; readonly actual: string } | null;
+export interface RepoIndex {
+  readonly files: ReadonlySet<string>;
+  readonly dirs: ReadonlySet<string>;
+  /** minuscolo → nome reale, per dire *quale* file si intendeva quando il case e' sbagliato */
+  readonly byLowercase: ReadonlyMap<string, string>;
+}
 
-export function resolveCaseSensitive(root: string, relative: string, dirCache = new Map<string, fs.Dirent[] | null>()): Resolution {
-  const readDir = (abs: string): fs.Dirent[] | null => {
-    if (!dirCache.has(abs)) {
-      try {
-        dirCache.set(abs, fs.readdirSync(abs, { withFileTypes: true }));
-      } catch {
-        dirCache.set(abs, null);
-      }
+export type Resolution =
+  | { readonly kind: 'file' | 'dir' }
+  | { readonly kind: 'case'; readonly actual: string }
+  | null;
+
+export function buildRepoIndex(paths: readonly string[]): RepoIndex {
+  const files = new Set<string>();
+  const dirs = new Set<string>();
+  const byLowercase = new Map<string, string>();
+
+  for (const raw of paths) {
+    const file = raw.replace(/\\/g, '/').replace(/^\.\//, '');
+    if (!file) continue;
+    files.add(file);
+    byLowercase.set(file.toLowerCase(), file);
+
+    const segments = file.split('/');
+    for (let i = 1; i < segments.length; i++) {
+      const dir = segments.slice(0, i).join('/');
+      dirs.add(dir);
+      byLowercase.set(dir.toLowerCase(), dir);
     }
-    return dirCache.get(abs) ?? null;
-  };
-
-  const segments = relative.split('/').filter((s) => s.length > 0 && s !== '.');
-  let current = root;
-
-  for (let i = 0; i < segments.length; i++) {
-    const segment = segments[i];
-    if (segment === '..') {
-      current = path.dirname(current);
-      continue;
-    }
-    const entries = readDir(current);
-    if (!entries) return null;
-
-    const exact = entries.find((e) => e.name === segment);
-    if (!exact) {
-      const insensitive = entries.find((e) => e.name.toLowerCase() === segment.toLowerCase());
-      if (insensitive) {
-        return { kind: 'case', actual: [...segments.slice(0, i), insensitive.name].join('/') };
-      }
-      return null;
-    }
-    current = path.join(current, segment);
-    if (i === segments.length - 1) return { kind: exact.isDirectory() ? 'dir' : 'file' };
   }
-  return { kind: 'dir' };
+  return { files, dirs, byLowercase };
+}
+
+export function resolveInRepo(index: RepoIndex, relative: string): Resolution {
+  const target = relative.replace(/\/+$/, '');
+  if (target === '' || target === '.') return { kind: 'dir' };
+  if (index.files.has(target)) return { kind: 'file' };
+  if (index.dirs.has(target)) return { kind: 'dir' };
+
+  const actual = index.byLowercase.get(target.toLowerCase());
+  return actual ? { kind: 'case', actual } : null;
 }
 
 // --------------------------------------------------------------------------- anchor e slug
@@ -322,11 +333,20 @@ function decode(value: string): string {
 }
 
 /**
- * Classifica i link di `files` (path relativi alla radice) rispetto al filesystem sotto `root`.
+ * Classifica i link dei `markdownFiles` (path relativi alla radice).
+ *
+ * `repoFiles` e' l'elenco di **cio' che il repo contiene** e decide se un target esiste; `root`
+ * serve solo a LEGGERE i contenuti (heading per gli anchor). Sono due cose distinte di proposito:
+ * il disco contiene anche i file gitignorati, che su GitHub non ci sono. Vedi `RepoIndex`.
+ *
  * Nessuna chiamata di rete: i link esterni sono `external` per costruzione.
  */
-export function classifyLinks(root: string, files: readonly string[]): ClassifiedLink[] {
-  const dirCache = new Map<string, fs.Dirent[] | null>();
+export function classifyLinks(
+  root: string,
+  markdownFiles: readonly string[],
+  repoFiles: readonly string[] = markdownFiles,
+): ClassifiedLink[] {
+  const index = buildRepoIndex(repoFiles);
   const anchorCache = new Map<string, Set<string> | null>();
 
   const anchorsFor = (relative: string): Set<string> | null => {
@@ -345,7 +365,7 @@ export function classifyLinks(root: string, files: readonly string[]): Classifie
 
   const out: ClassifiedLink[] = [];
 
-  for (const file of files) {
+  for (const file of markdownFiles) {
     const content = fs.readFileSync(path.join(root, file), 'utf8');
 
     for (const link of extractLinks(file, content)) {
@@ -380,7 +400,7 @@ export function classifyLinks(root: string, files: readonly string[]): Classifie
       return { ...link, verdict: 'outside-repo', detail: resolved };
     }
 
-    const existence = resolveCaseSensitive(root, resolved, dirCache);
+    const existence = resolveInRepo(index, resolved);
     if (existence === null) return { ...link, verdict: 'broken-path', detail: resolved };
     if (existence.kind === 'case') {
       return { ...link, verdict: 'broken-case', detail: `${resolved} → ${existence.actual}` };
@@ -410,28 +430,36 @@ export function classifyLinks(root: string, files: readonly string[]): Classifie
 // --------------------------------------------------------------------------- elenco dei file
 
 /**
- * I `.md` che fanno parte del repo, da `git ls-files`.
+ * Tutto cio' che il repo contiene, da `git ls-files`. E' insieme l'elenco dei documenti da
+ * controllare e l'unica fonte su cui si decide se un target esiste.
  *
- * Non una `readdir` ricorsiva: `RUNBOOK.local.md` e tutto `.superpowers/` sono gitignorati, e
- * scandirli farebbe fallire il gate su file che non stanno nel repo — rosso su una macchina e
- * verde su un'altra. Se `git` manca, e' meglio un errore esplicito di un elenco silenziosamente
- * diverso.
+ * Non una `readdir` ricorsiva: il working tree contiene anche i file **gitignorati**
+ * (`RUNBOOK.local.md`, `.env`, `.superpowers/`, `node_modules/`), che su GitHub non esistono. Un
+ * link a uno di quelli e' rotto per chiunque apra il documento, e giudicarlo sul disco lo
+ * dichiarerebbe verde su questa macchina e rosso in CI. E' successo, ed e' il motivo per cui la
+ * funzione si chiama cosi'.
  *
- * `--others --exclude-standard` insieme a `--cached` NON e' un dettaglio: senza, un documento
+ * `--others --exclude-standard` accanto a `--cached` NON e' un dettaglio: senza, un documento
  * appena scritto e non ancora `git add`-ato e' invisibile al gate, che diventerebbe verde proprio
  * sul file che sta per introdurre il link rotto. In CI la differenza e' nulla (tutto e'
  * committato); in locale e' la differenza fra prendere l'errore prima o dopo il push. Verificato
  * scrivendo questo package: il primo run "verde" non aveva letto l'ADR-0059 ancora untracked.
+ *
+ * Se `git` manca, e' meglio un errore esplicito di un elenco silenziosamente diverso.
  */
-export function listMarkdownFiles(root: string): string[] {
-  const out = execFileSync('git', ['-C', root, 'ls-files', '--cached', '--others', '--exclude-standard', '--', '*.md'], {
+export function listRepoFiles(root: string): string[] {
+  const out = execFileSync('git', ['-C', root, 'ls-files', '--cached', '--others', '--exclude-standard'], {
     encoding: 'utf8',
-    maxBuffer: 32 * 1024 * 1024,
+    maxBuffer: 64 * 1024 * 1024,
   });
   return out
     .split('\n')
     .map((l) => l.trim())
     .filter((l) => l.length > 0);
+}
+
+export function listMarkdownFiles(root: string): string[] {
+  return listRepoFiles(root).filter((f) => f.endsWith('.md'));
 }
 
 export function formatLink(link: ClassifiedLink): string {

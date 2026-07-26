@@ -131,6 +131,7 @@ describe('classifyLinks — fixture a risposta nota', () => {
     '[v](ok.md "con title")', // 25 ok
     '[w]()', // 26 empty
     '[x](ok.md#con-codice-e-grassetto)', // 27 ok
+    '[y](IGNORATO.md)', // 28 broken-path — esiste sul disco ma NON nel repo
   ];
 
   const EXPECTED: ReadonlyArray<readonly [number, Verdict]> = [
@@ -159,6 +160,7 @@ describe('classifyLinks — fixture a risposta nota', () => {
     [25, 'ok'],
     [26, 'empty'],
     [27, 'ok'],
+    [28, 'broken-path'],
   ];
 
   beforeAll(() => {
@@ -179,8 +181,15 @@ describe('classifyLinks — fixture a risposta nota', () => {
     fs.writeFileSync(path.join(root, 'docs', 'nested.md'), '# Nested\n', 'utf8');
     fs.writeFileSync(path.join(root, 'img.png'), 'x', 'utf8');
     fs.writeFileSync(path.join(root, 'CASI.md'), CASI.join('\n'), 'utf8');
+    // Esiste sul disco e NON e' nell'elenco del repo: e' il caso di `RUNBOOK.local.md`, che era
+    // gitignorato, risolveva in locale e ha fatto rossa la CI. Vedi `RepoIndex`.
+    fs.writeFileSync(path.join(root, 'IGNORATO.md'), '# Ignorato\n', 'utf8');
 
-    const classified = classifyLinks(root, ['CASI.md', 'ok.md', 'docs/nested.md']);
+    const classified = classifyLinks(
+      root,
+      ['CASI.md', 'ok.md', 'docs/nested.md'],
+      ['CASI.md', 'ok.md', 'docs/nested.md', 'img.png'],
+    );
     verdictByLine = new Map(
       classified.filter((l) => l.file === 'CASI.md').map((l) => [l.line, l.verdict]),
     );
@@ -196,6 +205,15 @@ describe('classifyLinks — fixture a risposta nota', () => {
 
   it.each(EXPECTED)('riga %i → %s', (line, expected) => {
     expect(verdictByLine.get(line)).toBe(expected);
+  });
+
+  it('un file che esiste sul disco ma non nel repo NON e’ verde', () => {
+    // La regressione che la CI ha trovato e la fixture no: l'esistenza si giudica su cio' che il
+    // repo contiene, non sul working tree, altrimenti un target gitignorato e' verde qui e 404 su
+    // GitHub. Il controllo dell'altro verso e' la riga 3: il file c'e' davvero ed e' `ok`.
+    expect(fs.existsSync(path.join(root, 'IGNORATO.md'))).toBe(true);
+    expect(verdictByLine.get(28)).toBe('broken-path');
+    expect(verdictByLine.get(3)).toBe('ok');
   });
 
   it('un file esistente con il case sbagliato NON e’ verde', () => {
