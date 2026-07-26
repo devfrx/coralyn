@@ -145,13 +145,19 @@ lascia un 404 in piedi, ripuntare l'href a `packages/data-layer` farebbe dire a 
 
 ### Negative / Trade-off
 
-- **Un processo in più in `pnpm -r test`**, cioè sull'asse di [D-066](../deferred.md), che è aperta.
+- **Un processo in più in `pnpm -r test`**, cioè sull'asse di [D-066](../deferred.md#d-066).
   È il costo dichiarato di questa collocazione. Mitigazione strutturale, non promessa: l'ambiente è
   `node` e non `jsdom`, e la suite dura **~460 ms** contro i secondi delle suite a componenti.
-  ⚠️ **Un'A/B onesta sull'OOM non è stata possibile**: la misura di oggi è avvenuta con 3,7–5,1 GB
-  liberi, cioè **sotto** la soglia a cui D-066 riproduce comunque, e in quelle condizioni il crash
-  arriva anche su un pacchetto solo (vedi l'addendum a D-066). Il numero manca, e non è stato
-  sostituito da una stima.
+  ⚠️ ~~**Un'A/B onesta sull'OOM non è stata possibile**~~ — **misurato il 2026-07-26**, chiudendo
+  D-066 ([ADR-0061](0061-tetto-worker-runner-test.md)): **il contributo al picco è zero, e lo dice
+  il tempo, non una sottrazione**. Campionando ogni secondo, il picco del gate cade a **t = 27÷32 s**,
+  mentre `docs-lint` è morta a **t ≈ 1 s**: i suoi 602 MB non sono mai in aria insieme a quelli dei
+  pacchetti pesanti.
+  ⚠️ Una prima stesura di questa riga dichiarava **«63 MB»**, cioè la differenza fra il picco con e
+  senza. Era **rumore spacciato per misura**: due corse della *stessa* configurazione danno 4.099 e
+  3.737 MB — una varianza di **362 MB** che l'altro ADR dichiara — quindi con l'altra corsa la
+  differenza si sarebbe invertita di segno. L'ha trovata una review indipendente. Sostituire una
+  lacuna dichiarata con un numero che non regge è peggio della lacuna.
 - **L'algoritmo degli slug è una riproduzione**, non la libreria. Vincolata da casi noti, ma se
   GitHub cambiasse regole il gate non se ne accorgerebbe da solo.
 - **14 documenti storici hanno un link in meno.** La frase è identica, la navigazione no: dove prima
@@ -180,5 +186,6 @@ lascia un 404 in piedi, ripuntare l'href a `packages/data-layer` farebbe dire a 
 3. **Modularità** — il package non è importato da nessuno e non importa nulla del repo: legge file.
    L'unico arco è verso `git`, ed è dichiarato.
 4. **Zero debito** — l'allow-list non può invecchiare in silenzio (una voce inutile fa rosso), e
-   l'unico costo non risolto — il processo in più su D-066 — è dichiarato qui sopra **senza** un
-   numero inventato al posto della misura mancante.
+   l'unico costo non risolto — il processo in più su D-066 — era dichiarato qui sopra **senza** un
+   numero inventato al posto della misura mancante, e il 2026-07-26 la misura è arrivata: il
+   contributo al picco è **nullo**, perché la suite esce trenta secondi prima che il picco si formi.

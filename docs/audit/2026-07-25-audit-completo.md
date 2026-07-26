@@ -33,8 +33,11 @@ Perimetro: **tutto il repo**, partizionato in 9 aree × 11 livelli. Modalità: r
 > è finita (README di `web-staff`, guida deploy), e **D-064** — l'unico finding di sicurezza dei
 > dati ancora aperto — è chiusa da [ADR-0060](../architecture/decisions/0060-read-model-shell-senza-pii.md).
 > Restano fuori dal piano, **di proposito**: AUD-015 (immagine API single-stage come root, urgente il
-> giorno del primo deploy), AUD-022 (500 INSERT sequenziali), AUD-020/021 (prestazioni). E resta
-> aperta **D-066**, che è una decisione dell'utente su due assi.
+> giorno del primo deploy), AUD-022 (500 INSERT sequenziali), AUD-020/021 (prestazioni).
+> Anche **D-066** è chiusa ([ADR-0061](../architecture/decisions/0061-tetto-worker-runner-test.md)):
+> il tetto ai worker sta nelle configurazioni dei runner, e la soluzione che la voce proponeva —
+> `--workspace-concurrency` — è stata **misurata e scartata** (−15 % di memoria per +33 % di tempo,
+> e nessun effetto sul caso a pacchetto singolo, che era quello che falliva).
 >
 > ⚠️ **AUD-027 va letta con la misura accanto**: «1024 LOC, zero unit test» è vero, «quindi è
 > scoperto» **no** — le e2e ne eseguivano già il **96,4 %** delle righe e 7 mutazioni su 8 cadono.
@@ -67,8 +70,8 @@ Perimetro: **tutto il repo**, partizionato in 9 aree × 11 livelli. Modalità: r
 > | **AUD-012** un guasto indistinguibile da «nessun dato» | ✅ **CORRETTO** (Fase F) — `QueryBoundary`/`ErrorState` in `ui-kit`; 8 viste su 12 non consultavano mai `isError` |
 > | **AUD-014 / D-037** gestione globale del 401 in `web-platform` | ✅ **CORRETTO** (Fase F), e da **D-065** la regola è in **una sola copia** (`@coralyn/data-layer`) invece di due |
 > | Le tre invarianti di stato dell'abbonamento | ✅ **PRESIDIATE DAL DB** (Fase E) — unique parziali + trigger + CHECK, 12 mutazioni su 12 rendono rossa la suite |
-> | **D-065** data-layer FE duplicato | ✅ **ESEGUITA** (2026-07-25) — [ADR-0058](../architecture/decisions/0058-package-data-layer-condiviso.md). ⚠️ Su branch, **non mergiata**: serve l'ok dell'utente |
-> | **Tutto il resto** | 🔓 **APERTO** — fasi **G e H** del §4 |
+> | **D-065** data-layer FE duplicato | ✅ **ESEGUITA e MERGIATA** (2026-07-25) — [ADR-0058](../architecture/decisions/0058-package-data-layer-condiviso.md). ⚠️ Questa riga diceva «Su branch, **non mergiata**: serve l'ok dell'utente», ed era **falsa**: `packages/data-layer` è su `main` con i suoi 32 test, e il branch è contenuto in `main`. Una riga che chiede un'azione già fatta è peggio di una stantia |
+> | **Tutto il resto** | ✅ **CHIUSO** — le fasi **G** (2026-07-25) e **H** (2026-07-26) sono entrambe finite; il piano d'audit non ha più fasi aperte |
 >
 > ### ⛔ Correzione ad AUD-006 / P2-006 — la rotazione del `JWT_SECRET` non serviva
 >
@@ -356,7 +359,7 @@ v-else>` **fratello**: avvolgerla li separava e rompeva la compilazione. E cerca
 verificare il tree-shaking **non è un test valido**: in web-staff quella stringa non sopravvive alla
 minificazione e la sua assenza sembra una rimozione.
 
-### ✅ D-065 — Package FE condiviso — **ESEGUITA** *(coda della Fase F; branch `chore/audit-2026-07-25-d065-data-layer`, NON mergiata)*
+### ✅ D-065 — Package FE condiviso — **ESEGUITA e MERGIATA** *(coda della Fase F; il branch `chore/audit-2026-07-25-d065-data-layer` è contenuto in `main`)*
 *Decisione strutturale esposta all'utente prima di implementare, che ha scelto la fattorizzazione
 per strati su tutte e tre le app.* Vedi [ADR-0058](../architecture/decisions/0058-package-data-layer-condiviso.md).
 

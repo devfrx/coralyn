@@ -81,6 +81,21 @@ describe('deferred.md — il registro è coerente con sé stesso', () => {
     expect(entries.filter((e) => e.status === 'chiusa').length).toBeGreaterThan(10);
   });
 
+  // La riga di riepilogo in testa all'indice non e' una riga di tabella, quindi `INDEX_ROW` non la
+  // legge: e' rimasta a «41 · 24» mentre l'indice diceva 39 · 26, e sarebbe risbagliata a ogni
+  // chiusura. Un totale scritto a mano accanto a un elenco e' un totale che diverge: qui lo si
+  // aggancia al conteggio. Trovato da una review indipendente, non dal presidio.
+  it('i totali dichiarati in testa coincidono con l’indice', () => {
+    const m = /\*\*Aperte:\s*(\d+)\*\*\s*·\s*\*\*Chiuse:\s*(\d+)\*\*\s*·\s*totale\s*(\d+)/.exec(markdown);
+    expect(m, '\nLa riga «Aperte: N · Chiuse: N · totale N» in testa all’indice è sparita o ha cambiato forma.\n').toBeTruthy();
+
+    const aperte = index.filter((r) => r.status === 'aperta').length;
+    const chiuse = index.filter((r) => r.status === 'chiusa').length;
+
+    expect([Number(m![1]), Number(m![2]), Number(m![3])], '\nAggiorna la riga di riepilogo: conta le voci dell’indice.\n')
+      .toEqual([aperte, chiuse, aperte + chiuse]);
+  });
+
   it('nessun ID compare due volte', () => {
     const seen = new Map<string, number[]>();
     for (const e of entries) seen.set(e.id, [...(seen.get(e.id) ?? []), e.line]);

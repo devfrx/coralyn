@@ -22,7 +22,7 @@ applicata ai link.
 
 ## Indice
 
-**Aperte: 41** · **Chiuse: 24** · totale 65.
+**Aperte: 39** · **Chiuse: 26** · totale 65.
 
 | ID | Tema | Stato |
 |---|---|---|
@@ -90,7 +90,7 @@ applicata ai link.
 | [D-063](#d-063) | Permessi dello staff configurabili dall'admin del lido | 🔓 aperta |
 | [D-064](#d-064) | `GET /establishment/overview` espone le email degli operatori | ✅ chiusa |
 | [D-065](#d-065) | Package frontend condiviso per il data-layer | ✅ chiusa |
-| [D-066](#d-066) | `pnpm run verify` va in OOM sotto pressione di memoria | 🔓 aperta |
+| [D-066](#d-066) | `pnpm run verify` va in OOM sotto pressione di memoria | ✅ chiusa |
 
 ## Aperte
 
@@ -158,53 +158,6 @@ Non stanno in una cella di tabella: contengono elenchi, blocchi di codice o tabe
   *Impatto se ignorata*: bassa — il default di fabbrica riproduce il comportamento attuale, quindi
   nessun lido regredisce; ma ogni richiesta di personalizzazione resta una modifica al codice.
 
-
-- <a id="d-066"></a>**D-066** — **`pnpm run verify` va in OOM quando la macchina è sotto pressione di memoria.**
-  Trovata eseguendo la Fase G2, il 2026-07-25. `verify` chiama `pnpm -r test`, che lancia le suite
-  dei **sette pacchetti in parallelo** senza alcun limite di concorrenza: `apps/api` (jest, già
-  limitato a `maxWorkers: '50%'` **al proprio interno**) più quattro processi vitest, tutti insieme.
-  Con **5,5 GB liberi su 33,5** l'esito è `FATAL ERROR: Zone Allocation failed - process out of
-  memory` in `ui-kit` e `Error: spawn UNKNOWN` in `apps/api`; con **17,9 GB liberi** la stessa
-  identica revisione esce **0**.
-  ⚠️ **Non è la flake di P6-007, che è stata corretta**: quel fix limita i worker *dentro* jest, e
-  regge (`apps/api` da sola passa sempre). Qui il moltiplicatore è la concorrenza **fra pacchetti**,
-  che nessuno limita — la stessa radice **R5** dell'audit («i cancelli vanno nella configurazione»)
-  applicata un livello più in alto.
-  Misurato, non dedotto: il crash **si riproduce con la modifica di G2 messa da parte** (`git stash`
-  → 5 righe `FATAL ERROR`), quindi non dipende dai test aggiunti; e le sette suite lanciate **una
-  alla volta** sono tutte verdi.
-  *Perché rimandata*: la correzione (`pnpm -r --workspace-concurrency=N test`, o separare `test` da
-  `test:ci`) tocca lo **script condiviso su cui gira anche la CI**, e la scelta di `N` è un
-  compromesso fra tempo di gate e memoria: è una decisione dell'utente, non un ritocco.
-  *Trigger*: il primo verde/rosso non riproducibile che faccia dubitare del gate, o una macchina di
-  sviluppo con meno RAM. *Impatto se ignorata*: **media** — non è un difetto di prodotto, ma è il
-  gate che tutto il resto usa per dirsi verificato, e un gate che fallisce per ragioni ambientali
-  insegna a ignorarne il rosso. In CI oggi non si manifesta (runner dedicato, un job per volta).
-
-  ⚠️ **Addendum 2026-07-26 — la diagnosi sopra è incompleta, e la correzione proposta non basterebbe.**
-  Misurato con **3,7–5,1 GB liberi** e lo stack Docker acceso (5 container), lanciando **una suite
-  alla volta**, cioè con la concorrenza fra pacchetti già a 1:
-
-  | Comando | Esito | Il vero numero |
-  |---|---|---|
-  | `pnpm --filter @coralyn/api test` | `FATAL ERROR: Zone Allocation failed` ×6 → **`Test Suites: 26 failed, 33 passed`** con **`Tests: 230 passed, 0 failed`** | 384 su 59 suite |
-  | `pnpm --filter @coralyn/ui-kit test` | `Error: spawn UNKNOWN` (errno −4094) → `Test Files 21 passed (26)`, poi `23 passed (24)` **sulla stessa revisione** | 212 su **39** file |
-  | `pnpm --filter @coralyn/web-staff test` | `Errors 24` → `Tests 203 passed` | 413 su **57** file |
-
-  Con `--maxWorkers=2` tutte e tre escono **verdi ai numeri di baseline**. Tre conseguenze:
-
-  1. **«le sette suite lanciate una alla volta sono tutte verdi» non è più vero**, e la riga qui
-     sopra che lo dice va letta come vera *a 5,5 GB*, non in assoluto. La verifica valida sotto
-     pressione è una alla volta **e con i worker limitati**.
-  2. **`--workspace-concurrency=N` da solo non chiude questa voce.** Oggi il crash è arrivato con la
-     concorrenza fra pacchetti già a 1: il moltiplicatore residuo è la concorrenza **dentro** ogni
-     runner (jest è a `maxWorkers: '50%'`, che su molti core resta tanto; le vitest non hanno alcun
-     limite). La decisione dell'utente riguarda quindi **due** assi, non uno.
-  3. ⚠️ **Il modo in cui fallisce è peggio del fallimento.** Una suite che non parte contribuisce
-     **zero** test al totale, quindi l'esito somiglia a «suite più piccola ma verde»: `Tests: 230
-     passed, 0 failed` senza un solo rosso. Nel caso di `ui-kit` era sbagliato anche il
-     **denominatore** — vitest dichiarava 26 e 24 file totali dove sono 39. **Il totale dei test va
-     sempre letto insieme al conteggio delle suite/file, e confrontato con la baseline.**
 
 > Nota: le voci sopra sono il punto di partenza emerso dal brainstorming iniziale e
 > verranno raffinate man mano.
@@ -315,6 +268,74 @@ stata rimandata, non solo che è stata fatta.
   rimettere un campo con un'email fa **2 rossi**, uno per livello. Sul fronte le guardie sono due
   (query `enabled` admin-only **e** card `v-if`), e la mutazione ha mostrato che non sono ridondanti
   — togliendo solo la card le email **non** arrivavano a schermo, togliendo entrambe sì.
+
+- <a id="d-066"></a>**D-066** — **`pnpm run verify` andava in OOM sotto pressione di memoria.**
+  ✅ **CHIUSA il 2026-07-26** — [ADR-0061](decisions/0061-tetto-worker-runner-test.md): il tetto ai
+  worker vive nelle configurazioni dei runner (`min(4, core/2)`, mai sotto 1), non nello script
+  condiviso con la CI, che resta intatto.
+  **La proposta di questa voce è stata misurata e scartata.** `--workspace-concurrency=1` da solo
+  vale **−15 % di memoria per +33 % di tempo**, e soprattutto non tocca il caso che l'addendum qui
+  sotto documenta: `ui-kit` da sola faceva **5.338 MB** di picco, più della RAM libera dello
+  scenario — e su un pacchetto solo non c'è concorrenza fra pacchetti da limitare.
+  Effetto misurato: gate completo **9.615–10.473 → 3.737–4.099 MB** (due corse per configurazione);
+  `ui-kit` da sola **5.338 → 1.383 MB**; `apps/api` da sola **7.807 → 2.659 MB a parità di durata**
+  (9 s), perché i 16 worker di `50%` erano sovradimensionati per 59 file. Costo dichiarato: il gate
+  completo passa da **~36 a 61–88 s** — instabile fra corse, quindi non usarlo per misurare
+  regressioni di durata.
+  Presidio: [`test-workers.spec.ts`](../../packages/docs-lint/src/test-workers.spec.ts) — tre
+  mutazioni, tre rossi (config senza tetto, costante non passata, ritorno alla percentuale).
+  ⚠️ **Anche qui lo strumento si è rotto prima dell'oggetto**: il primo campionatore riportava 56 MB
+  di picco e 493 MB di RAM libera contro i 14,5 GB misurati un minuto prima — l'operatore `-f` di
+  PowerShell è locale-dipendente. Riscritto e validato su un caso a risposta nota prima di crederci.
+
+  *Il testo storico della voce, per la ragione per cui era stata rimandata:*
+
+  **`pnpm run verify` va in OOM quando la macchina è sotto pressione di memoria.**
+  Trovata eseguendo la Fase G2, il 2026-07-25. `verify` chiama `pnpm -r test`, che lancia le suite
+  dei **sette pacchetti in parallelo** senza alcun limite di concorrenza: `apps/api` (jest, già
+  limitato a `maxWorkers: '50%'` **al proprio interno**) più quattro processi vitest, tutti insieme.
+  Con **5,5 GB liberi su 33,5** l'esito è `FATAL ERROR: Zone Allocation failed - process out of
+  memory` in `ui-kit` e `Error: spawn UNKNOWN` in `apps/api`; con **17,9 GB liberi** la stessa
+  identica revisione esce **0**.
+  ⚠️ **Non è la flake di P6-007, che è stata corretta**: quel fix limita i worker *dentro* jest, e
+  regge (`apps/api` da sola passa sempre). Qui il moltiplicatore è la concorrenza **fra pacchetti**,
+  che nessuno limita — la stessa radice **R5** dell'audit («i cancelli vanno nella configurazione»)
+  applicata un livello più in alto.
+  Misurato, non dedotto: il crash **si riproduce con la modifica di G2 messa da parte** (`git stash`
+  → 5 righe `FATAL ERROR`), quindi non dipende dai test aggiunti; e le sette suite lanciate **una
+  alla volta** sono tutte verdi.
+  *Perché rimandata*: la correzione (`pnpm -r --workspace-concurrency=N test`, o separare `test` da
+  `test:ci`) tocca lo **script condiviso su cui gira anche la CI**, e la scelta di `N` è un
+  compromesso fra tempo di gate e memoria: è una decisione dell'utente, non un ritocco.
+  *Trigger*: il primo verde/rosso non riproducibile che faccia dubitare del gate, o una macchina di
+  sviluppo con meno RAM. *Impatto se ignorata*: **media** — non è un difetto di prodotto, ma è il
+  gate che tutto il resto usa per dirsi verificato, e un gate che fallisce per ragioni ambientali
+  insegna a ignorarne il rosso. In CI oggi non si manifesta (runner dedicato, un job per volta).
+
+  ⚠️ **Addendum 2026-07-26 — la diagnosi sopra è incompleta, e la correzione proposta non basterebbe.**
+  Misurato con **3,7–5,1 GB liberi** e lo stack Docker acceso (5 container), lanciando **una suite
+  alla volta**, cioè con la concorrenza fra pacchetti già a 1:
+
+  | Comando | Esito | Il vero numero |
+  |---|---|---|
+  | `pnpm --filter @coralyn/api test` | `FATAL ERROR: Zone Allocation failed` ×6 → **`Test Suites: 26 failed, 33 passed`** con **`Tests: 230 passed, 0 failed`** | 384 su 59 suite |
+  | `pnpm --filter @coralyn/ui-kit test` | `Error: spawn UNKNOWN` (errno −4094) → `Test Files 21 passed (26)`, poi `23 passed (24)` **sulla stessa revisione** | 212 su **39** file |
+  | `pnpm --filter @coralyn/web-staff test` | `Errors 24` → `Tests 203 passed` | 413 su **57** file |
+
+  Con `--maxWorkers=2` tutte e tre escono **verdi ai numeri di baseline**. Tre conseguenze:
+
+  1. **«le sette suite lanciate una alla volta sono tutte verdi» non è più vero**, e la riga qui
+     sopra che lo dice va letta come vera *a 5,5 GB*, non in assoluto. La verifica valida sotto
+     pressione è una alla volta **e con i worker limitati**.
+  2. **`--workspace-concurrency=N` da solo non chiude questa voce.** Oggi il crash è arrivato con la
+     concorrenza fra pacchetti già a 1: il moltiplicatore residuo è la concorrenza **dentro** ogni
+     runner (jest è a `maxWorkers: '50%'`, che su molti core resta tanto; le vitest non hanno alcun
+     limite). La decisione dell'utente riguarda quindi **due** assi, non uno.
+  3. ⚠️ **Il modo in cui fallisce è peggio del fallimento.** Una suite che non parte contribuisce
+     **zero** test al totale, quindi l'esito somiglia a «suite più piccola ma verde»: `Tests: 230
+     passed, 0 failed` senza un solo rosso. Nel caso di `ui-kit` era sbagliato anche il
+     **denominatore** — vitest dichiarava 26 e 24 file totali dove sono 39. **Il totale dei test va
+     sempre letto insieme al conteggio delle suite/file, e confrontato con la baseline.**
 
 - <a id="d-065"></a>**D-065** — **Package FE condiviso per il data-layer.**
   ✅ **CHIUSA il 2026-07-25** — [ADR-0058](decisions/0058-package-data-layer-condiviso.md),
