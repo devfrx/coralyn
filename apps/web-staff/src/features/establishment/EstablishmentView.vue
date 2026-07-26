@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
 import { useRouter } from 'vue-router';
-import { Card, StatTile, Badge, Button, Avatar, Icon, Modal, Field, Input, Select, Option, ConfirmDialog, ActionBar, SkeletonText, Callout, useDelayedLoading, pushToast } from '@coralyn/ui-kit';
+import { Card, StatTile, Badge, Button, Avatar, Icon, Modal, Field, Input, Select, Option, ConfirmDialog, ActionBar, SkeletonText, Callout, QueryBoundary, useDelayedLoading, pushToast } from '@coralyn/ui-kit';
 import { Role } from '@coralyn/contracts';
 import { useSessionStore } from '@/stores/session';
 import { useSetupStatus } from '@/features/onboarding/useSetupStatus';
@@ -15,7 +15,11 @@ const skeletonVisible = useDelayedLoading(() => isPending.value);
 const { data: setupStatus } = useSetupStatus();
 // Il team è una query a parte, admin-only: le email degli operatori non stanno nell'overview,
 // che l'app-shell carica per tutti (D-064). Per lo staff resta disabilitata e `data` è undefined.
-const { data: teamData, isPending: teamPending } = useEstablishmentTeam();
+// ⚠️ `teamError` non è decorativo: separando la query dall'overview, il suo guasto ha smesso di
+// passare dal banner d'errore della pagina, e la card rendeva «Nessun utente nel team.» — cioè
+// AUD-012 («un guasto indistinguibile da nessun dato») reintrodotto su una superficie appena
+// creata. Quel testo per giunta non può mai essere vero: `list()` include sempre l'admin che chiama.
+const { data: teamData, isPending: teamPending, error: teamError, refetch: refetchTeam } = useEstablishmentTeam();
 const teamSkeletonVisible = useDelayedLoading(() => teamPending.value);
 
 function signOut() {
@@ -197,6 +201,9 @@ function onConfirmReset() {
           <Button data-testid="add-user" variant="secondary" size="sm" @click="openAddUser"><Icon name="plus" :size="13" />Aggiungi utente</Button>
         </div>
         <p class="mb-3 text-xs leading-relaxed text-[var(--color-text-muted)]">Il team dello stabilimento ha ruoli <strong class="text-[var(--color-text-2nd)]">Amministratore</strong> e <strong class="text-[var(--color-text-2nd)]">Staff</strong>. Il ruolo <strong class="text-[var(--color-text-2nd)]">Superuser</strong> è di piattaforma (console cross-stabilimento) e non appartiene al team del lido.</p>
+        <!-- Solo l'ERRORE passa da QueryBoundary: attesa e vuoto restano della card, che li ha già
+             (scheletro in-card, riga «nessun utente»). Stessa forma di BookingsView. -->
+        <QueryBoundary :error="teamError" error-title="Team non disponibile" @retry="refetchTeam">
         <p v-if="!teamPending && team.length === 0" class="py-3 text-sm text-[var(--color-text-muted)]">Nessun utente nel team.</p>
         <div v-if="teamSkeletonVisible" aria-busy="true">
           <SkeletonText :lines="3" />
@@ -216,6 +223,7 @@ function onConfirmReset() {
             </ActionBar>
           </div>
         </div>
+        </QueryBoundary>
       </div>
     </Card>
 

@@ -167,6 +167,21 @@ describe('EstablishmentView', () => {
     expect(w.text()).not.toContain('admin@coralyn.dev');
   });
 
+  // AUD-012, reintrodotto da D-064 e ripreso da una review indipendente: separando il team
+  // dall'overview, il suo guasto ha smesso di passare dal banner della pagina e la card rendeva
+  // «Nessun utente nel team.» — che con una risposta sana non può nemmeno essere vero, perché la
+  // lista include sempre l'admin che sta guardando.
+  it('admin: un guasto sul team è un errore, non una lista vuota', async () => {
+    server.use(http.get('/api/establishment/users', () => HttpResponse.error()));
+    const w = mountApp(EstablishmentView);
+    const session = useSessionStore();
+    session.user = { id: 'u-1', email: 'admin@coralyn.dev', role: Role.Admin, establishmentId: 'e-1', establishmentName: 'Lido Maestrale' };
+    await settle();
+    expect(w.text()).toContain('Team non disponibile');
+    expect(w.text()).not.toContain('Nessun utente nel team');
+    expect(w.findAll('[data-testid="team-row"]')).toHaveLength(0);
+  });
+
   it('mostra lo stato "Disabilitato" per i membri disabilitati', async () => {
     server.use(http.get('/api/establishment/users', () =>
       HttpResponse.json([
