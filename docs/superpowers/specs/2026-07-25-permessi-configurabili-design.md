@@ -4,8 +4,10 @@
 > dell'audit 2026-07-25), i vincoli verificati, le decisioni ancora aperte e come verificare il
 > lavoro. Chi prende questa slice scrive prima la spec di design e l'ADR, poi implementa.
 >
-> Il prerequisito è **[ADR-0057](../../architecture/decisions/0057-autorizzazione-fail-closed-permessi.md)**,
-> sul branch `chore/audit-2026-07-25-fase-c` — non ancora su `main` al momento della stesura.
+> Il prerequisito è **[ADR-0057](../../architecture/decisions/0057-autorizzazione-fail-closed-permessi.md)**.
+> ⚠️ **Aggiornato il 2026-07-27:** questa riga diceva «sul branch `chore/audit-2026-07-25-fase-c` —
+> non ancora su `main`». **È su `main` dal 2026-07-26** (commit `4c19d6f`): il prerequisito è
+> soddisfatto e non c'è nessun branch da recuperare.
 
 ## 1. L'obiettivo, in una riga
 
