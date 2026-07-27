@@ -139,3 +139,7 @@ componenti) è la spec d'implementazione di `ui-kit` ([ADR-0017](decisions/0017-
 - [ADR-0056](decisions/0056-package-legale-condiviso.md) — Package legale condiviso `@coralyn/legal` per i testi rivolti agli operatori
 - [ADR-0057](decisions/0057-autorizzazione-fail-closed-permessi.md) — Autorizzazione fail-closed, dichiarata per permesso (emenda 0039)
 - [ADR-0058](decisions/0058-package-data-layer-condiviso.md) — Package `@coralyn/data-layer` condiviso, fattorizzato per strati e non per app
+- [ADR-0059](decisions/0059-gate-link-documenti.md) — Le asserzioni sui documenti vivono in un package, e il gate dei link è un test
+- [ADR-0060](decisions/0060-read-model-shell-senza-pii.md) — Il read-model dell'app-shell non porta dati personali
+- [ADR-0061](decisions/0061-tetto-worker-runner-test.md) — Il tetto ai worker vive nelle configurazioni dei runner, non nello script condiviso
+- [ADR-0062](decisions/0062-generate-ombrelloni-scrittura-batch.md) — Il generatore di ombrelloni scrive in una sola INSERT; il budget delle transazioni è un tema a parte

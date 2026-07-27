@@ -7,7 +7,7 @@ function makeService() {
     row: { findUnique: jest.fn() },
     umbrellaType: { findUnique: jest.fn() },
     umbrella: {
-      findFirst: jest.fn(), findUnique: jest.fn(), findMany: jest.fn(), create: jest.fn(), update: jest.fn(), delete: jest.fn(), deleteMany: jest.fn(), updateMany: jest.fn(),
+      findFirst: jest.fn(), findUnique: jest.fn(), findMany: jest.fn(), create: jest.fn(), createManyAndReturn: jest.fn(), update: jest.fn(), delete: jest.fn(), deleteMany: jest.fn(), updateMany: jest.fn(),
     },
     booking: { count: jest.fn(), groupBy: jest.fn() },
   };
@@ -126,20 +126,66 @@ describe('UmbrellasService', () => {
     tx.row.findUnique.mockResolvedValue({ id: 'r-1' });
     tx.umbrella.findMany.mockResolvedValue([{ label: '1' }, { label: '2' }]); // esistenti fra i candidati
     tx.umbrella.findFirst.mockResolvedValue({ logicalOrder: 5 });               // last in row
-    tx.umbrella.create
-      .mockResolvedValueOnce({ id: 'n3', label: '3', umbrellaTypeId: null, logicalOrder: 6 })
-      .mockResolvedValueOnce({ id: 'n4', label: '4', umbrellaTypeId: null, logicalOrder: 7 })
-      .mockResolvedValueOnce({ id: 'n5', label: '5', umbrellaTypeId: null, logicalOrder: 8 });
+    tx.umbrella.createManyAndReturn.mockResolvedValue([
+      { id: 'n3', label: '3', umbrellaTypeId: null, logicalOrder: 6 },
+      { id: 'n4', label: '4', umbrellaTypeId: null, logicalOrder: 7 },
+      { id: 'n5', label: '5', umbrellaTypeId: null, logicalOrder: 8 },
+    ]);
     const res = await service.generate({ rowId: 'r-1', prefix: '', start: 1, count: 5, umbrellaTypeId: null });
     expect(res).toEqual({ created: 3, skipped: 2, umbrellas: [
       { id: 'n3', label: '3', umbrellaTypeId: null },
       { id: 'n4', label: '4', umbrellaTypeId: null },
       { id: 'n5', label: '5', umbrellaTypeId: null },
     ] });
-    expect(tx.umbrella.create).toHaveBeenCalledTimes(3);
-    expect(tx.umbrella.create).toHaveBeenNthCalledWith(1, expect.objectContaining({
-      data: expect.objectContaining({ establishmentId: TENANT, rowId: 'r-1', label: '3', logicalOrder: 6 }),
+    expect(tx.umbrella.createManyAndReturn).toHaveBeenCalledTimes(1);
+    expect(tx.umbrella.createManyAndReturn).toHaveBeenCalledWith(expect.objectContaining({
+      data: [
+        expect.objectContaining({ establishmentId: TENANT, rowId: 'r-1', label: '3', logicalOrder: 6 }),
+        expect.objectContaining({ establishmentId: TENANT, rowId: 'r-1', label: '4', logicalOrder: 7 }),
+        expect.objectContaining({ establishmentId: TENANT, rowId: 'r-1', label: '5', logicalOrder: 8 }),
+      ],
     }));
+  });
+
+  // Presidio di AUD-022. `generate` deve restare a un numero di round-trip COSTANTE in `count`:
+  // il loop `create` per ombrellone ne faceva 506 al cap di 500, dentro una `forTenant` che non
+  // passa `transactionOptions` e quindi eredita il timeout di default di Prisma (5000 ms).
+  // Misurato con latenza iniettata: P2028 e rollback totale già a RTT 8 ms (ADR-0062).
+  // Se qualcuno reintroduce il loop, questo test diventa rosso in entrambe le asserzioni.
+  it('generate: una sola scrittura in batch anche al cap di 500, mai una create per ombrellone', async () => {
+    const { service, tx } = makeService();
+    tx.row.findUnique.mockResolvedValue({ id: 'r-1' });
+    tx.umbrella.findMany.mockResolvedValue([]);
+    tx.umbrella.findFirst.mockResolvedValue({ logicalOrder: 0 });
+    tx.umbrella.createManyAndReturn.mockImplementation(({ data }: { data: { label: string; logicalOrder: number }[] }) =>
+      Promise.resolve(data.map((d, i) => ({ id: `n${i}`, label: d.label, umbrellaTypeId: null, logicalOrder: d.logicalOrder }))),
+    );
+    const res = await service.generate({ rowId: 'r-1', prefix: 'A', start: 1, count: 500, umbrellaTypeId: null });
+    expect(res.created).toBe(500);
+    expect(tx.umbrella.createManyAndReturn).toHaveBeenCalledTimes(1);
+    expect(tx.umbrella.create).not.toHaveBeenCalled();
+    // ⚠️ `logicalOrder` NON è nel DTO: `toStructureUmbrella` proietta solo id/label/umbrellaTypeId.
+    // L'unico posto in cui è osservabile è l'argomento della scrittura, ed è lì che va asserito —
+    // asserirlo su `res` sarebbe un test che guarda un campo inesistente e passa sempre.
+    const [args] = tx.umbrella.createManyAndReturn.mock.calls[0] as [{ data: { label: string; logicalOrder: number }[] }];
+    expect(args.data).toHaveLength(500);
+    expect(args.data.map((d) => d.logicalOrder)).toEqual(Array.from({ length: 500 }, (_, i) => i + 1));
+    expect(args.data.map((d) => d.label)).toEqual(Array.from({ length: 500 }, (_, i) => `A${i + 1}`));
+    // …e l'ordine del DTO segue i candidati su tutte e 500 le righe, non solo agli estremi.
+    expect(res.umbrellas.map((u) => u.label)).toEqual(args.data.map((d) => d.label));
+  });
+
+  // `createManyAndReturn` con `data: []` è un round-trip inutile: quando tutti i candidati
+  // esistono già, `generate` non deve scrivere affatto.
+  it('generate: nessuna scrittura se tutti i candidati esistono già', async () => {
+    const { service, tx } = makeService();
+    tx.row.findUnique.mockResolvedValue({ id: 'r-1' });
+    tx.umbrella.findMany.mockResolvedValue([{ label: '1' }, { label: '2' }]);
+    tx.umbrella.findFirst.mockResolvedValue({ logicalOrder: 9 });
+    const res = await service.generate({ rowId: 'r-1', prefix: '', start: 1, count: 2, umbrellaTypeId: null });
+    expect(res).toEqual({ created: 0, skipped: 2, umbrellas: [] });
+    expect(tx.umbrella.createManyAndReturn).not.toHaveBeenCalled();
+    expect(tx.umbrella.create).not.toHaveBeenCalled();
   });
 
   it('generate: 404 se la fila non è del tenant', async () => {
@@ -153,11 +199,16 @@ describe('UmbrellasService', () => {
     tx.row.findUnique.mockResolvedValue({ id: 'r-1' });
     tx.umbrella.findMany.mockResolvedValue([]);
     tx.umbrella.findFirst.mockResolvedValue({ logicalOrder: 0 });
-    tx.umbrella.create.mockResolvedValue({ id: 'n1', label: '1', umbrellaTypeId: null, logicalOrder: 1 });
-    await service.generate({ rowId: 'r-1', prefix: '', start: 1, count: 1, umbrellaTypeId: null });
+    tx.umbrella.createManyAndReturn.mockResolvedValue([{ id: 'n1', label: '1', umbrellaTypeId: null, logicalOrder: 1 }]);
+    const res = await service.generate({ rowId: 'r-1', prefix: '', start: 1, count: 1, umbrellaTypeId: null });
     expect(tx.umbrella.findMany).toHaveBeenCalledWith(
       expect.objectContaining({ where: expect.objectContaining({ retiredAt: null }) }),
     );
+    // Confine a UN solo elemento da creare: è l'unico punto in cui la guardia `toCreate.length > 0`
+    // è osservabile. Senza queste due righe, mutarla in `> 1` lasciava verdi unit ed e2e, e il
+    // generatore diventava muto proprio nel caso di rifinitura (una fila cui manca un ombrellone).
+    expect(res).toEqual({ created: 1, skipped: 0, umbrellas: [{ id: 'n1', label: '1', umbrellaTypeId: null }] });
+    expect(tx.umbrella.createManyAndReturn).toHaveBeenCalledTimes(1);
   });
 
   describe('bulkDelete', () => {

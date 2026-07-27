@@ -95,16 +95,28 @@ export class UmbrellasService {
       const existing = await tx.umbrella.findMany({ where: { label: { in: candidates }, retiredAt: null }, select: { label: true } });
       const existingSet = new Set(existing.map((e) => e.label));
       const toCreate = candidates.filter((label) => !existingSet.has(label));
-      let order = await this.nextLogicalOrder(tx, input.rowId);
-      const umbrellas: StructureUmbrellaDTO[] = [];
-      for (const label of toCreate) {
-        const u = await tx.umbrella.create({
-          data: { establishmentId: tenantId, rowId: input.rowId, umbrellaTypeId: input.umbrellaTypeId, label, logicalOrder: order },
-          select: UMBRELLA_SELECT,
-        });
-        umbrellas.push(toStructureUmbrella(u));
-        order += 1;
-      }
+      const order = await this.nextLogicalOrder(tx, input.rowId);
+      // UNA `INSERT ... RETURNING` invece di N `create`. Il loop sequenziale costava un round-trip
+      // per ombrellone: al cap di 500 sono 506 round-trip in una sola transazione (507 se
+      // `umbrellaTypeId` non è null, perché `assertType` ne aggiunge uno), e `forTenant` non passa
+      // `transactionOptions` → vale il timeout di default di Prisma, 5000 ms.
+      // Misurato con latenza iniettata (AUD-022, ADR-0062, `umbrellaTypeId: null`): a RTT 6 ms la
+      // transazione sta dentro, a RTT 8 ms va in P2028 con rollback totale — zero ombrelloni creati.
+      // Nettato l'overhead del proxy, il ginocchio si estrapola a ~7,7 ms. La soglia è molto più
+      // bassa di quanto sembri: regge in dev su Docker locale (RTT ~0) e cade sul primo Postgres
+      // gestito. In batch il conto scende a 7 (8 con la tipologia) ed è **costante in `count`**:
+      // a RTT 30 ms la stessa transazione chiude in 458 ms.
+      // L'ordine di `createManyAndReturn` segue l'ordine dei dati in ingresso (verificato), quindi
+      // `umbrellas` esce ordinato per `logicalOrder` crescente come con il loop.
+      const rows = toCreate.length > 0
+        ? await tx.umbrella.createManyAndReturn({
+            data: toCreate.map((label, i) => ({
+              establishmentId: tenantId, rowId: input.rowId, umbrellaTypeId: input.umbrellaTypeId, label, logicalOrder: order + i,
+            })),
+            select: UMBRELLA_SELECT,
+          })
+        : [];
+      const umbrellas: StructureUmbrellaDTO[] = rows.map(toStructureUmbrella);
       return { created: umbrellas.length, skipped: candidates.length - toCreate.length, umbrellas };
     });
   }

@@ -33,11 +33,19 @@ Perimetro: **tutto il repo**, partizionato in 9 aree × 11 livelli. Modalità: r
 > è finita (README di `web-staff`, guida deploy), e **D-064** — l'unico finding di sicurezza dei
 > dati ancora aperto — è chiusa da [ADR-0060](../architecture/decisions/0060-read-model-shell-senza-pii.md).
 > Restano fuori dal piano, **di proposito**: AUD-015 (immagine API single-stage come root, urgente il
-> giorno del primo deploy), AUD-022 (500 INSERT sequenziali), AUD-020/021 (prestazioni).
+> giorno del primo deploy), ~~AUD-022 (500 INSERT sequenziali)~~, AUD-020/021 (prestazioni).
 > Anche **D-066** è chiusa ([ADR-0061](../architecture/decisions/0061-tetto-worker-runner-test.md)):
 > il tetto ai worker sta nelle configurazioni dei runner, e la soluzione che la voce proponeva —
 > `--workspace-concurrency` — è stata **misurata e scartata** (−15 % di memoria per +33 % di tempo,
 > e nessun effetto sul caso a pacchetto singolo, che era quello che falliva).
+>
+> ⚠️ **Aggiornato il 2026-07-27 (sessione 10): AUD-022 è CORRETTA**
+> ([ADR-0062](../architecture/decisions/0062-generate-ombrelloni-scrittura-batch.md)) — il
+> generatore scrive con una sola `INSERT … RETURNING`: da **506 round-trip a 7** nel caso misurato
+> (`umbrellaTypeId: null`), costanti in `count` invece che lineari. ⚠️ La misura ha **corretto la
+> soglia** che il finding dichiarava: non «rompe da RTT ≥10 ms» ma **già a 8 ms**, con il ginocchio
+> estrapolato a ~**7,7 ms** — cioè dentro l'intervallo di un Postgres gestito nella stessa region,
+> non solo di uno remoto. Restano fuori dal piano AUD-015 e AUD-020/021.
 >
 > ⚠️ **AUD-027 va letta con la misura accanto**: «1024 LOC, zero unit test» è vero, «quindi è
 > scoperto» **no** — le e2e ne eseguivano già il **96,4 %** delle righe e 7 mutazioni su 8 cadono.

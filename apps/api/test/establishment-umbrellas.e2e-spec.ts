@@ -106,4 +106,30 @@ describe('Establishment umbrellas + generate (e2e)', () => {
     const r2 = await request(app.getHttpServer()).post('/api/establishment/umbrellas/generate').set(...bearer(adminT)).send({ rowId, prefix: 'A', start: 1, count: 5, umbrellaTypeId: null }).expect(201);
     expect(r2.body).toEqual(expect.objectContaining({ created: 2, skipped: 3 }));
   });
+
+  // AUD-022: il cap del DTO è il caso reale (il lido grande in onboarding), non un limite teorico.
+  // ⚠️ Questo test NON distingue il batch dal loop — a RTT ~0 il codice pre-fix passerebbe le stesse
+  // asserzioni in 1,1 s, ben dentro il testTimeout. A presidiare la forma della scrittura è la unit
+  // «una sola scrittura in batch anche al cap di 500»; il compito di questa e2e è un altro e
+  // complementare: provare che la scrittura in batch REGGE contro Postgres vero — RLS FORCE attiva,
+  // indice unique parziale su (establishmentId, label) WHERE retiredAt IS NULL, ~3.000 parametri di
+  // bind in una sola INSERT — e che l'ordine dei candidati sopravvive al giro completo. Vedi ADR-0062.
+  it('POST /umbrellas/generate al cap di 500 → 500 creati nell’ordine dei candidati, rerun idempotente', async () => {
+    const res = await request(app.getHttpServer())
+      .post('/api/establishment/umbrellas/generate')
+      .set(...bearer(adminT))
+      .send({ rowId, prefix: 'CAP-', start: 1, count: 500, umbrellaTypeId: null })
+      .expect(201);
+    expect(res.body).toEqual(expect.objectContaining({ created: 500, skipped: 0 }));
+    // Tutte e 500, in ordine — non solo la prima e l'ultima, che non dicono nulla delle 498 in mezzo.
+    expect(res.body.umbrellas.map((u: { label: string }) => u.label))
+      .toEqual(Array.from({ length: 500 }, (_, i) => `CAP-${i + 1}`));
+    // Rilanciando, tutti i candidati esistono: nessuna scrittura, nessun 409.
+    const again = await request(app.getHttpServer())
+      .post('/api/establishment/umbrellas/generate')
+      .set(...bearer(adminT))
+      .send({ rowId, prefix: 'CAP-', start: 1, count: 500, umbrellaTypeId: null })
+      .expect(201);
+    expect(again.body).toEqual(expect.objectContaining({ created: 0, skipped: 500 }));
+  });
 });
