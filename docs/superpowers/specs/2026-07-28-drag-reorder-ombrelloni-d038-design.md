@@ -163,6 +163,13 @@ body: { rowId: string; position: number }
 → 200 StructureUmbrellaDTO
 ```
 
+La forma non è scelta: è **il fratello esatto** dei due endpoint d'azione già presenti sullo stesso
+controller, `POST :id/retire` e `POST :id/restore` (`umbrellas.controller.ts:49,54`). Il repo
+riserva la `PATCH :id` ai campi propri dell'entità (`label`, `umbrellaTypeId`) e dà a ogni
+transizione di stato un endpoint dedicato. Una `PATCH` con `rowId` sarebbe anche pericolosa: la
+`ValidationPipe` è senza `forbidNonWhitelisted` (`configure-app.ts:18`), quindi un campo non
+dichiarato viene scartato **in silenzio** con 200.
+
 `position` è l'indice **0-based** nella fila di destinazione, cioè lo stesso indice d'array che il
 frontend già possiede: la struttura arriva ordinata dal server (`establishment-structure.select.ts:8`
 per gli ombrelloni, `:18` per le file) e la proiezione preserva l'ordine. Il client non conosce —
@@ -222,7 +229,7 @@ la suite **senza che una sola logica sia rotta**: rumore che costa e non protegg
 trascinamento che degeneri in clic con la modalità accesa **toglie** l'ombrellone dalla selezione —
 una mutazione di stato, non un artefatto visivo. Le due modalità si escludono.
 
-### 5.3 Sotto `lg` il gesto non esiste, e non è una rinuncia
+### 5.3 ⚠️ Limite dichiarato: la feature è solo `lg+` (≥1024px)
 
 Il `Drawer` è un `DialogContent` di reka-ui con `disableOutsidePointerEvents` a **true** per
 default: `DismissableLayer` scrive `body.style.pointerEvents = "none"` e applica `aria-hidden`.
@@ -230,19 +237,29 @@ Sotto 1024px `drawerOpen` è vero **appena qualcosa è selezionato**
 (`EstablishmentStructureView.vue:35`), quindi la scena è pointer-morta proprio nel momento in cui
 si vorrebbe trascinare.
 
-Sotto `lg` il riordino passa **solo** dai comandi da tastiera/pulsante di §5.4, che non dipendono
-dal puntatore.
+**Sotto `lg` non esiste alcun modo di riordinare.** Non è un effetto collaterale scoperto a lavoro
+fatto: è una **rinuncia decisa**, presa sapendo che l'unico modo di coprire quel caso sarebbe un
+comando da tastiera, valutato e **escluso dallo scope**. Su tablet e telefono la struttura resta
+modificabile solo con i percorsi esistenti (crea, genera, elimina).
 
-### 5.4 L'equivalente da tastiera è parte della feature
+Conseguenze che il piano deve onorare:
 
-Con la cella a fuoco: `Ctrl+←/→` sposta di una posizione nella fila, `Ctrl+↑/↓` sposta alla fila
-adiacente compatibile. Ogni spostamento riuscito è annunciato in una regione `aria-live="polite"`
-(«Ombrellone 47 spostato in Fila 2, posizione 3 di 12»).
+- L'affordance di trascinamento **non si rende** sotto `lg`: mostrare una maniglia inerte è peggio
+  della sua assenza.
+- ⚠️ **I test del drag devono stubbare `matchMedia`.** `useMediaQuery` ritorna `false` quando
+  `matchMedia` manca (`useMediaQuery.ts:6`), quindi **ogni spec dell'editor gira oggi nel ramo
+  Drawer** — cioè nel ramo in cui il gesto non esiste. Un test del drag scritto senza stub
+  passerebbe *senza esercitare nulla*.
+- Riaprire il caso `< lg` è materiale da deferred, non da questa slice.
 
-⚠️ Non è un extra di accessibilità: è **l'unico** canale disponibile sotto `lg` (§5.3), ed è
-l'argomento con cui [ADR-0020](../../architecture/decisions/0020-resa-mappa.md) scelse HTML/CSS
-contro SVG e canvas. L'unico precedente di manipolazione da tastiera nel repo è il roving tabindex
-dei tab settore (`StructureScene.vue:55-66`): non c'è nulla da riusare, c'è da scrivere.
+### 5.4 Nessun equivalente da tastiera
+
+Escluso dallo scope su decisione esplicita. Va registrato che il repo non ha comunque alcun
+precedente di manipolazione da tastiera — l'unico handler esistente nell'editor è il roving
+tabindex dei tab settore (`StructureScene.vue:55-66`), che naviga e non muta — e che
+[ADR-0020](../../architecture/decisions/0020-resa-mappa.md) aveva scelto HTML/CSS contro SVG e
+canvas proprio per non dover ricostruire a mano fuoco e ARIA. Questa slice **non spende** quel
+credito: le celle restano `<button>` nativi, focalizzabili e annunciati come oggi.
 
 ### 5.5 Anteprima ottimistica, e l'invalidazione che manca
 
@@ -309,7 +326,7 @@ invarianti strutturali.
 | Permesso sul metodo | unit | ⚠️ **non lo vedrebbe nessuno**: `authorization-coverage` accetta l'eredità di classe. Il presidio va scritto apposta |
 | `dayMap` invalidata dal move | unit FE | la Mappa resta stantia |
 | Drag disabilitato in `selectMode` | unit FE | il drag rimuove dalla selezione |
-| Tastiera: `Ctrl+frecce` + annuncio `aria-live` | unit FE | sotto `lg` la feature non è usabile |
+| Maniglia **assente** sotto `lg` | unit FE | ⚠️ appare un'affordance inerte dove il puntatore è morto (§5.3). È l'unico test che gira **senza** stub di `matchMedia`: tutti gli altri del drag lo richiedono |
 | **«prima linea» e «file più in alto vicine al mare»** | unit FE | 🆕 vedi §7.4 |
 
 ### 7.3 ⚠️ Il caso principale non è esercitabile sull'ambiente attuale
@@ -349,6 +366,9 @@ asseriscono un ordine, non lo proteggono: `map.e2e-spec.ts:51,55,56-59`;
   ordine spaziale non ha referente. Restano in [D-038](../../architecture/deferred.md#d-038), che
   questa slice chiude **solo per l'ombrellone**.
 - **Selezione multipla trascinabile.** §2.1.
+- **Equivalente da tastiera, e con esso il riordino sotto `lg`.** Escluso su decisione esplicita
+  (§5.3, §5.4). ⚠️ Va tracciato in **D-071**: non è un rifinimento di accessibilità ma **l'intero
+  caso tablet/telefono**, che resta scoperto.
 - **Coordinate libere / planimetria** → [D-005](../../architecture/deferred.md#d-005).
 - **Esporre `rowId` nel listino.** La dimensione «fila» è viva nell'engine
   (`pricing.engine.ts:42,57`) e nei DTO (`create-rate.dto.ts:20-22`) ma **nessuna UI la scrive**
