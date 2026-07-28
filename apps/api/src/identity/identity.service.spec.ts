@@ -1,16 +1,22 @@
 import { UnauthorizedException } from '@nestjs/common';
 import { IdentityService } from './identity.service';
+import { StaffPermissionsService } from './staff-permissions.service';
 
 function makeService(user: any, verifyResult = true) {
   const prisma = {
     user: { findUnique: jest.fn().mockResolvedValue(user) },
+    // Nessun override configurato: il DTO porta il default di fabbrica del ruolo (ADR-0063).
+    staffPermissionOverride: { findMany: jest.fn().mockResolvedValue([]) },
   } as any;
   const hasher = {
     verify: jest.fn().mockResolvedValue(verifyResult),
     verifyDecoy: jest.fn().mockResolvedValue(false),
   } as any;
   const tokens = { sign: jest.fn().mockReturnValue('signed-token') } as any;
-  return { service: new IdentityService(prisma, hasher, tokens), prisma, hasher, tokens };
+  // Il service VERO su un Prisma finto: proiettare `permissions` con un doppio della risoluzione
+  // proverebbe il doppio, non la proiezione.
+  const permissions = new StaffPermissionsService(prisma);
+  return { service: new IdentityService(prisma, hasher, tokens, permissions), prisma, hasher, tokens };
 }
 
 const ADMIN = {

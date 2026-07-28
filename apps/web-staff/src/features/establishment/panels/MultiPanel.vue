@@ -4,7 +4,7 @@ import { Button, Field, Select, Option, ConfirmDialog, pushToast } from '@coraly
 import type { UmbrellaTypeDTO } from '@coralyn/contracts';
 import { useBulkAssignUmbrellaType, useBulkDeleteUmbrellas } from '../useEstablishmentStructure';
 
-const props = defineProps<{ ids: string[]; labels: string[]; types: UmbrellaTypeDTO[]; isAdmin: boolean }>();
+const props = defineProps<{ ids: string[]; labels: string[]; types: UmbrellaTypeDTO[]; canManage: boolean }>();
 const emit = defineEmits<{ close: [] }>();
 const bulkAssign = useBulkAssignUmbrellaType();
 const bulkDelete = useBulkDeleteUmbrellas();
@@ -36,7 +36,7 @@ function onDelete() {
       <div class="rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-brand-tint)] p-2.5 text-[11.5px] font-semibold text-[var(--color-brand-ink)]">
         {{ labels.join(' · ') }}
       </div>
-      <template v-if="isAdmin">
+      <template v-if="canManage">
         <Field label="Tipologia">
           <Select v-model="umbrellaTypeId" data-testid="multi-type">
             <Option value="">Scegli…</Option>

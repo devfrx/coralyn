@@ -17,9 +17,13 @@ import { SetupStatusService } from './setup-status.service';
 import { LegalProfileService } from './legal-profile.service';
 import { LegalProfileController } from './legal-profile.controller';
 import { CredentialModule } from '../credential/credential.module';
+import { IdentityModule } from '../identity/identity.module';
 
 @Module({
-  imports: [CredentialModule],
+  // `IdentityModule` per `StaffPermissionsService`, che è provveduto ed esportato da lì una volta
+  // sola. ⚠️ Non ri-provvederlo qui: è l'errore che `crypto.module.ts` ha corretto per
+  // `PasswordHasher`. Nessun ciclo: IdentityModule → CredentialModule → MailModule.
+  imports: [CredentialModule, IdentityModule],
   controllers: [
     EstablishmentController,
     EstablishmentUsersController,

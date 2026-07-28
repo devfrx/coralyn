@@ -4,8 +4,9 @@ import { useSessionStore } from './session';
 import { getToken, setToken, clearToken } from '@/lib/authToken';
 import { MOCK_TOKEN, server } from '@/mocks/server';
 import { todayIso } from '@/lib/dates';
-import { Role } from '@coralyn/contracts';
+import { Permission, Role } from '@coralyn/contracts';
 import { http, HttpResponse } from 'msw';
+import { permissionsOfRole } from '@/test/utils';
 
 beforeEach(() => {
   setActivePinia(createPinia());
@@ -88,12 +89,45 @@ describe('session store', () => {
     setToken(MOCK_TOKEN);
     server.use(
       http.get('/api/auth/me', () =>
-        HttpResponse.json({ id: 'su-1', email: 'super@coralyn.dev', role: Role.Superuser, establishmentId: null, establishmentName: null }),
+        HttpResponse.json({ id: 'su-1', email: 'super@coralyn.dev', role: Role.Superuser, establishmentId: null, establishmentName: null, permissions: permissionsOfRole(Role.Superuser) }),
       ),
     );
     const s = useSessionStore();
     await s.rehydrate();
     expect(s.authenticated).toBe(false);
     expect(getToken()).toBeNull();
+  });
+
+  // ADR-0063: il ruolo dice *chi sei*, il permesso *cosa puoi*.
+  describe('hasPermission', () => {
+    it('a sessione ASSENTE nega tutto (fail-closed anche nel frontend)', () => {
+      // Senza questo, nell'istante fra il boot e la reidratazione la sidebar sarebbe completa.
+      const s = useSessionStore();
+      expect(s.authenticated).toBe(false);
+      expect(s.hasPermission(Permission.MapRead)).toBe(false);
+      expect(s.permissions).toEqual([]);
+    });
+
+    it('concede ciò che l’utente porta e nega il resto, indipendentemente dal ruolo', () => {
+      const s = useSessionStore();
+      // Ruolo `staff` ma con un permesso che il default di fabbrica NON gli darebbe: è
+      // esattamente il caso che la slice introduce, e il ruolo non deve avere voce in capitolo.
+      s.user = {
+        id: 'u-1', email: 's@lido.it', role: Role.Staff,
+        establishmentId: 'e-1', establishmentName: 'Lido',
+        permissions: [Permission.MapRead, Permission.StructureManage],
+      };
+      expect(s.hasPermission(Permission.StructureManage)).toBe(true);
+      expect(s.hasPermission(Permission.PricingManage)).toBe(false);
+    });
+
+    it('un utente senza alcun permesso nega anche ciò che il suo ruolo darebbe di fabbrica', () => {
+      const s = useSessionStore();
+      s.user = {
+        id: 'u-1', email: 'a@lido.it', role: Role.Admin,
+        establishmentId: 'e-1', establishmentName: 'Lido', permissions: [],
+      };
+      expect(s.hasPermission(Permission.TeamManage)).toBe(false);
+    });
   });
 });

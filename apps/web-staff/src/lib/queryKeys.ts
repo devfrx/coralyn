@@ -22,6 +22,7 @@ export const queryKeys = {
   reportSummary: (tenantId: string, period: string) => ['report', tenantId, 'summary', period] as const,
   establishmentOverview: (tenantId: string) => ['establishment', tenantId, 'overview'] as const,
   establishmentTeam: (tenantId: string) => ['establishment', tenantId, 'team'] as const,
+  staffPermissions: (tenantId: string, userId: string) => ['establishment', tenantId, 'team', userId, 'permissions'] as const,
   establishmentStructure: (tenantId: string) => ['establishment', tenantId, 'structure'] as const,
   retiredUmbrellas: (tenantId: string) => ['establishment', tenantId, 'retired-umbrellas'] as const,
   setupStatus: (tenantId: string) => ['establishment', tenantId, 'setup-status'] as const,

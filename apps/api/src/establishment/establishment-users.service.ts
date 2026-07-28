@@ -1,11 +1,22 @@
 import { ConflictException, Injectable, NotFoundException, UnprocessableEntityException } from '@nestjs/common';
 import { Prisma, Role } from '@prisma/client';
 import { randomBytes } from 'node:crypto';
-import type { CreateStaffUserInput, EstablishmentMemberDTO, ResetStaffPasswordResponse } from '@coralyn/contracts';
+import {
+  CONFIGURABLE_PERMISSIONS,
+  Role as ContractRole,
+  type CreateStaffUserInput,
+  type EstablishmentMemberDTO,
+  type Permission,
+  type ResetStaffPasswordResponse,
+  type StaffPermissionsDTO,
+  type UpdateStaffPermissionsInput,
+} from '@coralyn/contracts';
 import { PrismaService } from '../prisma/prisma.service';
 import { TenantContext } from '../tenant/tenant-context';
 import { PasswordHasher } from '../crypto/password-hasher';
 import { CredentialSetupService } from '../credential/credential-setup.service';
+import { StaffPermissionsService } from '../identity/staff-permissions.service';
+import { roleHasPermission } from '../identity/permission';
 
 type UserRow = { id: string; email: string; role: string; disabledAt: Date | null };
 const MEMBER_SELECT = { id: true, email: true, role: true, disabledAt: true } as const;
@@ -18,6 +29,7 @@ export class EstablishmentUsersService {
     private readonly tenant: TenantContext,
     private readonly hasher: PasswordHasher,
     private readonly credentials: CredentialSetupService,
+    private readonly permissions: StaffPermissionsService,
   ) {}
 
   private toMember(u: UserRow): EstablishmentMemberDTO {
@@ -106,5 +118,65 @@ export class EstablishmentUsersService {
       select: MEMBER_SELECT,
     });
     return this.toMember(updated);
+  }
+
+  /**
+   * Il bersaglio di una configurazione di permessi: **dello stesso lido** e di ruolo `staff`.
+   *
+   * Il `findFirst` col tenant è lo stesso idioma di `resetPassword` e `setDisabled`: è ciò che
+   * rende impossibile all'admin del lido A toccare un operatore del lido B — e, su questa tabella
+   * che sta fuori da RLS, è la prima delle due difese (la seconda è la FK composita, ADR-0063).
+   */
+  private async requireConfigurableTarget(id: string): Promise<{ tenantId: string; targetId: string }> {
+    const tenantId = this.tenant.require();
+    const target = await this.prisma.user.findFirst({
+      where: { id, establishmentId: tenantId },
+      select: { id: true, role: true },
+    });
+    if (!target) throw new NotFoundException('Utente non trovato');
+    if (target.role !== Role.staff) {
+      // ADR-0063 §2.2: l'admin non è configurabile. Un admin che si revocasse `team.manage`
+      // chiuderebbe il lido fuori dalla gestione dei permessi, senza recupero dentro il tenant.
+      throw new UnprocessableEntityException('I permessi si configurano solo per gli operatori staff');
+    }
+    return { tenantId, targetId: target.id };
+  }
+
+  /** I permessi **effettivi** dell'operatore: default di fabbrica corretto dagli override. */
+  async permissionsOf(id: string): Promise<StaffPermissionsDTO> {
+    const { targetId } = await this.requireConfigurableTarget(id);
+    return {
+      userId: targetId,
+      permissions: await this.permissions.effectiveFor({ id: targetId, role: ContractRole.Staff }),
+    };
+  }
+
+  /**
+   * Sostituisce l'insieme dei permessi configurabili dell'operatore.
+   *
+   * L'input è l'insieme **completo desiderato**, non un delta: è idempotente e rispecchia lo stato
+   * degli interruttori. Il DB però conserva **solo lo scarto** dal default di fabbrica, così un
+   * permesso aggiunto in futuro all'enum segue il default invece di nascere negato per chi è già
+   * configurato — che è il senso di «`PERMISSION_ROLES` resta il default» (ADR-0057/0063).
+   */
+  async setPermissions(id: string, input: UpdateStaffPermissionsInput): Promise<StaffPermissionsDTO> {
+    const { tenantId, targetId } = await this.requireConfigurableTarget(id);
+    const desired = new Set<Permission>(input.permissions);
+    const rows = CONFIGURABLE_PERMISSIONS.filter(
+      (p) => desired.has(p) !== roleHasPermission(ContractRole.Staff, p),
+    ).map((p) => ({ userId: targetId, establishmentId: tenantId, permission: p, granted: desired.has(p) }));
+
+    // Sostituzione atomica: senza la transazione una richiesta concorrente potrebbe leggere lo
+    // stato intermedio in cui l'operatore non ha alcun override, cioè i permessi di fabbrica.
+    // `createMany` e non un loop di `create`: al più 17 righe, ma è la lezione di ADR-0062.
+    await this.prisma.$transaction([
+      this.prisma.staffPermissionOverride.deleteMany({ where: { userId: targetId } }),
+      this.prisma.staffPermissionOverride.createMany({ data: rows }),
+    ]);
+
+    return {
+      userId: targetId,
+      permissions: await this.permissions.effectiveFor({ id: targetId, role: ContractRole.Staff }),
+    };
   }
 }

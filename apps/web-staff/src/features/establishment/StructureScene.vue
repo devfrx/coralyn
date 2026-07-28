@@ -13,7 +13,7 @@ const props = defineProps<{
   selectedSectorId: string | null;
   selection: Selection;
   selectMode: boolean;
-  isAdmin: boolean;
+  canManage: boolean;
 }>();
 const emit = defineEmits<{
   'select-sector': [id: string]; 'create-sector': [];
@@ -84,10 +84,10 @@ function onTabKeydown(e: KeyboardEvent, i: number) {
           {{ s.name }} <span class="ml-1 text-[11.5px] font-semibold text-[var(--color-text-muted)] [font-variant-numeric:tabular-nums]">{{ seats(s) }} posti</span>
         </button>
       </div>
-      <button v-if="isAdmin" type="button" data-testid="ghost-sector"
+      <button v-if="canManage" type="button" data-testid="ghost-sector"
         class="rounded-full border-[1.5px] border-dashed border-[var(--color-border-input)] px-3.5 py-1.5 text-[12.5px] font-semibold text-[var(--color-text-muted)] hover:border-[var(--color-brand)] hover:bg-[var(--color-coral-050)] hover:text-[var(--color-brand-ink)] focus-visible:outline-none focus-visible:[box-shadow:var(--ring-focus)]"
         @click="emit('create-sector')">+ Settore</button>
-      <button v-if="isAdmin" type="button" data-testid="select-mode" :aria-pressed="selectMode"
+      <button v-if="canManage" type="button" data-testid="select-mode" :aria-pressed="selectMode"
         class="ml-auto rounded-full border-[1.5px] px-3.5 py-1.5 text-[12.5px] font-bold focus-visible:outline-none focus-visible:[box-shadow:var(--ring-focus)]"
         :class="selectMode ? 'border-[var(--color-brand)] bg-[var(--color-brand-tint)] text-[var(--color-brand-ink)]' : 'border-[var(--color-border-input)] bg-[var(--color-surface)] text-[var(--color-text-2nd)]'"
         @click="emit('toggle-select-mode')">Seleziona</button>
@@ -104,11 +104,11 @@ function onTabKeydown(e: KeyboardEvent, i: number) {
           <span class="st-sub">{{ current.rows.length }} file · {{ seats(current) }} ombrelloni · le file più in alto sono più vicine al mare</span>
         </div>
         <StructureRow v-for="r in current.rows" :key="r.id" class="map-row-in" :row="r" :sector-name="current.name"
-          :types="types" :selection="selection" :is-admin="isAdmin"
+          :types="types" :selection="selection" :can-manage="canManage"
           @select-row="(id) => emit('select-row', id)" @select-umbrella="(id, add) => emit('select-umbrella', id, add)"
           @create-umbrella="(rid) => emit('create-umbrella', rid)"
           @row-generate="(id) => emit('row-generate', id)" @row-danger="(id) => emit('row-danger', id)" />
-        <button v-if="isAdmin" type="button" class="st-ghost-row focus-visible:outline-none focus-visible:[box-shadow:var(--ring-focus)]"
+        <button v-if="canManage" type="button" class="st-ghost-row focus-visible:outline-none focus-visible:[box-shadow:var(--ring-focus)]"
           data-testid="ghost-row" @click="emit('create-row', current.id)">
           <span class="grid size-6 place-items-center rounded-[8px] border-[1.5px] border-dashed border-current text-sm">+</span>
           Nuova fila: etichetta e, se vuoi, genera subito gli ombrelloni

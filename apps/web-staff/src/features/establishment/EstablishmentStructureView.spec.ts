@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { http, HttpResponse } from 'msw';
 import { flushPromises, enableAutoUnmount } from '@vue/test-utils';
 import { Role } from '@coralyn/contracts';
-import { mountApp, selectOption } from '@/test/utils';
+import { mountApp, selectOption, permissionsOfRole } from '@/test/utils';
 import { server } from '@/mocks/server';
 import { useSessionStore } from '@/stores/session';
 import EstablishmentStructureView from './EstablishmentStructureView.vue';
@@ -79,7 +79,7 @@ describe('EstablishmentStructureView — shell Cantiere', () => {
     // Il pulsante "Nuova" tipologia è admin-only: senza sessione autenticata il ruolo di default
     // è Staff (useSessionStore) e il bottone non verrebbe reso.
     const session = useSessionStore();
-    session.user = { id: 'u-1', email: 'admin@coralyn.dev', role: Role.Admin, establishmentId: 'e-1', establishmentName: 'Lido Maestrale' };
+    session.user = { id: 'u-1', email: 'admin@coralyn.dev', role: Role.Admin, establishmentId: 'e-1', establishmentName: 'Lido Maestrale', permissions: permissionsOfRole(Role.Admin) };
     await settle();
     await w.find('[data-testid="type-new"]').trigger('click');
     await w.find('[data-testid="type-name"]').setValue('Lettino');
@@ -98,7 +98,7 @@ describe('EstablishmentStructureView — shell Cantiere', () => {
     const w = mountApp(EstablishmentStructureView);
     // Il form del pannello Settore (rename) è admin-only.
     const session = useSessionStore();
-    session.user = { id: 'u-1', email: 'admin@coralyn.dev', role: Role.Admin, establishmentId: 'e-1', establishmentName: 'Lido Maestrale' };
+    session.user = { id: 'u-1', email: 'admin@coralyn.dev', role: Role.Admin, establishmentId: 'e-1', establishmentName: 'Lido Maestrale', permissions: permissionsOfRole(Role.Admin) };
     await settle();
     await w.findAll('[role="tab"]')[0].trigger('click');
     expect(w.find('[data-testid="inspector"]').text()).toContain('Settore');
@@ -115,7 +115,7 @@ describe('EstablishmentStructureView — shell Cantiere', () => {
     const w = mountApp(EstablishmentStructureView);
     // Il bottone «+ Settore» è admin-only.
     const session = useSessionStore();
-    session.user = { id: 'u-1', email: 'admin@coralyn.dev', role: Role.Admin, establishmentId: 'e-1', establishmentName: 'Lido Maestrale' };
+    session.user = { id: 'u-1', email: 'admin@coralyn.dev', role: Role.Admin, establishmentId: 'e-1', establishmentName: 'Lido Maestrale', permissions: permissionsOfRole(Role.Admin) };
     await settle();
     await w.find('[data-testid="ghost-sector"]').trigger('click');
     await w.find('[data-testid="sector-name"]').setValue('Nord');
@@ -133,7 +133,7 @@ describe('EstablishmentStructureView — shell Cantiere', () => {
     }));
     const w = mountApp(EstablishmentStructureView);
     const session = useSessionStore();
-    session.user = { id: 'u-1', email: 'admin@coralyn.dev', role: Role.Admin, establishmentId: 'e-1', establishmentName: 'Lido Maestrale' };
+    session.user = { id: 'u-1', email: 'admin@coralyn.dev', role: Role.Admin, establishmentId: 'e-1', establishmentName: 'Lido Maestrale', permissions: permissionsOfRole(Role.Admin) };
     await settle();
     await w.find('[data-testid="scene-row"] .st-rail-name').trigger('click');
     const insp = w.find('[data-testid="inspector"]');
@@ -153,7 +153,7 @@ describe('EstablishmentStructureView — shell Cantiere', () => {
     server.use(http.post('/api/establishment/umbrellas/generate', async () => { called = true; return HttpResponse.json({ created: 0, skipped: 0, umbrellas: [] }); }));
     const w = mountApp(EstablishmentStructureView);
     const session = useSessionStore();
-    session.user = { id: 'u-1', email: 'admin@coralyn.dev', role: Role.Admin, establishmentId: 'e-1', establishmentName: 'Lido Maestrale' };
+    session.user = { id: 'u-1', email: 'admin@coralyn.dev', role: Role.Admin, establishmentId: 'e-1', establishmentName: 'Lido Maestrale', permissions: permissionsOfRole(Role.Admin) };
     await settle();
     await w.find('[data-testid="scene-row"] .st-rail-name').trigger('click');
     const insp = w.find('[data-testid="inspector"]');
@@ -169,7 +169,7 @@ describe('EstablishmentStructureView — shell Cantiere', () => {
     useFixture();
     const w = mountApp(EstablishmentStructureView);
     const session = useSessionStore();
-    session.user = { id: 'u-1', email: 'admin@coralyn.dev', role: Role.Admin, establishmentId: 'e-1', establishmentName: 'Lido Maestrale' };
+    session.user = { id: 'u-1', email: 'admin@coralyn.dev', role: Role.Admin, establishmentId: 'e-1', establishmentName: 'Lido Maestrale', permissions: permissionsOfRole(Role.Admin) };
     await settle();
     await w.find('[data-testid="scene-row"] .st-rail-name').trigger('click');
     const insp = w.find('[data-testid="inspector"]');
@@ -188,7 +188,7 @@ describe('EstablishmentStructureView — shell Cantiere', () => {
     }));
     const w = mountApp(EstablishmentStructureView, { attachTo: document.body });
     const session = useSessionStore();
-    session.user = { id: 'u-1', email: 'admin@coralyn.dev', role: Role.Admin, establishmentId: 'e-1', establishmentName: 'Lido Maestrale' };
+    session.user = { id: 'u-1', email: 'admin@coralyn.dev', role: Role.Admin, establishmentId: 'e-1', establishmentName: 'Lido Maestrale', permissions: permissionsOfRole(Role.Admin) };
     await settle();
     await w.find('[data-testid="scene-row"] .st-rail-name').trigger('click');
     await w.find('[data-testid="row-clear"]').trigger('click');
@@ -218,7 +218,7 @@ describe('EstablishmentStructureView — shell Cantiere', () => {
     );
     const w = mountApp(EstablishmentStructureView);
     const session = useSessionStore();
-    session.user = { id: 'u-1', email: 'admin@coralyn.dev', role: Role.Admin, establishmentId: 'e-1', establishmentName: 'Lido Maestrale' };
+    session.user = { id: 'u-1', email: 'admin@coralyn.dev', role: Role.Admin, establishmentId: 'e-1', establishmentName: 'Lido Maestrale', permissions: permissionsOfRole(Role.Admin) };
     await settle();
     await w.findAll('[role="tab"]')[0].trigger('click'); // Settore Centro selezionato
     await w.find('[data-testid="ghost-row"]').trigger('click');
@@ -242,7 +242,7 @@ describe('EstablishmentStructureView — shell Cantiere', () => {
     );
     const w = mountApp(EstablishmentStructureView);
     const session = useSessionStore();
-    session.user = { id: 'u-1', email: 'admin@coralyn.dev', role: Role.Admin, establishmentId: 'e-1', establishmentName: 'Lido Maestrale' };
+    session.user = { id: 'u-1', email: 'admin@coralyn.dev', role: Role.Admin, establishmentId: 'e-1', establishmentName: 'Lido Maestrale', permissions: permissionsOfRole(Role.Admin) };
     await settle();
     await w.findAll('[role="tab"]')[0].trigger('click');
     await w.find('[data-testid="ghost-row"]').trigger('click');
@@ -273,7 +273,7 @@ describe('EstablishmentStructureView — shell Cantiere', () => {
     }));
     const w = mountApp(EstablishmentStructureView, { attachTo: document.body });
     const session = useSessionStore();
-    session.user = { id: 'u-1', email: 'admin@coralyn.dev', role: Role.Admin, establishmentId: 'e-1', establishmentName: 'Lido Maestrale' };
+    session.user = { id: 'u-1', email: 'admin@coralyn.dev', role: Role.Admin, establishmentId: 'e-1', establishmentName: 'Lido Maestrale', permissions: permissionsOfRole(Role.Admin) };
     await settle();
     await w.find('[data-testid="scene-row"] .st-rail-name').trigger('click');
     await settle();
@@ -292,7 +292,7 @@ describe('EstablishmentStructureView — shell Cantiere', () => {
     }));
     const w = mountApp(EstablishmentStructureView);
     const session = useSessionStore();
-    session.user = { id: 'u-1', email: 'admin@coralyn.dev', role: Role.Admin, establishmentId: 'e-1', establishmentName: 'Lido Maestrale' };
+    session.user = { id: 'u-1', email: 'admin@coralyn.dev', role: Role.Admin, establishmentId: 'e-1', establishmentName: 'Lido Maestrale', permissions: permissionsOfRole(Role.Admin) };
     await settle();
     await w.findAll('[data-testid="scene-cell"] button')[0].trigger('click');
     const insp = w.find('[data-testid="inspector"]');
@@ -313,7 +313,7 @@ describe('EstablishmentStructureView — shell Cantiere', () => {
     }));
     const w = mountApp(EstablishmentStructureView);
     const session = useSessionStore();
-    session.user = { id: 'u-1', email: 'admin@coralyn.dev', role: Role.Admin, establishmentId: 'e-1', establishmentName: 'Lido Maestrale' };
+    session.user = { id: 'u-1', email: 'admin@coralyn.dev', role: Role.Admin, establishmentId: 'e-1', establishmentName: 'Lido Maestrale', permissions: permissionsOfRole(Role.Admin) };
     await settle();
     await w.find('[data-testid="ghost-cell"]').trigger('click');
     const insp = w.find('[data-testid="inspector"]');
@@ -332,7 +332,7 @@ describe('EstablishmentStructureView — shell Cantiere', () => {
     }));
     const w = mountApp(EstablishmentStructureView, { attachTo: document.body });
     const session = useSessionStore();
-    session.user = { id: 'u-1', email: 'admin@coralyn.dev', role: Role.Admin, establishmentId: 'e-1', establishmentName: 'Lido Maestrale' };
+    session.user = { id: 'u-1', email: 'admin@coralyn.dev', role: Role.Admin, establishmentId: 'e-1', establishmentName: 'Lido Maestrale', permissions: permissionsOfRole(Role.Admin) };
     await settle();
     await w.findAll('[data-testid="scene-cell"] button')[0].trigger('click');
     await w.find('[data-testid="umbrella-delete"]').trigger('click');
@@ -354,7 +354,7 @@ describe('EstablishmentStructureView — shell Cantiere', () => {
     }));
     const w = mountApp(EstablishmentStructureView, { attachTo: document.body });
     const session = useSessionStore();
-    session.user = { id: 'u-1', email: 'admin@coralyn.dev', role: Role.Admin, establishmentId: 'e-1', establishmentName: 'Lido Maestrale' };
+    session.user = { id: 'u-1', email: 'admin@coralyn.dev', role: Role.Admin, establishmentId: 'e-1', establishmentName: 'Lido Maestrale', permissions: permissionsOfRole(Role.Admin) };
     await settle();
     await w.findAll('[data-testid="scene-cell"] button')[0].trigger('click');
     await w.find('[data-testid="umbrella-retire"]').trigger('click');
@@ -393,7 +393,7 @@ describe('EstablishmentStructureView — shell Cantiere', () => {
     }));
     const w = mountApp(EstablishmentStructureView, { attachTo: document.body });
     const session = useSessionStore();
-    session.user = { id: 'u-1', email: 'admin@coralyn.dev', role: Role.Admin, establishmentId: 'e-1', establishmentName: 'Lido Maestrale' };
+    session.user = { id: 'u-1', email: 'admin@coralyn.dev', role: Role.Admin, establishmentId: 'e-1', establishmentName: 'Lido Maestrale', permissions: permissionsOfRole(Role.Admin) };
     await settle();
     await w.findAll('[data-testid="scene-cell"] button')[0].trigger('click');
     await settle();
@@ -410,7 +410,7 @@ describe('EstablishmentStructureView — shell Cantiere', () => {
     }));
     const w = mountApp(EstablishmentStructureView);
     const session = useSessionStore();
-    session.user = { id: 'u-1', email: 'admin@coralyn.dev', role: Role.Admin, establishmentId: 'e-1', establishmentName: 'Lido Maestrale' };
+    session.user = { id: 'u-1', email: 'admin@coralyn.dev', role: Role.Admin, establishmentId: 'e-1', establishmentName: 'Lido Maestrale', permissions: permissionsOfRole(Role.Admin) };
     await settle();
     await w.findAll('[data-testid="scene-cell"] button')[0].trigger('click');
     await w.findAll('[data-testid="scene-cell"] button')[1].trigger('click', { shiftKey: true });
@@ -435,7 +435,7 @@ describe('EstablishmentStructureView — shell Cantiere', () => {
     useFixture();
     const w = mountApp(EstablishmentStructureView, { attachTo: document.body });
     const session = useSessionStore();
-    session.user = { id: 'u-1', email: 'admin@coralyn.dev', role: Role.Admin, establishmentId: 'e-1', establishmentName: 'Lido Maestrale' };
+    session.user = { id: 'u-1', email: 'admin@coralyn.dev', role: Role.Admin, establishmentId: 'e-1', establishmentName: 'Lido Maestrale', permissions: permissionsOfRole(Role.Admin) };
     await settle();
     await w.findAll('[data-testid="scene-cell"] button')[0].trigger('click');
     await w.findAll('[data-testid="scene-cell"] button')[1].trigger('click', { shiftKey: true });
@@ -458,7 +458,7 @@ describe('EstablishmentStructureView — shell Cantiere', () => {
     server.use(http.post('/api/establishment/umbrellas/bulk-delete', () => HttpResponse.json({ deleted: 2, skipped: 0 })));
     const w = mountApp(EstablishmentStructureView, { attachTo: document.body });
     const session = useSessionStore();
-    session.user = { id: 'u-1', email: 'admin@coralyn.dev', role: Role.Admin, establishmentId: 'e-1', establishmentName: 'Lido Maestrale' };
+    session.user = { id: 'u-1', email: 'admin@coralyn.dev', role: Role.Admin, establishmentId: 'e-1', establishmentName: 'Lido Maestrale', permissions: permissionsOfRole(Role.Admin) };
     await settle();
     await w.find('[data-testid="select-mode"]').trigger('click');
     await w.findAll('[data-testid="scene-cell"] button')[0].trigger('click');
@@ -488,7 +488,7 @@ describe('EstablishmentStructureView — shell Cantiere', () => {
     }));
     const w = mountApp(EstablishmentStructureView, { attachTo: document.body });
     const session = useSessionStore();
-    session.user = { id: 'u-1', email: 'admin@coralyn.dev', role: Role.Admin, establishmentId: 'e-1', establishmentName: 'Lido Maestrale' };
+    session.user = { id: 'u-1', email: 'admin@coralyn.dev', role: Role.Admin, establishmentId: 'e-1', establishmentName: 'Lido Maestrale', permissions: permissionsOfRole(Role.Admin) };
     await settle();
     await w.findAll('[data-testid="scene-cell"] button')[0].trigger('click');
     await w.findAll('[data-testid="scene-cell"] button')[1].trigger('click', { shiftKey: true });
@@ -519,7 +519,7 @@ describe('EstablishmentStructureView — shell Cantiere', () => {
     }));
     const w = mountApp(EstablishmentStructureView);
     const session = useSessionStore();
-    session.user = { id: 'u-1', email: 'admin@coralyn.dev', role: Role.Admin, establishmentId: 'e-1', establishmentName: 'Lido Maestrale' };
+    session.user = { id: 'u-1', email: 'admin@coralyn.dev', role: Role.Admin, establishmentId: 'e-1', establishmentName: 'Lido Maestrale', permissions: permissionsOfRole(Role.Admin) };
     await settle();
     await w.findAll('[data-testid="scene-cell"] button')[0].trigger('click');
     await w.findAll('[data-testid="scene-cell"] button')[1].trigger('click', { shiftKey: true });
@@ -535,7 +535,7 @@ describe('EstablishmentStructureView — shell Cantiere', () => {
     useFixture();
     const w = mountApp(EstablishmentStructureView);
     const session = useSessionStore();
-    session.user = { id: 'u-1', email: 'admin@coralyn.dev', role: Role.Admin, establishmentId: 'e-1', establishmentName: 'Lido Maestrale' };
+    session.user = { id: 'u-1', email: 'admin@coralyn.dev', role: Role.Admin, establishmentId: 'e-1', establishmentName: 'Lido Maestrale', permissions: permissionsOfRole(Role.Admin) };
     await settle();
     await w.findAll('[data-testid="scene-cell"] button')[0].trigger('click');
     await w.findAll('[data-testid="scene-cell"] button')[1].trigger('click', { shiftKey: true });
@@ -574,7 +574,7 @@ describe('EstablishmentStructureView — shell Cantiere', () => {
     }));
     const w = mountApp(EstablishmentStructureView);
     const session = useSessionStore();
-    session.user = { id: 'u-1', email: 'admin@coralyn.dev', role: Role.Admin, establishmentId: 'e-1', establishmentName: 'Lido Maestrale' };
+    session.user = { id: 'u-1', email: 'admin@coralyn.dev', role: Role.Admin, establishmentId: 'e-1', establishmentName: 'Lido Maestrale', permissions: permissionsOfRole(Role.Admin) };
     await settle();
     await selectOption(w.get('[data-testid="retired-restore-row"]'), 'Centro · Fila 1');
     await settle();
@@ -602,7 +602,7 @@ describe('EstablishmentStructureView — shell Cantiere', () => {
     useFixture();
     const w = mountApp(EstablishmentStructureView);
     const session = useSessionStore();
-    session.user = { id: 'u-1', email: 'admin@coralyn.dev', role: Role.Admin, establishmentId: 'e-1', establishmentName: 'Lido Maestrale' };
+    session.user = { id: 'u-1', email: 'admin@coralyn.dev', role: Role.Admin, establishmentId: 'e-1', establishmentName: 'Lido Maestrale', permissions: permissionsOfRole(Role.Admin) };
     await settle();
     const insp = () => w.get('[data-testid="inspector"]');
     // ⚡ Genera → pannello fila con il generatore evidenziato, zona rischiosa no.

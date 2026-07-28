@@ -4,7 +4,7 @@ import { http, HttpResponse } from 'msw';
 import { flushPromises } from '@vue/test-utils';
 import { Role } from '@coralyn/contracts';
 import { useToasts } from '@coralyn/ui-kit';
-import { mountApp, selectOption } from '@/test/utils';
+import { mountApp, selectOption, permissionsOfRole } from '@/test/utils';
 import { server } from '@/mocks/server';
 import { useSessionStore } from '@/stores/session';
 import { mapSeed3 } from '@/mocks/data/seed';
@@ -60,7 +60,7 @@ describe('MapView', () => {
     })));
     const w = mountApp(MapView, { attachTo: document.body });
     const session = useSessionStore();
-    session.user = { id: 'u-1', email: 'admin@coralyn.dev', role: Role.Admin, establishmentId: 'e-1', establishmentName: 'Lido Maestrale' };
+    session.user = { id: 'u-1', email: 'admin@coralyn.dev', role: Role.Admin, establishmentId: 'e-1', establishmentName: 'Lido Maestrale', permissions: permissionsOfRole(Role.Admin) };
     await flushPromises();
     await new Promise((r) => setTimeout(r, 0));
     await flushPromises();

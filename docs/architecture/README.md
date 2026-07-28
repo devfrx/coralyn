@@ -1,22 +1,22 @@
 # Architettura — vista d'insieme (documento vivo)
 
-> Questo documento è **vivo**: va aggiornato a ogni decisione rilevante. Descrive
+> Questo documento è **vivo**: lo aggiorno a ogni decisione rilevante. Qui descrivo
 > *cosa* è il sistema e *com'è strutturato*; per il *perché* delle singole scelte
-> rimanda agli [ADR](decisions/).
+> rimando agli [ADR](decisions/).
 
 ## Cos'è il prodotto
 
-Gestionale **SaaS multi-cliente** per **lidi balneari** (stabilimenti balneari),
-destinato alla vendita in abbonamento a più stabilimenti.
+Un gestionale **SaaS multi-cliente** per **lidi balneari** (stabilimenti balneari),
+che voglio vendere in abbonamento a più stabilimenti.
 
 ## Principi guida
 
-- Tutte le decisioni passano per la [decision rubric](decisions/0002-decision-rubric.md):
+- Faccio passare tutte le decisioni per la [decision rubric](decisions/0002-decision-rubric.md):
   professionalità, convenzioni, modularità, zero debito.
-- Decisioni tracciate come [ADR](decisions/); cambi di rotta via *supersede*, mai
-  cancellazione.
-- Debito solo se consapevole e registrato in [deferred.md](deferred.md).
-- Linguaggio: **codice e DB in inglese**, UI a video e docs in italiano ([ADR-0030](decisions/0030-codice-e-db-in-inglese.md), supera [ADR-0003](decisions/0003-language-convention.md)); mappatura termini nel [glossario](glossary.md).
+- Traccio le decisioni come [ADR](decisions/); i cambi di rotta li gestisco via *supersede*, mai
+  cancellando.
+- Accetto debito solo se consapevole e registrato in [deferred.md](deferred.md).
+- Linguaggio: tengo **codice e DB in inglese**, UI a video e docs in italiano ([ADR-0030](decisions/0030-codice-e-db-in-inglese.md), supera [ADR-0003](decisions/0003-language-convention.md)); la mappatura dei termini sta nel [glossario](glossary.md).
 
 ## Stile architetturale ([ADR-0007](decisions/0007-stile-architetturale.md))
 
@@ -24,7 +24,7 @@ destinato alla vendita in abbonamento a più stabilimenti.
 - **API-first (REST)**: un'unica API serve l'app staff e (in futuro) il booking online.
 - **Multi-tenant-aware** dal modello dati: ogni entità porta `establishmentId`;
   isolamento shared-schema + RLS ([ADR-0010](decisions/0010-isolamento-multi-tenant.md)).
-- **IA come servizio separato** (futuro), consumato via API dal core.
+- **IA come servizio separato** (futuro), che il core consumerà via API.
 
 ## Stack e layout ([ADR-0008](decisions/0008-stack-e-layout.md))
 
@@ -75,7 +75,7 @@ Termini di dominio: [glossario](glossary.md).
 
 ## Documentazione di design ([ADR-0009](decisions/0009-documentazione-di-design.md))
 
-Diagrammi in Mermaid e mockup in [docs/design/](../design/), versionati e tenuti
+Tengo diagrammi in Mermaid e mockup in [docs/design/](../design/), versionati e
 aggiornati. Il [design system del frontend](../design/design-system.md) (token + linguaggio dei
 componenti) è la spec d'implementazione di `ui-kit` ([ADR-0017](decisions/0017-design-system-frontend.md)–[0020](decisions/0020-resa-mappa.md), [ADR-0027](decisions/0027-coralyn-linguaggio-visivo.md) — Coralyn).
 
@@ -143,3 +143,4 @@ componenti) è la spec d'implementazione di `ui-kit` ([ADR-0017](decisions/0017-
 - [ADR-0060](decisions/0060-read-model-shell-senza-pii.md) — Il read-model dell'app-shell non porta dati personali
 - [ADR-0061](decisions/0061-tetto-worker-runner-test.md) — Il tetto ai worker vive nelle configurazioni dei runner, non nello script condiviso
 - [ADR-0062](decisions/0062-generate-ombrelloni-scrittura-batch.md) — Il generatore di ombrelloni scrive in una sola INSERT; il budget delle transazioni è un tema a parte
+- [ADR-0063](decisions/0063-permessi-staff-configurabili-per-operatore.md) — I permessi dello staff sono configurabili per operatore, e risolti a ogni richiesta

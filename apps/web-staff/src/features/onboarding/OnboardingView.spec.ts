@@ -2,7 +2,7 @@ import { describe, it, expect, afterEach } from 'vitest';
 import { flushPromises } from '@vue/test-utils';
 import { http, HttpResponse } from 'msw';
 import { Role } from '@coralyn/contracts';
-import { mountApp } from '@/test/utils';
+import { mountApp, permissionsOfRole } from '@/test/utils';
 import { server } from '@/mocks/server';
 import { useSessionStore } from '@/stores/session';
 import OnboardingView from './OnboardingView.vue';
@@ -22,7 +22,7 @@ const partial = (firstIncompleteStep: string, overrides = {}) => ({
 function mountAsAdmin() {
   const w = mountApp(OnboardingView);
   const session = useSessionStore();
-  session.user = { id: 'u-1', email: 'admin@coralyn.dev', role: Role.Admin, establishmentId: 'e-1', establishmentName: 'Lido Maestrale' };
+  session.user = { id: 'u-1', email: 'admin@coralyn.dev', role: Role.Admin, establishmentId: 'e-1', establishmentName: 'Lido Maestrale', permissions: permissionsOfRole(Role.Admin) };
   return w;
 }
 

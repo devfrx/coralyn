@@ -2,7 +2,7 @@
 import { ref, computed } from 'vue';
 import { useRouter } from 'vue-router';
 import { Card, Avatar, Button, ActionBar, Icon, SectionCard, ConfirmDialog, Callout, Skeleton, SkeletonText, useDelayedLoading, pushToast } from '@coralyn/ui-kit';
-import { Role } from '@coralyn/contracts';
+import { Permission } from '@coralyn/contracts';
 import { useSessionStore } from '@/stores/session';
 import { todayIso } from '@/lib/dates';
 import { useCustomer, useCustomerBookings, useDeleteCustomer, useCededSubscriptions, useSetAbsenceConsent, useCancelAbsenceRelease } from './useCustomers';
@@ -88,10 +88,16 @@ function onProvisioned(res: CustomerProvisionResponse): void {
 
 const ini = computed(() => (customer.value ? ((customer.value.firstName[0] ?? '') + (customer.value.lastName[0] ?? '')).toUpperCase() : ''));
 
-// Diritto all'oblio (GDPR D-024): l'azione è admin-only e si adatta allo storico già caricato
+// Diritto all'oblio (GDPR D-024): l'azione si adatta allo storico già caricato
 // (useCustomerBookings) — nessuna prenotazione → delete reale; con storico → anonimizzazione;
 // con una prenotazione attiva/futura → azione bloccata (409 lato server, disabilitata qui in FE).
-const isAdmin = computed(() => session.role === Role.Admin);
+//
+// ⚠️ Prima di ADR-0063 questa vista aveva UN solo `isAdmin` che governava tre cose diverse, e
+// l'API le distingue da sempre in tre permessi. Separarle è il punto della slice: un admin può
+// concedere il ciclo di vita degli abbonamenti senza concedere la cancellazione di un cliente.
+const canErase = computed(() => session.hasPermission(Permission.CustomersErase));
+const canAdministerBookings = computed(() => session.hasPermission(Permission.BookingsAdminister));
+const canManageCustomerAccess = computed(() => session.hasPermission(Permission.CustomerAccessManage));
 const hasBookings = computed(() => (bookings.value ?? []).length > 0);
 const hasActiveOrFuture = computed(() =>
   (bookings.value ?? []).some((b) => b.status === 'confirmed' && b.endDate >= todayIso()),
@@ -148,7 +154,7 @@ function onConfirmDelete() {
           <ActionBar v-if="!customer.anonymizedAt" gap="sm">
             <Button variant="secondary" size="sm" data-testid="edit-customer" @click="editOpen = true"><Icon name="edit" :size="15" />Modifica</Button>
             <Button
-              v-if="isAdmin"
+              v-if="canErase"
               variant="danger"
               size="sm"
               data-testid="delete-customer"
@@ -157,14 +163,14 @@ function onConfirmDelete() {
             ><Icon name="trash-2" :size="15" />{{ deleteLabel }}</Button>
           </ActionBar>
         </div>
-        <p v-if="!customer.anonymizedAt && isAdmin && hasActiveOrFuture" data-testid="delete-customer-hint" class="px-[22px] pb-4 text-xs text-[var(--color-text-muted)]">
+        <p v-if="!customer.anonymizedAt && canErase && hasActiveOrFuture" data-testid="delete-customer-hint" class="px-[22px] pb-4 text-xs text-[var(--color-text-muted)]">
           Non puoi eliminare o anonimizzare un cliente con prenotazioni attive o future: annullale o attendi la scadenza.
         </p>
       </Card>
 
       <div class="grid grid-cols-1 lg:grid-cols-[1.6fr_1fr] items-start gap-3.5">
         <div class="flex min-w-0 flex-col gap-3.5">
-          <CustomerSubscriptionsCard :bookings="bookings ?? []" :ceded="ceded ?? []" :is-admin="isAdmin" @terminate="onTerminate" @suspend="onSuspend" @reactivate="onReactivate" @transfer="onTransfer" @consent="onConsent" @absence="onAbsence" @cancelAbsence="onCancelAbsence" />
+          <CustomerSubscriptionsCard :bookings="bookings ?? []" :ceded="ceded ?? []" :can-administer="canAdministerBookings" @terminate="onTerminate" @suspend="onSuspend" @reactivate="onReactivate" @transfer="onTransfer" @consent="onConsent" @absence="onAbsence" @cancelAbsence="onCancelAbsence" />
           <CustomerHistoryCard :bookings="bookings ?? []" />
           <CustomerPaymentsCard :bookings="bookings ?? []" />
         </div>
@@ -178,7 +184,7 @@ function onConfirmDelete() {
               <div class="col-span-2"><div class="mb-1 text-[11px] font-semibold uppercase tracking-caps text-[var(--color-text-muted)]">Note</div><div class="whitespace-pre-wrap text-sm font-medium text-[var(--color-text)]">{{ customer.notes || '–' }}</div></div>
             </div>
           </SectionCard>
-          <CustomerAccessCard v-if="accessBookingId" :booking-id="accessBookingId" :is-admin="isAdmin" @provisioned="onProvisioned" />
+          <CustomerAccessCard v-if="accessBookingId" :booking-id="accessBookingId" :can-manage="canManageCustomerAccess" @provisioned="onProvisioned" />
         </div>
       </div>
 

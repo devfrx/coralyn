@@ -4,7 +4,7 @@ import { Button, Field, Input, Select, Option, ConfirmDialog, pushToast } from '
 import type { StructureUmbrellaDTO, UmbrellaTypeDTO } from '@coralyn/contracts';
 import { useUpdateUmbrella, useDeleteUmbrella, useRetireUmbrella } from '../useEstablishmentStructure';
 
-const props = defineProps<{ umbrella: StructureUmbrellaDTO; rowLabel: string; sectorName: string; types: UmbrellaTypeDTO[]; isAdmin: boolean }>();
+const props = defineProps<{ umbrella: StructureUmbrellaDTO; rowLabel: string; sectorName: string; types: UmbrellaTypeDTO[]; canManage: boolean }>();
 const emit = defineEmits<{ close: [] }>();
 const update = useUpdateUmbrella();
 const removeUmbrella = useDeleteUmbrella();
@@ -42,7 +42,7 @@ function onRetire() {
       <div class="mt-0.5 text-[11.5px] font-semibold text-[var(--color-text-muted)]">Settore {{ sectorName }} · {{ rowLabel }}</div>
     </div>
     <div class="flex flex-col gap-3.5 p-[18px]">
-      <form v-if="isAdmin" data-testid="umbrella-form" class="flex flex-col gap-3" @submit.prevent="submit">
+      <form v-if="canManage" data-testid="umbrella-form" class="flex flex-col gap-3" @submit.prevent="submit">
         <Field label="Etichetta">
           <Input name="umbrella-label" data-testid="umbrella-label" v-model="label" />
         </Field>
@@ -56,7 +56,7 @@ function onRetire() {
         <Button type="submit" data-testid="umbrella-save" :loading="update.isPending.value">Salva</Button>
       </form>
       <p class="text-[11.5px] text-[var(--color-text-muted)]">Maiusc+clic su altre celle per agire in blocco</p>
-      <div v-if="isAdmin" class="rounded-[var(--radius-md)] border border-[var(--color-danger-border)] bg-[color-mix(in_srgb,var(--color-danger-bg)_45%,transparent)] p-3">
+      <div v-if="canManage" class="rounded-[var(--radius-md)] border border-[var(--color-danger-border)] bg-[color-mix(in_srgb,var(--color-danger-bg)_45%,transparent)] p-3">
         <p class="mb-1.5 text-[11.5px] font-extrabold text-[var(--color-danger-ink)]">Zona rischiosa</p>
         <p class="mb-2 text-[11.5px] leading-relaxed text-[var(--color-text-muted)]">Se ha prenotazioni non sarà eliminato.</p>
         <Button variant="danger" data-testid="umbrella-delete" class="w-full" :loading="removeUmbrella.isPending.value" @click="confirmOpen = true">Elimina ombrellone</Button>

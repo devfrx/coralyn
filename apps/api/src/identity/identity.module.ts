@@ -7,6 +7,7 @@ import { IdentityService } from './identity.service';
 import { TokenService } from './token.service';
 import { JwtAuthGuard } from './jwt-auth.guard';
 import { PermissionsGuard } from './permissions.guard';
+import { StaffPermissionsService } from './staff-permissions.service';
 import { CredentialModule } from '../credential/credential.module';
 
 @Module({
@@ -23,10 +24,15 @@ import { CredentialModule } from '../credential/credential.module';
   controllers: [AuthController],
   providers: [
     IdentityService,
-        TokenService,
+    TokenService,
+    StaffPermissionsService,
     { provide: APP_GUARD, useClass: JwtAuthGuard },
     // L'ordine conta: JwtAuthGuard popola req.user, PermissionsGuard lo legge (ADR-0057).
     { provide: APP_GUARD, useClass: PermissionsGuard },
   ],
+  // ⚠️ Esportato, non ri-provveduto altrove: `EstablishmentModule` importa questo modulo per
+  // amministrare i permessi. È l'errore che `crypto.module.ts` ha dovuto correggere per
+  // `PasswordHasher`, che cinque moduli istanziavano ciascuno per conto proprio (ADR-0063).
+  exports: [StaffPermissionsService],
 })
 export class IdentityModule {}

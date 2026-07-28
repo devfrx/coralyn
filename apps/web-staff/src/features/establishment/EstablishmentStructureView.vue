@@ -2,7 +2,7 @@
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { Icon, Drawer, Skeleton, EmptyState, useDelayedLoading } from '@coralyn/ui-kit';
-import { Role } from '@coralyn/contracts';
+import { Permission } from '@coralyn/contracts';
 import { useSessionStore } from '@/stores/session';
 import { useMediaQuery } from '@/lib/useMediaQuery';
 import { useEstablishmentStructure } from './useEstablishmentStructure';
@@ -12,7 +12,7 @@ import { findUmbrella, type Selection } from './structureSelection';
 
 const session = useSessionStore();
 const router = useRouter();
-const isAdmin = computed(() => session.role === Role.Admin);
+const canManage = computed(() => session.hasPermission(Permission.StructureManage));
 const { data, isLoading } = useEstablishmentStructure();
 const skeletonVisible = useDelayedLoading(() => isLoading.value);
 
@@ -139,7 +139,7 @@ onUnmounted(() => window.removeEventListener('keydown', onKeydown));
 
     <div v-else-if="data" class="grid min-h-0 flex-1 grid-cols-1 overflow-hidden rounded-[var(--radius-lg)] border border-[var(--color-border)] lg:grid-cols-[1fr_320px]">
       <StructureScene :sectors="data.sectors" :types="data.umbrellaTypes" :selected-sector-id="selectedSectorId"
-        :selection="selection" :select-mode="selectMode" :is-admin="isAdmin"
+        :selection="selection" :select-mode="selectMode" :can-manage="canManage"
         @select-sector="onSelectSector" @create-sector="selection = { kind: 'create-sector' }"
         @select-row="(id) => selection = { kind: 'row', id }" @create-row="(sid) => selection = { kind: 'create-row', sectorId: sid }"
         @select-umbrella="onSelectUmbrella" @create-umbrella="(rid) => selection = { kind: 'create-umbrella', rowId: rid }"
@@ -147,14 +147,14 @@ onUnmounted(() => window.removeEventListener('keydown', onKeydown));
         @row-generate="(id) => selection = { kind: 'row', id, focus: 'generate' }" @row-danger="(id) => selection = { kind: 'row', id, focus: 'danger' }" />
 
       <aside v-if="isDesktop" data-testid="inspector" class="min-w-0 overflow-auto border-l border-[var(--color-border)] bg-[var(--color-raised)]" aria-label="Ispettore">
-        <InspectorPanels :data="data" :selection="selection" :is-admin="isAdmin"
+        <InspectorPanels :data="data" :selection="selection" :can-manage="canManage"
           :selected-sector="selectedSector" :selected-row="selectedRow" :selected-umbrella="selectedUmbrella"
           :create-row-sector="createRowSector" :create-umbrella-row="createUmbrellaRow" :multi-labels="multiLabels"
           @close="reset" @created="(id) => selectedSectorId = id" />
       </aside>
       <Drawer v-else v-model:open="drawerOpen" title="Ispettore">
         <div data-testid="inspector">
-          <InspectorPanels :data="data" :selection="selection" :is-admin="isAdmin"
+          <InspectorPanels :data="data" :selection="selection" :can-manage="canManage"
             :selected-sector="selectedSector" :selected-row="selectedRow" :selected-umbrella="selectedUmbrella"
             :create-row-sector="createRowSector" :create-umbrella-row="createUmbrellaRow" :multi-labels="multiLabels"
             @close="reset" @created="(id) => selectedSectorId = id" />

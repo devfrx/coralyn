@@ -22,7 +22,7 @@ async function settle() {
 describe('CustomerAccessCard', () => {
   it("stato 'none' → badge «Mai generato», bottone «Genera accesso», niente «Revoca»", async () => {
     mockStatus('none');
-    const w = mountApp(CustomerAccessCard, { props: { bookingId: 'b1', isAdmin: true } });
+    const w = mountApp(CustomerAccessCard, { props: { bookingId: 'b1', canManage: true } });
     await settle();
     expect(w.find('[data-testid="access-state"]').text()).toContain('Mai generato');
     expect(w.text()).toContain('Genera accesso');
@@ -31,7 +31,7 @@ describe('CustomerAccessCard', () => {
 
   it("stato 'active' → badge «Attivo», bottone «Rigenera» + «Revoca»", async () => {
     mockStatus('active', '2026-07-01T09:00:00.000Z');
-    const w = mountApp(CustomerAccessCard, { props: { bookingId: 'b1', isAdmin: true } });
+    const w = mountApp(CustomerAccessCard, { props: { bookingId: 'b1', canManage: true } });
     await settle();
     expect(w.find('[data-testid="access-state"]').text()).toContain('Attivo');
     expect(w.text()).toContain('Rigenera');
@@ -40,7 +40,7 @@ describe('CustomerAccessCard', () => {
 
   it('non-admin → nessun bottone azione (solo stato)', async () => {
     mockStatus('active', '2026-07-01T09:00:00.000Z');
-    const w = mountApp(CustomerAccessCard, { props: { bookingId: 'b1', isAdmin: false } });
+    const w = mountApp(CustomerAccessCard, { props: { bookingId: 'b1', canManage: false } });
     await settle();
     expect(w.find('[data-testid="access-generate"]').exists()).toBe(false);
     expect(w.find('[data-testid="access-revoke"]').exists()).toBe(false);
@@ -63,7 +63,7 @@ describe('CustomerAccessCard', () => {
         return HttpResponse.json({ activationUrl: '/attiva?token=z', pin: '111222', expiresAt: '2026-08-01T00:00:00.000Z' });
       }),
     );
-    const w = mountApp(CustomerAccessCard, { props: { bookingId: 'b1', isAdmin: true } });
+    const w = mountApp(CustomerAccessCard, { props: { bookingId: 'b1', canManage: true } });
     await settle();
     await w.setProps({ bookingId: 'b2' });
     await settle();
@@ -82,7 +82,7 @@ describe('CustomerAccessCard', () => {
         HttpResponse.json({ activationUrl: '/attiva?token=z', pin: '111222', expiresAt: '2026-08-01T00:00:00.000Z' }),
       ),
     );
-    const w = mountApp(CustomerAccessCard, { props: { bookingId: 'b1', isAdmin: true } });
+    const w = mountApp(CustomerAccessCard, { props: { bookingId: 'b1', canManage: true } });
     await settle();
     await w.find('[data-testid="access-generate"]').trigger('click');
     await settle();

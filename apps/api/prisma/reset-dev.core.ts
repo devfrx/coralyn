@@ -4,13 +4,29 @@ import { assertDevDatabase } from './dev-database';
 /** Executor: il PrismaClient o un TransactionClient (per il test in rollback). */
 export type Executor = PrismaClient | Prisma.TransactionClient;
 
-/** Tabelle non-tenant preservate SEMPRE (identità/audit/migrazioni, token cliente fuori-RLS). */
+/**
+ * Tabelle non-tenant preservate SEMPRE (identità/audit/migrazioni, token cliente fuori-RLS).
+ *
+ * ⚠️ `StaffPermissionOverride` è qui per due ragioni che coincidono, e vale la pena distinguerle
+ * (ADR-0063):
+ * 1. **Meccanica**: è fuori da RLS con `establishmentId` denormalizzato, cioè esattamente la
+ *    categoria per cui questa carve-out esiste — come `User` e i due token cliente.
+ * 2. **Di merito**: è un attributo degli operatori, e il reset **preserva gli operatori**.
+ *    Azzerarla farebbe rientrare in silenzio ogni operatore nei permessi di fabbrica, cioè un
+ *    cambiamento di autorizzazione senza che nessuno l'abbia chiesto. Un reset dei dati operativi
+ *    non deve riconcedere permessi che l'admin aveva revocato.
+ *
+ * Nessun rischio di orfani: la FK verso `User` è `ON DELETE CASCADE`, e `User` non viene mai
+ * troncata; il `TRUNCATE … CASCADE` segue i riferimenti *verso* le tabelle troncate, e questa non
+ * ne referenzia nessuna.
+ */
 export const KEEP_LIST: readonly string[] = [
   'User',
   'Establishment',
   'CredentialSetupToken',
   'CustomerEnrollmentToken',
   'CustomerSession',
+  'StaffPermissionOverride',
   'PlatformAuditLog',
   '_prisma_migrations',
 ];

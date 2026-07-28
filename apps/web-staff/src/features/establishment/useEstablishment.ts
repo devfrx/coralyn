@@ -7,8 +7,10 @@ import type {
   ResetStaffPasswordResponse,
   EstablishmentLegalProfileDTO,
   UpdateEstablishmentLegalProfileInput,
+  StaffPermissionsDTO,
+  UpdateStaffPermissionsInput,
 } from '@coralyn/contracts';
-import { Role } from '@coralyn/contracts';
+import { Permission } from '@coralyn/contracts';
 import { queryResource, mutationResource } from '@coralyn/data-layer';
 import { apiFetch } from '@/lib/http';
 import { queryKeys } from '@/lib/queryKeys';
@@ -22,16 +24,18 @@ export function useEstablishmentOverview() {
   });
 }
 
-/** Team del lido (admin-only: disabilitata per lo staff, come `useSetupStatus`).
+/** Team del lido (sotto `team.manage`: disabilitata per chi non ce l'ha, come `useSetupStatus`).
  *  Query separata dall'overview di proposito: l'overview la carica l'app-shell a ogni
  *  navigazione ed è leggibile da tutto lo staff, quindi non può portare le email degli
- *  operatori (D-064). Senza il gate, ogni staff che apre Stabilimento farebbe un 403. */
+ *  operatori (D-064). Senza il gate, ogni operatore che apre Stabilimento farebbe un 403.
+ *  ⚠️ Il gate è sul PERMESSO e non più sul ruolo (ADR-0063): un operatore a cui l'admin ha
+ *  concesso `team.manage` deve vedere il team, e col controllo sul ruolo non lo vedrebbe. */
 export function useEstablishmentTeam() {
   const session = useSessionStore();
   return queryResource({
     queryKey: () => queryKeys.establishmentTeam(session.establishmentId),
     queryFn: () => apiFetch<EstablishmentMemberDTO[]>('/establishment/users'),
-    enabled: () => session.role === Role.Admin,
+    enabled: () => session.hasPermission(Permission.TeamManage),
   });
 }
 
@@ -68,6 +72,31 @@ export function useResetStaffPassword() {
       apiFetch<ResetStaffPasswordResponse>(`/establishment/users/${id}/reset-password`, { method: 'POST' }),
     // Il reset non modifica l'overview: nessuna query da invalidare.
     invalidates: () => [],
+  });
+}
+
+/** Permessi effettivi di un operatore (ADR-0063). `id` vuoto = modale chiusa, query disattivata. */
+export function useStaffPermissions(id: () => string) {
+  const session = useSessionStore();
+  return queryResource({
+    queryKey: () => queryKeys.staffPermissions(session.establishmentId, id()),
+    queryFn: () => apiFetch<StaffPermissionsDTO>(`/establishment/users/${id()}/permissions`),
+    enabled: () => id() !== '' && session.hasPermission(Permission.TeamManage),
+  });
+}
+
+export function useSetStaffPermissions() {
+  const session = useSessionStore();
+  return mutationResource({
+    mutationFn: (vars: { id: string } & UpdateStaffPermissionsInput) =>
+      apiFetch<StaffPermissionsDTO>(`/establishment/users/${vars.id}/permissions`, {
+        method: 'PUT',
+        body: JSON.stringify({ permissions: vars.permissions }),
+      }),
+    // Il team NON cambia, ma i permessi di chi sta configurando sì se ha configurato se stesso:
+    // invalidare la sua sessione sarebbe fuori portata di questo hook, e il caso è impedito a
+    // monte (l'admin non è configurabile, ADR-0063 §2.2).
+    invalidates: () => [queryKeys.establishmentTeam(session.establishmentId)],
   });
 }
 

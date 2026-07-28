@@ -3,7 +3,7 @@ import { flushPromises } from '@vue/test-utils';
 import { http, HttpResponse } from 'msw';
 import type { SetupStatusDTO } from '@coralyn/contracts';
 import { Role } from '@coralyn/contracts';
-import { mountApp } from '@/test/utils';
+import { mountApp, permissionsOfRole } from '@/test/utils';
 import { server } from '@/mocks/server';
 import { useSessionStore } from '@/stores/session';
 import StepTimeSlots from './StepTimeSlots.vue';
@@ -22,7 +22,7 @@ const STATUS = (overrides: Partial<SetupStatusDTO['timeSlots']> = {}): SetupStat
 function mountAsAdmin(status: SetupStatusDTO) {
   const w = mountApp(StepTimeSlots, { props: { status } });
   const session = useSessionStore();
-  session.user = { id: 'u-1', email: 'admin@coralyn.dev', role: Role.Admin, establishmentId: 'e-1', establishmentName: 'Lido Maestrale' };
+  session.user = { id: 'u-1', email: 'admin@coralyn.dev', role: Role.Admin, establishmentId: 'e-1', establishmentName: 'Lido Maestrale', permissions: permissionsOfRole(Role.Admin) };
   return w;
 }
 

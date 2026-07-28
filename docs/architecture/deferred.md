@@ -22,7 +22,7 @@ applicata ai link.
 
 ## Indice
 
-**Aperte: 42** · **Chiuse: 26** · totale 68.
+**Aperte: 41** · **Chiuse: 27** · totale 68.
 
 | ID | Tema | Stato |
 |---|---|---|
@@ -87,7 +87,7 @@ applicata ai link.
 | [D-060](#d-060) | `umbrellaLabel` non risolve gli ombrelloni ritirati | ✅ chiusa |
 | [D-061](#d-061) | Privacy policy operatori + cookie/imprint app interne | 🔓 aperta |
 | [D-062](#d-062) | DPA Coralyn↔lido e registro dei trattamenti | 🔓 aperta |
-| [D-063](#d-063) | Permessi dello staff configurabili dall'admin del lido | 🔓 aperta |
+| [D-063](#d-063) | Permessi dello staff configurabili dall'admin del lido | ✅ chiusa |
 | [D-064](#d-064) | `GET /establishment/overview` espone le email degli operatori | ✅ chiusa |
 | [D-065](#d-065) | Package frontend condiviso per il data-layer | ✅ chiusa |
 | [D-066](#d-066) | `pnpm run verify` va in OOM sotto pressione di memoria | ✅ chiusa |
@@ -147,22 +147,6 @@ Non stanno in una cella di tabella: contengono elenchi, blocchi di codice o tabe
 - <a id="d-059"></a>**D-059** (aperta) — **Relation opzionali residue con `ON DELETE SET NULL` implicito**, esito dell'audit 2026-07-23 richiesto da D-058. Stessa classe di rischio ma mai decise esplicitamente, quindi **non cambiate d'autorità**: **`Umbrella.umbrellaTypeId`** (la guardia 409 delle tipologie conta gli ombrelloni, anche ritirati; nella finestra di race un ombrellone perderebbe la tipologia in silenzio) e **`Booking.packageId`** (guardia 409 in `deletePackage` conta rate+booking; nella race una prenotazione perderebbe il pacchetto — nota: l'e2e cleanup e il seed non ne dipendono, verificato col full-run verde post-D-058). Caso a parte: **`Rental.customerId`** — l'erasure GDPR ([ADR-0043](decisions/0043-erasure-e-retention-cliente-gdpr.md), `customers.service.remove`) conta solo le `Booking`: un cliente con noleggi e 0 prenotazioni viene hard-deletato e i suoi noleggi perdono il riferimento (di fatto anonimizzati). Plausibilmente desiderabile in ottica GDPR, ma è un **comportamento emergente, non una decisione**. Deliberati e ok: `CustomerSession.rotatedFromId` (SetNull esplicito, catena di rotazione), `Umbrella.rowId` (Restrict, ADR-0053), `User.establishmentId` e `Booking.previousBookingId` (nessun hard-delete applicativo del target: FK irraggiungibile dal flusso). Trigger: prossimo branch che tocca tipologie o pacchetti, o una decisione esplicita su erasure↔noleggi. Impatto se ignorata: basso — le guardie applicative coprono i flussi normali, resta la sola finestra read-committed.
 
 
-- <a id="d-063"></a>**D-063** — **Permessi dello staff configurabili dall'admin del lido.** Oggi la corrispondenza
-  permesso → ruoli è una tabella statica in `apps/api/src/identity/permission.ts`, uguale per tutti
-  i lidi. L'admin deve poter decidere cosa il proprio staff può fare (modificare il listino, aprire
-  campagne di rinnovo, gestire il catalogo noleggi…).
-  **Il prerequisito è già fatto** ([ADR-0057](decisions/0057-autorizzazione-fail-closed-permessi.md),
-  Fase C dell'audit): il guard è fail-closed e **tutti** gli endpoint dichiarano un permesso, quindi
-  questa slice cambia *come il permesso viene risolto* — non richiede di riannotare ~60 rotte.
-  **Il brief completo — punto di partenza, decisioni aperte, principi, gotcha verificati, findings
-  correlati e come verificare — è in
-  [2026-07-25-permessi-configurabili-design.md](../superpowers/specs/2026-07-25-permessi-configurabili-design.md).**
-  Le tre decisioni che aprono la slice: per-lido o per-operatore; permessi nel JWT (stantii fino a
-  8h, eredita D-026) o riletti a ogni richiesta; se e quando spostare `Permission` in
-  `@coralyn/contracts` per far seguire al frontend ciò che il backend nega.
-  *Trigger*: il primo lido che chiede una divisione dei compiti diversa da admin/staff.
-  *Impatto se ignorata*: bassa — il default di fabbrica riproduce il comportamento attuale, quindi
-  nessun lido regredisce; ma ogni richiesta di personalizzazione resta una modifica al codice.
 
 
 > Nota: le voci sopra sono il punto di partenza emerso dal brainstorming iniziale e
@@ -367,3 +351,39 @@ stata rimandata, non solo che è stata fatta.
   store, né la chiave di sessione dell'app». Il sistema toast è andato in `ui-kit`, dove
   `Toast.vue` viveva già. **Non fatta di proposito**: `authToken.ts` di `web-staff` e
   `web-platform` differisce per una sola stringa e resta duplicato (vedi ADR-0058, *Alternatives*).
+
+
+- <a id="d-063"></a>**D-063** — **Permessi dello staff configurabili dall'admin del lido.**
+  ✅ **CHIUSA il 2026-07-27** — [ADR-0063](decisions/0063-permessi-staff-configurabili-per-operatore.md),
+  spec [2026-07-27-permessi-configurabili-d063-design.md](../superpowers/specs/2026-07-27-permessi-configurabili-d063-design.md),
+  piano [2026-07-27-permessi-configurabili-d063.md](../superpowers/plans/2026-07-27-permessi-configurabili-d063.md).
+  La corrispondenza permesso → ruoli era una tabella statica uguale per tutti i lidi; ora
+  `PERMISSION_ROLES` è il **default di fabbrica** e l'admin lo corregge **per singolo operatore**.
+  Il prerequisito era [ADR-0057](decisions/0057-autorizzazione-fail-closed-permessi.md), e ha retto:
+  le ~60 annotazioni `@RequiresPermission` **non** sono state toccate — è cambiata la risoluzione.
+
+  Le tre decisioni che questa voce lasciava aperte, e come sono state chiuse:
+  1. **Per operatore**, non per lido: sussume il per-lido e ha già una casa nella card Team.
+     L'admin **non** è configurabile — revocarsi `team.manage` chiuderebbe il lido fuori dalla
+     gestione dei permessi, senza recupero self-service dentro il tenant.
+  2. **Riletti a ogni richiesta**, non nel JWT. Nel token una revoca avrebbe morso fino a 8h — lo
+     staff non ha né refresh né revoca ([D-026](#d-026)) — cioè proprio nel caso d'uso per cui la
+     feature esiste. La lettura è **una** query indicizzata, e **solo** per il ruolo `staff`.
+  3. **`Permission` spostato in `@coralyn/contracts`**: obbligato, perché la schermata deve
+     enumerarlo per rendere i 17 interruttori. Con esso il gating del frontend è passato dal ruolo
+     al permesso, così non convivono due meccanismi.
+
+  ⚠️ **La tabella `StaffPermissionOverride` sta FUORI da RLS**, ed è una decisione misurata, non
+  una dimenticanza: sotto RLS il guard avrebbe dovuto aprire una transazione su **ogni** richiesta
+  autenticata — 4 round trip contro 1, cioè 3 in più che crescono con l'RTT — pre-decidendo
+  [D-067](#d-067), che è una decisione separata con la sua misura. Ciò che RLS avrebbe coperto qui,
+  la riga che rivendica un tenant altrui, lo copre una **FK composita**
+  `(userId, establishmentId)` verso `User(id, establishmentId)`, che la rende **non
+  rappresentabile** invece che improbabile. L'esenzione è dichiarata in
+  `rls-isolation.e2e-spec.ts` e in `reset-dev.core.ts`: sono **due** presìdi indipendenti che
+  pretendono RLS su ogni tabella con `establishmentId`, e il secondo è emerso solo eseguendo la
+  suite completa.
+
+  Effetto collaterale voluto della FK: non può mai matchare un superuser, il cui `establishmentId`
+  è NULL. Il superuser è quindi **strutturalmente** incapace di detenere permessi tenant-scoped —
+  cosa che [ADR-0039](decisions/0039-rbac-role-guard.md) dichiarava soltanto a parole.

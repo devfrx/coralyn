@@ -4,7 +4,7 @@ import { Button, Field, Input, Select, Option, ConfirmDialog, pushToast } from '
 import type { StructureSectorDTO, SectorKind } from '@coralyn/contracts';
 import { useUpdateSector, useDeleteSector } from '../useEstablishmentStructure';
 
-const props = defineProps<{ sector: StructureSectorDTO; isAdmin: boolean }>();
+const props = defineProps<{ sector: StructureSectorDTO; canManage: boolean }>();
 const emit = defineEmits<{ close: [] }>();
 const update = useUpdateSector();
 const remove = useDeleteSector();
@@ -38,7 +38,7 @@ const seats = computed(() => props.sector.rows.reduce((n, r) => n + r.umbrellas.
       <div class="mt-0.5 text-[11.5px] font-semibold text-[var(--color-text-muted)]">{{ sector.rows.length }} file · {{ seats }} ombrelloni</div>
     </div>
     <div class="flex flex-col gap-3.5 p-[18px]">
-      <form v-if="isAdmin" data-testid="sector-form" class="flex flex-col gap-3.5" @submit.prevent="submit">
+      <form v-if="canManage" data-testid="sector-form" class="flex flex-col gap-3.5" @submit.prevent="submit">
         <Field label="Nome"><Input name="sector-name" data-testid="sector-name" v-model="name" /></Field>
         <Field label="Disposizione">
           <Select v-model="kind" data-testid="sector-kind">
@@ -48,7 +48,7 @@ const seats = computed(() => props.sector.rows.reduce((n, r) => n + r.umbrellas.
         </Field>
         <Button type="submit" data-testid="sector-save" :loading="update.isPending.value">Salva settore</Button>
       </form>
-      <div v-if="isAdmin" class="rounded-[var(--radius-md)] border border-[var(--color-danger-border)] bg-[color-mix(in_srgb,var(--color-danger-bg)_45%,transparent)] p-3">
+      <div v-if="canManage" class="rounded-[var(--radius-md)] border border-[var(--color-danger-border)] bg-[color-mix(in_srgb,var(--color-danger-bg)_45%,transparent)] p-3">
         <p class="mb-1.5 text-[11.5px] font-extrabold text-[var(--color-danger-ink)]">Zona rischiosa</p>
         <p class="mb-2 text-[11.5px] leading-relaxed text-[var(--color-text-muted)]">Se contiene file o è usato da tariffe non sarà eliminato.</p>
         <Button variant="danger" data-testid="sector-delete" class="w-full" :loading="remove.isPending.value" @click="confirmOpen = true">Elimina settore</Button>

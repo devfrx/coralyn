@@ -3,7 +3,7 @@ import { ref, computed, watch, nextTick, onUnmounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { UmbrellaCell, SegmentedControl, Badge, Button, Drawer, ActionBar, Modal, Icon, Select, Option, ModalFooter, formatEuro, HoverCard, Popover, Skeleton, EmptyState, ErrorState, useDelayedLoading } from '@coralyn/ui-kit';
 import type { UmbrellaDTO, SlotState, BookingDTO, BookingType } from '@coralyn/contracts';
-import { Role } from '@coralyn/contracts';
+import { Permission } from '@coralyn/contracts';
 import { PAY_LABEL, PAY_TONE } from '@/lib/statusMaps';
 import { useMediaQuery } from '@/lib/useMediaQuery';
 import { useDayMap } from './useDayMap';
@@ -25,7 +25,8 @@ const skeletonVisible = useDelayedLoading(() => isLoading.value);
 const router = useRouter();
 
 const session = useSessionStore();
-const isAdmin = computed(() => session.role === Role.Admin);
+// Il bottone porta a /onboarding: il permesso e' quello della DESTINAZIONE, non un ruolo.
+const canOpenOnboarding = computed(() => session.hasPermission(Permission.EstablishmentManage));
 const { activeDate } = storeToRefs(session);
 const { data: bookings } = useDayBookings(activeDate);
 const { data: customers } = useCustomers();
@@ -323,7 +324,7 @@ const freeSlotOptions = computed(() =>
       <div v-if="map && sectors.length === 0" class="px-[26px] py-10">
         <EmptyState data-testid="map-empty-onboarding" icon="umbrella" title="La spiaggia non è ancora configurata"
           message="Qui vedrai la mappa degli ombrelloni: prima serve creare la struttura del lido.">
-          <template v-if="isAdmin" #action>
+          <template v-if="canOpenOnboarding" #action>
             <Button data-testid="map-open-onboarding" @click="router.push('/onboarding')">Configura il tuo lido</Button>
           </template>
         </EmptyState>

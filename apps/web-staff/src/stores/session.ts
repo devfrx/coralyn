@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
-import { Role, type UserDTO, type LoginResponse } from '@coralyn/contracts';
+import { Role, type Permission, type UserDTO, type LoginResponse } from '@coralyn/contracts';
 import { apiFetch } from '@/lib/http';
 import { getToken, setToken, clearToken } from '@/lib/authToken';
 import { todayIso } from '@/lib/dates';
@@ -15,6 +15,21 @@ export const useSessionStore = defineStore('session', () => {
   const establishmentName = computed<string>(() => user.value?.establishmentName ?? '');
   const role = computed<Role>(() => user.value?.role ?? Role.Staff);
   const userEmail = computed<string>(() => user.value?.email ?? '');
+  /**
+   * I permessi **effettivi**, da `/auth/me` e da `login` (ADR-0063). Il ruolo resta per dire *chi
+   * sei* (l'etichetta, il rifiuto del superuser); cosa puoi fare si chiede a `hasPermission`.
+   */
+  const permissions = computed<readonly Permission[]>(() => user.value?.permissions ?? []);
+  /**
+   * ⚠️ **Fail-closed anche qui**: a sessione assente l'elenco è vuoto, quindi nega. Un default
+   * permissivo mostrerebbe la sidebar completa nell'istante fra il boot e la reidratazione.
+   *
+   * ⚠️ E resta **cortesia**: la protezione vera è il 403 del backend. Questo serve a non mostrare
+   * porte che si aprono su un errore.
+   */
+  function hasPermission(p: Permission): boolean {
+    return permissions.value.includes(p);
+  }
 
   async function login(email: string, password: string): Promise<void> {
     const res = await apiFetch<LoginResponse>('/auth/login', {
@@ -59,6 +74,8 @@ export const useSessionStore = defineStore('session', () => {
     establishmentId,
     role,
     userEmail,
+    permissions,
+    hasPermission,
     login,
     logout,
     rehydrate,

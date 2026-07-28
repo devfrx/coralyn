@@ -5,7 +5,7 @@ import type { StructureRowDTO, UmbrellaTypeDTO } from '@coralyn/contracts';
 import { useUpdateRow, useDeleteRow, useBulkDeleteUmbrellas } from '../useEstablishmentStructure';
 import UmbrellaGeneratorForm from '../UmbrellaGeneratorForm.vue';
 
-const props = defineProps<{ row: StructureRowDTO; sectorName: string; types: UmbrellaTypeDTO[]; isAdmin: boolean; focus?: 'generate' | 'danger' }>();
+const props = defineProps<{ row: StructureRowDTO; sectorName: string; types: UmbrellaTypeDTO[]; canManage: boolean; focus?: 'generate' | 'danger' }>();
 const emit = defineEmits<{ close: [] }>();
 
 // Intent dal rail della fila: ⚡ «Genera» porta al generatore, 🗑 «Svuota o elimina» alla zona
@@ -54,7 +54,7 @@ const confirmCopy = computed(() => confirm.value === 'clear'
       <div class="mt-0.5 text-[15.5px] font-extrabold tracking-[-.01em]">{{ row.label }}</div>
       <div class="mt-0.5 text-[11.5px] font-semibold text-[var(--color-text-muted)]">Settore {{ sectorName }} · {{ row.umbrellas.length }} ombrelloni</div>
     </div>
-    <div v-if="isAdmin" class="flex flex-col gap-3.5 p-[18px]">
+    <div v-if="canManage" class="flex flex-col gap-3.5 p-[18px]">
       <form class="flex flex-col gap-3" @submit.prevent="rename">
         <Field label="Etichetta"><Input name="row-label" data-testid="row-label" v-model="label" /></Field>
         <Button type="submit" size="sm" data-testid="row-save" :loading="update.isPending.value">Salva</Button>

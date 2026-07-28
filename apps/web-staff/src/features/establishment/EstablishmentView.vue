@@ -2,11 +2,13 @@
 import { computed, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { Card, StatTile, Badge, Button, Avatar, Icon, Modal, Field, Input, Select, Option, ConfirmDialog, ActionBar, SkeletonText, Callout, QueryBoundary, useDelayedLoading, pushToast } from '@coralyn/ui-kit';
-import { Role } from '@coralyn/contracts';
+// `Role` resta per l'ETICHETTA del ruolo (dice *chi sei*); `Permission` governa *cosa puoi*.
+import { Permission, Role } from '@coralyn/contracts';
 import { useSessionStore } from '@/stores/session';
 import { useSetupStatus } from '@/features/onboarding/useSetupStatus';
 import { useEstablishmentOverview, useEstablishmentTeam, useRenameEstablishment, useCreateStaffUser, useSetStaffUserDisabled, useResetStaffPassword } from './useEstablishment';
 import LegalProfileModal from './LegalProfileModal.vue';
+import StaffPermissionsModal from './StaffPermissionsModal.vue';
 
 const session = useSessionStore();
 const router = useRouter();
@@ -58,12 +60,29 @@ const team = computed(() =>
     tone: m.role === 'admin' ? ('brand' as const) : ('neutral' as const),
     ini: m.email.slice(0, 2).toUpperCase(),
     you: session.userEmail === m.email,
+    // Solo lo `staff` è configurabile: l'admin conserva i permessi impliciti del ruolo, e
+    // lasciarglieli revocare chiuderebbe il lido fuori dalla gestione (ADR-0063 §2.2).
+    configurable: m.role === 'staff',
     disabled: m.disabledAt !== null,
   })),
 );
 
-const isAdmin = computed(() => session.role === Role.Admin);
+// ⚠️ Un solo `isAdmin` governava cinque blocchi che l'API distingue in QUATTRO permessi (ADR-0063).
+// Separarli è ciò che rende configurabile la scheda: l'admin può dare il profilo legale senza dare
+// gli operatori, o la struttura senza la configurazione guidata.
+const canManageEstablishment = computed(() => session.hasPermission(Permission.EstablishmentManage));
+const canManageStructure = computed(() => session.hasPermission(Permission.StructureManage));
+const canManageLegalProfile = computed(() => session.hasPermission(Permission.LegalProfileManage));
+const canManageTeam = computed(() => session.hasPermission(Permission.TeamManage));
 const legalOpen = ref(false);
+// Permessi dell'operatore (ADR-0063): id ed email restano fissati all'apertura, così il modale
+// non cambia soggetto sotto le mani se il team si aggiorna mentre è aperto.
+const permissionsOpen = ref(false);
+const permissionsTarget = ref<{ id: string; email: string }>({ id: '', email: '' });
+function openPermissions(u: { id: string; email: string }): void {
+  permissionsTarget.value = { id: u.id, email: u.email };
+  permissionsOpen.value = true;
+}
 const renameOpen = ref(false);
 const nameDraft = ref('');
 const rename = useRenameEstablishment();
@@ -130,7 +149,7 @@ function onConfirmReset() {
           <h2 class="text-[23px] font-bold tracking-[-.015em] text-[var(--color-text)]">{{ data?.establishment.name ?? '…' }}</h2>
           <div class="mt-1 text-[13px] text-[var(--color-text-muted)]">{{ currentUserRoleLabel }} · {{ session.userEmail }} · <span class="tabular-nums">{{ seasonName }}</span></div>
         </div>
-        <Button v-if="isAdmin" data-testid="edit-establishment" variant="secondary" size="sm" @click="openRename"><Icon name="edit" :size="15" />Modifica</Button>
+        <Button v-if="canManageEstablishment" data-testid="edit-establishment" variant="secondary" size="sm" @click="openRename"><Icon name="edit" :size="15" />Modifica</Button>
         <div v-else class="flex items-center gap-2">
           <Badge tone="soon">Modifica · in arrivo</Badge>
           <Button variant="secondary" size="sm" disabled><Icon name="edit" :size="15" />Modifica</Button>
@@ -158,7 +177,7 @@ function onConfirmReset() {
         <div class="p-5">
           <div class="mb-4 flex items-center justify-between">
             <span class="text-sm font-bold text-[var(--color-text)]">Struttura della spiaggia</span>
-            <Button v-if="isAdmin" data-testid="configure-structure" variant="secondary" size="sm" @click="$router.push('/establishment/structure')"><Icon name="settings" :size="13" />Configura</Button>
+            <Button v-if="canManageStructure" data-testid="configure-structure" variant="secondary" size="sm" @click="$router.push('/establishment/structure')"><Icon name="settings" :size="13" />Configura</Button>
             <Badge v-else tone="soon">Configura · in arrivo</Badge>
           </div>
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
@@ -168,7 +187,7 @@ function onConfirmReset() {
       </Card>
     </div>
 
-    <Card v-if="isAdmin" class="mb-4">
+    <Card v-if="canManageEstablishment" class="mb-4">
       <div class="flex items-center justify-between gap-3 p-[22px]">
         <div class="min-w-0">
           <h3 class="text-[15px] font-bold text-[var(--color-text)]">Configurazione guidata</h3>
@@ -181,7 +200,7 @@ function onConfirmReset() {
       </div>
     </Card>
 
-    <Card v-if="isAdmin" class="mb-4">
+    <Card v-if="canManageLegalProfile" class="mb-4">
       <div class="flex items-center justify-between gap-3 p-[22px]">
         <div>
           <h3 class="text-sm font-semibold text-[var(--color-text)]">Informativa privacy</h3>
@@ -194,7 +213,7 @@ function onConfirmReset() {
     <!-- Card admin-only: le email degli operatori sono PII e lo staff non ne ha bisogno (D-064).
          Prima era visibile a tutti in sola lettura, con un badge «in arrivo» al posto delle
          azioni: era proprio quella lettura il finding. -->
-    <Card v-if="isAdmin" class="mb-4">
+    <Card v-if="canManageTeam" class="mb-4">
       <div class="p-5">
         <div class="mb-1.5 flex items-center justify-between">
           <span class="text-sm font-bold text-[var(--color-text)]">Utenti e ruoli</span>
@@ -218,6 +237,7 @@ function onConfirmReset() {
             </div>
             <Badge :tone="u.tone">{{ u.roleLabel }}</Badge>
             <ActionBar v-if="!u.you" gap="sm">
+              <Button v-if="u.configurable && !u.disabled" data-testid="edit-user-permissions" variant="secondary" size="sm" @click="openPermissions(u)">Permessi</Button>
               <Button data-testid="toggle-user-disabled" variant="secondary" size="sm" :loading="togglingDisabled" @click="toggleDisabled(u)">{{ u.disabled ? 'Riabilita' : 'Disabilita' }}</Button>
               <Button v-if="!u.disabled" data-testid="reset-user-password" variant="secondary" size="sm" :loading="resetStaff.isPending.value" @click="askReset(u)">Reset password</Button>
             </ActionBar>
@@ -282,5 +302,6 @@ function onConfirmReset() {
     />
 
     <LegalProfileModal v-model:open="legalOpen" />
+    <StaffPermissionsModal v-model:open="permissionsOpen" :user-id="permissionsTarget.id" :email="permissionsTarget.email" />
   </section>
 </template>

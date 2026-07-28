@@ -1,9 +1,9 @@
 # Documentazione legale e di compliance
 
-> ⚠️ **Tutti i documenti in questa cartella sono BOZZE DI LAVORO redatte da ingegneri, non pareri
-> legali.** Sono strutturalmente conformi agli obblighi noti e fondati sull'implementazione reale
-> (verificata sul codice, non dichiarata), ma **nessuno è pronto alla pubblicazione o alla firma**
-> senza la revisione di un professionista.
+> ⚠️ **Tutti i documenti in questa cartella sono BOZZE DI LAVORO che ho redatto da ingegnere, non
+> pareri legali.** Li ho resi strutturalmente conformi agli obblighi noti e li ho fondati
+> sull'implementazione reale (l'ho verificata sul codice, non dichiarata), ma **nessuno è pronto
+> alla pubblicazione o alla firma** senza la revisione di un professionista.
 >
 > **Redatti:** 2026-07-24 · **Versione corrente:** 0.2 (dopo due review indipendenti, normativa e
 > tecnica avversariale)
@@ -17,8 +17,8 @@
 | [dpa-coralyn-lido.md](dpa-coralyn-lido.md) | art. 28 GDPR | allegato contrattuale | D-062 (5.6c) |
 | [registro-trattamenti.md](registro-trattamenti.md) | art. 30 GDPR | interno, esibito su richiesta | D-062 (5.6c) |
 
-L'**informativa al bagnante** (art. 13, piano A) non sta qui: è già realizzata come codice versionato
-in `apps/web-customer/src/features/legal/informativa.content.ts`, parametrizzata per lido
+L'**informativa al bagnante** (art. 13, piano A) non sta qui: l'ho già realizzata come codice
+versionato in `apps/web-customer/src/features/legal/informativa.content.ts`, parametrizzata per lido
 ([ADR-0055](../architecture/decisions/0055-informativa-art13-multi-tenant.md)).
 
 > ⚠️ **Non confondere le due superfici privacy.** Sono documenti diversi per interessati diversi, e
@@ -32,7 +32,7 @@ in `apps/web-customer/src/features/legal/informativa.content.ts`, parametrizzata
 > | Da dove ci si arriva | promemoria nel flusso **Clienti**, link esterno | piè di pagina del **login** |
 >
 > Il path `/privacy` è **riservato** al bagnante e non deve mai comparire in `web-staff` o
-> `web-platform`: due test per app lo vietano.
+> `web-platform`: l'ho vietato con due test per app.
 
 ## I tre piani, per non confonderli mai
 
@@ -43,7 +43,7 @@ in `apps/web-customer/src/features/legal/informativa.content.ts`, parametrizzata
 | **C. Coralyn ↔ lido** | il lido | Coralyn | DPA + registro | **bozza qui** (D-062) |
 
 Confondere i piani è l'errore più comune nelle policy dei SaaS B2B multi-tenant. Due conseguenze
-pratiche che i documenti applicano:
+pratiche che ho applicato nei documenti:
 
 - Gli **account degli operatori** stanno nel piano B (Coralyn titolare), quindi **non** compaiono tra
   gli interessati del DPA.
@@ -52,8 +52,8 @@ pratiche che i documenti applicano:
 
 ## Dati societari di Coralyn (fonte unica)
 
-Si compilano **qui, una volta sola**. Gli altri documenti rinviano a questa tabella: è il modo per
-impedire che imprint, policy e DPA divergano, che è un rilievo classico in sede di verifica.
+Li compilo **qui, una volta sola**. Gli altri documenti rinviano a questa tabella: è il modo con cui
+impedisco che imprint, policy e DPA divergano, che è un rilievo classico in sede di verifica.
 
 | Campo | Valore |
 |---|---|
@@ -70,7 +70,7 @@ impedire che imprint, policy e DPA divergano, che è un rilievo classico in sede
 
 ## Quadro normativo verificato
 
-Verificato il **2026-07-24**. Solo ciò che ha impatto reale sui documenti.
+L'ho verificato il **2026-07-24**. Riporto solo ciò che ha impatto reale sui documenti.
 
 | Ambito | Fonte | Data | Impatto |
 |---|---|---|---|
@@ -85,11 +85,12 @@ Verificato il **2026-07-24**. Solo ciò che ha impatto reale sui documenti.
 
 ### Due conclusioni tecniche che pesano più di tutte
 
-**1. Niente banner di consenso — verificato, non supposto.** Ricognizione sul codice: **zero**
-occorrenze di `document.cookie` o `Set-Cookie` in tutto il repo. Nel codice **applicativo spedito**
-(`web-staff`, `web-platform`, `web-customer`) non ci sono strumenti di analisi, script di terze parti
-né risorse da rete di distribuzione esterna; i caratteri tipografici sono un pacchetto npm locale,
-quindi **nessuna chiamata verso gli Stati Uniti** al caricamento della pagina.
+**1. Niente banner di consenso — l'ho verificato, non supposto.** Ho fatto la ricognizione sul
+codice: **zero** occorrenze di `document.cookie` o `Set-Cookie` in tutto il repo. Nel codice
+**applicativo spedito** (`web-staff`, `web-platform`, `web-customer`) non ho messo strumenti di
+analisi, script di terze parti né risorse da rete di distribuzione esterna; i caratteri tipografici
+sono un pacchetto npm locale, quindi **nessuna chiamata verso gli Stati Uniti** al caricamento della
+pagina.
 
 Le memorizzazioni sul dispositivo sono **due categorie**, non una:
 
@@ -102,26 +103,26 @@ Entrambe ricadono nell'art. 5(3) ePrivacy — che l'EDPB conferma neutro rispett
 quindi non basta dire «non sono cookie» — ma entrambe sono **strettamente necessarie** al servizio
 richiesto dall'utente, e quindi **esenti da consenso**. Serve una sezione informativa, non un banner.
 
-⚠️ **La conclusione regge finché lo stack resta questo.** Basta aggiungere uno strumento di analisi,
-una mappa, un video incorporato, un carattere da rete esterna, o una strategia di caching runtime del
-service worker verso un dominio terzo, perché l'obbligo di banner ricompaia.
+⚠️ **La conclusione regge finché lo stack resta questo.** Basta che aggiunga uno strumento di
+analisi, una mappa, un video incorporato, un carattere da rete esterna, o una strategia di caching
+runtime del service worker verso un dominio terzo, perché l'obbligo di banner ricompaia.
 
 **2. Il provvedimento 284/2026 sui tracking pixel non morde oggi, ma è a un passo.** Coralyn invia
-email transazionali (attivazione e reimpostazione credenziali). Verificato sul template
+email transazionali (attivazione e reimpostazione credenziali). L'ho verificato sul template
 (`apps/api/src/mail/credential-setup.email.ts`): il corpo HTML contiene **solo un collegamento,
 nessun elemento immagine**, quindi nessun pixel di tracciamento. Le nuove linee guida **non si
 applicano allo stato attuale**.
 
-⚠️ Il rischio è concreto e vicino: `deploy/.env.prod.example` propone un fornitore email commerciale,
-e questi fornitori attivano spesso il **tracciamento delle aperture per impostazione predefinita**,
-iniettando un pixel senza alcuna modifica al codice. Se accade, scattano informativa e consenso ex
-provv. 284/2026. **Va verificato nella configurazione del fornitore al deploy**, e disattivato se non
-serve.
+⚠️ Il rischio è concreto e vicino: in `deploy/.env.prod.example` propongo un fornitore email
+commerciale, e questi fornitori attivano spesso il **tracciamento delle aperture per impostazione
+predefinita**, iniettando un pixel senza alcuna modifica al codice. Se accade, scattano informativa e
+consenso ex provv. 284/2026. **Devo verificarlo nella configurazione del fornitore al deploy**, e
+disattivarlo se non serve.
 
 ## Punti aperti da validare con un legale ⚖️
 
-Identificatori **stabili**, condivisi da tutti i documenti: le risposte del legale rimappano senza
-ambiguità.
+Ho dato identificatori **stabili**, condivisi da tutti i documenti: così le risposte del legale si
+rimappano senza ambiguità.
 
 | ID | Punto | Dove |
 |---|---|---|
@@ -130,7 +131,7 @@ ambiguità.
 | ⚖️-03 | **Base giuridica dell'account operatore**: contratto o legittimo interesse? | [policy operatori](privacy-policy-operatori.md) |
 | ⚖️-04 | **Legittimo interesse** su log e tracciatura credenziali: serve il bilanciamento | [registro A2, A3](registro-trattamenti.md) |
 | ⚖️-05 | **Termini di conservazione** oggi indefiniti (log, token, log applicativi, supporto) | [registro](registro-trattamenti.md) |
-| ⚖️-06 | **Trasferimenti extra-SEE** e garanzie: dipendono dall'hosting, non scelto | tutti |
+| ⚖️-06 | **Trasferimenti extra-SEE** e garanzie: dipendono dall'hosting, che non ho scelto | tutti |
 | ⚖️-07 | **Non applicabilità dell'esenzione art. 30.5** | [registro](registro-trattamenti.md) |
 | ⚖️-08 | **Dati di minori** tra i bagnanti (soglia italiana 14 anni) | [registro §D](registro-trattamenti.md) |
 | ⚖️-09 | **Il ruolo applicativo è proprietario dello schema**: può alterare le policy RLS via SQL grezzo | [registro §C](registro-trattamenti.md) |
@@ -146,8 +147,8 @@ ambiguità.
 
 ## Difetti di prodotto emersi dalla revisione (non si risolvono scrivendo)
 
-La review tecnica avversariale ha trovato due comportamenti che **contraddicono** ciò che i documenti
-promettono. Vanno corretti nel codice, non giustificati qui. ⚖️-11
+Dalla review tecnica avversariale sono emersi due comportamenti che **contraddicono** ciò che i
+documenti promettono. Li devo correggere nel codice, non giustificarli qui. ⚖️-11
 
 1. **La cancellazione GDPR non guarda i noleggi aperti.** Le guardie a tutela del rapporto in corso
    contano solo le prenotazioni (`customers.service.ts:73-86`): un cliente con un **noleggio aperto**
@@ -160,10 +161,10 @@ promettono. Vanno corretti nel codice, non giustificati qui. ⚖️-11
    validi fino a scadenza (fino a 120 giorni): un bagnante anonimizzato conserva una sessione
    funzionante. Indebolisce l'esercizio del diritto alla cancellazione.
 
-## Cosa manca prima di poter usare questi documenti
+## Cosa mi manca prima di poter usare questi documenti
 
-1. **Dati societari di Coralyn**: la tabella canonica qui sopra. Non esistono ancora: sono
-   `[COMPILARE]` ovunque, mai inventati.
+1. **Dati societari di Coralyn**: la tabella canonica qui sopra. Non li ho ancora: sono
+   `[COMPILARE]` ovunque, non li ho mai inventati.
 2. **Scelta dell'infrastruttura**: hosting e fornitore email determinano sub-responsabili, ubicazione
    dei dati e trasferimenti extra-SEE. Blocca gli stessi `[COMPILARE]` anche nell'informativa al
    bagnante di 5.6a.
@@ -176,8 +177,8 @@ promettono. Vanno corretti nel codice, non giustificati qui. ⚖️-11
    e reset** (art. 14.3.a assolto, ⚖️-18 chiuso).
 
 > **Attenzione al doppio artefatto.** Il testo pubblicato vive in
-> `packages/legal/src/*.content.ts` ed è un **porting fedele** di questi documenti. I due vanno
-> aggiornati **insieme**: una divergenza tra ciò che legge il legale e ciò che legge l'utente è
+> `packages/legal/src/*.content.ts` ed è un **porting fedele** di questi documenti. I due li devo
+> aggiornare **insieme**: una divergenza tra ciò che legge il legale e ciò che legge l'utente è
 > esattamente il difetto che il package esiste per prevenire.
 
 **Nessuno di questi documenti è pronto alla pubblicazione. Sono pronti alla revisione legale.**

@@ -9,7 +9,7 @@ afterEach(() => vi.restoreAllMocks());
 
 const TYPES: UmbrellaTypeDTO[] = [{ id: 'typ-1', name: 'Gazebo', sortOrder: 1, icon: 'palmtree' }];
 const ROW: StructureRowDTO = { id: 'r-1', label: 'Fila 1', sortOrder: 1, umbrellas: [] };
-const base = { row: ROW, sectorName: 'Centro', types: TYPES, isAdmin: true };
+const base = { row: ROW, sectorName: 'Centro', types: TYPES, canManage: true };
 
 // Intent dal rail della fila (StructureRow ⚡/🗑): il pannello contiene sia il generatore sia la zona
 // rischiosa; l'intent deve scorrere ed evidenziare la sezione giusta. Prima i due handler erano

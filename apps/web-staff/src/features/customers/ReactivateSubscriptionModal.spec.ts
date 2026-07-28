@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { http, HttpResponse } from 'msw';
 import { flushPromises } from '@vue/test-utils';
-import { mountApp } from '@/test/utils';
+import { mountApp, permissionsOfRole } from '@/test/utils';
 import { server } from '@/mocks/server';
 import { Role, type CustomerBookingDTO, type SuspensionDTO } from '@coralyn/contracts';
 import { useSessionStore } from '@/stores/session';
@@ -23,7 +23,7 @@ async function mount() {
     props: { booking: sub, suspension: openSus, customerId: 'c-1', open: false },
   });
   const s = useSessionStore();
-  s.user = { id: 'u-1', email: 'admin@coralyn.dev', role: Role.Admin, establishmentId: 'e-1', establishmentName: 'Lido' };
+  s.user = { id: 'u-1', email: 'admin@coralyn.dev', role: Role.Admin, establishmentId: 'e-1', establishmentName: 'Lido', permissions: permissionsOfRole(Role.Admin) };
   s.activeDate = '2026-08-01';
   await w.setProps({ open: true });
   await flushPromises();

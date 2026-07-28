@@ -1,6 +1,6 @@
 # Design del prodotto
 
-Diagrammi e mockup **versionati e tenuti aggiornati** (vedi
+Qui tengo diagrammi e mockup **versionati e aggiornati** (vedi
 [ADR-0009](../architecture/decisions/0009-documentazione-di-design.md)).
 
 - [data-model.md](data-model.md) — modello dati / ER (Mermaid) + invarianti.
@@ -13,13 +13,13 @@ Diagrammi e mockup **versionati e tenuti aggiornati** (vedi
   [ADR-0027](../architecture/decisions/0027-coralyn-linguaggio-visivo.md)) ·
   [subscription-suspension-modal.html](mockups/subscription-suspension-modal.html) — **sospensione abbonamento**
   (card Scheda + modali Sospendi/Riattiva, D-013; *design, non ancora implementata*) ·
-  [frontend-app-shell.html](mockups/frontend-app-shell.html) — *storico* (direzione "Costiero professionale", superato da Coralyn) ·
+  [frontend-app-shell.html](mockups/frontend-app-shell.html) — *storico* (direzione "Costiero professionale", superata da Coralyn) ·
   [main-screen.html](mockups/main-screen.html) — *storico* (direzione Core iniziale) ·
   [gestionale-lidi-aspirazionale.html](mockups/gestionale-lidi-aspirazionale.html) — **aspirazionale**, *non* lo
-  stato corrente: mostra tier di prezzo e badge marketing **rifiutati** (una `Rate` = un prezzo,
+  stato corrente: mostra tier di prezzo e badge marketing che ho **rifiutato** (una `Rate` = un prezzo,
   [ADR-0032](../architecture/decisions/0032-pricing-engine-precedenza.md); honesty-pass Slice A), orari fascia
   (→ Slice B) ed equipment custom (→ Slice C) non ancora nel modello.
 
 I diagrammi mostrano lo **stato corrente** del design; il **perché** delle scelte sta
 negli [ADR](../architecture/decisions/). Aggiornare questi file fa parte della
-Definition of Done di ogni modifica che tocca dominio o UI.
+Definition of Done che mi sono dato per ogni modifica che tocca dominio o UI.

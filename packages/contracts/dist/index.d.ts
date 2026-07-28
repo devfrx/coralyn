@@ -4,6 +4,89 @@ export declare enum Role {
     Staff = "staff",
     Superuser = "superuser"
 }
+/**
+ * Permesso richiesto da un endpoint. Sostituisce `@Roles` come vocabolario
+ * dell'autorizzazione (ADR-0057, emenda ADR-0039).
+ *
+ * Granularità: una voce per **area funzionale della UI** — le sezioni che l'operatore vede
+ * nella sidebar — più le azioni che oggi sono admin-only dentro un'area. È la granularità a
+ * cui l'admin di un lido ragiona quando concede permessi al proprio staff (ADR-0063).
+ *
+ * Il valore stringa è stabile e **vive in configurazione/DB**: non rinominarlo alla leggera.
+ *
+ * ⚠️ Vive qui e non più in `apps/api/` da ADR-0063: la schermata di amministrazione deve
+ * enumerare i permessi per renderne gli interruttori, e il gating del frontend è su permesso.
+ * Il prezzo è che rinominare un valore ora rompe due app e non solo l'API.
+ */
+export declare enum Permission {
+    /** Mappa della giornata (sola lettura della struttura + stato slot). */
+    MapRead = "map.read",
+    /** Banco prenotazioni: preventivo, elenco, creazione, rinnovo, disdetta, incasso. */
+    BookingsManage = "bookings.manage",
+    /** Ciclo di vita dell'abbonamento: sospensione, riattivazione, cessione, assenze. */
+    BookingsAdminister = "bookings.administer",
+    /** Anagrafica bagnanti: consultazione, creazione, modifica. */
+    CustomersManage = "customers.manage",
+    /** Cancellazione GDPR del cliente (art. 17): erasure o anonimizzazione. */
+    CustomersErase = "customers.erase",
+    /** Accesso self-service del bagnante: generazione QR+PIN e revoca. */
+    CustomerAccessManage = "customer-access.manage",
+    /** Banco noleggi della giornata: consegna, rientro, annullo, incasso. */
+    RentalsOperate = "rentals.operate",
+    /** Listino noleggi: articoli e tariffe stagionali. */
+    RentalCatalogManage = "rental-catalog.manage",
+    /** Listino: stagioni, tariffe, pacchetti, dotazioni, fasce orarie. */
+    PricingManage = "pricing.manage",
+    /** Campagne di rinnovo abbonamenti. */
+    RenewalsManage = "renewals.manage",
+    /** Report di andamento della stagione. */
+    ReportsRead = "reports.read",
+    /** Scheda dello stabilimento in sola lettura (usata anche dall'app-shell). */
+    EstablishmentRead = "establishment.read",
+    /** Configurazione dello stabilimento: rinomina, stato di setup. */
+    EstablishmentManage = "establishment.manage",
+    /**
+     * Profilo legale del lido (titolare del trattamento nell'informativa al bagnante).
+     * Deliberatamente separato da `establishment.manage`: è la superficie che alimenta un
+     * documento di legge (ADR-0055/0056), concederla non deve essere un effetto collaterale
+     * del concedere la configurazione generale.
+     */
+    LegalProfileManage = "legal-profile.manage",
+    /** Lettura della struttura (settori, file, ombrelloni) senza poterla modificare. */
+    StructureRead = "structure.read",
+    /** Editor della struttura: settori, file, ombrelloni, tipologie. */
+    StructureManage = "structure.manage",
+    /** Gestione degli operatori del lido (invito, disabilitazione, reset password, permessi). */
+    TeamManage = "team.manage",
+    /** Console di piattaforma, cross-tenant: solo il distributore (ADR-0015). */
+    PlatformAdminister = "platform.administer",
+    /** Profilo della propria sessione: ogni identità autenticata lo legge. */
+    SessionRead = "session.read"
+}
+/**
+ * I due permessi che l'admin di un lido **non** può concedere né revocare (ADR-0063 §5.1),
+ * per ragioni diverse:
+ *
+ * - `platform.administer` è cross-tenant e del solo distributore (ADR-0015): non è del lido
+ *   da concedere.
+ * - `session.read` è il permesso di leggere la **propria** sessione. Revocarlo non esprime una
+ *   divisione dei compiti: disabilita l'account — e per quello esiste già `User.disabledAt`.
+ */
+export declare const NON_CONFIGURABLE_PERMISSIONS: readonly Permission[];
+/**
+ * I 17 permessi che l'admin del lido concede o revoca al proprio staff.
+ *
+ * Derivato, non scritto a mano: aggiungere una voce all'enum la rende configurabile per
+ * costruzione, e dimenticarla qui diventa impossibile.
+ */
+export declare const CONFIGURABLE_PERMISSIONS: readonly Permission[];
+/**
+ * Etichetta italiana dell'interruttore nella schermata di amministrazione.
+ *
+ * `Record` completo e non parziale: un permesso nuovo senza etichetta **non compila**, che è la
+ * sola forma di copertura che non invecchia (stesso spirito di `authorization-coverage.spec.ts`).
+ */
+export declare const PERMISSION_LABELS: Readonly<Record<Permission, string>>;
 /** DTO of a Customer (the bather). Shared FE/BE. Optional contacts (ADR-0023). */
 export interface CustomerDTO {
     id: string;
@@ -93,6 +176,24 @@ export interface UserDTO {
     role: Role;
     establishmentId: string | null;
     establishmentName: string | null;
+    /**
+     * Insieme **effettivo** dei permessi: default di fabbrica del ruolo, corretto dagli override
+     * per operatore (ADR-0063). Viaggia qui e non in una chiamata a parte perché `login` e
+     * `rehydrate` lo hanno già, ed è il solo punto da cui il frontend lo legge.
+     */
+    permissions: Permission[];
+}
+/** Permessi effettivi di un operatore del team, per la schermata di amministrazione (ADR-0063). */
+export interface StaffPermissionsDTO {
+    userId: string;
+    permissions: Permission[];
+}
+/**
+ * L'insieme **completo** dei permessi configurabili che l'admin vuole per quell'operatore: ciò
+ * che non è elencato è revocato. Il server persiste solo lo scarto dal default di fabbrica.
+ */
+export interface UpdateStaffPermissionsInput {
+    permissions: Permission[];
 }
 /** Login credentials. */
 export interface LoginInput {

@@ -16,7 +16,7 @@ const SECTORS: StructureSectorDTO[] = [
   ] },
   { id: 's-2', name: 'Speciali', sortOrder: 2, kind: 'special', rows: [] },
 ];
-const base = { sectors: SECTORS, types: [], selectedSectorId: 's-1', selection: { kind: 'beach' } as const, selectMode: false, isAdmin: true };
+const base = { sectors: SECTORS, types: [], selectedSectorId: 's-1', selection: { kind: 'beach' } as const, selectMode: false, canManage: true };
 
 const SECTORS_NO_ROWS: StructureSectorDTO[] = [
   { id: 's-1', name: 'Centro', sortOrder: 1, kind: 'grid', rows: [] },
@@ -57,8 +57,8 @@ describe('StructureScene', () => {
     expect(w.emitted('create-sector')).toBeTruthy();
   });
 
-  it('staff (isAdmin false): niente ghost né toggle Seleziona', () => {
-    const w = mount(StructureScene, { props: { ...base, isAdmin: false } });
+  it('staff (canManage false): niente ghost né toggle Seleziona', () => {
+    const w = mount(StructureScene, { props: { ...base, canManage: false } });
     expect(w.find('[data-testid="ghost-cell"]').exists()).toBe(false);
     expect(w.find('[data-testid="ghost-row"]').exists()).toBe(false);
     expect(w.find('[data-testid="select-mode"]').exists()).toBe(false);

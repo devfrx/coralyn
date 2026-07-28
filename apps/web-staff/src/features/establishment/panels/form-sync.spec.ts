@@ -20,7 +20,7 @@ describe('pannelli form — sync per id, non per identità oggetto', () => {
   it('UmbrellaPanel: refetch stesso id → bozza preservata; id diverso → form resettato', async () => {
     const w = mountApp(UmbrellaPanel, { props: {
       umbrella: { id: 'u-1', label: 'A1', umbrellaTypeId: null },
-      rowLabel: 'Fila 1', sectorName: 'Centro', types: TYPES, isAdmin: true,
+      rowLabel: 'Fila 1', sectorName: 'Centro', types: TYPES, canManage: true,
     } });
     await w.find('[data-testid="umbrella-label"]').setValue('A1-bozza');
     await w.setProps({ umbrella: { id: 'u-1', label: 'A1', umbrellaTypeId: null } }); // refetch: oggetto nuovo, stesso id
@@ -33,7 +33,7 @@ describe('pannelli form — sync per id, non per identità oggetto', () => {
   it('RowPanel: refetch stesso id → bozza preservata; id diverso → form resettato', async () => {
     const w = mountApp(RowPanel, { props: {
       row: { id: 'r-1', label: 'Fila 1', sortOrder: 1, umbrellas: [] },
-      sectorName: 'Centro', types: TYPES, isAdmin: true,
+      sectorName: 'Centro', types: TYPES, canManage: true,
     } });
     await w.find('[data-testid="row-label"]').setValue('Fila 1-bozza');
     await w.setProps({ row: { id: 'r-1', label: 'Fila 1', sortOrder: 1, umbrellas: [] } });
@@ -44,7 +44,7 @@ describe('pannelli form — sync per id, non per identità oggetto', () => {
 
   it('SectorPanel: refetch stesso id → bozza preservata; id diverso → form resettato', async () => {
     const w = mountApp(SectorPanel, { props: {
-      sector: { id: 's-1', name: 'Centro', sortOrder: 1, kind: 'grid', rows: [] }, isAdmin: true,
+      sector: { id: 's-1', name: 'Centro', sortOrder: 1, kind: 'grid', rows: [] }, canManage: true,
     } });
     await w.find('[data-testid="sector-name"]').setValue('Centro-bozza');
     await w.setProps({ sector: { id: 's-1', name: 'Centro', sortOrder: 1, kind: 'grid', rows: [] } });

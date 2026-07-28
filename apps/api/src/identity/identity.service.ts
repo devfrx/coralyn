@@ -3,6 +3,7 @@ import type { User } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { PasswordHasher } from '../crypto/password-hasher';
 import { TokenService } from './token.service';
+import { StaffPermissionsService } from './staff-permissions.service';
 import { LoginInput, LoginResponse, Role, UserDTO } from '@coralyn/contracts';
 
 @Injectable()
@@ -11,17 +12,27 @@ export class IdentityService {
     private readonly prisma: PrismaService,
     private readonly hasher: PasswordHasher,
     private readonly tokens: TokenService,
+    private readonly staffPermissions: StaffPermissionsService,
   ) {}
 
-  /** Proietta una riga User (con establishment incluso) nel DTO condiviso (mai passwordHash). */
-  private toDTO(u: User & { establishment: { name: string } | null }): UserDTO {
+  /**
+   * Proietta una riga User (con establishment incluso) nel DTO condiviso (mai passwordHash).
+   *
+   * ⚠️ Asincrona da ADR-0063: `permissions` è l'insieme **effettivo**, quindi per lo `staff`
+   * richiede la lettura degli override. Viaggia nel DTO e non in una chiamata a parte perché
+   * `login` e `rehydrate` lo hanno così senza un round-trip in più, ed è il solo punto da cui il
+   * frontend lo legge. **Non** finisce nel token: nel token sarebbe stantio fino a 8h (D-026).
+   */
+  private async toDTO(u: User & { establishment: { name: string } | null }): Promise<UserDTO> {
     // I valori dell'enum Role del DB coincidono con quelli dei contracts.
+    const role = u.role as Role;
     return {
       id: u.id,
       email: u.email,
-      role: u.role as Role,
+      role,
       establishmentId: u.establishmentId,
       establishmentName: u.establishment?.name ?? null,
+      permissions: await this.staffPermissions.effectiveFor({ id: u.id, role }),
     };
   }
 
@@ -53,7 +64,7 @@ export class IdentityService {
     if (user.establishment?.suspendedAt) {
       throw new UnauthorizedException('Credenziali non valide');
     }
-    const dto = this.toDTO(user);
+    const dto = await this.toDTO(user);
     const accessToken = this.tokens.sign({
       sub: dto.id,
       establishmentId: dto.establishmentId,
@@ -70,6 +81,6 @@ export class IdentityService {
       include: { establishment: { select: { name: true } } },
     });
     if (!user) throw new UnauthorizedException('Sessione non valida');
-    return this.toDTO(user);
+    return await this.toDTO(user);
   }
 }

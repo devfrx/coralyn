@@ -21,6 +21,13 @@ import { createEstablishment } from './helpers/create-establishment';
  * Ambito dichiarato: si asserisce il **guard**, non il dominio. Per le superfici concesse si
  * verifica che la richiesta non venga né negata (403) né persa per un path sbagliato (404); il
  * corpo della risposta è materia degli e2e specifici. Per quelle negate si asserisce 403 esatto.
+ *
+ * ⚠️ **Da ADR-0063 questo file asserisce il DEFAULT DI FABBRICA**, cioè cosa può un operatore di un
+ * lido che non ha configurato nulla — che è il caso di ogni lido esistente, ed è la garanzia «la
+ * slice non fa regredire nessuno». Che la configurazione poi *discrimini davvero* — stesso
+ * permesso concesso a un lido e revocato a un altro, nella stessa suite — è asserito in
+ * `staff-permissions.e2e-spec.ts`. Sono due domande diverse e stanno in due file diversi:
+ * duplicarle qui renderebbe questo file rosso per cause che non gli competono.
  */
 describe('Autorizzazione del ruolo staff (e2e)', () => {
   let app: INestApplication;

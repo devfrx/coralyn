@@ -2,7 +2,7 @@ import { setupServer } from 'msw/node';
 import { http, HttpResponse } from 'msw';
 import { handlers } from './handlers';
 import { mapSeed, timeSlotsSeed } from './data/seed';
-import { Role, type CustomerDTO, type CustomerBookingDTO, type EquipmentTypeDTO, type PackageDTO, type RateDTO, type RenewalCampaignDetailDTO, type SeasonDTO, type TimeSlotDTO, type CreateTimeSlotInput, type UpdateTimeSlotInput, type UserDTO, type CredentialSetupContext, type RentalItemDTO, type RentalTariffDTO, type RentalDTO, type RentalAvailabilityDTO, type CheckoutRentalInput, type SettlePaymentInput } from '@coralyn/contracts';
+import { Permission, Role, type CustomerDTO, type CustomerBookingDTO, type EquipmentTypeDTO, type PackageDTO, type RateDTO, type RenewalCampaignDetailDTO, type SeasonDTO, type TimeSlotDTO, type CreateTimeSlotInput, type UpdateTimeSlotInput, type UserDTO, type CredentialSetupContext, type RentalItemDTO, type RentalTariffDTO, type RentalDTO, type RentalAvailabilityDTO, type CheckoutRentalInput, type SettlePaymentInput } from '@coralyn/contracts';
 
 const INITIAL_CUSTOMERS: CustomerDTO[] = [
   { id: 'c-1', firstName: 'Mario', lastName: 'Rossi', phone: '+39 333 1111111', email: 'mario.rossi@email.it', notes: '' },
@@ -109,12 +109,22 @@ const cededByCustomer: Record<string, unknown[]> = {};
 
 // Auth mockata SOLO per i test (in dev il login colpisce il backend reale).
 export const MOCK_TOKEN = 'valid-token';
+/**
+ * Il default di fabbrica dell'admin (ADR-0063): tutto tranne `platform.administer`, che è di
+ * piattaforma e non del lido. Derivato dall'enum invece che scritto a mano, così un permesso
+ * nuovo entra nel mock da solo e non lascia i test a esercitare un utente incompleto.
+ */
+export const ADMIN_PERMISSIONS: Permission[] = Object.values(Permission).filter(
+  (p) => p !== Permission.PlatformAdminister,
+);
+
 export const MOCK_ADMIN: UserDTO = {
   id: 'u-1',
   email: 'admin@coralyn.dev',
   role: Role.Admin,
   establishmentId: '00000000-0000-0000-0000-000000000001',
   establishmentName: 'Lido Maestrale',
+  permissions: ADMIN_PERMISSIONS,
 };
 
 // Set-password su invito/reset (D-025): token → contesto minimo; qualsiasi token diverso

@@ -40,59 +40,59 @@ const subWithCanceledRelease: CustomerBookingDTO = {
 
 describe('CustomerSubscriptionsCard — disdetta (D-013)', () => {
   it('admin + abbonamento attivo → mostra «Disdici»', () => {
-    const w = mountApp(CustomerSubscriptionsCard, { props: { bookings: [activeSub], isAdmin: true } });
+    const w = mountApp(CustomerSubscriptionsCard, { props: { bookings: [activeSub], canAdminister: true } });
     expect(w.text()).toContain('Disdici');
   });
 
   it('non-admin → nessun «Disdici»', () => {
-    const w = mountApp(CustomerSubscriptionsCard, { props: { bookings: [activeSub], isAdmin: false } });
+    const w = mountApp(CustomerSubscriptionsCard, { props: { bookings: [activeSub], canAdminister: false } });
     expect(w.text()).not.toContain('Disdici');
   });
 
   it('abbonamento disdetto → riga stato con rimborso, nessun «Disdici»', () => {
-    const w = mountApp(CustomerSubscriptionsCard, { props: { bookings: [terminatedSub], isAdmin: true } });
+    const w = mountApp(CustomerSubscriptionsCard, { props: { bookings: [terminatedSub], canAdminister: true } });
     expect(w.text()).toContain('Disdetto');
     expect(w.text()).toContain('250');
     expect(w.text()).not.toContain('Disdici');
   });
 
   it('emette «terminate» col booking al click', async () => {
-    const w = mountApp(CustomerSubscriptionsCard, { props: { bookings: [activeSub], isAdmin: true } });
+    const w = mountApp(CustomerSubscriptionsCard, { props: { bookings: [activeSub], canAdminister: true } });
     await w.find('[data-testid="terminate-sub-1"]').trigger('click');
     expect(w.emitted('terminate')?.[0]?.[0]).toMatchObject({ id: 'sub-1' });
   });
 
   it('admin + abbonamento attivo senza sospensione aperta → mostra «Sospendi»', () => {
-    const w = mountApp(CustomerSubscriptionsCard, { props: { bookings: [activeSub], isAdmin: true } });
+    const w = mountApp(CustomerSubscriptionsCard, { props: { bookings: [activeSub], canAdminister: true } });
     expect(w.text()).toContain('Sospendi');
   });
 
   it('non-admin → nessun «Sospendi»', () => {
-    const w = mountApp(CustomerSubscriptionsCard, { props: { bookings: [activeSub], isAdmin: false } });
+    const w = mountApp(CustomerSubscriptionsCard, { props: { bookings: [activeSub], canAdminister: false } });
     expect(w.text()).not.toContain('Sospendi');
   });
 
   it('sospensione aperta → riga «in corso» + «Riattiva», niente «Sospendi»', () => {
-    const w = mountApp(CustomerSubscriptionsCard, { props: { bookings: [openSuspendedSub], isAdmin: true } });
+    const w = mountApp(CustomerSubscriptionsCard, { props: { bookings: [openSuspendedSub], canAdminister: true } });
     expect(w.text()).toContain('in corso');
     expect(w.text()).toContain('Riattiva');
     expect(w.text()).not.toContain('Sospendi');
   });
 
   it('sospensione conclusa → riga storica con rimborso', () => {
-    const w = mountApp(CustomerSubscriptionsCard, { props: { bookings: [historySub], isAdmin: true } });
+    const w = mountApp(CustomerSubscriptionsCard, { props: { bookings: [historySub], canAdminister: true } });
     expect(w.text()).toContain('Sospeso');
     expect(w.text()).toContain('84');
   });
 
   it('emette «suspend» col booking al click', async () => {
-    const w = mountApp(CustomerSubscriptionsCard, { props: { bookings: [activeSub], isAdmin: true } });
+    const w = mountApp(CustomerSubscriptionsCard, { props: { bookings: [activeSub], canAdminister: true } });
     await w.find('[data-testid="suspend-sub-1"]').trigger('click');
     expect(w.emitted('suspend')?.[0]?.[0]).toMatchObject({ id: 'sub-1' });
   });
 
   it('emette «reactivate» con booking+suspension al click', async () => {
-    const w = mountApp(CustomerSubscriptionsCard, { props: { bookings: [openSuspendedSub], isAdmin: true } });
+    const w = mountApp(CustomerSubscriptionsCard, { props: { bookings: [openSuspendedSub], canAdminister: true } });
     await w.find('[data-testid="reactivate-sub-3"]').trigger('click');
     expect(w.emitted('reactivate')?.[0]?.[0]).toMatchObject({ booking: { id: 'sub-3' }, suspension: { id: 'sus-1' } });
   });
@@ -101,27 +101,27 @@ describe('CustomerSubscriptionsCard — disdetta (D-013)', () => {
 
 describe('CustomerSubscriptionsCard — cessione (D-013)', () => {
   it('admin + abbonamento cedibile → mostra «Cedi»', () => {
-    const w = mountApp(CustomerSubscriptionsCard, { props: { bookings: [activeSub], isAdmin: true } });
+    const w = mountApp(CustomerSubscriptionsCard, { props: { bookings: [activeSub], canAdminister: true } });
     expect(w.text()).toContain('Cedi');
   });
 
   it('non-admin → nessun «Cedi»', () => {
-    const w = mountApp(CustomerSubscriptionsCard, { props: { bookings: [activeSub], isAdmin: false } });
+    const w = mountApp(CustomerSubscriptionsCard, { props: { bookings: [activeSub], canAdminister: false } });
     expect(w.find('[data-testid="transfer-sub-1"]').exists()).toBe(false);
   });
 
   it('abbonamento con sospensione aperta → nessun «Cedi»', () => {
-    const w = mountApp(CustomerSubscriptionsCard, { props: { bookings: [openSuspendedSub], isAdmin: true } });
+    const w = mountApp(CustomerSubscriptionsCard, { props: { bookings: [openSuspendedSub], canAdminister: true } });
     expect(w.find('[data-testid="transfer-sub-3"]').exists()).toBe(false);
   });
 
   it('abbonamento disdetto → nessun «Cedi»', () => {
-    const w = mountApp(CustomerSubscriptionsCard, { props: { bookings: [terminatedSub], isAdmin: true } });
+    const w = mountApp(CustomerSubscriptionsCard, { props: { bookings: [terminatedSub], canAdminister: true } });
     expect(w.find('[data-testid="transfer-sub-2"]').exists()).toBe(false);
   });
 
   it('emette «transfer» col booking al click', async () => {
-    const w = mountApp(CustomerSubscriptionsCard, { props: { bookings: [activeSub], isAdmin: true } });
+    const w = mountApp(CustomerSubscriptionsCard, { props: { bookings: [activeSub], canAdminister: true } });
     await w.find('[data-testid="transfer-sub-1"]').trigger('click');
     expect(w.emitted('transfer')?.[0]?.[0]).toMatchObject({ id: 'sub-1' });
   });
@@ -130,7 +130,7 @@ describe('CustomerSubscriptionsCard — cessione (D-013)', () => {
     const ceded: CededSubscriptionDTO[] = [
       { transferId: 'tr-1', bookingId: 'sub-9', effectiveDate: '2026-06-15T08:00:00.000Z', newCustomerName: 'Luca Bianchi', umbrellaLabel: 'A12', refundToPrevious: 120, reason: 'Trasferimento', createdAt: '2026-06-15T08:00:00.000Z' },
     ];
-    const w = mountApp(CustomerSubscriptionsCard, { props: { bookings: [activeSub], ceded, isAdmin: true } });
+    const w = mountApp(CustomerSubscriptionsCard, { props: { bookings: [activeSub], ceded, canAdminister: true } });
     expect(w.text()).toContain('Cessioni effettuate');
     expect(w.text()).toContain('A12');
     expect(w.text()).toContain('Luca Bianchi');
@@ -140,50 +140,50 @@ describe('CustomerSubscriptionsCard — cessione (D-013)', () => {
   });
 
   it('nessuna cessione → sezione assente', () => {
-    const w = mountApp(CustomerSubscriptionsCard, { props: { bookings: [activeSub], isAdmin: true } });
+    const w = mountApp(CustomerSubscriptionsCard, { props: { bookings: [activeSub], canAdminister: true } });
     expect(w.text()).not.toContain('Cessioni effettuate');
   });
 });
 
 describe('CustomerSubscriptionsCard — assenze comunicate (D-035)', () => {
   it('mostra "Attiva assenze" per admin su abbonamento senza consenso', () => {
-    const w = mountApp(CustomerSubscriptionsCard, { props: { bookings: [subWithoutConsent], isAdmin: true } });
+    const w = mountApp(CustomerSubscriptionsCard, { props: { bookings: [subWithoutConsent], canAdminister: true } });
     expect(w.find(`[data-testid="absence-consent-${subWithoutConsent.id}"]`).exists()).toBe(true);
     expect(w.text()).toContain('Attiva assenze');
   });
 
   it('non-admin → nessun bottone consenso', () => {
-    const w = mountApp(CustomerSubscriptionsCard, { props: { bookings: [subWithoutConsent], isAdmin: false } });
+    const w = mountApp(CustomerSubscriptionsCard, { props: { bookings: [subWithoutConsent], canAdminister: false } });
     expect(w.find(`[data-testid="absence-consent-${subWithoutConsent.id}"]`).exists()).toBe(false);
   });
 
   it('mostra "Revoca assenze" quando il consenso è già attivo', () => {
-    const w = mountApp(CustomerSubscriptionsCard, { props: { bookings: [subWithConsent], isAdmin: true } });
+    const w = mountApp(CustomerSubscriptionsCard, { props: { bookings: [subWithConsent], canAdminister: true } });
     expect(w.text()).toContain('Revoca assenze');
   });
 
   it('"Segnala assenza" solo con consenso attivo', () => {
-    const withConsent = mountApp(CustomerSubscriptionsCard, { props: { bookings: [subWithConsent], isAdmin: true } });
+    const withConsent = mountApp(CustomerSubscriptionsCard, { props: { bookings: [subWithConsent], canAdminister: true } });
     expect(withConsent.find(`[data-testid="absence-${subWithConsent.id}"]`).exists()).toBe(true);
 
-    const withoutConsent = mountApp(CustomerSubscriptionsCard, { props: { bookings: [subWithoutConsent], isAdmin: true } });
+    const withoutConsent = mountApp(CustomerSubscriptionsCard, { props: { bookings: [subWithoutConsent], canAdminister: true } });
     expect(withoutConsent.find(`[data-testid="absence-${subWithoutConsent.id}"]`).exists()).toBe(false);
   });
 
   it('emette «consent» col booking al click', async () => {
-    const w = mountApp(CustomerSubscriptionsCard, { props: { bookings: [subWithoutConsent], isAdmin: true } });
+    const w = mountApp(CustomerSubscriptionsCard, { props: { bookings: [subWithoutConsent], canAdminister: true } });
     await w.find(`[data-testid="absence-consent-${subWithoutConsent.id}"]`).trigger('click');
     expect(w.emitted('consent')?.[0]?.[0]).toMatchObject({ id: subWithoutConsent.id });
   });
 
   it('emette «absence» col booking al click', async () => {
-    const w = mountApp(CustomerSubscriptionsCard, { props: { bookings: [subWithConsent], isAdmin: true } });
+    const w = mountApp(CustomerSubscriptionsCard, { props: { bookings: [subWithConsent], canAdminister: true } });
     await w.find(`[data-testid="absence-${subWithConsent.id}"]`).trigger('click');
     expect(w.emitted('absence')?.[0]?.[0]).toMatchObject({ id: subWithConsent.id });
   });
 
   it('elenca le release con stato e l\'azione annulla se non rivenduta', async () => {
-    const w = mountApp(CustomerSubscriptionsCard, { props: { bookings: [subWithActiveRelease], isAdmin: true } });
+    const w = mountApp(CustomerSubscriptionsCard, { props: { bookings: [subWithActiveRelease], canAdminister: true } });
     expect(w.text()).toContain('Assente il');
     const cancelBtn = w.find('[data-testid="absence-cancel-rel-1"]');
     expect(cancelBtn.exists()).toBe(true);
@@ -192,19 +192,19 @@ describe('CustomerSubscriptionsCard — assenze comunicate (D-035)', () => {
   });
 
   it('release rivenduta → niente «Annulla», riga con nota "rivenduta"', () => {
-    const w = mountApp(CustomerSubscriptionsCard, { props: { bookings: [subWithResoldRelease], isAdmin: true } });
+    const w = mountApp(CustomerSubscriptionsCard, { props: { bookings: [subWithResoldRelease], canAdminister: true } });
     expect(w.text()).toContain('rivenduta');
     expect(w.find('[data-testid="absence-cancel-rel-2"]').exists()).toBe(false);
   });
 
   it('release annullata → niente «Annulla», riga con nota "annullata"', () => {
-    const w = mountApp(CustomerSubscriptionsCard, { props: { bookings: [subWithCanceledRelease], isAdmin: true } });
+    const w = mountApp(CustomerSubscriptionsCard, { props: { bookings: [subWithCanceledRelease], canAdminister: true } });
     expect(w.text()).toContain('annullata');
     expect(w.find('[data-testid="absence-cancel-rel-3"]').exists()).toBe(false);
   });
 
   it('non-admin → nessun bottone «Annulla» sulle release', () => {
-    const w = mountApp(CustomerSubscriptionsCard, { props: { bookings: [subWithActiveRelease], isAdmin: false } });
+    const w = mountApp(CustomerSubscriptionsCard, { props: { bookings: [subWithActiveRelease], canAdminister: false } });
     expect(w.find('[data-testid="absence-cancel-rel-1"]').exists()).toBe(false);
   });
 });
@@ -226,34 +226,34 @@ const terminatedSubWithRelease: CustomerBookingDTO = {
 
 describe('CustomerSubscriptionsCard — hardening macchina a stati', () => {
   it('D1: sospensione aperta → niente «Disdici»', () => {
-    const w = mountApp(CustomerSubscriptionsCard, { props: { bookings: [openSuspendedSub], isAdmin: true } });
+    const w = mountApp(CustomerSubscriptionsCard, { props: { bookings: [openSuspendedSub], canAdminister: true } });
     expect(w.find('[data-testid="terminate-sub-3"]').exists()).toBe(false);
   });
 
   it('D2: annullato con sospensione aperta → niente «Riattiva»', () => {
-    const w = mountApp(CustomerSubscriptionsCard, { props: { bookings: [cancelledOpenSuspendedSub], isAdmin: true } });
+    const w = mountApp(CustomerSubscriptionsCard, { props: { bookings: [cancelledOpenSuspendedSub], canAdminister: true } });
     expect(w.find('[data-testid="reactivate-sub-11"]').exists()).toBe(false);
   });
 
   it('C2/D5: sospensione aperta con release attiva → niente «Annulla»', () => {
-    const w = mountApp(CustomerSubscriptionsCard, { props: { bookings: [openSuspendedSubWithRelease], isAdmin: true } });
+    const w = mountApp(CustomerSubscriptionsCard, { props: { bookings: [openSuspendedSubWithRelease], canAdminister: true } });
     expect(w.find('[data-testid="absence-cancel-rel-9"]').exists()).toBe(false);
   });
 
   it('D5: disdetto con release attiva → niente «Annulla»', () => {
-    const w = mountApp(CustomerSubscriptionsCard, { props: { bookings: [terminatedSubWithRelease], isAdmin: true } });
+    const w = mountApp(CustomerSubscriptionsCard, { props: { bookings: [terminatedSubWithRelease], canAdminister: true } });
     expect(w.find('[data-testid="absence-cancel-rel-10"]').exists()).toBe(false);
   });
 
   it('C1: sospensione aperta con consenso → «Revoca assenze» resta disponibile, ma niente «Segnala assenza»', () => {
-    const w = mountApp(CustomerSubscriptionsCard, { props: { bookings: [openSuspendedSubWithConsent], isAdmin: true } });
+    const w = mountApp(CustomerSubscriptionsCard, { props: { bookings: [openSuspendedSubWithConsent], canAdminister: true } });
     expect(w.find('[data-testid="absence-consent-sub-10"]').exists()).toBe(true);
     expect(w.text()).toContain('Revoca assenze');
     expect(w.find('[data-testid="absence-sub-10"]').exists()).toBe(false);
   });
 
   it('C1: disdetto → niente toggle consenso', () => {
-    const w = mountApp(CustomerSubscriptionsCard, { props: { bookings: [terminatedSub], isAdmin: true } });
+    const w = mountApp(CustomerSubscriptionsCard, { props: { bookings: [terminatedSub], canAdminister: true } });
     expect(w.find('[data-testid="absence-consent-sub-2"]').exists()).toBe(false);
   });
 });
@@ -264,7 +264,7 @@ describe('CustomerSubscriptionsCard — ombrellone ritirato (D-055)', () => {
       ...activeSub, id: 'sub-retired', sectorName: undefined,
       umbrellaRetiredAt: '2026-07-12T10:00:00.000Z', umbrellaRetiredFrom: 'Centro · Fila 1',
     };
-    const w = mountApp(CustomerSubscriptionsCard, { props: { bookings: [retiredSub], isAdmin: true } });
+    const w = mountApp(CustomerSubscriptionsCard, { props: { bookings: [retiredSub], canAdminister: true } });
     expect(w.text()).toContain('Centro · Fila 1');
     expect(w.text()).toContain('Ritirato');
   });

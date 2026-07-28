@@ -5,7 +5,7 @@ import { VueQueryPlugin, QueryClient } from '@tanstack/vue-query';
 import { http, HttpResponse } from 'msw';
 import { Role } from '@coralyn/contracts';
 import { useToasts, clearToasts } from '@coralyn/ui-kit';
-import { mountApp } from '@/test/utils';
+import { mountApp, permissionsOfRole } from '@/test/utils';
 import { server } from '@/mocks/server';
 import { useSessionStore } from '@/stores/session';
 import CustomerDetailView from './CustomerDetailView.vue';
@@ -51,7 +51,7 @@ function mountDetail(id: string) {
 
 function setRole(role: Role) {
   const session = useSessionStore();
-  session.user = { id: 'u-1', email: 'admin@coralyn.dev', role, establishmentId: 'e-1', establishmentName: 'Lido Maestrale' };
+  session.user = { id: 'u-1', email: 'admin@coralyn.dev', role, establishmentId: 'e-1', establishmentName: 'Lido Maestrale', permissions: permissionsOfRole(role) };
 }
 
 describe('CustomerDetailView', () => {

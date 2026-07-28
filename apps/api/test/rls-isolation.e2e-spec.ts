@@ -49,6 +49,11 @@ describe('RLS — isolamento per tenant su tutte le tabelle tenant-scoped (P6-00
     CustomerSession: 'canale cliente: la sessione si risolve per hash del refresh, prima che un tenant esista',
     CustomerEnrollmentToken: 'idem: one-time + PIN si risolvono prima di avere un tenant',
     CredentialSetupToken: 'link di set-password dello staff: risolto per hash, fuori da una sessione',
+    StaffPermissionOverride:
+      'attributo di User, che è già fuori: il guard lo legge PRIMA che la richiesta abbia una ' +
+      'transazione, e metterlo sotto RLS costerebbe 4 round trip invece di 1 su ogni richiesta ' +
+      'staff. La riga cross-tenant è impedita dalla FK composita (userId, establishmentId) → ' +
+      'User(id, establishmentId), che la rende non rappresentabile invece che improbabile — ADR-0063',
     PlatformAuditLog: 'registro di piattaforma: trasversale ai tenant per definizione',
     _prisma_migrations: 'tabella di servizio di Prisma',
   };

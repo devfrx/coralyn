@@ -152,7 +152,36 @@ model User {
   disabledAt      DateTime? // null = attivo; valorizzato = disabilitato (soft), il login lo respinge (D-025)
   establishment   Establishment?         @relation(fields: [establishmentId], references: [id])
   setupTokens     CredentialSetupToken[]
+  permissionOverrides StaffPermissionOverride[]
 
+  @@unique([id, establishmentId]) // bersaglio della FK composita di StaffPermissionOverride (ADR-0063)
+  @@index([establishmentId])
+}
+
+/// Delta sul default di fabbrica `PERMISSION_ROLES`, per singolo operatore (ADR-0063).
+///
+/// Assenza di riga = default di fabbrica: un lido che non configura nulla non si accorge della
+/// slice, e un permesso aggiunto in futuro all'enum eredita il default invece di nascere negato.
+///
+/// ⚠️ **FUORI da RLS**, come `User` di cui è un attributo, ed è una decisione: metterla sotto RLS
+/// costringerebbe il guard ad aprire una transazione (4 round trip contro 1) su ogni richiesta
+/// autenticata. Dichiarata in `rls-isolation.e2e-spec.ts`, che fallirebbe nominandola.
+///
+/// ⚠️ Ciò che RLS avrebbe coperto qui — una riga che rivendica un tenant diverso da quello
+/// dell'operatore — lo copre la **FK composita** `(userId, establishmentId)`: la riga cross-tenant
+/// non è improbabile, è **non rappresentabile**. Effetto collaterale voluto: non può mai matchare
+/// un superuser (`establishmentId` NULL, e NULL non uguaglia nulla), quindi il superuser è
+/// strutturalmente incapace di detenere permessi tenant-scoped — cosa che ADR-0039 diceva a parole.
+model StaffPermissionOverride {
+  userId          String   @db.Uuid
+  establishmentId String   @db.Uuid
+  permission      String // valore stringa stabile dell'enum Permission (@coralyn/contracts)
+  granted         Boolean
+  updatedAt       DateTime @updatedAt
+
+  user User @relation(fields: [userId, establishmentId], references: [id, establishmentId], onDelete: Cascade)
+
+  @@id([userId, permission])
   @@index([establishmentId])
 }
 

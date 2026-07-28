@@ -4,6 +4,15 @@
 > dell'audit 2026-07-25), i vincoli verificati, le decisioni ancora aperte e come verificare il
 > lavoro. Chi prende questa slice scrive prima la spec di design e l'ADR, poi implementa.
 >
+> ✅ **La spec esiste dal 2026-07-27**:
+> [2026-07-27-permessi-configurabili-d063-design.md](2026-07-27-permessi-configurabili-d063-design.md),
+> decisa in [ADR-0063](../../architecture/decisions/0063-permessi-staff-configurabili-per-operatore.md).
+> Le tre decisioni che il §3 lasciava aperte **sono prese lì**: questo documento resta la migliore
+> descrizione del punto di partenza (§2), dei principi (§4) e dei gotcha (§5), ed è **superato**
+> su tutto ciò che è decisione. Due sue affermazioni sono risultate **false alla verifica** e sono
+> corrette in loco, al §4 principio 5 e al §6.
+>
+
 > Il prerequisito è **[ADR-0057](../../architecture/decisions/0057-autorizzazione-fail-closed-permessi.md)**.
 > ⚠️ **Aggiornato il 2026-07-27:** questa riga diceva «sul branch `chore/audit-2026-07-25-fase-c` —
 > non ancora su `main`». **È su `main` dal 2026-07-26** (commit `4c19d6f`): il prerequisito è
@@ -76,8 +85,13 @@ spec, non improvvisato.
    valuta sul tenant della richiesta, mai su un flag di contesto.
 4. **Niente due meccanismi.** Se serve un concetto nuovo (gruppi, profili), sostituisce il
    precedente — non gli si affianca. È l'errore che ADR-0057 ha appena corretto.
-5. **La UI che nasconde non è la UI che protegge.** Oggi `/establishment` è raggiungibile da URL
-   pur non essendo nel menu dello staff: la protezione sta nel backend, il menu è cortesia.
+5. **La UI che nasconde non è la UI che protegge.** ⛔ **Correzione 2026-07-27:** questa riga
+   diceva «`/establishment` è raggiungibile da URL **pur non essendo nel menu dello staff**», ed
+   era falsa quando è stata scritta. Il bottone del lido in
+   [`SidebarNav.vue`](../../../apps/web-staff/src/app/SidebarNav.vue) è **incondizionato** e ci
+   porta, e la rotta non ha `meta.role`: lo staff ci arriva **dal menu**, non solo da URL. Il
+   principio resta valido e anzi rafforzato — la protezione sta nel backend, e ciò che la UI
+   mostra o nasconde è cortesia.
 6. **`compliance-docs` se si tocca `legal-profile.manage`**: è la superficie che alimenta
    l'informativa del bagnante.
 
@@ -113,7 +127,7 @@ spec, non improvvisato.
 | **D-026** | nessuna revoca di un token già emesso (8h) | se i permessi viaggiano nel token, è lo stesso problema |
 | **AUD-026** | il fake `forTenant: (_t, cb) => cb(tx)` scarta il `tenantId`: nessun unit test può accorgersi di un tenant sbagliato | una risoluzione per-tenant va testata con un fake che **asserisce** il tenant |
 | **AUD-012** | 9 viste su 12 non consultano mai `isError` | un 403 nuovo si presenterebbe come schermata vuota, non come «non autorizzato» |
-| **P3-R1** | il gating FE è sparso su ruolo in 4 punti | vanno unificati prima di aggiungerci i permessi, o diventano 8 |
+| ⛔ ~~**P3-R1**~~ | il gating FE è sparso su ruolo (il numero era «4 punti») | **Correzione 2026-07-27, su un punto solo dei due.** ❌ **L'ID è sbagliato**: [P3-R1](../../audit/findings/P3-web-staff.md) riguarda le **astrazioni condivise nate troppo strette** (`useActiveSeason`, `statusMaps`, `queryKeys`, `lib/dates`); **nessun** finding dell'audit parla del gating su ruolo, quindi questa riga non ha una fonte. ✅ **Il numero «4» invece regge**, se lo scope è «derivazioni di `isAdmin` da `session.role`»: sono esattamente 4. ⚠️ Ma **sottostima il lavoro**, e va dichiarato lo scope: il ruolo *decide* in **10 punti** (le 4 + `adminNav` di `SidebarNav`, 2 `enabled:` negli hook, 2 `meta.role` e la guardia del router), e `isAdmin` viaggia come **prop** verso altri **10 componenti** — **14 file di produzione** in tutto. Elenco nella [spec](2026-07-27-permessi-configurabili-d063-design.md) §7 |
 
 ## 7. Come si verifica
 

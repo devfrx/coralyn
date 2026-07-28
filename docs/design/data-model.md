@@ -112,6 +112,19 @@
 > "acconsento". Risolve il residuo piano A di [D-024](../architecture/deferred.md); restano deferiti i
 > piani B (privacy operatori, Coralyn titolare) e C (DPA/registro Coralyn↔lido), tracciati come
 > **5.6b**/**5.6c**.
+>
+> **Slice D-063 (permessi dello staff configurabili, implementata, [ADR-0063](../architecture/decisions/0063-permessi-staff-configurabili-per-operatore.md)):**
+> nuova entità **`StaffPermissionOverride`** — chiave `(userId, permission)` — che contiene un
+> **delta** sul default di fabbrica `PERMISSION_ROLES`: assenza di riga = default, quindi un lido che
+> non configura nulla non si accorge della slice, e un permesso aggiunto in futuro all'enum eredita
+> il default invece di nascere negato per chi è già configurato. È **fuori-RLS** come `User`, di cui
+> è un attributo, e per la stessa ragione di `CustomerSession`: il guard la legge **prima** che la
+> richiesta abbia una transazione, e metterla sotto RLS costerebbe 4 round trip invece di 1 su ogni
+> richiesta `staff`. ⚠️ Ciò che RLS avrebbe coperto — la riga che rivendica un tenant altrui — lo
+> copre una **FK composita** `(userId, establishmentId)` verso `User(id, establishmentId)` (con
+> `@@unique([id, establishmentId])` su `User` come bersaglio): la riga cross-tenant è **non
+> rappresentabile**, non improbabile. Effetto collaterale voluto: la FK non può mai matchare un
+> superuser (`establishmentId` NULL), che resta così strutturalmente privo di permessi tenant-scoped.
 
 Fonte di verità del modello dati del Core operativo. Decisioni:
 [mappa](../architecture/decisions/0005-modello-mappa.md),
@@ -131,6 +144,7 @@ erDiagram
     ESTABLISHMENT ||--o{ AUDIT_LOG : "registra"
     ESTABLISHMENT ||--o{ RENEWAL_CAMPAIGN : "apre"
     ESTABLISHMENT ||--o| ESTABLISHMENT_LEGAL_PROFILE : "titolare via (1:1)"
+    USER ||--o{ STAFF_PERMISSION_OVERRIDE : "ha permessi corretti da"
     USER ||--o{ AUDIT_LOG : "genera"
     TIME_SLOT ||--o{ RATE : "qualifica"
     TIME_SLOT ||--o{ BOOKING : "slot di"
@@ -597,6 +611,16 @@ erDiagram
   ([ADR-0026](../architecture/decisions/0026-identita-rls-utente.md)). Il tenant delle richieste
   è ricavato dal **JWT** dalla `JwtAuthGuard`, che popola `req.tenantId`
   ([ADR-0024](../architecture/decisions/0024-strategia-auth.md)).
+- **Permessi dello staff (D-063, [ADR-0063](../architecture/decisions/0063-permessi-staff-configurabili-per-operatore.md))**:
+  `StaffPermissionOverride` è **fuori-RLS** come `User`, di cui è un attributo, e per la stessa
+  ragione dei due token cliente: il `PermissionsGuard` la legge **prima** che la richiesta abbia una
+  transazione, e sotto RLS ogni richiesta `staff` pagherebbe 4 round trip invece di 1. L'isolamento
+  di tenant **non** è affidato alla disciplina applicativa: una **FK composita**
+  `(userId, establishmentId)` verso `User(id, establishmentId)` rende la riga cross-tenant **non
+  rappresentabile**. Il contenuto è un **delta** sul default di fabbrica: assenza di riga = default,
+  quindi la slice è invisibile a un lido che non configura nulla. Due permessi non sono
+  configurabili — `platform.administer` (cross-tenant) e `session.read` (revocarlo disabiliterebbe
+  l'account, e per quello c'è `User.disabledAt`).
 - **Auth canale cliente (D-035 S3, [ADR-0049](../architecture/decisions/0049-auth-cliente-provisioned-tenant-pubblico.md))**:
   `CustomerEnrollmentToken` e `CustomerSession` sono **fuori-RLS** come `User`/`CredentialSetupToken` (dato
   d'identità **pre-tenant**): l'`establishmentId` **denormalizzato** è la **sorgente del tenant**, non una

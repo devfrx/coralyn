@@ -1,8 +1,14 @@
 import { http, HttpResponse } from 'msw';
-import { Role, type PlatformEstablishmentDTO, type UserDTO } from '@coralyn/contracts';
+import { Permission, Role, type PlatformEstablishmentDTO, type UserDTO } from '@coralyn/contracts';
 
 export const MOCK_TOKEN = 'valid-super-token';
-export const MOCK_SUPERUSER: UserDTO = { id: 'su-1', email: 'super@coralyn.test', role: Role.Superuser, establishmentId: null, establishmentName: null };
+// Il superuser NON ha permessi tenant-scoped (ADR-0039/0063): ha il suo, di piattaforma, più la
+// lettura della propria sessione. Scriverne altri qui sarebbe un mock che mente sul backend.
+export const MOCK_SUPERUSER: UserDTO = {
+  id: 'su-1', email: 'super@coralyn.test', role: Role.Superuser,
+  establishmentId: null, establishmentName: null,
+  permissions: [Permission.PlatformAdminister, Permission.SessionRead],
+};
 
 function baseDto(over: Partial<PlatformEstablishmentDTO> & { id: string; name: string }): PlatformEstablishmentDTO {
   return {

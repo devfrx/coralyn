@@ -52,7 +52,15 @@ services:
       DEV_ADMIN_PASSWORD: "coralyn-admin-8473"
       # Seed al primo avvio: Stabilimento dev (00000000-...-0001) + primo admin,
       # così si può fare login reale (POST /api/auth/login) sul backend dockerizzato.
-      SEED_ON_START: "true"
+      #
+      # ⚠️ Scavalcabile da ambiente, default invariato. Su un `coralyn_dev` in cui si è già
+      # lavorato **dall'app**, il seed fallisce con `P2002` su `Umbrella` e — di proposito —
+      # l'entrypoint lo tratta come fatale (`set -e`), quindi l'API non parte. Non è un difetto
+      # del seed: le label sintetiche (`1`..`30`, `P1`..`P4`) collidono con ombrelloni creati
+      # via app sotto id diversi, contro l'indice parziale
+      # `Umbrella_establishmentId_label_active_key`. Con l'admin già presente il seed non serve:
+      #     SEED_ON_START=false docker compose --profile full up -d
+      SEED_ON_START: "${SEED_ON_START:-true}"
       # Sottosistema email (ADR-0042): l'api invia gli inviti set-password via SMTP a Mailpit in dev.
       MAIL_HOST: "mailpit"
       MAIL_PORT: "1025"

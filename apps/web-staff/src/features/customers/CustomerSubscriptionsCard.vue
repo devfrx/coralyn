@@ -5,7 +5,7 @@ import type { CustomerBookingDTO, SuspensionDTO, CededSubscriptionDTO } from '@c
 import { todayIso } from '@/lib/dates';
 import { positionLabel } from './positionLabel';
 
-const props = defineProps<{ bookings: CustomerBookingDTO[]; ceded?: CededSubscriptionDTO[]; isAdmin: boolean }>();
+const props = defineProps<{ bookings: CustomerBookingDTO[]; ceded?: CededSubscriptionDTO[]; canAdminister: boolean }>();
 const emit = defineEmits<{
   terminate: [CustomerBookingDTO];
   suspend: [CustomerBookingDTO];
@@ -30,7 +30,7 @@ const canToggleConsent = (b: CustomerBookingDTO): boolean =>
 const dayOf = (iso: string): string => iso.slice(0, 10);
 const consentActive = (b: CustomerBookingDTO): boolean => !!b.absenceConsentAt;
 const hasActions = (b: CustomerBookingDTO): boolean =>
-  props.isAdmin && (canTerminate(b) || canSuspend(b) || canToggleConsent(b));
+  props.canAdminister && (canTerminate(b) || canSuspend(b) || canToggleConsent(b));
 const hasTimeline = (b: CustomerBookingDTO): boolean =>
   !!b.prelazione || !!b.terminatedAt || !!openSuspension(b) || pastSuspensions(b).length > 0 || (b.absenceReleases ?? []).length > 0;
 </script>
@@ -76,7 +76,7 @@ const hasTimeline = (b: CustomerBookingDTO): boolean =>
           <div v-if="openSuspension(b)" class="flex items-center gap-2 rounded-[var(--radius-sm)] bg-[var(--color-warning-bg)] px-2.5 py-2 text-[12px] text-[var(--color-warning-ink)]">
             <Icon name="clock" :size="14" class="shrink-0 opacity-70" />
             <span class="flex-1">Sospeso dal {{ dayOf(openSuspension(b)!.startDate) }} (in corso)</span>
-            <Button v-if="isAdmin && b.status === 'confirmed' && !b.terminatedAt" size="sm" variant="primary" :data-testid="`reactivate-${b.id}`" @click="emit('reactivate', { booking: b, suspension: openSuspension(b)! })">Riattiva</Button>
+            <Button v-if="canAdminister && b.status === 'confirmed' && !b.terminatedAt" size="sm" variant="primary" :data-testid="`reactivate-${b.id}`" @click="emit('reactivate', { booking: b, suspension: openSuspension(b)! })">Riattiva</Button>
           </div>
           <div v-for="s in pastSuspensions(b)" :key="s.id" class="flex items-center gap-2 rounded-[var(--radius-sm)] bg-[var(--color-raised)] px-2.5 py-2 text-[12px] text-[var(--color-text-2nd)]">
             <Icon name="clock" :size="14" class="shrink-0 opacity-50" />
@@ -85,7 +85,7 @@ const hasTimeline = (b: CustomerBookingDTO): boolean =>
           <div v-for="r in (b.absenceReleases ?? [])" :key="r.id" class="flex items-center gap-2 rounded-[var(--radius-sm)] bg-[var(--color-raised)] px-2.5 py-2 text-[12px] text-[var(--color-text-2nd)]">
             <Icon name="calendar" :size="14" class="shrink-0 opacity-50" />
             <span class="flex-1">Assente il {{ r.date }}<template v-if="r.canceledAt"> · annullata</template><template v-else-if="r.resold"> · rivenduta</template></span>
-            <Button v-if="isAdmin && !r.canceledAt && !r.resold && b.status === 'confirmed' && !b.terminatedAt && !openSuspension(b)" size="sm" variant="ghost" :data-testid="`absence-cancel-${r.id}`" @click="emit('cancelAbsence', { booking: b, releaseId: r.id })">Annulla</Button>
+            <Button v-if="canAdminister && !r.canceledAt && !r.resold && b.status === 'confirmed' && !b.terminatedAt && !openSuspension(b)" size="sm" variant="ghost" :data-testid="`absence-cancel-${r.id}`" @click="emit('cancelAbsence', { booking: b, releaseId: r.id })">Annulla</Button>
           </div>
         </div>
       </li>

@@ -4,7 +4,7 @@ import { SectionCard, Badge, Button, Icon, ConfirmDialog } from '@coralyn/ui-kit
 import type { CustomerAccessState, CustomerProvisionResponse } from '@coralyn/contracts';
 import { useCustomerAccessStatus, useProvisionCustomerAccess, useRevokeCustomerAccess } from './useCustomers';
 
-const props = defineProps<{ bookingId: string; isAdmin: boolean }>();
+const props = defineProps<{ bookingId: string; canManage: boolean }>();
 const emit = defineEmits<{ provisioned: [CustomerProvisionResponse] }>();
 
 // Thunk, non valore: la card non viene rimontata quando cambia l'abbonamento rappresentativo
@@ -52,14 +52,14 @@ function onRevoke(): void {
         <Badge :tone="meta.tone" data-testid="access-state">{{ meta.label }}</Badge>
         <div v-if="lastActivated" class="mt-1.5 text-xs text-[var(--color-text-muted)]">Ultima attivazione: {{ lastActivated }}</div>
       </div>
-      <div v-if="isAdmin" class="flex shrink-0 gap-2">
+      <div v-if="canManage" class="flex shrink-0 gap-2">
         <Button variant="secondary" data-testid="access-generate" :loading="provision.isPending.value" @click="onGenerate">
           <Icon name="smartphone" :size="15" />{{ hasAccess ? 'Rigenera' : 'Genera accesso' }}
         </Button>
         <Button v-if="hasAccess" variant="danger" data-testid="access-revoke" @click="confirmRevoke = true"><Icon name="x" :size="15" />Revoca</Button>
       </div>
     </div>
-    <p v-if="isAdmin && hasAccess" class="mt-2 text-xs text-[var(--color-text-muted)]">
+    <p v-if="canManage && hasAccess" class="mt-2 text-xs text-[var(--color-text-muted)]">
       «Rigenera» invalida il link e il PIN precedenti e disconnette il cliente.
     </p>
     <ConfirmDialog

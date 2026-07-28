@@ -3,6 +3,31 @@ import { createPinia } from 'pinia';
 import { VueQueryPlugin, QueryClient } from '@tanstack/vue-query';
 import { createRouter, createMemoryHistory } from 'vue-router';
 import { nextTick, type Component } from 'vue';
+import { Permission, Role } from '@coralyn/contracts';
+
+/**
+ * I permessi effettivi di un ruolo secondo il **default di fabbrica** (ADR-0063), per i test.
+ *
+ * Derivati dall'enum e non scritti a mano: un permesso nuovo entra da solo, e nessuno spec resta
+ * a esercitare un utente incompleto senza che il compilatore lo dica.
+ *
+ * ⚠️ Riproduce `PERMISSION_ROLES` dell'API. Non è una duplicazione che può divergere in silenzio:
+ * `authorization-staff.e2e-spec.ts` asserisce le stesse superfici sul backend vero, quindi una
+ * divergenza fa cadere quella suite.
+ */
+const STAFF_DEFAULT: readonly Permission[] = [
+  Permission.MapRead, Permission.BookingsManage, Permission.CustomersManage,
+  Permission.RentalsOperate, Permission.RentalCatalogManage, Permission.PricingManage,
+  Permission.RenewalsManage, Permission.ReportsRead, Permission.EstablishmentRead,
+  Permission.StructureRead, Permission.SessionRead,
+];
+
+export function permissionsOfRole(role: Role): Permission[] {
+  if (role === Role.Superuser) return [Permission.PlatformAdminister, Permission.SessionRead];
+  if (role === Role.Staff) return [...STAFF_DEFAULT];
+  // Admin: tutto tranne il permesso di piattaforma, che non è del lido.
+  return Object.values(Permission).filter((p) => p !== Permission.PlatformAdminister);
+}
 
 const RouterLinkStub = { props: ['to'], template: '<a><slot /></a>' };
 

@@ -4,7 +4,7 @@ import { Button, IconButton, Icon, Field, Input, Select, Option, ConfirmDialog, 
 import type { EstablishmentStructureDTO, UmbrellaTypeDTO } from '@coralyn/contracts';
 import { useCreateUmbrellaType, useUpdateUmbrellaType, useDeleteUmbrellaType, useRetiredUmbrellas, useRestoreUmbrella } from '../useEstablishmentStructure';
 
-const props = defineProps<{ data: EstablishmentStructureDTO; isAdmin: boolean }>();
+const props = defineProps<{ data: EstablishmentStructureDTO; canManage: boolean }>();
 
 const counts = computed(() => {
   const rows = props.data.sectors.reduce((n, s) => n + s.rows.length, 0);
@@ -70,7 +70,7 @@ function onRestore(id: string) {
       <div>
         <div class="mb-1.5 flex items-center justify-between">
           <span class="text-[10px] font-extrabold uppercase tracking-[.09em] text-[var(--color-text-muted)]">Tipologie</span>
-          <Button v-if="isAdmin && editing === null" data-testid="type-new" variant="secondary" size="sm" @click="openNew"><Icon name="plus" :size="13" />Nuova</Button>
+          <Button v-if="canManage && editing === null" data-testid="type-new" variant="secondary" size="sm" @click="openNew"><Icon name="plus" :size="13" />Nuova</Button>
         </div>
         <form v-if="editing !== null" data-testid="type-save" class="flex flex-col gap-3" @submit.prevent="submit">
           <Field label="Nome"><Input name="type-name" data-testid="type-name" v-model="name" placeholder="es. Gazebo" /></Field>
@@ -88,7 +88,7 @@ function onRestore(id: string) {
           <div v-for="t in data.umbrellaTypes" :key="t.id" data-testid="type-row" class="flex items-center gap-2.5 border-b border-[var(--color-border-row)] py-2 last:border-0">
             <span class="grid size-7 place-items-center rounded-[9px] bg-[var(--color-raised)] text-[var(--color-text-2nd)]"><Icon :name="t.icon ?? 'umbrella'" :size="14" /></span>
             <span class="flex-1 text-[12.5px] font-bold">{{ t.name }}</span>
-            <template v-if="isAdmin">
+            <template v-if="canManage">
               <IconButton icon="edit" label="Modifica tipologia" variant="ghost" size="sm" data-testid="type-edit" @click="openEdit(t)" />
               <IconButton icon="trash-2" label="Elimina tipologia" variant="danger" size="sm" data-testid="type-delete" @click="deleting = t" />
             </template>
@@ -106,7 +106,7 @@ function onRestore(id: string) {
               <span class="text-[12.5px] font-bold">{{ u.label }}</span>
               <span class="text-[11px] text-[var(--color-text-muted)]">{{ u.retiredFrom ?? 'posizione sconosciuta' }} · ritirato il {{ formatDate(u.retiredAt) }}</span>
             </div>
-            <div v-if="isAdmin" class="mt-1.5 flex items-center gap-2">
+            <div v-if="canManage" class="mt-1.5 flex items-center gap-2">
               <Select v-model="restoreRowByUmbrella[u.id]" data-testid="retired-restore-row" class="flex-1">
                 <Option value="" disabled>Fila di destinazione…</Option>
                 <Option v-for="r in allRows" :key="r.id" :value="r.id">{{ r.sectorName }} · {{ r.label }}</Option>
