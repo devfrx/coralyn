@@ -6,9 +6,11 @@ import MapView from '@/features/map/MapView.vue';
 import RentalsView from '@/features/rentals/RentalsView.vue';
 import RentalCatalogView from '@/features/rentals/RentalCatalogView.vue';
 import RenewalsView from '@/features/renewals/RenewalsView.vue';
+import PricingView from '@/features/pricing/PricingView.vue';
+import BookingsView from '@/features/bookings/BookingsView.vue';
 
 /**
- * Un'assenza DA PERMESSO si dice, non si rende come un vuoto qualunque (ADR-0063).
+ * Un'assenza DA PERMESSO si dice, non si rende come un vuoto qualunque (ADR-0064).
  *
  * Il gate di `query-permissions.spec.ts` impedisce i 403; questo impedisce la conseguenza opposta,
  * che è quella che ha reso il difetto invisibile: senza `customers.manage` la Mappa rendeva
@@ -39,7 +41,7 @@ function testo(): string {
   return `${document.body.textContent ?? ''}`;
 }
 
-describe('un permesso mancante si dichiara, non si rende come un vuoto (ADR-0063)', () => {
+describe('un permesso mancante si dichiara, non si rende come un vuoto (ADR-0064)', () => {
   beforeEach(() => {
     document.body.innerHTML = '';
   });
@@ -65,17 +67,31 @@ describe('un permesso mancante si dichiara, non si rende come un vuoto (ADR-0063
     expect(testo()).not.toContain('Non hai il permesso di gestire le prenotazioni');
   });
 
-  it('Mappa senza customers.manage: lo dice invece di «Nessun cliente. Crea un cliente»', async () => {
-    const w = await monta(MapView, [Permission.CustomersManage]);
-    await apriDrawerMappa(w);
-    // apre «Nuova prenotazione» dal footer del Drawer
+  /** Apre «Nuova prenotazione» dal footer del Drawer (il selettore cliente vive lì dentro). */
+  async function apriNuovaPrenotazione() {
     const bottoni = Array.from(
       document.body.querySelector('[data-test="drawer-body"]')?.closest('[role="dialog"]')?.querySelectorAll('button') ?? [],
     ) as HTMLButtonElement[];
     bottoni.find((b) => b.textContent?.includes('Nuova prenotazione'))?.click();
     await flushPromises();
+  }
+
+  it('Mappa senza customers.manage: lo dice invece di «Nessun cliente. Crea un cliente»', async () => {
+    const w = await monta(MapView, [Permission.CustomersManage]);
+    await apriDrawerMappa(w);
+    await apriNuovaPrenotazione();
     expect(document.querySelector('[data-testid="customers-denied"]')).not.toBeNull();
     expect(testo()).not.toContain('Crea un cliente');
+  });
+
+  it('CONTROLLO — Mappa con customers.manage: nessun avviso, e il modale si apre davvero', async () => {
+    // ⚠️ Senza questo controllo, il test qui sopra sarebbe verde anche se il modale non si
+    // aprisse affatto o se l'avviso fosse cablato sempre acceso.
+    const w = await monta(MapView, []);
+    await apriDrawerMappa(w);
+    await apriNuovaPrenotazione();
+    expect(testo()).toContain('Nuova prenotazione');
+    expect(document.querySelector('[data-testid="customers-denied"]')).toBeNull();
   });
 
   it('Noleggi senza rental-catalog.manage: lo dice', async () => {
@@ -118,5 +134,48 @@ describe('un permesso mancante si dichiara, non si rende come un vuoto (ADR-0063
   it('CONTROLLO — Rinnovi con bookings.manage: nessun avviso', async () => {
     await monta(RenewalsView, []);
     expect(document.querySelector('[data-testid="subscriptions-denied"]')).toBeNull();
+  });
+
+  // ⚠️ L'avviso in testa alla vista non basta se la tabella sotto continua ad affermare il
+  // contrario. Qui si guarda la FRASE, non il testid.
+  it('Rinnovi senza bookings.manage: la tabella non dice «Nessun abbonato»', async () => {
+    await monta(RenewalsView, [Permission.BookingsManage]);
+    expect(testo()).not.toContain('Nessun abbonato nella stagione di origine');
+  });
+
+  it('Noleggi senza customers.manage: lo dice sul selettore cliente', async () => {
+    const w = await monta(RentalsView, [Permission.CustomersManage]);
+    await w.find('[data-test="new-rental"]').trigger('click');
+    await flushPromises();
+    expect(document.querySelector('[data-testid="customers-denied-rentals"]')).not.toBeNull();
+  });
+
+  it('CONTROLLO — Noleggi con customers.manage: nessun avviso sul selettore cliente', async () => {
+    const w = await monta(RentalsView, []);
+    await w.find('[data-test="new-rental"]').trigger('click');
+    await flushPromises();
+    expect(document.querySelector('[data-testid="customers-denied-rentals"]')).toBeNull();
+  });
+
+  it('Listino senza map.read: lo dice, e NON dichiara «Tutti» su una tariffa di un settore', async () => {
+    await monta(PricingView, [Permission.MapRead]);
+    expect(document.querySelector('[data-testid="map-denied-pricing"]')).not.toBeNull();
+  });
+
+  it('CONTROLLO — Listino con map.read: nessun avviso', async () => {
+    await monta(PricingView, []);
+    expect(document.querySelector('[data-testid="map-denied-pricing"]')).toBeNull();
+  });
+
+  it('Prenotazioni senza customers.manage: lo dice, e non rende l’UUID al posto del nome', async () => {
+    await monta(BookingsView, [Permission.CustomersManage]);
+    expect(document.querySelector('[data-testid="labels-denied-bookings"]')).not.toBeNull();
+    // l'UUID del seed non deve comparire come nome
+    expect(testo()).not.toMatch(/\bc-\d+\b/);
+  });
+
+  it('CONTROLLO — Prenotazioni con tutti i permessi: nessun avviso', async () => {
+    await monta(BookingsView, []);
+    expect(document.querySelector('[data-testid="labels-denied-bookings"]')).toBeNull();
   });
 });

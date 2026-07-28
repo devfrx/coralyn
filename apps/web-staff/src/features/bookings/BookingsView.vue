@@ -4,6 +4,7 @@ import { useRouter } from 'vue-router';
 import { SegmentedControl, Button, Badge, Avatar, DataTable, QueryBoundary, Icon, PageToolbar, formatEuro, initials, dateRange } from '@coralyn/ui-kit';
 import type { DataTableColumn } from '@coralyn/ui-kit';
 import type { BookingDTO, PaymentStatus } from '@coralyn/contracts';
+import { Permission } from '@coralyn/contracts';
 import { storeToRefs } from 'pinia';
 import { useSessionStore } from '@/stores/session';
 import { useDayBookings } from './useBookings';
@@ -17,6 +18,9 @@ const { activeDate } = storeToRefs(session);
 // `error`/`refetch` non erano destrutturati: senza, un guasto di rete arrivava a DataTable come
 // «0 righe» e l'operatore leggeva «Nessuna prenotazione per questa data» (AUD-012).
 const { data: bookings, isLoading: bookingsLoading, error: bookingsError, refetch: refetchBookings } = useDayBookings(activeDate);
+// Le etichette della tabella vengono da endpoint di ALTRI permessi (ADR-0064, Decision 4).
+const canReadCustomers = computed(() => session.hasPermission(Permission.CustomersManage));
+const canReadMap = computed(() => session.hasPermission(Permission.MapRead));
 
 const filtro = ref<'all' | PaymentStatus>('all');
 const filtri = [
@@ -62,6 +66,15 @@ function openSettle(b: BookingDTO): void {
     <!-- Solo l'ERRORE passa da QueryBoundary: attesa e vuoto restano di DataTable, che li possiede
          già bene (scheletro in-card, EmptyState dentro la cornice). L'unico stato che mancava era
          il guasto, ed è l'unico che si aggiunge. -->
+    <!-- ⚠️ La tabella COMPONE dati di altri permessi (ADR-0064): nome del cliente da
+         `customers.manage`, label ombrellone da `map.read`/`structure.read`, nome pacchetto da
+         `pricing.manage`. Senza, le celle degradano a un segnaposto: va detto perché. -->
+    <p v-if="!canReadCustomers || !canReadMap" data-testid="labels-denied-bookings" class="mb-2 text-[11.5px] text-[var(--color-text-muted)]">
+      Alcune colonne non sono risolte: non hai accesso
+      <template v-if="!canReadCustomers">all'anagrafica clienti</template>
+      <template v-if="!canReadCustomers && !canReadMap"> né </template>
+      <template v-if="!canReadMap">alla mappa</template>.
+    </p>
     <QueryBoundary :error="bookingsError" error-title="Prenotazioni non disponibili" @retry="refetchBookings">
     <DataTable :columns="cols" :rows="rows" :row-key="(r) => r.id" :loading="bookingsLoading" empty-message="Nessuna prenotazione per questa data.">
       <template #cell-cliente="{ row }">

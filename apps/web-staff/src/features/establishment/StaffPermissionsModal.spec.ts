@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { flushPromises } from '@vue/test-utils';
 import { http, HttpResponse } from 'msw';
 import { CONFIGURABLE_PERMISSIONS, Permission, Role } from '@coralyn/contracts';
+import { useToasts } from '@coralyn/ui-kit';
 import { mountApp, permissionsOfRole } from '@/test/utils';
 import { server } from '@/mocks/server';
 import { useSessionStore } from '@/stores/session';
@@ -144,7 +145,11 @@ describe('StaffPermissionsModal (ADR-0063)', () => {
     salva.click();
     await flushPromises();
     expect(inviato).toBeNull();
-    expect(document.body.textContent).not.toContain('Permessi aggiornati.');
+    // ⚠️ Sulla CODA dei toast, non sul DOM: nessun `ToastHost` è montato in questo test, quindi
+    // `document.body.textContent` non conterrebbe mai il messaggio e l'asserzione sarebbe vera per
+    // costruzione. `setup.ts` chiama `clearToasts()` in `beforeEach`, quindi la coda è pulita e un
+    // `onSuccess` spurio ci lascerebbe davvero il messaggio.
+    expect(useToasts().items.map((t) => t.message)).not.toContain('Permessi aggiornati.');
   });
 
   // La finestra anti-flicker: `useDelayedLoading` tiene lo scheletro nascosto per i primi ms, e in

@@ -3,6 +3,7 @@ import { computed, ref, watchEffect } from 'vue';
 import { Button, Card, DataTable, QueryBoundary, EmptyState, Modal, ConfirmDialog, Field, Input, Select, Option, Icon, IconButton, ActionBar, formatEuro } from '@coralyn/ui-kit';
 import type { DataTableColumn } from '@coralyn/ui-kit';
 import type { BookingType, PackageEquipmentDTO, RateDTO, TimeSlotDTO } from '@coralyn/contracts';
+import { Permission } from '@coralyn/contracts';
 import { seasonIdCoveringDate } from '@/lib/seasons';
 import { useSessionStore } from '@/stores/session';
 import { useSeasons, useCreateSeason, useDeleteSeason } from './useSeasons';
@@ -156,6 +157,7 @@ function onConfirmDelete() {
 }
 
 // --- Dimensioni per il modale tariffa (da mappa + pacchetti) ---
+const canReadMap = computed(() => session.hasPermission(Permission.MapRead));
 const { data: dayMap } = useDayMap();
 const sectorOptions = computed(() => (dayMap.value?.sectors ?? []).map((s) => ({ value: s.id, label: s.name })));
 const timeSlotOptions = computed(() => (dayMap.value?.timeSlots ?? []).map((t) => ({ value: t.id, label: t.name })));
@@ -368,7 +370,13 @@ function submitRate() {
 // --- Etichette per la tabella tariffe ---
 function pkgName(id?: string) { if (!id) return 'Tutti'; return packages.value?.find((p) => p.id === id)?.name ?? '–'; }
 function slotName(id?: string) { if (!id) return 'Tutte'; return dayMap.value?.timeSlots.find((t) => t.id === id)?.name ?? '–'; }
-function sectorName(id?: string) { return dayMap.value?.sectors.find((s) => s.id === id)?.name ?? 'Tutti'; }
+// ⚠️ `'Tutti'` SOLO quando l'id manca — cioè quando la tariffa vale davvero per tutti i settori.
+// Un id che non si risolve dà `'–'`, come già fanno `pkgName` e `slotName` qui sopra. La
+// differenza non è di stile: `useDayMap` è gatata su `map.read` (ADR-0064), quindi un operatore
+// con `pricing.manage` ma senza `map.read` non ha `dayMap`, e col `?? 'Tutti'` precedente una
+// tariffa ristretta a UN settore si presentava come valida per l'intera spiaggia. Non è un vuoto:
+// è un'affermazione falsa sul prezzo.
+function sectorName(id?: string) { if (!id) return 'Tutti'; return dayMap.value?.sectors.find((s) => s.id === id)?.name ?? '–'; }
 /** Posizione leggibile: "Settore · Fila" se c'è la fila, altrimenti il settore, altrimenti "Tutti". */
 function rowName(id?: string): string | undefined {
   if (!id || !dayMap.value) return undefined;
@@ -379,7 +387,9 @@ function rowName(id?: string): string | undefined {
   return undefined;
 }
 function positionLabel(r: RateDTO): string {
-  return rowName(r.rowId) ?? (r.sectorId ? sectorName(r.sectorId) : 'Tutti');
+  // Stessa regola: una tariffa CHE HA una fila non diventa «Tutti» solo perché la mappa manca.
+  if (r.rowId) return rowName(r.rowId) ?? '–';
+  return r.sectorId ? sectorName(r.sectorId) : 'Tutti';
 }
 function typeLabel(t?: BookingType): string {
   return t ? (TYPE_OPTIONS.find((o) => o.value === t)?.label ?? t) : 'Tutti';
@@ -562,6 +572,12 @@ const rateCols: DataTableColumn<RateDTO>[] = [
       </template>
     </DataTable>
     </QueryBoundary>
+    <!-- ⚠️ La mappa sta sotto `map.read`, il listino sotto `pricing.manage`: due permessi diversi
+         (ADR-0064). Senza il primo, settore e fila delle tariffe restano irrisolti e la colonna
+         Posizione rende «–»: va detto perché, invece di lasciarlo leggere come dato mancante. -->
+    <p v-if="!canReadMap" data-testid="map-denied-pricing" class="mt-2 text-[11.5px] text-[var(--color-text-muted)]">
+      Non hai accesso alla mappa: settore e fila delle tariffe non sono risolti.
+    </p>
     <EmptyState v-if="activeSeasonId && (rates?.length ?? 0) === 0" class="mt-3" message="Nessuna tariffa per questa stagione. Aggiungine una con «Nuova tariffa»." />
 
     <!-- Modale stagione -->

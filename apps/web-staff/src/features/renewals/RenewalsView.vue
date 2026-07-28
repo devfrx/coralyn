@@ -171,7 +171,17 @@ function stateBadge(s: RenewalWindowState): { tone: 'success' | 'warning' | 'neu
       <EmptyState v-if="!destinationSeasonId" message="Scegli una stagione di destinazione per gestire i rinnovi." />
       <template v-else>
         <QueryBoundary :error="subsError" error-title="Abbonati non disponibili" @retry="refetchSubs">
-        <DataTable :columns="cols" :rows="rows" :row-key="(r) => r.id" :loading="subsLoading" empty-message="Nessun abbonato nella stagione di origine.">
+        <!-- ⚠️ Il messaggio di vuoto è legato al PERMESSO, non solo alla lista: senza
+             `bookings.manage` la query degli abbonati non parte (ADR-0064), e «Nessun abbonato
+             nella stagione di origine» sarebbe un'affermazione falsa sui dati del lido. L'avviso
+             in testa alla vista lo dice, ma questa cella lo contraddirebbe. -->
+        <DataTable
+          :columns="cols"
+          :rows="rows"
+          :row-key="(r) => r.id"
+          :loading="subsLoading"
+          :empty-message="canManageBookings ? 'Nessun abbonato nella stagione di origine.' : 'Elenco non disponibile: non hai accesso alle prenotazioni.'"
+        >
           <template #cell-cliente="{ row }">
             <div class="flex items-center gap-2.5">
               <Avatar :initials="initials(customerName(row.customerId))" size="sm" />

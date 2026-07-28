@@ -197,7 +197,7 @@ function confirmCheckout(): void {
             <Option value="">Nessun cliente</Option>
             <Option v-for="c in (customers ?? [])" :key="c.id" :value="c.id">{{ c.firstName }} {{ c.lastName }}</Option>
           </Select>
-          <p v-if="!canManageCustomers" class="mt-1.5 text-[11.5px] text-[var(--color-text-muted)]">
+          <p v-if="!canManageCustomers" data-testid="customers-denied-rentals" class="mt-1.5 text-[11.5px] text-[var(--color-text-muted)]">
             Non hai accesso all'anagrafica: il noleggio resta senza cliente associato.
           </p>
         </Field>

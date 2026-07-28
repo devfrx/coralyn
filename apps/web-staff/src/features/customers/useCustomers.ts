@@ -14,7 +14,7 @@ import { useSessionStore } from '@/stores/session';
  * generazione dell'accesso mostrava all'operatore QR e PIN di un altro bagnante.
  */
 /**
- * ⚠️ Ogni query dichiara il permesso del suo endpoint (ADR-0063). L'anagrafica non è consultata
+ * ⚠️ Ogni query dichiara il permesso del suo endpoint (ADR-0064). L'anagrafica non è consultata
  * solo da `CustomersView`: Mappa, Noleggi, Prenotazioni e Rinnovi la compongono nei loro dati, e
  * dopo D-063 un operatore può avere il permesso della vista senza avere questo. Senza il gate
  * partirebbero due 403 (`retry: 1`) e il `?? []` dei chiamanti li renderebbe come «nessun cliente».

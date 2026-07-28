@@ -27,7 +27,7 @@ const router = useRouter();
 const session = useSessionStore();
 // Il bottone porta a /onboarding: il permesso e' quello della DESTINAZIONE, non un ruolo.
 const canOpenOnboarding = computed(() => session.hasPermission(Permission.EstablishmentManage));
-// La Mappa COMPONE dati di endpoint governati da altri permessi (ADR-0063): senza questi, le
+// La Mappa COMPONE dati di endpoint governati da altri permessi (ADR-0064): senza questi, le
 // query non partono affatto (gate in `useBookings`/`useCustomers`) e il vuoto che resta va detto,
 // non lasciato leggere come «non ci sono clienti».
 const canManageBookings = computed(() => session.hasPermission(Permission.BookingsManage));

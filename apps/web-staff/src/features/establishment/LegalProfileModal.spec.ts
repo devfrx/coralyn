@@ -36,4 +36,33 @@ describe('LegalProfileModal', () => {
     expect(putBody.legalName).toBe('Lido Acme Srl');
     w.unmount();
   });
+
+  /**
+   * ⚠️ Il gemello dal lato della SCRITTURA, stesso ceppo del difetto chiuso in
+   * `StaffPermissionsModal.spec.ts`. Qui la posta è più alta: il profilo del titolare alimenta
+   * l'informativa art. 13 mostrata ai bagnanti (ADR-0055), e senza i dati letti il PUT
+   * invierebbe nove `null` — cancellandolo, con conferma di successo.
+   * Riprodotto prima di correggere: `BODY = {"legalName":null, …}` per tutti e nove i campi.
+   */
+  it('con la lettura in errore, Salva è disabilitato e NON azzera il profilo del titolare', async () => {
+    let putBody: unknown = null;
+    server.use(
+      http.get('/api/establishment/legal-profile', () => new HttpResponse(null, { status: 500 })),
+      http.put('/api/establishment/legal-profile', async ({ request }) => {
+        putBody = await request.json();
+        return HttpResponse.json({});
+      }),
+    );
+    const w = mountApp(LegalProfileModal, { attachTo: document.body, props: { open: true } });
+    await flushPromises();
+    const salva = document.querySelector('[data-testid="legal-save"]') as HTMLButtonElement;
+    expect(salva.disabled).toBe(true);
+    // ⚠️ …e anche forzando il submit del form, che il bottone disabilitato non intercetta:
+    // è la guardia in `submit()` a doverlo fermare.
+    (document.querySelector('[data-test="form-legal-profile"]') as HTMLFormElement)
+      .dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+    await flushPromises();
+    expect(putBody).toBeNull();
+    w.unmount();
+  });
 });

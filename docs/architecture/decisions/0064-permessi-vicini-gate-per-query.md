@@ -64,10 +64,18 @@ deriva si dichiara all'operatore invece di somigliare a un insieme vuoto.**
    `enabled:false` resta `isPending` per sempre, quindi uno scheletro girerebbe all'infinito. È già
    la ragione del `v-if="canManageTeam"` sulla card Team di `EstablishmentView.vue`.
 4. **Dove il vuoto sarebbe un'affermazione, si dichiara il permesso mancante.** Testo esplicito, non
-   un empty-state generico.
+   un empty-state generico. Vale anche per i **segnaposto**: `customerName` non ripiega più
+   sull'UUID quando l'anagrafica non è leggibile (un UUID al posto di un nome non è un vuoto), e
+   `sectorName` nel Listino non dice più «Tutti» quando la mappa manca — quella era
+   un'affermazione falsa **sul prezzo**, non un dato assente.
 5. **Un presidio deriva l'elenco delle query dal filesystem** (`query-permissions.spec.ts`) e
    pretende che ognuna dichiari un permesso, più un campione comportamentale con caso di controllo
    che prova che il gate **sopprime la richiesta**, non che la stringa compaia nel file.
+   ⚠️ Lo scan copre **anche i `.vue`** (una query in un `<script setup>` è la via più facile perché
+   ne nasca una senza gate), **toglie i commenti** prima di cercare `hasPermission(` — altrimenti
+   una riga `enabled` commentata lo lasciava verde — e **non conta le graffe dentro le stringhe**,
+   perché una `{` sbilanciata in un literal faceva inglobare la query successiva. Tutti e tre i
+   buchi sono stati trovati dalla verifica avversariale **del presidio stesso**, non a occhio.
 6. **Lo stato terminale «nessuna sezione assegnata» si dichiara, in un punto solo.**
    `resolvePermissionGuard` restituiva `true` quando nessuna destinazione è accessibile, motivandolo
    con «meglio una vista che mostra il proprio errore». **Il punto 2 rende falsa quella premessa**:

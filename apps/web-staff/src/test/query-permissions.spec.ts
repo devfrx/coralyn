@@ -11,7 +11,7 @@ import { useSeasons } from '@/features/pricing/useSeasons';
 import { useRentalItems } from '@/features/rentals/useRentalItems';
 
 /**
- * Ogni query dichiara il permesso del SUO endpoint (ADR-0063).
+ * Ogni query dichiara il permesso del SUO endpoint (ADR-0064).
  *
  * Il difetto che questo file impedisce di ripetere: il gating della sidebar associa **una** voce a
  * **un** permesso, ma una vista compone dati di endpoint governati da permessi diversi — la Mappa
@@ -47,7 +47,20 @@ export function stripComments(source: string): string {
   return source.replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/(^|[^:])\/\/[^\n]*/g, '$1');
 }
 
-/** Estrae il blocco di opzioni `{ … }` che segue `marker`, a graffe bilanciate. */
+/**
+ * Estrae il blocco di opzioni `{ … }` che segue `marker`, a graffe bilanciate.
+ *
+ * ⚠️ **Le graffe dentro le stringhe non contano.** Senza questa distinzione una `{` sbilanciata in
+ * un literal — `k('a{b')` — sbilancia il contatore e il blocco ingloba la query successiva:
+ * misurato, 1 blocco invece di 2, quindi una query senza gate resterebbe invisibile e la suite
+ * verde.
+ *
+ * ⚠️ I template literal sono trattati come **opachi** fino al backtick di chiusura, interpolazioni
+ * comprese. Un primo tentativo li rientrava dentro sul `${` per contarne le graffe: sbagliato,
+ * perché all'uscita dall'interpolazione non si tornava nella stringa e il resto del literal veniva
+ * letto come codice — misurato, 24 blocchi invece di 29. Nessun `enabled:` vive dentro un
+ * template literal, quindi l'approssimazione opaca non perde nulla di ciò che conta.
+ */
 export function optionBlocks(source: string, marker: string): string[] {
   const out: string[] = [];
   let from = 0;
@@ -55,10 +68,18 @@ export function optionBlocks(source: string, marker: string): string[] {
     const hit = source.indexOf(marker, from);
     if (hit === -1) return out;
     let depth = 0;
+    let quote: string | null = null; // ' " oppure ` quando siamo dentro una stringa
     let i = hit + marker.length - 1; // sul `{` del marker
     for (; i < source.length; i++) {
-      if (source[i] === '{') depth++;
-      else if (source[i] === '}') {
+      const c = source[i];
+      if (quote) {
+        if (c === '\\') i++; // escape: salta il prossimo carattere
+        else if (c === quote) quote = null;
+        continue;
+      }
+      if (c === "'" || c === '"' || c === '`') quote = c;
+      else if (c === '{') depth++;
+      else if (c === '}') {
         depth--;
         if (depth === 0) break;
       }
@@ -83,7 +104,7 @@ const queries: Query[] = sourceFiles(SRC).flatMap((file) => {
   }));
 });
 
-describe('ogni query dichiara il permesso del suo endpoint (ADR-0063)', () => {
+describe('ogni query dichiara il permesso del suo endpoint (ADR-0064)', () => {
   // ⚠️ Lo strumento prima dell'oggetto misurato: un estrattore rotto renderebbe questo file
   // verde per sempre, che è il modo in cui un presidio smette di presidiare senza dirlo.
   it('l’estrattore di blocchi funziona su un caso a risposta nota', () => {
@@ -98,6 +119,19 @@ describe('ogni query dichiara il permesso del suo endpoint (ADR-0063)', () => {
     expect(blocchi[1]).not.toContain('hasPermission(');
     // e le graffe di un template literal non devono spezzare il blocco
     expect(blocchi[0]).toContain('enabled');
+  });
+
+  // ⚠️ Il buco trovato dalla verifica avversariale: una graffa SBILANCIATA dentro una stringa
+  // sballava il contatore, e il blocco inglobava la query successiva — una query senza gate
+  // sarebbe rimasta invisibile e la suite verde.
+  it('una graffa dentro una stringa non sbilancia il contatore', () => {
+    const finto = [
+      "queryResource({ queryKey: () => k('a{b'), queryFn: f, enabled: () => s.hasPermission(P.X) });",
+      'queryResource({ queryKey: () => k(), queryFn: f });',
+    ].join('\n');
+    const blocchi = optionBlocks(finto, 'queryResource({');
+    expect(blocchi).toHaveLength(2); // con l'estrattore ingenuo qui ce n'era UNO
+    expect(blocchi[1]).not.toContain('hasPermission(');
   });
 
   // ⚠️ Il caso che il presidio NON vedeva: una riga `enabled` commentata lasciava

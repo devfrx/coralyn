@@ -1,4 +1,6 @@
 import { computed } from 'vue';
+import { Permission } from '@coralyn/contracts';
+import { useSessionStore } from '@/stores/session';
 import { useCustomers } from '@/features/customers/useCustomers';
 import { useDayMap } from '@/features/map/useDayMap';
 import { useAllPackages } from '@/features/bookings/usePackages';
@@ -21,14 +23,26 @@ import { useRetiredUmbrellas } from '@/features/establishment/useEstablishmentSt
  * direttamente da `@coralyn/ui-kit`.
  */
 export function useEntityLabels() {
+  const session = useSessionStore();
   const { data: customers } = useCustomers();
   const { data: map } = useDayMap();
   const { data: packages } = useAllPackages();
   const { data: retired } = useRetiredUmbrellas();
 
+  /**
+   * ⚠️ Il ripiego `: id` è per il singolo cliente non trovato in una lista che c'è — un caso di
+   * dato incoerente, dove mostrare l'id aiuta a diagnosticare. Non vale quando l'anagrafica NON è
+   * stata letta affatto: dopo [ADR-0064](../../../../docs/architecture/decisions/0064-permessi-vicini-gate-per-query.md)
+   * `useCustomers` non parte senza `customers.manage`, e senza questa distinzione Prenotazioni e
+   * Rinnovi renderebbero un UUID **al posto del nome** in ogni riga — che non è un vuoto, è un
+   * dato illeggibile presentato come nome, con pure l'avatar ridotto a una lettera.
+   */
+  const canReadCustomers = computed(() => session.hasPermission(Permission.CustomersManage));
+
   function customerName(id: string): string {
     const c = (customers.value ?? []).find((x) => x.id === id);
-    return c ? `${c.firstName} ${c.lastName}` : id;
+    if (c) return `${c.firstName} ${c.lastName}`;
+    return canReadCustomers.value ? id : 'Cliente non visibile';
   }
 
   const umbrellaLabel = computed(() => {

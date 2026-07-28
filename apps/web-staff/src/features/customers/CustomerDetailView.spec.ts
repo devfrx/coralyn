@@ -38,7 +38,7 @@ vi.mock('@/lib/dates', async (importOriginal) => {
 const RouterLinkStub = { props: ['to'], template: '<a><slot /></a>' };
 
 // ⚠️ Monta a mano (non con `mountApp`) per poter spiare `router.push`, ma la sessione va seminata
-// lo stesso: dopo ADR-0063 ogni query dichiara il permesso del suo endpoint, e senza sessione
+// lo stesso: dopo ADR-0064 ogni query dichiara il permesso del suo endpoint, e senza sessione
 // `hasPermission` nega tutto — nessuna query partirebbe. Stessa ragione di `mountApp`.
 function mountDetail(id: string) {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });

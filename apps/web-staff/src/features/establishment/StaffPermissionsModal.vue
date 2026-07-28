@@ -40,6 +40,17 @@ const rows = computed(() =>
 );
 const grantedCount = computed(() => granted.value.size);
 
+/**
+ * Si salva solo con dati LETTI e lettura SANA.
+ *
+ * ⚠️ `!data` da solo non basta: vue-query tiene `data` popolato dalla cache anche quando un
+ * refetch fallisce (`staleTime: 30_000`, `retry: 1`). Riaprendo il modale sullo stesso operatore
+ * dopo che l'admin ne ha cambiato i permessi altrove, il corpo del modale mostrerebbe l'errore
+ * — `QueryBoundary` dà la precedenza a `error` — mentre il footer, che sta FUORI dal boundary,
+ * resterebbe attivo su interruttori stantii. Salvarli riscriverebbe lo stato vecchio.
+ */
+const canSave = computed(() => !!data.value && error.value == null);
+
 function toggle(p: Permission): void {
   const next = new Set(granted.value);
   if (next.has(p)) next.delete(p);
@@ -52,7 +63,7 @@ function submit(): void {
   // insieme completo desiderato: salverebbe una revoca totale con conferma di successo. Il footer
   // del Modal sta fuori dal QueryBoundary, quindi il gate visivo da solo non basta — questa è
   // l'invariante nel punto in cui l'effetto accade.
-  if (!data.value) return;
+  if (!canSave.value) return;
   save.mutate(
     { id: props.userId, permissions: [...granted.value] },
     {
@@ -115,7 +126,7 @@ function submit(): void {
         <Button variant="secondary" type="button" @click="open = false">Annulla</Button>
         <Button
           data-testid="save-permissions"
-          :disabled="!data || save.isPending.value"
+          :disabled="!canSave || save.isPending.value"
           :loading="save.isPending.value"
           @click="submit"
         >Salva</Button>

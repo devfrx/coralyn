@@ -99,7 +99,12 @@ export function useSetStaffPermissions() {
         method: 'PUT',
         body: JSON.stringify({ permissions: vars.permissions }),
       }),
-    // Il team NON cambia, quindi non c'è altro da invalidare.
+    // ⚠️ `establishmentTeam` è qui come **PREFISSO**, e la riga è PORTANTE, non ridondante:
+    // `invalidateQueries` fa match di prefisso, e `staffPermissions(t, id)` =
+    // `[...establishmentTeam(t), id, 'permissions']` (`lib/queryKeys.ts`). È quindi questa riga —
+    // e solo questa — a far rileggere i permessi quando il modale viene riaperto entro
+    // `staleTime` (30 s). Appiattire quella chiave fuori dal prefisso romperebbe la freschezza
+    // **senza far cadere un test**, perché ogni spec costruisce un QueryClient nuovo.
     //
     // ⚠️ Resta il caso «ho configurato me stesso», in cui la sessione in `UserDTO` diventa stantia.
     // NON è impedito dal fatto che l'admin non sia configurabile — un `staff` a cui è stato

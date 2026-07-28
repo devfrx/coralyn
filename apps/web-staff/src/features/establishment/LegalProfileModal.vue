@@ -41,6 +41,13 @@ function n(v: string): string | null {
 }
 
 function submit(): void {
+  // ⚠️ Stesso ceppo del difetto chiuso in `StaffPermissionsModal.vue`, e qui la posta è più alta:
+  // senza i dati letti i ref restano vuoti, `n()` li traduce in `null`, e il PUT azzererebbe il
+  // profilo del titolare — che alimenta l'informativa art. 13 mostrata ai bagnanti (ADR-0055).
+  // Il footer è uno slot del `Modal` e nessun gate visivo lo copre: questa è l'invariante nel
+  // punto in cui l'effetto accade. Misurato prima di correggere: con la GET in errore il corpo
+  // inviato era nove `null`, con conferma di successo.
+  if (!data.value) return;
   update.mutate(
     {
       legalName: n(legalName.value),
@@ -90,7 +97,16 @@ function submit(): void {
     <template #footer>
       <div class="flex justify-end gap-2.5">
         <Button variant="secondary" type="button" @click="open = false">Annulla</Button>
-        <Button type="submit" form="form-legal-profile" :loading="update.isPending.value">Salva</Button>
+        <!-- ⚠️ `:disabled` ripete `isPending` perché il fallthrough attr VINCE sul
+             `:disabled="loading || undefined"` interno di `Button.vue` (misurato): senza, il
+             gate sul dato riaprirebbe la finestra di doppio invio. -->
+        <Button
+          type="submit"
+          form="form-legal-profile"
+          data-testid="legal-save"
+          :disabled="!data || update.isPending.value"
+          :loading="update.isPending.value"
+        >Salva</Button>
       </div>
     </template>
   </Modal>
