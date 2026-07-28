@@ -303,18 +303,28 @@ corollario di questa: **anche la correzione è codice nuovo, e va rivista come t
 
 ## 6. Lavori aperti
 
-### 6.1 Il prossimo lavoro
+### 6.1 Da dove ripartire — ⚠️ **si decide CON L'UTENTE, non da soli**
 
-1. **AUD-015** — l'immagine Docker dell'API è single-stage e gira come root (29 advisory, 9 HIGH).
-   ⚠️ **Urgente il giorno del primo deploy, non prima: non esiste alcun VPS.**
-2. **AUD-020 / AUD-021** — prestazioni: il pre-check anti-overlap carica **tutta** la storia di
-   coperture, e **non esiste paginazione** (0 `take`/`skip`/`cursor` su 58 `findMany`).
-3. **[D-067](../architecture/deferred.md#d-067)** — budget di transazione e di pool. Tocca **ogni**
-   transazione dell'API, va deciso con `connection_limit` e i timeout SMTP, con la sua misura.
-   ⚠️ ADR-0063 lo cita come ragione per non mettere `StaffPermissionOverride` sotto RLS: se D-067
-   cambia le carte, quella decisione va **rivisitata, non solo citata**.
-4. **Igiene**: [D-068](../architecture/deferred.md#d-068) (`contracts/dist` tracciato in CRLF) e
-   [D-069](../architecture/deferred.md#d-069) (presidio sull'indice ADR).
+L'utente ha chiuso la sessione 12 dicendo esplicitamente che **la scelta del prossimo lavoro va
+ponderata insieme**. Quindi: **non aprire un branch e cominciare.** Leggi questa tabella, verifica
+sul codice i numeri che ti sembrano decisivi (sono di seconda mano finché non li rimisuri), e
+**presenta all'utente una raccomandazione argomentata con i trade-off**, come al §5a.
+
+| Candidato | Cos'è | Quanto pesa | Perché farlo **ora** | Perché **non** ora |
+|---|---|---|---|---|
+| **AUD-020 / AUD-021** | Prestazioni: il pre-check anti-overlap carica **tutta** la storia di coperture; **nessuna paginazione** (0 `take`/`skip`/`cursor` su 58 `findMany`) | Slice media, tocca query di dominio e i loro test | Degrada con i dati, quindi peggiora da solo col passare delle stagioni; è misurabile con un fixture grande, quindi il metodo «misura il problema» si applica pulito | Nessun lido reale in esercizio: oggi il degrado è teorico, e la misura va costruita apposta |
+| **[D-067](../architecture/deferred.md#d-067)** | Budget di transazione e di pool: `connection_limit`, timeout SMTP, durata massima delle transazioni | **Decisione architetturale**, tocca *ogni* transazione dell'API | ⚠️ **ADR-0063 lo cita come la ragione per cui `StaffPermissionOverride` sta fuori da RLS.** Finché D-067 non è deciso, quella scelta poggia su una premessa non verificata | Richiede una misura vera su carico realistico, che oggi non esiste; deciderlo a naso sarebbe peggio che lasciarlo aperto |
+| **[D-068](../architecture/deferred.md#d-068)** | `packages/contracts/dist` tracciato e committato in CRLF | Piccola, ma tocca il flusso di build di tutti | È un gotcha che morde **ogni sessione** (§4b), e ha già causato commit sbagliati in due versi | Nessun motivo forte: è la candidata più a buon mercato |
+| **[D-069](../architecture/deferred.md#d-069)** | Presidio sull'indice ADR | Piccola | L'indice è già stato dimenticato una volta | — |
+| **AUD-015** | Immagine Docker API single-stage, gira come root (29 advisory, 9 HIGH) | Media | — | ⚠️ **Urgente il giorno del primo deploy, e non un giorno prima: non esiste alcun VPS.** Farla ora significa lavorare su vincoli che non conosciamo ancora |
+
+**Come impostare la conversazione** (il modo che ha funzionato in questa sessione): porta all'utente
+**una raccomandazione**, non un menù neutro; dichiara cosa hai verificato e cosa hai preso per buono;
+e se pensi che nessuna delle voci in tabella sia la mossa giusta, **dillo e proponi la terza via** —
+è esattamente ciò che ha prodotto ADR-0064.
+
+⚠️ Se la risposta è «la meno pigra, la più professionale, senza debiti», **è una delega**: decidi tu
+e argomenta. Non significa «la più invasiva» (§5a).
 
 ### 6.2 Note lasciate aperte di proposito
 
