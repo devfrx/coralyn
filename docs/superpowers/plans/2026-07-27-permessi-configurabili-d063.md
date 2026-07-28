@@ -72,14 +72,14 @@ Vitest (FE, MSW in web-staff).
 | `apps/api/src/establishment/establishment-users.controller.ts` | `GET`/`PUT` `:id/permissions` |
 | `apps/api/src/establishment/establishment.module.ts` | importa `IdentityModule` |
 | `apps/api/test/rls-isolation.e2e-spec.ts` | voce in `SENZA_RLS` con il suo perché |
-| `apps/api/test/authorization-staff.e2e-spec.ts` | concesso vs revocato nella stessa suite |
+| `apps/api/test/staff-permissions.e2e-spec.ts` (nuovo) | concesso vs revocato nella stessa suite — ⚠️ NON in `authorization-staff.e2e-spec.ts`, che ha guadagnato 7 righe di commento e zero `it(` |
 | `apps/web-staff/src/stores/session.ts` | `hasPermission(p)` |
 | `apps/web-staff/src/router/index.ts` | `meta.role` → `meta.permission` |
 | `apps/web-staff/src/app/SidebarNav.vue` | ogni voce porta il suo permesso |
 | 4 viste + 10 componenti | `isAdmin` → booleano derivato dal permesso, prop rinominata |
 | `apps/web-staff/src/mocks/server.ts` | `permissions` in `/auth/me` e `/auth/login`; handler dei permessi |
 | `docs/architecture/deferred.md` | D-063 → chiusa |
-| `docs/architecture/data-model.md` | ER: entità nuova |
+| `docs/design/data-model.md` | ER: entità nuova |
 
 ---
 
@@ -406,7 +406,7 @@ function hasPermission(p: Permission): boolean { return permissions.value.includ
 
 **Files:**
 - Modify: `docs/architecture/deferred.md` (D-063 → chiusa, indice e riga dei conteggi)
-- Modify: `docs/architecture/data-model.md` (ER: entità nuova)
+- Modify: `docs/design/data-model.md` (ER: entità nuova)
 - Create: `docs/handoff/2026-07-27-d063-permessi-configurabili.md`
 
 - [ ] **Step 1:** ⚠️ **Leggere `deferred-registry.ts` PRIMA di spostare la voce.** Il parser tratta

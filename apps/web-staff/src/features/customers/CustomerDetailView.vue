@@ -184,7 +184,12 @@ function onConfirmDelete() {
               <div class="col-span-2"><div class="mb-1 text-[11px] font-semibold uppercase tracking-caps text-[var(--color-text-muted)]">Note</div><div class="whitespace-pre-wrap text-sm font-medium text-[var(--color-text)]">{{ customer.notes || '–' }}</div></div>
             </div>
           </SectionCard>
-          <CustomerAccessCard v-if="accessBookingId" :booking-id="accessBookingId" :can-manage="canManageCustomerAccess" @provisioned="onProvisioned" />
+          <!-- ⚠️ La card è gatata sullo STESSO permesso della sua query (ADR-0064, Decision 3):
+               `customer-access.manage` è admin-only nel default di fabbrica, quindi per ogni
+               operatore staff la query non parte e `status` resta `undefined` — e il badge
+               renderebbe «Mai generato», che è un'affermazione FALSA su un dato di un terzo,
+               non un vuoto. `canManageCustomerAccess` nascondeva solo i bottoni. -->
+          <CustomerAccessCard v-if="accessBookingId && canManageCustomerAccess" :booking-id="accessBookingId" :can-manage="canManageCustomerAccess" @provisioned="onProvisioned" />
         </div>
       </div>
 

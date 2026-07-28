@@ -1,7 +1,12 @@
 import { Test } from '@nestjs/testing';
 import { INestApplication } from '@nestjs/common';
 import { Role } from '@prisma/client';
-import { Permission } from '@coralyn/contracts';
+import {
+  Permission,
+  CONFIGURABLE_PERMISSIONS,
+  permissionsOfRoleDefault,
+  Role as ContractRole,
+} from '@coralyn/contracts';
 import request from 'supertest';
 import { AppModule } from '../src/app.module';
 import { PrismaService } from '../src/prisma/prisma.service';
@@ -39,13 +44,12 @@ describe('Permessi configurabili dello staff (e2e)', () => {
     'perm.admin.b@e2e.test', 'perm.staff.b@e2e.test',
   ];
 
-  /** Il default di fabbrica dello staff, meno i due non configurabili. Punto di partenza. */
-  const DEFAULT_STAFF = [
-    Permission.MapRead, Permission.BookingsManage, Permission.CustomersManage,
-    Permission.RentalsOperate, Permission.RentalCatalogManage, Permission.PricingManage,
-    Permission.RenewalsManage, Permission.ReportsRead, Permission.EstablishmentRead,
-    Permission.StructureRead,
-  ];
+  /** Il default di fabbrica dello staff, meno i due non configurabili. Punto di partenza.
+   *  ⚠️ **Derivato**, non ricopiato (ADR-0064): era la terza copia a mano della stessa tabella, e
+   *  una copia stantia avrebbe fatto passare i test su un operatore che il backend non produce. */
+  const DEFAULT_STAFF = permissionsOfRoleDefault(ContractRole.Staff).filter((p) =>
+    CONFIGURABLE_PERMISSIONS.includes(p),
+  );
 
   beforeAll(async () => {
     const moduleRef = await Test.createTestingModule({ imports: [AppModule] }).compile();
@@ -215,6 +219,28 @@ describe('Permessi configurabili dello staff (e2e)', () => {
       await setPermissions(adminAT, staffA, [...DEFAULT_STAFF, Permission.TeamManage]).expect(200);
       const res = await request(app.getHttpServer()).get(`/api/establishment/users/${staffA}/permissions`).set(...bearer(staffAT));
       expect(res.status).toBe(200);
+      // ⚠️ E deve poter SCRIVERE, non solo leggere: «può configurare» è una scrittura, e con la
+      // sola GET il test sarebbe passato anche se il PUT fosse rimasto irraggiungibile allo staff.
+      await setPermissions(staffAT, staffB, DEFAULT_STAFF).expect(404); // altro lido: non lo vede
+      await setPermissions(staffAT, staffA, [...DEFAULT_STAFF, Permission.TeamManage, Permission.StructureManage]).expect(200);
+      const dopo = await request(app.getHttpServer()).get('/api/establishment/structure').set(...bearer(staffAT));
+      expect(dopo.status).not.toBe(403);
+    });
+  });
+
+  describe('il corpo di risposta del PUT', () => {
+    it('restituisce l’insieme EFFETTIVO risultante, non l’eco della richiesta', async () => {
+      // Senza questa asserzione il contratto del PUT non era verificato da nessuna parte: un
+      // server che rispondesse `{}` o rimandasse indietro il body avrebbe lasciato tutto verde.
+      const chiesti = DEFAULT_STAFF.filter((p) => p !== Permission.PricingManage);
+      const res = await setPermissions(adminAT, staffA, chiesti).expect(200);
+      expect(res.body.userId).toBe(staffA);
+      expect([...res.body.permissions].sort()).toEqual(
+        [...chiesti, Permission.SessionRead].sort(),
+      );
+      // e il corpo coincide con quello che la GET rilegge subito dopo
+      const riletto = await request(app.getHttpServer()).get(`/api/establishment/users/${staffA}/permissions`).set(...bearer(adminAT)).expect(200);
+      expect([...riletto.body.permissions].sort()).toEqual([...res.body.permissions].sort());
     });
   });
 

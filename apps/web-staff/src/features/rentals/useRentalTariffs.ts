@@ -1,4 +1,5 @@
 import type { CreateRentalTariffInput, RentalTariffDTO, UpdateRentalTariffInput } from '@coralyn/contracts';
+import { Permission } from '@coralyn/contracts';
 import { queryResource, mutationResource } from '@coralyn/data-layer';
 import { apiFetch } from '@/lib/http';
 import { queryKeys } from '@/lib/queryKeys';
@@ -14,7 +15,7 @@ export function useRentalTariffs(getItemId: () => string, getSeasonId: () => str
       apiFetch<RentalTariffDTO[]>(
         `/rental-items/${getItemId()}/tariffs?seasonId=${getSeasonId()}&includeArchived=true`,
       ),
-    enabled: () => !!getItemId() && !!getSeasonId(),
+    enabled: () => !!getItemId() && !!getSeasonId() && session.hasPermission(Permission.RentalCatalogManage),
   });
 }
 

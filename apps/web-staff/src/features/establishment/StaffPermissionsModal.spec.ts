@@ -122,4 +122,68 @@ describe('StaffPermissionsModal (ADR-0063)', () => {
     expect(document.querySelectorAll('button[data-testid^="permission-"]')).toHaveLength(0);
     expect(document.body.textContent).toContain('Permessi non disponibili');
   });
+
+  // ⚠️ Il gemello del test qui sopra, dal lato della SCRITTURA. AUD-012 era chiusa solo per la
+  // lettura: il footer del Modal sta fuori dal QueryBoundary, quindi con la GET in errore Salva
+  // restava cliccabile e inviava `{"permissions":[]}` — che il server tratta come insieme completo
+  // desiderato. Non un buco di autorizzazione (degrada in «nega tutto»), ma una perdita di dati
+  // silenziosa, per giunta confermata da un toast di successo.
+  it('con la lettura in errore, Salva è disabilitato e NON invia un insieme vuoto', async () => {
+    let inviato: unknown = null;
+    server.use(
+      http.get(`/api/establishment/users/${TARGET}/permissions`, () => new HttpResponse(null, { status: 500 })),
+      http.put(`/api/establishment/users/${TARGET}/permissions`, async ({ request }) => {
+        inviato = await request.json();
+        return HttpResponse.json({ userId: TARGET, permissions: [] });
+      }),
+    );
+    mount();
+    await flushPromises();
+    const salva = document.querySelector('[data-testid="save-permissions"]') as HTMLButtonElement;
+    expect(salva.disabled).toBe(true);
+    salva.click();
+    await flushPromises();
+    expect(inviato).toBeNull();
+    expect(document.body.textContent).not.toContain('Permessi aggiornati.');
+  });
+
+  // La finestra anti-flicker: `useDelayedLoading` tiene lo scheletro nascosto per i primi ms, e in
+  // quella finestra il modale è visivamente vuoto ma già interattivo.
+  it('mentre la lettura è in corso, Salva è disabilitato e NON invia un insieme vuoto', async () => {
+    let inviato: unknown = null;
+    server.use(
+      http.get(`/api/establishment/users/${TARGET}/permissions`, () => new Promise(() => {})),
+      http.put(`/api/establishment/users/${TARGET}/permissions`, async ({ request }) => {
+        inviato = await request.json();
+        return HttpResponse.json({ userId: TARGET, permissions: [] });
+      }),
+    );
+    mount();
+    await flushPromises();
+    const salva = document.querySelector('[data-testid="save-permissions"]') as HTMLButtonElement;
+    expect(salva.disabled).toBe(true);
+    salva.click();
+    await flushPromises();
+    expect(inviato).toBeNull();
+  });
+
+  // I due test sopra provano il gate VISIVO. Questo prova la guardia in `submit()`, cioè quello che
+  // resta se il footer perde il binding in un refactor: `dispatchEvent` raggiunge il listener anche
+  // su un bottone disabilitato, mentre `.click()` no.
+  it('anche forzando il click, con la lettura in errore submit() non invia nulla', async () => {
+    let inviato: unknown = null;
+    server.use(
+      http.get(`/api/establishment/users/${TARGET}/permissions`, () => new HttpResponse(null, { status: 500 })),
+      http.put(`/api/establishment/users/${TARGET}/permissions`, async ({ request }) => {
+        inviato = await request.json();
+        return HttpResponse.json({ userId: TARGET, permissions: [] });
+      }),
+    );
+    mount();
+    await flushPromises();
+    const salva = document.querySelector('[data-testid="save-permissions"]') as HTMLButtonElement;
+    salva.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    await flushPromises();
+    expect(inviato).toBeNull();
+  });
 });

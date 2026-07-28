@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { Permission } from '@coralyn/contracts';
-import { resolvePermissionGuard } from './permissionGuard';
+import { resolvePermissionGuard, NO_ACCESS_PATH } from './permissionGuard';
 
 /** Sessione finta: solo ciò che la guardia guarda. */
 const withPermissions = (...granted: Permission[]) => ({
@@ -29,18 +29,42 @@ describe('resolvePermissionGuard (ADR-0063)', () => {
     expect(resolvePermissionGuard(s, { path: '/pricing', permission: Permission.PricingManage })).toEqual({ path: '/map' });
   });
 
-  it('NON entra in loop quando manca il permesso della destinazione di ripiego stessa', () => {
-    // Il difetto che il predecessore avrebbe avuto: rimandava sempre a `map`, e con `map.read`
-    // configurabile la guardia avrebbe rimbalzato su se stessa all'infinito.
+  it('NON entra in loop quando il ripiego coincide con la rotta negata', () => {
+    // ⚠️ La fixture è questa: l'operatore HA `map.read`, quindi il ripiego calcolato è `/map` —
+    // che è anche la rotta su cui sta entrando. Rimandarcelo sarebbe un redirect su se stesso,
+    // all'infinito: la guardia lascia passare e il 403 del backend fa il resto.
+    // (Il commento precedente descriveva il caso OPPOSTO — `map.read` revocato — che questa
+    // fixture non instanzia affatto: quello è il test «con NESSUN permesso» qui sotto.)
     const s = withPermissions(Permission.MapRead);
     expect(resolvePermissionGuard(s, { path: '/map', permission: Permission.PricingManage })).toBe(true);
   });
 
-  it('con NESSUN permesso lascia passare invece di girare a vuoto', () => {
-    // Non è un varco: il backend risponde comunque 403. È l'unico stato terminale possibile.
+  /**
+   * ⚠️ Regressione trovata dalla review avversariale su questa stessa sessione (ADR-0064).
+   * Il ramo terminale restituiva `true`, motivato con «la vista mostra il proprio errore». Da
+   * quando ogni query dichiara il permesso del suo endpoint quella query NON PARTE, quindi la
+   * vista non ha né errore né caricamento: la Mappa rendeva una spiaggia vuota e muta come
+   * schermata di atterraggio dopo il login.
+   */
+  it('con NESSUN permesso porta allo stato terminale dichiarato, non su una vista muta', () => {
     const s = withPermissions();
-    expect(resolvePermissionGuard(s, { path: '/pricing', permission: Permission.PricingManage })).toBe(true);
+    expect(resolvePermissionGuard(s, { path: '/map', permission: Permission.MapRead })).toEqual({ path: NO_ACCESS_PATH });
   });
+
+  it('e su quella rotta NON rimbalza: è lo stato terminale, non un altro salto', () => {
+    const s = withPermissions();
+    // due vie indipendenti: la rotta non dichiara permesso (ramo 1), e anche se lo dichiarasse
+    // il ramo terminale riconosce di esserci già.
+    expect(resolvePermissionGuard(s, { path: NO_ACCESS_PATH })).toBe(true);
+    expect(resolvePermissionGuard(s, { path: NO_ACCESS_PATH, permission: Permission.MapRead })).toBe(true);
+  });
+
+  it('con ALMENO una destinazione accessibile NON va allo stato terminale: dirotta lì', () => {
+    // Il caso di controllo: `/nessun-accesso` deve restare irraggiungibile per chi ha qualcosa.
+    const s = withPermissions(Permission.ReportsRead);
+    expect(resolvePermissionGuard(s, { path: '/pricing', permission: Permission.PricingManage })).toEqual({ path: '/report' });
+  });
+
 
   it('non dirotta su una destinazione che l’operatore non può aprire', () => {
     const s = withPermissions(Permission.StructureManage);

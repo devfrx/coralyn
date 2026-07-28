@@ -7,6 +7,7 @@ import {
 } from '@coralyn/ui-kit';
 import type { DataTableColumn } from '@coralyn/ui-kit';
 import type { RentalDTO } from '@coralyn/contracts';
+import { Permission } from '@coralyn/contracts';
 import { useSessionStore } from '@/stores/session';
 import { RENTAL_STATUS_LABEL, RENTAL_STATUS_TONE } from '@/lib/statusMaps';
 import { useRentals, useCheckoutRental, useReturnRental, useCancelRental } from './useRentals';
@@ -22,6 +23,11 @@ const { activeDate } = storeToRefs(session);
 const { data: day, isLoading: dayLoading, error: dayError, refetch: refetchDay } = useRentals(activeDate);
 const rentals = computed<RentalDTO[]>(() => day.value?.rentals ?? []);
 const availability = computed(() => day.value?.availability ?? []);
+
+// Il banco compone dati di endpoint governati da altri permessi (ADR-0063): senza, le query non
+// partono e il vuoto va spiegato invece di lasciarlo leggere come «catalogo vuoto».
+const canManageRentalCatalog = computed(() => session.hasPermission(Permission.RentalCatalogManage));
+const canManageCustomers = computed(() => session.hasPermission(Permission.CustomersManage));
 
 const { data: items } = useRentalItems(); // solo attivi (banco: nessuna gestione archivio qui)
 const itemsById = computed(() => new Map((items.value ?? []).map((i) => [i.id, i])));
@@ -165,11 +171,17 @@ function confirmCheckout(): void {
     <!-- Modale Nuovo noleggio -->
     <Modal v-model:open="modalOpen" title="Nuovo noleggio" eyebrow="Banco noleggi">
       <div class="flex flex-col gap-[18px]">
+        <!-- ⚠️ Articoli e tariffe stanno sotto `rental-catalog.manage`, il banco sotto
+             `rentals.operate`: due permessi diversi (ADR-0063). Senza il primo il selettore
+             resterebbe vuoto e la conferma disabilitata per sempre, senza dire perché. -->
         <Field label="Articolo">
           <Select v-model="itemId" data-test="new-rental-item">
             <Option value="" disabled>Seleziona un articolo…</Option>
             <Option v-for="i in (items ?? [])" :key="i.id" :value="i.id">{{ i.name }}</Option>
           </Select>
+          <p v-if="!canManageRentalCatalog" data-testid="rental-catalog-denied" class="mt-1.5 text-[11.5px] text-[var(--color-text-muted)]">
+            Non hai accesso al listino noleggi: senza articoli e tariffe non puoi aprire un noleggio.
+          </p>
         </Field>
         <Field label="Tariffa">
           <Select v-model="tariffId" data-test="new-rental-tariff" :disabled="!itemId">
@@ -185,6 +197,9 @@ function confirmCheckout(): void {
             <Option value="">Nessun cliente</Option>
             <Option v-for="c in (customers ?? [])" :key="c.id" :value="c.id">{{ c.firstName }} {{ c.lastName }}</Option>
           </Select>
+          <p v-if="!canManageCustomers" class="mt-1.5 text-[11.5px] text-[var(--color-text-muted)]">
+            Non hai accesso all'anagrafica: il noleggio resta senza cliente associato.
+          </p>
         </Field>
         <Field label="Unità">
           <input v-model.number="units" data-test="new-rental-units" type="number" min="1" step="1"

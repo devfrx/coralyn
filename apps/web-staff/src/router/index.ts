@@ -1,7 +1,7 @@
 import { createRouter, createWebHistory, type RouteRecordRaw } from 'vue-router';
 import { Permission } from '@coralyn/contracts';
 import { useSessionStore } from '@/stores/session';
-import { resolvePermissionGuard } from './permissionGuard';
+import { resolvePermissionGuard, NO_ACCESS_PATH } from './permissionGuard';
 
 const routes: RouteRecordRaw[] = [
   { path: '/', redirect: '/map' },
@@ -13,6 +13,10 @@ const routes: RouteRecordRaw[] = [
   // a cui l'admin ha revocato un'area non ci arriva nemmeno digitando l'URL. Resta cortesia — la
   // protezione è il 403 del backend — ma evita la schermata vuota di AUD-012.
   { path: '/map', name: 'map', component: () => import('@/features/map/MapView.vue'), meta: { title: 'Mappa', subtitle: 'Vista per giornata', usesDate: true, permission: Permission.MapRead } },
+  // ⚠️ SENZA `meta.permission`, o la guardia ci rimbalzerebbe sopra all'infinito. È lo stato
+  // terminale «nessuna sezione assegnata» (ADR-0064): ci arriva solo chi non ha NESSUNA voce di
+  // `FALLBACK_NAV`, e prima di ADR-0064 quella persona atterrava su una Mappa muta e vuota.
+  { path: NO_ACCESS_PATH, name: 'no-access', component: () => import('@/features/auth/NoAccessView.vue'), meta: { title: 'Nessun accesso', subtitle: 'Permessi da configurare' } },
   { path: '/bookings', name: 'bookings', component: () => import('@/features/bookings/BookingsView.vue'), meta: { title: 'Prenotazioni', subtitle: 'Prenotazioni e incassi della giornata', usesDate: true, permission: Permission.BookingsManage } },
   { path: '/renewals', name: 'renewals', component: () => import('@/features/renewals/RenewalsView.vue'), meta: { title: 'Rinnovi', subtitle: 'Campagna rinnovi abbonamenti', permission: Permission.RenewalsManage } },
   { path: '/customers', name: 'customers', component: () => import('@/features/customers/CustomersView.vue'), meta: { title: 'Clienti', subtitle: 'Anagrafica dei bagnanti', permission: Permission.CustomersManage } },

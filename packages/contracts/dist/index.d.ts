@@ -87,6 +87,25 @@ export declare const CONFIGURABLE_PERMISSIONS: readonly Permission[];
  * sola forma di copertura che non invecchia (stesso spirito di `authorization-coverage.spec.ts`).
  */
 export declare const PERMISSION_LABELS: Readonly<Record<Permission, string>>;
+/**
+ * Quali ruoli detengono ciascun permesso **per difetto di fabbrica** (ADR-0057, ADR-0063).
+ *
+ * ⚠️ **Da ADR-0063 questa tabella è il default, non la risposta.** Per lo `staff` la risposta la
+ * dà `StaffPermissionsService`, che applica sopra gli override configurati dall'admin del lido.
+ * Resta ciò che vale per un lido che non ha configurato nulla — e per ogni permesso aggiunto in
+ * futuro all'enum, che eredita il default invece di nascere negato.
+ *
+ * ⚠️ **Vive qui e non in `apps/api/`** (ADR-0064): il banco di prova di web-staff deve poter
+ * costruire un operatore realistico, e la lista dello staff era *ricopiata a mano* in
+ * `apps/web-staff/src/test/utils.ts` con un commento che la dichiarava derivata. Con il gating
+ * per query di ADR-0064 una divergenza avrebbe fatto esercitare a tutta la suite un operatore
+ * inesistente. `apps/api/src/identity/permission.ts` la ri-esporta, come già fa per `Permission`.
+ *
+ * `Record` completo e non parziale: un permesso nuovo senza riga **non compila**.
+ */
+export declare const PERMISSION_ROLES: Readonly<Record<Permission, readonly Role[]>>;
+/** I permessi che un ruolo detiene per difetto di fabbrica. */
+export declare function permissionsOfRoleDefault(role: Role): readonly Permission[];
 /** DTO of a Customer (the bather). Shared FE/BE. Optional contacts (ADR-0023). */
 export interface CustomerDTO {
     id: string;

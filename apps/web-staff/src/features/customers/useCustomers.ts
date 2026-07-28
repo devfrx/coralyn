@@ -1,4 +1,5 @@
 import type { CustomerDTO, CreateCustomerInput, UpdateCustomerInput, CustomerBookingDTO, DeleteCustomerResult, BookingDTO, TerminateSubscriptionInput, SuspendSubscriptionInput, ReactivateSubscriptionInput, CededSubscriptionDTO, TransferSubscriptionInput, SetAbsenceConsentInput, ReleaseAbsenceInput, CustomerAccessStatusDTO, CustomerProvisionResponse } from '@coralyn/contracts';
+import { Permission } from '@coralyn/contracts';
 import { queryResource, mutationResource } from '@coralyn/data-layer';
 import { apiFetch } from '@/lib/http';
 import { queryKeys } from '@/lib/queryKeys';
@@ -12,11 +13,19 @@ import { useSessionStore } from '@/stores/session';
  * sotto l'URL di B) e — peggio — mutation puntate su A mentre a schermo c'è B. Era AUD-009: la
  * generazione dell'accesso mostrava all'operatore QR e PIN di un altro bagnante.
  */
+/**
+ * ⚠️ Ogni query dichiara il permesso del suo endpoint (ADR-0063). L'anagrafica non è consultata
+ * solo da `CustomersView`: Mappa, Noleggi, Prenotazioni e Rinnovi la compongono nei loro dati, e
+ * dopo D-063 un operatore può avere il permesso della vista senza avere questo. Senza il gate
+ * partirebbero due 403 (`retry: 1`) e il `?? []` dei chiamanti li renderebbe come «nessun cliente».
+ * Presidiato da `query-permissions.spec.ts`.
+ */
 export function useCustomers() {
   const session = useSessionStore();
   return queryResource({
     queryKey: () => queryKeys.customers(session.establishmentId),
     queryFn: () => apiFetch<CustomerDTO[]>('/customers'),
+    enabled: () => session.hasPermission(Permission.CustomersManage),
   });
 }
 
@@ -25,6 +34,7 @@ export function useCustomer(getId: () => string) {
   return queryResource({
     queryKey: () => queryKeys.customer(session.establishmentId, getId()),
     queryFn: () => apiFetch<CustomerDTO>(`/customers/${getId()}`),
+    enabled: () => session.hasPermission(Permission.CustomersManage),
   });
 }
 
@@ -33,6 +43,7 @@ export function useCustomerBookings(getId: () => string) {
   return queryResource({
     queryKey: () => queryKeys.customerBookings(session.establishmentId, getId()),
     queryFn: () => apiFetch<CustomerBookingDTO[]>(`/customers/${getId()}/bookings`),
+    enabled: () => session.hasPermission(Permission.CustomersManage),
   });
 }
 
@@ -153,6 +164,7 @@ export function useCededSubscriptions(getId: () => string) {
   return queryResource({
     queryKey: () => queryKeys.cededSubscriptions(session.establishmentId, getId()),
     queryFn: () => apiFetch<CededSubscriptionDTO[]>(`/customers/${getId()}/ceded-subscriptions`),
+    enabled: () => session.hasPermission(Permission.CustomersManage),
   });
 }
 
@@ -162,6 +174,9 @@ export function useCustomerAccessStatus(getBookingId: () => string) {
   return queryResource({
     queryKey: () => queryKeys.customerAccess(session.establishmentId, getBookingId()),
     queryFn: () => apiFetch<CustomerAccessStatusDTO>(`/bookings/${getBookingId()}/customer-access`),
+    // ⚠️ NON `customers.manage`: questo endpoint è annotato `customer-access.manage`
+    // (`bookings.controller.ts:121`), che il default di fabbrica NON dà allo staff.
+    enabled: () => session.hasPermission(Permission.CustomerAccessManage),
   });
 }
 

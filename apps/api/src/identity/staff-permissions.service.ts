@@ -16,7 +16,7 @@ export interface PermissionPrincipal {
  * lido configura per il singolo operatore. Assenza di override = default, quindi un lido che non
  * ha configurato nulla si comporta esattamente come prima della slice.
  *
- * ⚠️ **Legge solo per lo `staff`.** `admin` e `superuser` non sono configurabili (ADR-0063 §2.2),
+ * ⚠️ **Legge solo per lo `staff`.** `admin` e `superuser` non sono configurabili (ADR-0063, Decision 2),
  * quindi per loro la risposta è la tabella statica e il database non viene toccato: la lettura non
  * è «su ogni richiesta», è «su ogni richiesta di un operatore configurabile».
  *
@@ -38,8 +38,15 @@ export class StaffPermissionsService {
     const overrides = await this.overridesOf(user.id);
     // `??` e non `||`: un override a `false` è una revoca esplicita e deve vincere sul default,
     // mentre `||` la scambierebbe per «assente» e riconcederebbe il permesso.
-    // ⚠️ Provato per mutazione (ADR-0063): togliere questa consultazione fa cadere 4 test in 2
-    // suite; togliere la guardia sul ruolo qui sopra ne fa cadere 3.
+    //
+    // ⚠️ Provato per mutazione, **scope dichiarato**: `pnpm --filter @coralyn/api test` (jest unit,
+    // 412 test / 60 suite) e `test:e2e` (jest e2e, 529 / 44). Rimuovere questa consultazione fa
+    // cadere **11 test in 3 suite**: 4 unit in `staff-permissions.service.spec.ts` e
+    // `permissions.guard.spec.ts`, più 7 e2e in `staff-permissions.e2e-spec.ts`. Rimuovere la
+    // guardia sul ruolo qui sopra ne fa cadere **3, tutti unit, nelle stesse due suite**: l'e2e
+    // resta verde (529/44), cioè quella guardia non è esercitata end-to-end. Misurato in questa
+    // sessione; la versione precedente di questo commento diceva «4 in 2» senza dire in quale
+    // runner, ed era il conteggio di un solo runner presentato come totale.
     return overrides.get(permission) ?? roleHasPermission(user.role, permission);
   }
 

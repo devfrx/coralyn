@@ -370,8 +370,9 @@ stata rimandata, non solo che è stata fatta.
      staff non ha né refresh né revoca ([D-026](#d-026)) — cioè proprio nel caso d'uso per cui la
      feature esiste. La lettura è **una** query indicizzata, e **solo** per il ruolo `staff`.
   3. **`Permission` spostato in `@coralyn/contracts`**: obbligato, perché la schermata deve
-     enumerarlo per rendere i 17 interruttori. Con esso il gating del frontend è passato dal ruolo
-     al permesso, così non convivono due meccanismi.
+     enumerarlo per rendere i 17 interruttori. Con esso il gating **di `web-staff`** è passato dal
+     ruolo al permesso, così non convivono due meccanismi. (`web-platform` resta sul ruolo: il suo
+     unico permesso è `platform.administer`, che non è configurabile.)
 
   ⚠️ **La tabella `StaffPermissionOverride` sta FUORI da RLS**, ed è una decisione misurata, non
   una dimenticanza: sotto RLS il guard avrebbe dovuto aprire una transazione su **ogni** richiesta

@@ -39,7 +39,7 @@ export class EstablishmentUsersController {
   // I permessi dell'operatore stanno sotto `team.manage` (di classe) e NON sotto un permesso
   // dedicato: chi può gestire il team può già creare un utente `admin`, che è strettamente più
   // potente che concedere un permesso. Un permesso in più sarebbe inflazione del vocabolario
-  // senza aggiungere una separazione reale (ADR-0063 §5).
+  // senza aggiungere una separazione reale (ADR-0063, Decision 7).
   @Get(':id/permissions')
   permissions(@Param('id') id: string): Promise<StaffPermissionsDTO> {
     return this.users.permissionsOf(id);

@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { http, HttpResponse } from 'msw';
 import { flushPromises, enableAutoUnmount } from '@vue/test-utils';
-import { Role } from '@coralyn/contracts';
+import { Permission, Role } from '@coralyn/contracts';
 import { mountApp, selectOption, permissionsOfRole } from '@/test/utils';
 import { server } from '@/mocks/server';
 import { useSessionStore } from '@/stores/session';
@@ -11,6 +11,24 @@ import { STRUCTURE_FIXTURE } from './structure.fixtures';
 const tick = () => new Promise((r) => setTimeout(r, 0));
 const settle = async () => { await flushPromises(); await tick(); await flushPromises(); };
 const useFixture = () => server.use(http.get('/api/establishment/structure', () => HttpResponse.json(STRUCTURE_FIXTURE)));
+
+/**
+ * Costruisce lo stato «dati presenti, permesso di gestione assente» per i test di difesa in
+ * profondità sui pannelli (`can-manage`).
+ *
+ * ⚠️ Va costruito a mano perché **non è raggiungibile dall'API**: dopo ADR-0063 la rotta
+ * `/establishment/structure` richiede `structure.manage` e la sua query pure, quindi chi vede
+ * questa schermata può sempre gestirla. Prima questi test ci arrivavano per caso, montando senza
+ * sessione: `hasPermission` negava *tutto*, e il verde non provava niente sul ruolo staff.
+ */
+const senzaGestioneStruttura = async () => {
+  useSessionStore().user = {
+    id: 'u-2', email: 'bagnino@lido.it', role: Role.Staff,
+    establishmentId: 'e-1', establishmentName: 'Lido Maestrale',
+    permissions: permissionsOfRole(Role.Staff).filter((p) => p !== Permission.StructureManage),
+  };
+  await settle();
+};
 
 // La shell registra un listener keydown globale su `window` (onMounted/onUnmounted, per l'Esc —
 // vedi EstablishmentStructureView.vue). L'afterEach comune di src/test/setup.ts fa solo
@@ -372,7 +390,8 @@ describe('EstablishmentStructureView — shell Cantiere', () => {
   it('D-055: staff non vede «Ritira»', async () => {
     useFixture();
     const w = mountApp(EstablishmentStructureView);
-    await settle(); // nessuna sessione → ruolo Staff di default
+    await settle();
+    await senzaGestioneStruttura();
     await w.findAll('[data-testid="scene-cell"] button')[0].trigger('click');
     const insp = w.find('[data-testid="inspector"]');
     expect(insp.find('[data-testid="umbrella-retire"]').exists()).toBe(false);
@@ -501,7 +520,8 @@ describe('EstablishmentStructureView — shell Cantiere', () => {
   it('staff (non admin): pannello Multi raggiungibile via shift+clic ma senza azioni (difesa in profondità)', async () => {
     useFixture();
     const w = mountApp(EstablishmentStructureView);
-    await settle(); // nessuna sessione → ruolo Staff di default
+    await settle();
+    await senzaGestioneStruttura();
     await w.findAll('[data-testid="scene-cell"] button')[0].trigger('click');
     await w.findAll('[data-testid="scene-cell"] button')[1].trigger('click', { shiftKey: true });
     const insp = w.find('[data-testid="inspector"]');
@@ -592,7 +612,8 @@ describe('EstablishmentStructureView — shell Cantiere', () => {
       { id: 'u-r', label: '12', umbrellaTypeId: null, retiredAt: '2026-06-20T09:00:00.000Z', retiredFrom: 'Centro · Fila 1' },
     ])));
     const w = mountApp(EstablishmentStructureView);
-    await settle(); // nessuna sessione → ruolo Staff di default
+    await settle();
+    await senzaGestioneStruttura();
     expect(w.find('[data-testid="retired-row"]').exists()).toBe(true);
     expect(w.find('[data-testid="retired-restore-row"]').exists()).toBe(false);
     expect(w.find('[data-testid="retired-restore"]').exists()).toBe(false);

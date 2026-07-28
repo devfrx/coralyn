@@ -144,3 +144,4 @@ componenti) è la spec d'implementazione di `ui-kit` ([ADR-0017](decisions/0017-
 - [ADR-0061](decisions/0061-tetto-worker-runner-test.md) — Il tetto ai worker vive nelle configurazioni dei runner, non nello script condiviso
 - [ADR-0062](decisions/0062-generate-ombrelloni-scrittura-batch.md) — Il generatore di ombrelloni scrive in una sola INSERT; il budget delle transazioni è un tema a parte
 - [ADR-0063](decisions/0063-permessi-staff-configurabili-per-operatore.md) — I permessi dello staff sono configurabili per operatore, e risolti a ogni richiesta
+- [ADR-0064](decisions/0064-permessi-vicini-gate-per-query.md) — La nav dichiara il permesso primario, ogni query dichiara il proprio, e l'assenza da permesso si dichiara

@@ -1,4 +1,5 @@
 import type { EstablishmentStructureDTO, UmbrellaTypeDTO, CreateUmbrellaTypeInput, UpdateUmbrellaTypeInput, StructureSectorDTO, StructureRowDTO, CreateSectorInput, UpdateSectorInput, CreateRowInput, UpdateRowInput, StructureUmbrellaDTO, CreateUmbrellaInput, UpdateUmbrellaInput, GenerateUmbrellasInput, GenerateUmbrellasResultDTO, BulkDeleteUmbrellasInput, BulkDeleteUmbrellasResultDTO, BulkAssignUmbrellaTypeInput, BulkAssignUmbrellaTypeResultDTO, RetiredUmbrellaDTO, RestoreUmbrellaInput } from '@coralyn/contracts';
+import { Permission } from '@coralyn/contracts';
 import { queryResource, mutationResource } from '@coralyn/data-layer';
 import { apiFetch } from '@/lib/http';
 import { queryKeys } from '@/lib/queryKeys';
@@ -18,6 +19,7 @@ export function useEstablishmentStructure() {
   return queryResource({
     queryKey: () => queryKeys.establishmentStructure(session.establishmentId),
     queryFn: () => apiFetch<EstablishmentStructureDTO>('/establishment/structure'),
+    enabled: () => session.hasPermission(Permission.StructureManage),
   });
 }
 
@@ -162,6 +164,9 @@ export function useRetiredUmbrellas() {
   return queryResource({
     queryKey: () => queryKeys.retiredUmbrellas(session.establishmentId),
     queryFn: () => apiFetch<RetiredUmbrellaDTO[]>('/establishment/umbrellas/retired'),
+    // `structure.read` e non `structure.manage`: l'endpoint è aperto anche allo staff proprio
+    // perché lo storico deve poter mostrare la label di un ombrellone ritirato (D-060).
+    enabled: () => session.hasPermission(Permission.StructureRead),
   });
 }
 

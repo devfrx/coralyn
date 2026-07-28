@@ -298,4 +298,66 @@ describe('EstablishmentView', () => {
     expect(w.find('[data-testid="setup-callout"]').exists()).toBe(false);
     expect(w.find('[data-testid="open-onboarding"]').exists()).toBe(false);
   });
+
+  /**
+   * ⚠️ `EstablishmentView` è l'**unico ingresso** della schermata dei permessi (ADR-0063), e la
+   * regola «solo lo staff è configurabile» lato UI non era coperta da nulla: la slice poteva
+   * perdere il bottone, o mostrarlo sull'admin, senza che una riga rossa lo dicesse.
+   */
+  describe('ingresso alla configurazione dei permessi (ADR-0063)', () => {
+    const asAdmin = () => {
+      const session = useSessionStore();
+      session.user = { id: 'u-1', email: 'admin@coralyn.dev', role: Role.Admin, establishmentId: 'e-1', establishmentName: 'Lido Maestrale', permissions: permissionsOfRole(Role.Admin) };
+    };
+    const rigaDi = (w: ReturnType<typeof mountApp>, email: string) =>
+      w.findAll('[data-testid="team-row"]').find((r) => r.text().includes(email))!;
+
+    it('la riga di uno STAFF porta il bottone «Permessi»', async () => {
+      const w = mountApp(EstablishmentView);
+      asAdmin();
+      await settle();
+      expect(rigaDi(w, 'marco@lidomaestrale.it').find('[data-testid="edit-user-permissions"]').exists()).toBe(true);
+    });
+
+    it('la riga di un ADMIN non lo porta: l’admin non è configurabile', async () => {
+      // Il caso di controllo del test qui sopra. Senza, «non c'è» sarebbe indistinguibile da
+      // «il bottone non esiste più da nessuna parte».
+      server.use(http.get('/api/establishment/users', () => HttpResponse.json([
+        { id: 'u-1', email: 'admin@coralyn.dev', role: 'admin', disabledAt: null },
+        { id: 'u-3', email: 'altro.admin@lidomaestrale.it', role: 'admin', disabledAt: null },
+        { id: 'u-2', email: 'marco@lidomaestrale.it', role: 'staff', disabledAt: null },
+      ])));
+      const w = mountApp(EstablishmentView);
+      asAdmin();
+      await settle();
+      expect(rigaDi(w, 'altro.admin@lidomaestrale.it').find('[data-testid="edit-user-permissions"]').exists()).toBe(false);
+      expect(rigaDi(w, 'marco@lidomaestrale.it').find('[data-testid="edit-user-permissions"]').exists()).toBe(true);
+    });
+
+    it('uno staff DISABILITATO non è configurabile: prima si riabilita', async () => {
+      server.use(http.get('/api/establishment/users', () => HttpResponse.json([
+        { id: 'u-1', email: 'admin@coralyn.dev', role: 'admin', disabledAt: null },
+        { id: 'u-2', email: 'marco@lidomaestrale.it', role: 'staff', disabledAt: '2026-07-04T10:00:00.000Z' },
+      ])));
+      const w = mountApp(EstablishmentView);
+      asAdmin();
+      await settle();
+      expect(rigaDi(w, 'marco@lidomaestrale.it').find('[data-testid="edit-user-permissions"]').exists()).toBe(false);
+    });
+
+    it('il bottone apre il modale SULL’OPERATORE della riga, non su un altro', async () => {
+      // L'id nell'URL è la prova che il modale ha preso l'operatore GIUSTO: montarlo con l'id di
+      // un altro lascerebbe la richiesta non gestita e MSW la farebbe fallire.
+      server.use(http.get('/api/establishment/users/u-2/permissions', () =>
+        HttpResponse.json({ userId: 'u-2', permissions: permissionsOfRole(Role.Staff) })));
+      const w = mountApp(EstablishmentView);
+      asAdmin();
+      await settle();
+      await rigaDi(w, 'marco@lidomaestrale.it').find('[data-testid="edit-user-permissions"]').trigger('click');
+      await settle();
+      // il Modal è teleportato in document.body
+      expect(document.body.textContent).toContain('Permessi dell\'operatore');
+      expect(document.body.textContent).toContain('marco@lidomaestrale.it');
+    });
+  });
 });

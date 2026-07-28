@@ -1,4 +1,5 @@
 import type { CreateTimeSlotInput, TimeSlotDTO, UpdateTimeSlotInput } from '@coralyn/contracts';
+import { Permission } from '@coralyn/contracts';
 import { queryResource, mutationResource } from '@coralyn/data-layer';
 import { apiFetch } from '@/lib/http';
 import { queryKeys } from '@/lib/queryKeys';
@@ -10,6 +11,7 @@ export function useTimeSlots() {
   return queryResource({
     queryKey: () => queryKeys.timeSlots(session.establishmentId),
     queryFn: () => apiFetch<TimeSlotDTO[]>('/time-slots'),
+    enabled: () => session.hasPermission(Permission.PricingManage),
   });
 }
 

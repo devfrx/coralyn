@@ -11,6 +11,9 @@
   da RLS), [ADR-0062](0062-generate-ombrelloni-scrittura-batch.md) (i round trip sono la
   grandezza che rompe)
 - **Chiude:** [D-063](../deferred.md#d-063)
+- **Esteso da:** [ADR-0064](0064-permessi-vicini-gate-per-query.md) — il gating per voce di nav non
+  regge la composizione: una vista consuma endpoint di permessi diversi. Le quattro decisioni qui
+  restano valide; cambia **dove** si governa la dipendenza vicina.
 - **Spec:** [2026-07-27-permessi-configurabili-d063-design.md](../../superpowers/specs/2026-07-27-permessi-configurabili-d063-design.md)
 
 ## Context
@@ -53,7 +56,9 @@ ospita sta fuori da RLS con l'invariante di tenant imposta dal database.**
    da un `UNIQUE(id, establishmentId)` su `User` e da una **FK composita**
    `(userId, establishmentId) → User(id, establishmentId)`.
 6. **`Permission` si sposta in `@coralyn/contracts`**, e `UserDTO` porta l'insieme **effettivo**
-   dei permessi. Il gating del frontend passa dal ruolo al permesso: un solo meccanismo.
+   dei permessi. Il gating **di `web-staff`** passa dal ruolo al permesso: un solo meccanismo.
+   ⚠️ Non «del frontend»: `web-platform` resta sul ruolo, perché è la console del distributore e
+   il suo unico permesso è `platform.administer`, che non è configurabile.
 7. **Nessun permesso nuovo**: la configurazione sta sotto `team.manage`, che già consente di
    creare un `admin` — strettamente più potente che concedere un permesso. Restano non
    configurabili `platform.administer` (cross-tenant, ADR-0015) e `session.read` (revocarlo
@@ -107,10 +112,15 @@ ospita sta fuori da RLS con l'invariante di tenant imposta dal database.**
 
 - **Tabella sotto RLS, letta con `forTenant`** — scartata **dopo misura**. Costa 4 round trip
   contro 1: 4,92 ms contro 1,54 ms mediani su `coralyn_dev` (300 campioni, `hrtime`; strumento
-  validato con `3×SELECT 1 / 1×SELECT 1` = 2,81 e conteggio derivato dei round trip = 2,99). La
+  validato con `3×SELECT 1 / 1×SELECT 1` = 2,81 e conteggio derivato dei round trip = 2,99).
+  ⚠️ **Questi quattro valori non sono riproducibili da questo repository**: l'harness non è
+  committato, quindi vanno letti come «misurati una volta, su una macchina» — la conclusione che
+  regge è il **rapporto di round trip** (4 contro 1), che è strutturale, non i millisecondi. La
   quantità che decide non è il delta locale ma i **3 round trip strutturali** (`BEGIN`,
-  `set_config`, `COMMIT`), che crescono con l'RTT: alla latenza di 8 ms misurata da
-  [ADR-0062](0062-generate-ombrelloni-scrittura-batch.md) sono ~24 ms per richiesta. E,
+  `set_config`, `COMMIT`), che crescono con l'RTT: alla latenza di 8 ms che
+  [ADR-0062](0062-generate-ombrelloni-scrittura-batch.md) ha misurato **come punto di rottura**
+  sono ~24 ms per richiesta — non è una latenza osservata qui, è la soglia oltre la quale quella
+  misura diceva che il costo per round trip diventa dominante. E,
   soprattutto, avrebbe aperto **una transazione su ogni richiesta autenticata prima del lavoro
   vero**, occupando una connessione del pool per autorizzare — cioè pre-deciso
   [D-067](../deferred.md#d-067), che è una decisione separata con la sua misura.
@@ -136,10 +146,11 @@ ospita sta fuori da RLS con l'invariante di tenant imposta dal database.**
 1. **Professionalità** — la revoca è immediata; l'invariante di tenant è nel database; l'eccezione
    a RLS è dichiarata nel presidio che la controlla, non nascosta.
 2. **Convenzioni** — tabella normalizzata (niente JSONB), identificatori in inglese
-   ([ADR-0030](0030-codice-e-db-in-inglese.md)), FK composita e indici nella migration come in
-   `structural_invariants`, enum condiviso nei contracts come `Role`.
-3. **Modularità** — la risoluzione resta in `permission.ts`, il guard non sa cosa sia un
-   override oltre «concesso o negato», la schermata è un componente a sé e non altre 100 righe in
-   `EstablishmentView.vue`.
+   ([ADR-0030](0030-codice-e-db-in-inglese.md)), FK composita **nello schema Prisma** (che sa
+   esprimerla) e quindi protetta dal drift detection, enum condiviso nei contracts come `Role`.
+3. **Modularità** — la risoluzione vive in `StaffPermissionsService` (§3 della Decision), non più
+   in `permission.ts`, che resta il **default di fabbrica** e nient'altro; il guard non sa cosa sia
+   un override oltre «concesso o negato»; la schermata è un componente a sé e non altre 100 righe
+   in `EstablishmentView.vue`.
 4. **Zero debito** — nessuna voce nuova aperta da questa decisione. L'eccezione a RLS è
    compensata (§5) e presidiata; l'audit log dei cambi di permesso era già fuori scope nel brief.

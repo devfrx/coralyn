@@ -135,7 +135,7 @@ export class EstablishmentUsersService {
     });
     if (!target) throw new NotFoundException('Utente non trovato');
     if (target.role !== Role.staff) {
-      // ADR-0063 §2.2: l'admin non è configurabile. Un admin che si revocasse `team.manage`
+      // ADR-0063, Decision 2: l'admin non è configurabile. Un admin che si revocasse `team.manage`
       // chiuderebbe il lido fuori dalla gestione dei permessi, senza recupero dentro il tenant.
       throw new UnprocessableEntityException('I permessi si configurano solo per gli operatori staff');
     }

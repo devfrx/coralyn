@@ -145,6 +145,7 @@ erDiagram
     ESTABLISHMENT ||--o{ RENEWAL_CAMPAIGN : "apre"
     ESTABLISHMENT ||--o| ESTABLISHMENT_LEGAL_PROFILE : "titolare via (1:1)"
     USER ||--o{ STAFF_PERMISSION_OVERRIDE : "ha permessi corretti da"
+    ESTABLISHMENT ||--o{ STAFF_PERMISSION_OVERRIDE : "delimita (FK composita con USER)"
     USER ||--o{ AUDIT_LOG : "genera"
     TIME_SLOT ||--o{ RATE : "qualifica"
     TIME_SLOT ||--o{ BOOKING : "slot di"
@@ -402,6 +403,13 @@ erDiagram
         uuid establishmentId FK "null per superuser"
         string email
         string role "admin|staff|superuser"
+    }
+    STAFF_PERMISSION_OVERRIDE {
+        uuid userId PK "FK composita (userId, establishmentId) verso USER(id, establishmentId)"
+        string permission PK "valore stabile dell'enum Permission"
+        uuid establishmentId FK "parte della FK composita: rende non rappresentabile la riga cross-tenant"
+        boolean granted "true = concesso oltre il default, false = revocato"
+        timestamp updatedAt
     }
     AUDIT_LOG {
         uuid id PK

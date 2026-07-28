@@ -1,15 +1,19 @@
 import type { CreatePackageInput, PackageDTO, UpdatePackageInput } from '@coralyn/contracts';
+import { Permission } from '@coralyn/contracts';
 import { queryResource, mutationResource } from '@coralyn/data-layer';
 import { apiFetch } from '@/lib/http';
 import { queryKeys } from '@/lib/queryKeys';
 import { useSessionStore } from '@/stores/session';
 
-/** Lista dei pacchetti del tenant per il selettore del modale. */
+/** Lista dei pacchetti del tenant per il selettore del modale.
+ *  Il permesso è `pricing.manage` e non quello della vista chiamante: i pacchetti stanno sotto il
+ *  listino (`packages.controller.ts:10`), e Mappa e Prenotazioni li compongono nei loro dati. */
 export function usePackages() {
   const session = useSessionStore();
   return queryResource({
     queryKey: () => queryKeys.packages(session.establishmentId),
     queryFn: () => apiFetch<PackageDTO[]>('/packages'),
+    enabled: () => session.hasPermission(Permission.PricingManage),
   });
 }
 
@@ -19,6 +23,7 @@ export function useAllPackages() {
   return queryResource({
     queryKey: () => queryKeys.allPackages(session.establishmentId),
     queryFn: () => apiFetch<PackageDTO[]>('/packages?includeArchived=true'),
+    enabled: () => session.hasPermission(Permission.PricingManage),
   });
 }
 

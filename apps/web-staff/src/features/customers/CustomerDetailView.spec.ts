@@ -1,11 +1,11 @@
 import { describe, it, expect, afterEach, vi } from 'vitest';
 import { mount, flushPromises } from '@vue/test-utils';
-import { createPinia } from 'pinia';
+import { createPinia, setActivePinia } from 'pinia';
 import { VueQueryPlugin, QueryClient } from '@tanstack/vue-query';
 import { http, HttpResponse } from 'msw';
 import { Role } from '@coralyn/contracts';
 import { useToasts, clearToasts } from '@coralyn/ui-kit';
-import { mountApp, permissionsOfRole } from '@/test/utils';
+import { mountApp, permissionsOfRole, DEFAULT_TEST_USER } from '@/test/utils';
 import { server } from '@/mocks/server';
 import { useSessionStore } from '@/stores/session';
 import CustomerDetailView from './CustomerDetailView.vue';
@@ -37,13 +37,19 @@ vi.mock('@/lib/dates', async (importOriginal) => {
 
 const RouterLinkStub = { props: ['to'], template: '<a><slot /></a>' };
 
+// ⚠️ Monta a mano (non con `mountApp`) per poter spiare `router.push`, ma la sessione va seminata
+// lo stesso: dopo ADR-0063 ogni query dichiara il permesso del suo endpoint, e senza sessione
+// `hasPermission` nega tutto — nessuna query partirebbe. Stessa ragione di `mountApp`.
 function mountDetail(id: string) {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  const pinia = createPinia();
+  setActivePinia(pinia);
+  useSessionStore().user = DEFAULT_TEST_USER;
   return mount(CustomerDetailView, {
     props: { id },
     attachTo: document.body,
     global: {
-      plugins: [createPinia(), [VueQueryPlugin, { queryClient }]],
+      plugins: [pinia, [VueQueryPlugin, { queryClient }]],
       stubs: { RouterLink: RouterLinkStub },
     },
   });

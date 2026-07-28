@@ -9,8 +9,13 @@ import { Permission } from '@coralyn/contracts';
  * segnalava per primo. Ora la sidebar rende queste voci e il router ci pesca la destinazione di
  * ripiego, quindi non possono più raccontare cose diverse.
  *
- * Il permesso è quello che l'API della sezione richiede davvero: mostrare una voce che porta a un
- * 403 sarebbe peggio che non mostrarla.
+ * ⚠️ **Il permesso qui è quello PRIMARIO della sezione, non l'insieme di ciò che la vista
+ * compone.** Una schermata legge anche endpoint governati da altri permessi — la Mappa chiama
+ * `/bookings`, `/customers` e `/packages` — e pretendere l'insieme completo renderebbe la feature
+ * inutile: `pricing.manage` compare in 6 delle 8 voci operative, quindi revocarlo (l'esempio con cui ADR-0063
+ * apre) svuoterebbe la sidebar. Le dipendenze vicine si governano dove nascono: ogni query
+ * dichiara il permesso del suo endpoint (`enabled`), presidiato da `query-permissions.spec.ts`, e
+ * ciò che resta vuoto lo dice invece di fingersi un insieme vuoto. Vedi ADR-0064.
  */
 export interface NavItem {
   to: string;

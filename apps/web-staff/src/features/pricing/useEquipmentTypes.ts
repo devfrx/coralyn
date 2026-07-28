@@ -1,4 +1,5 @@
 import type { CreateEquipmentTypeInput, EquipmentTypeDTO, UpdateEquipmentTypeInput } from '@coralyn/contracts';
+import { Permission } from '@coralyn/contracts';
 import { queryResource, mutationResource } from '@coralyn/data-layer';
 import { apiFetch } from '@/lib/http';
 import { queryKeys } from '@/lib/queryKeys';
@@ -10,6 +11,7 @@ export function useEquipmentTypes() {
   return queryResource({
     queryKey: () => queryKeys.equipmentTypes(session.establishmentId),
     queryFn: () => apiFetch<EquipmentTypeDTO[]>('/equipment-types'),
+    enabled: () => session.hasPermission(Permission.PricingManage),
   });
 }
 
@@ -19,6 +21,7 @@ export function useAllEquipmentTypes() {
   return queryResource({
     queryKey: () => queryKeys.allEquipmentTypes(session.establishmentId),
     queryFn: () => apiFetch<EquipmentTypeDTO[]>('/equipment-types?includeArchived=true'),
+    enabled: () => session.hasPermission(Permission.PricingManage),
   });
 }
 

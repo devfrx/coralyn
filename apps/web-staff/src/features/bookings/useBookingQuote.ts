@@ -1,6 +1,7 @@
 import { computed, type Ref } from 'vue';
 import { useQuery } from '@tanstack/vue-query';
 import type { BookingQuoteDTO, BookingType } from '@coralyn/contracts';
+import { Permission } from '@coralyn/contracts';
 import { apiFetch } from '@/lib/http';
 import { useSessionStore } from '@/stores/session';
 
@@ -36,7 +37,11 @@ export function useBookingQuote(params: Ref<QuoteParams | null>) {
       );
     },
     enabled: computed(
-      () => !!params.value?.umbrellaId && !!params.value?.timeSlotId && !!params.value?.startDate,
+      () =>
+        !!params.value?.umbrellaId &&
+        !!params.value?.timeSlotId &&
+        !!params.value?.startDate &&
+        session.hasPermission(Permission.BookingsManage),
     ),
   });
 }

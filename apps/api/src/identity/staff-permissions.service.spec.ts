@@ -126,12 +126,24 @@ describe('StaffPermissionsService', () => {
       expect(stato.letture).toBe(0);
     });
 
-    it('include sempre i permessi non configurabili secondo il default, anche per lo staff', async () => {
-      // `session.read` non è fra i configurabili: nessun override potrà mai toglierlo, e la
-      // schermata di amministrazione non lo mostra. Qui si asserisce che resta comunque incluso.
-      const { prisma } = fakePrisma([]);
+    /**
+     * ⚠️ Al posto di «include sempre i non configurabili», che era **strettamente ridondante** col
+     * primo test di questo blocco (l'uguaglianza con la tabella di fabbrica contiene già
+     * `session.read`) e che per giunta suggeriva una garanzia che il servizio NON dà.
+     *
+     * Il fatto nudo: `has()` ed `effectiveFor()` si fidano di **ogni** riga letta. L'insieme
+     * ammesso è vincolato dallo **scrittore** (`setPermissions` filtra su `CONFIGURABLE_PERMISSIONS`)
+     * e dal DTO in ingresso, **non dal database**: non c'è CHECK sulla colonna `permission`. Una
+     * riga scritta a mano su un permesso non configurabile verrebbe onorata.
+     */
+    it('si fida di OGNI riga: una riga su un non configurabile verrebbe onorata (il vincolo è nello scrittore)', async () => {
+      const { prisma } = fakePrisma([{ permission: Permission.SessionRead, granted: false }]);
       const svc = new StaffPermissionsService(prisma);
-      await expect(svc.effectiveFor(STAFF)).resolves.toContain(Permission.SessionRead);
+      // Non è il comportamento desiderabile in assoluto: è quello reale, e va pinnato perché
+      // dice DOVE vive la protezione. Se un domani si aggiungesse un filtro in lettura, o un
+      // CHECK in migration, questo test cade e va riscritto di proposito.
+      await expect(svc.effectiveFor(STAFF)).resolves.not.toContain(Permission.SessionRead);
+      await expect(svc.has(STAFF, Permission.SessionRead)).resolves.toBe(false);
     });
   });
 });

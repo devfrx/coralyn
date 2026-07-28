@@ -56,8 +56,19 @@ un debito.
 | la stessa dentro `forTenant` (sotto RLS) | **4,92 ms** | 5,94 ms | 4 |
 
 ⚠️ **Validazione dello strumento prima di credergli**: `3×SELECT 1 / 1×SELECT 1` = **2,81**
-(atteso ~3 se il costo è lineare nei round trip), e il conteggio derivato `(D−C)/A` = **2,99
-round trip**. Due stime indipendenti concordano; il numero regge. La quantità che conta **non è
+(atteso ~3 se il costo è lineare nei round trip), e un conteggio derivato dei round trip di
+**2,99**. Due stime indipendenti concordano; il numero regge.
+
+⚠️ **La formula di quel secondo conteggio era scritta qui come `(D−C)/A` con tre simboli mai
+definiti nel documento, e non è ricostruibile**: l'harness non è committato, quindi non si può
+dire oggi cosa fossero `C` e `D`. Il risultato — «i round trip in più sono ~3» — resta coerente
+con l'altra stima e con i tre comandi strutturali che si contano a occhio (`BEGIN`, `set_config`,
+`COMMIT`), ed è su quella coerenza che si regge, non sulla formula.
+
+⚠️ **Questi quattro valori non sono riproducibili da questo repository**: l'harness di misura non
+è committato, quindi vanno letti come «misurati una volta, su una macchina, in questa sessione» e
+non come un risultato che chiunque può rieseguire. Vale per 1,54 · 4,92 · 2,81 · 2,99 ovunque
+compaiano (qui, in ADR-0063 e nel commento della migration). La quantità che conta **non è
 il delta di 3,4 ms su localhost** — è che sono **3 round trip strutturali** (`BEGIN`,
 `set_config`, `COMMIT`), quindi il costo cresce **linearmente con l'RTT** del database. Alla
 latenza di 8 ms che [ADR-0062](../../architecture/decisions/0062-generate-ombrelloni-scrittura-batch.md)
@@ -109,7 +120,9 @@ model StaffPermissionOverride {
   granted         Boolean
   updatedAt       DateTime @updatedAt
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  // FK COMPOSITA: è questa a rendere non rappresentabile la riga cross-tenant.
+  // Richiede `@@unique([id, establishmentId])` su `User` come bersaglio.
+  user User @relation(fields: [userId, establishmentId], references: [id, establishmentId], onDelete: Cascade)
 
   @@id([userId, permission])
   @@index([establishmentId])
@@ -122,9 +135,15 @@ negato per ogni operatore già configurato, e l'admin dovrebbe riaprire ogni sch
 concederlo. Col delta, il permesso nuovo segue `PERMISSION_ROLES`, che è ciò che ADR-0057
 dichiara essere il default di fabbrica.
 
-⚠️ **La FK composita non è esprimibile nel DSL Prisma** insieme alla relazione semplice `user`:
-vive nella migration ed è commentata nello schema, esattamente come gli indici parziali di
-`structural_invariants` e di `Umbrella_establishmentId_label_active_key`.
+⚠️ **La FK composita È esprimibile nel DSL Prisma**, e sta nello schema: basta
+`@relation(fields: [userId, establishmentId], references: [id, establishmentId])` più il
+`@@unique([id, establishmentId])` su `User` che le serve da bersaglio. La genera `migrate diff`,
+e stando nello schema è protetta dal drift detection — a differenza degli indici parziali di
+`structural_invariants` e di `Umbrella_establishmentId_label_active_key`, che quelli sì vivono
+solo nella migration.
+
+*(Questo paragrafo diceva il contrario. Era un'assunzione mai verificata: lo schema è stato poi
+scritto con la FK dentro, e la frase non era stata corretta.)*
 
 ## 4. Risoluzione
 
@@ -207,8 +226,12 @@ mescolare responsabilità. L'azione compare **solo sulle righe con ruolo `staff`
 i permessi per renderne gli interruttori, e l'enum è il vocabolario. ADR-0057 lo prevedeva
 («spostarlo nei contracts è parte di D-063, quando servirà»).
 
-- `apps/api/src/identity/permission.ts` conserva `PERMISSION_ROLES`, `roleHasPermission` e le
-  costanti di §5.1, e **importa** `Permission` dai contracts — come già fa con `Role`.
+- `apps/api/src/identity/permission.ts` conserva `roleHasPermission` e **ri-esporta** `Permission`
+  dai contracts, per non toccare il percorso d'import dei ~25 controller.
+  ⚠️ Le costanti di §5.1 (`NON_CONFIGURABLE_PERMISSIONS`, `CONFIGURABLE_PERMISSIONS`,
+  `PERMISSION_LABELS`) **non stanno lì**: vivono nei contracts, perché è la schermata a doverle
+  enumerare. E `PERMISSION_ROLES` le ha raggiunte con
+  [ADR-0064](../../architecture/decisions/0064-permessi-vicini-gate-per-query.md).
 - `UserDTO` guadagna `permissions: Permission[]`, l'insieme effettivo. Così `login` e `rehydrate`
   li hanno **senza una chiamata in più**, ed è il solo punto da cui il FE li legge.
 - Lo store `session` espone `hasPermission(p)`.
@@ -261,9 +284,12 @@ Listino continua a vederne la voce.
 - **`permissions.guard.spec.ts`** esteso: stesso `(role, permission)` con override assente,
   `granted:true` e `granted:false` — e il caso «la lettura fallisce ⇒ la richiesta fallisce, non
   degrada in concesso».
-- **`authorization-staff.e2e-spec.ts` esteso**: un lido con `pricing.manage` **concesso** e uno
-  con lo stesso permesso **revocato**, nella **stessa suite**. La regola dell'audit: se il titolo
-  dice «invece di», il fixture deve contenere l'alternativa.
+- Un lido con `pricing.manage` **concesso** e uno con lo stesso permesso **revocato**, nella
+  **stessa suite**. La regola dell'audit: se il titolo dice «invece di», il fixture deve contenere
+  l'alternativa.
+  ⚠️ **Realizzato in `staff-permissions.e2e-spec.ts`, che è nuovo, NON estendendo
+  `authorization-staff.e2e-spec.ts`**: quel file ha guadagnato 7 righe di commento e **zero**
+  `it(` (misurato con `git diff main...HEAD`). Questa riga diceva «esteso» ed era falsa.
 - **Un e2e cross-tenant**: il lido A che revoca `pricing.manage` non tocca il lido B.
 - **Un e2e sulla FK composita**: l'`INSERT` di un override con l'`establishmentId` di un altro
   lido è **respinto dal database**, non dal service.
@@ -280,8 +306,19 @@ Ereditato dal brief §8 e confermato: deleghe fra operatori, permessi a tempo, *
 cambi di permesso**, permessi sul canale cliente.
 
 Aggiunto qui: **la resa dei 403 nelle viste che non consultano `isError`** (AUD-012, 9 viste su
-12). È un finding suo, con la sua radice; il router negherà le rotte prima che ci si arrivi, e il
-403 resta la protezione vera (principio «la UI che nasconde non è la UI che protegge»).
+12). È un finding suo, con la sua radice, e il 403 resta la protezione vera (principio «la UI che
+nasconde non è la UI che protegge»).
+
+⚠️ **La motivazione originale di questo fuori scope era sbagliata, ed è costata due difetti gravi.**
+Diceva: «il router negherà le rotte prima che ci si arrivi». Non è vero due volte.
+1. Il router nega su **un** permesso per rotta, mentre una vista compone endpoint governati da
+   permessi **diversi**: si arriva benissimo su una schermata i cui sotto-dati sono negati.
+2. Nel caso di **revoca totale** la guardia **lascia passare** di proposito
+   (`permissionGuard.ts:37`), perché non esiste destinazione accessibile.
+
+La conseguenza è stata chiusa da [ADR-0064](../../architecture/decisions/0064-permessi-vicini-gate-per-query.md),
+che governa l'assenza **da permesso** (gate per query + resa esplicita); AUD-012 resta aperta sul
+suo, che è l'assenza **da guasto**.
 
 ## 10. Correzioni ai documenti
 

@@ -6,6 +6,7 @@ import { Button, Badge, DataTable, QueryBoundary, Avatar, EmptyState, Select, Op
 // dichiara `sortValue` — l'unico punto in cui DataTableColumn<T> vincola la riga. Se un domani
 // servisse ordinare, il typecheck lo dirà chiedendo due elenchi di colonne distinti.
 import type { RenewalWindowState } from '@coralyn/contracts';
+import { Permission } from '@coralyn/contracts';
 import { storeToRefs } from 'pinia';
 import { useSessionStore } from '@/stores/session';
 import { useSubscriptions, useRenewBooking, useRenewalCampaign, useOpenCampaign, useCloseCampaign } from './useRenewals';
@@ -15,6 +16,9 @@ import { useEntityLabels } from '@/lib/useEntityLabels';
 
 const session = useSessionStore();
 const { activeDate } = storeToRefs(session);
+
+const canManagePricing = computed(() => session.hasPermission(Permission.PricingManage));
+const canManageBookings = computed(() => session.hasPermission(Permission.BookingsManage));
 
 const { data: seasons } = useSeasons();
 const seasonOptions = computed(() => (seasons.value ?? []).map((s) => ({ value: s.id, label: s.name })));
@@ -102,6 +106,15 @@ function stateBadge(s: RenewalWindowState): { tone: 'success' | 'warning' | 'neu
           <Option v-for="o in seasonOptions" :key="o.value" :value="o.value">{{ o.label }}</Option>
         </Select>
       </label>
+      <!-- ⚠️ I Rinnovi compongono due endpoint di ALTRI permessi (ADR-0063): le stagioni stanno
+           sotto `pricing.manage` e gli abbonati sotto `bookings.manage`, non sotto
+           `renewals.manage`. Senza, i due selettori e la tabella restano vuoti senza dire perché. -->
+      <p v-if="!canManagePricing" data-testid="seasons-denied" class="self-end text-[11.5px] text-[var(--color-text-muted)]">
+        Non hai accesso al listino: senza stagioni i rinnovi non sono gestibili.
+      </p>
+      <p v-else-if="!canManageBookings" data-testid="subscriptions-denied" class="self-end text-[11.5px] text-[var(--color-text-muted)]">
+        Non hai accesso alle prenotazioni: l'elenco degli abbonati non è disponibile.
+      </p>
     </div>
 
     <div v-if="destinationSeasonId && !campaign && !campaignLoading" class="mb-5 flex flex-wrap items-end gap-4 rounded-[14px] border-[1.5px] border-[var(--color-border-input)] bg-[var(--color-surface)] p-4">

@@ -1,5 +1,6 @@
 import { type Ref } from 'vue';
 import type { CheckoutRentalInput, RentalDTO, RentalsDayDTO, SettlePaymentInput } from '@coralyn/contracts';
+import { Permission } from '@coralyn/contracts';
 import { queryResource, mutationResource } from '@coralyn/data-layer';
 import { apiFetch } from '@/lib/http';
 import { queryKeys } from '@/lib/queryKeys';
@@ -11,6 +12,7 @@ export function useRentals(date: Ref<string>) {
   return queryResource({
     queryKey: () => queryKeys.rentals(session.establishmentId, date.value),
     queryFn: () => apiFetch<RentalsDayDTO>(`/rentals?date=${date.value}`),
+    enabled: () => session.hasPermission(Permission.RentalsOperate),
   });
 }
 

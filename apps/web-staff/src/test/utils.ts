@@ -1,32 +1,21 @@
 import { mount, flushPromises, type ComponentMountingOptions } from '@vue/test-utils';
-import { createPinia } from 'pinia';
+import { createPinia, setActivePinia } from 'pinia';
 import { VueQueryPlugin, QueryClient } from '@tanstack/vue-query';
 import { createRouter, createMemoryHistory } from 'vue-router';
 import { nextTick, type Component } from 'vue';
-import { Permission, Role } from '@coralyn/contracts';
+import { Permission, Role, permissionsOfRoleDefault, type UserDTO } from '@coralyn/contracts';
+import { useSessionStore } from '@/stores/session';
 
 /**
- * I permessi effettivi di un ruolo secondo il **default di fabbrica** (ADR-0063), per i test.
+ * I permessi effettivi di un ruolo secondo il **default di fabbrica** (ADR-0063).
  *
- * Derivati dall'enum e non scritti a mano: un permesso nuovo entra da solo, e nessuno spec resta
- * a esercitare un utente incompleto senza che il compilatore lo dica.
- *
- * ⚠️ Riproduce `PERMISSION_ROLES` dell'API. Non è una duplicazione che può divergere in silenzio:
- * `authorization-staff.e2e-spec.ts` asserisce le stesse superfici sul backend vero, quindi una
- * divergenza fa cadere quella suite.
+ * ⚠️ **Derivati davvero**, da `PERMISSION_ROLES` in `@coralyn/contracts` (ADR-0064). Prima qui
+ * c'era una lista dello staff **ricopiata a mano** sotto un commento che la dichiarava derivata,
+ * e nulla la legava all'originale: con il gating per query, una divergenza avrebbe fatto
+ * esercitare all'intera suite un operatore che nel backend non esiste.
  */
-const STAFF_DEFAULT: readonly Permission[] = [
-  Permission.MapRead, Permission.BookingsManage, Permission.CustomersManage,
-  Permission.RentalsOperate, Permission.RentalCatalogManage, Permission.PricingManage,
-  Permission.RenewalsManage, Permission.ReportsRead, Permission.EstablishmentRead,
-  Permission.StructureRead, Permission.SessionRead,
-];
-
 export function permissionsOfRole(role: Role): Permission[] {
-  if (role === Role.Superuser) return [Permission.PlatformAdminister, Permission.SessionRead];
-  if (role === Role.Staff) return [...STAFF_DEFAULT];
-  // Admin: tutto tranne il permesso di piattaforma, che non è del lido.
-  return Object.values(Permission).filter((p) => p !== Permission.PlatformAdminister);
+  return [...permissionsOfRoleDefault(role)];
 }
 
 const RouterLinkStub = { props: ['to'], template: '<a><slot /></a>' };
@@ -35,12 +24,43 @@ function makeRouter() {
   return createRouter({ history: createMemoryHistory(), routes: [{ path: '/:pathMatch(.*)*', component: { template: '<div />' } }] });
 }
 
-export function mountApp<C extends Component>(comp: C, options: ComponentMountingOptions<C> = {}) {
+/** Operatore di default del banco di prova: admin, cioè tutti i permessi del lido. */
+export const DEFAULT_TEST_USER: UserDTO = {
+  id: 'u-test', email: 'admin@coralyn.dev', role: Role.Admin,
+  establishmentId: 'e-1', establishmentName: 'Lido',
+  permissions: permissionsOfRole(Role.Admin),
+};
+
+/**
+ * ⚠️ **Monta con una sessione autenticata**, non con `user = null`.
+ *
+ * Da [ADR-0064](../../../../docs/architecture/decisions/0064-permessi-vicini-gate-per-query.md)
+ * ogni query dichiara il permesso del suo endpoint (`enabled`), e a sessione assente
+ * `hasPermission` nega tutto — fail-closed, per costruzione. Montare senza sessione significa
+ * quindi non far partire NESSUNA query. **Dei 61 spec, 39 usano `mountApp` e 23 di questi non
+ * impostavano alcuna sessione**: esercitavano uno stato che nell'app non esiste, perché ogni vista
+ * sta dietro il guard d'autenticazione.
+ *
+ * Il default è l'**admin** perché è il ruolo per cui tutte le query partono, come accadeva prima.
+ * ⚠️ Non è però una trasformazione neutra: tre test di `EstablishmentStructureView.spec.ts`
+ * dichiaravano «staff» affidandosi all'assenza di sessione — che nega *tutto*, non solo ciò che lo
+ * staff non ha — e sono stati resi espliciti. Chi deve provare un operatore RISTRETTO passa `user`
+ * al mount (terzo argomento), che è l'unico modo corretto: riscrivere `session.user` DOPO il mount
+ * lascia in cache i dati già scaricati da admin.
+ */
+export function mountApp<C extends Component>(
+  comp: C,
+  options: ComponentMountingOptions<C> = {},
+  session: { user?: UserDTO | null } = {},
+) {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  const pinia = createPinia();
+  setActivePinia(pinia);
+  useSessionStore().user = session.user === undefined ? DEFAULT_TEST_USER : session.user;
   return mount(comp, {
     ...options,
     global: {
-      plugins: [createPinia(), [VueQueryPlugin, { queryClient }], makeRouter()],
+      plugins: [pinia, [VueQueryPlugin, { queryClient }], makeRouter()],
       stubs: { RouterLink: RouterLinkStub },
       ...(options.global ?? {}),
     },

@@ -1,4 +1,5 @@
 import { UnauthorizedException } from '@nestjs/common';
+import { Permission } from '@coralyn/contracts';
 import { IdentityService } from './identity.service';
 import { StaffPermissionsService } from './staff-permissions.service';
 
@@ -62,5 +63,30 @@ describe('IdentityService.login', () => {
     const res = await service.login({ email: 'a@lido.it', password: 'pw' });
     expect(res.accessToken).toBe('signed-token');
     expect(res.user.establishmentName).toBeNull();
+  });
+
+  // ⚠️ Il commento in `makeService` dice che qui si cabla il service VERO «per provare la
+  // proiezione». Finché nessun test guardava `res.user.permissions`, quella motivazione non
+  // reggeva: la proiezione poteva sparire e la suite restava verde.
+  it('il DTO di login porta i permessi EFFETTIVI: è ciò per cui il service vero è cablato qui', async () => {
+    const { service, prisma } = makeService(ADMIN);
+    const res = await service.login({ email: 'a@lido.it', password: 'pw' });
+    expect(res.user.permissions).toContain(Permission.TeamManage); // admin
+    expect(res.user.permissions).not.toContain(Permission.PlatformAdminister);
+    // l'admin non è configurabile: nessuna lettura degli override (ADR-0063, Decision 2)
+    expect(prisma.staffPermissionOverride.findMany).not.toHaveBeenCalled();
+  });
+
+  it('per uno STAFF i permessi riflettono gli override, non il solo default', async () => {
+    const staff = { ...ADMIN, id: 'u-9', role: 'staff' };
+    const { service, prisma } = makeService(staff);
+    prisma.staffPermissionOverride.findMany.mockResolvedValue([
+      { permission: Permission.PricingManage, granted: false },
+      { permission: Permission.StructureManage, granted: true },
+    ]);
+    const res = await service.login({ email: 'a@lido.it', password: 'pw' });
+    expect(res.user.permissions).not.toContain(Permission.PricingManage); // revocato
+    expect(res.user.permissions).toContain(Permission.StructureManage);   // concesso oltre il default
+    expect(res.user.permissions).toContain(Permission.MapRead);           // default intatto
   });
 });

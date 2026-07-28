@@ -34,8 +34,8 @@ function drawerEl(): HTMLElement | null {
 function drawerButtons(): HTMLButtonElement[] {
   return Array.from(drawerEl()?.querySelectorAll('button') ?? []);
 }
-async function mountMap() {
-  const w = mountApp(MapView, { attachTo: document.body });
+async function mountMap(session: Parameters<typeof mountApp>[2] = {}) {
+  const w = mountApp(MapView, { attachTo: document.body }, session);
   await flushPromises();
   await new Promise((r) => setTimeout(r, 0));
   await flushPromises();
@@ -73,7 +73,15 @@ describe('MapView', () => {
     server.use(http.get('/api/map', () => HttpResponse.json({
       date: '2026-06-27', umbrellaTypes: [], timeSlots: [], sectors: [],
     })));
-    const w = await mountMap();
+    // ⚠️ Sessione staff ESPLICITA. Prima questo test si appoggiava all'assenza di sessione, che
+    // nega ogni permesso: passava senza mai esercitare il ruolo staff che il titolo dichiara.
+    const w = await mountMap({
+      user: {
+        id: 'u-2', email: 'bagnino@lido.it', role: Role.Staff,
+        establishmentId: 'e-1', establishmentName: 'Lido Maestrale',
+        permissions: permissionsOfRole(Role.Staff),
+      },
+    });
     expect(w.find('[data-testid="map-empty-onboarding"]').exists()).toBe(true);
     expect(w.find('[data-testid="map-open-onboarding"]').exists()).toBe(false);
     w.unmount();

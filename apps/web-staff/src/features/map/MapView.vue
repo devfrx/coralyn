@@ -27,6 +27,11 @@ const router = useRouter();
 const session = useSessionStore();
 // Il bottone porta a /onboarding: il permesso e' quello della DESTINAZIONE, non un ruolo.
 const canOpenOnboarding = computed(() => session.hasPermission(Permission.EstablishmentManage));
+// La Mappa COMPONE dati di endpoint governati da altri permessi (ADR-0063): senza questi, le
+// query non partono affatto (gate in `useBookings`/`useCustomers`) e il vuoto che resta va detto,
+// non lasciato leggere come «non ci sono clienti».
+const canManageBookings = computed(() => session.hasPermission(Permission.BookingsManage));
+const canManageCustomers = computed(() => session.hasPermission(Permission.CustomersManage));
 const { activeDate } = storeToRefs(session);
 const { data: bookings } = useDayBookings(activeDate);
 const { data: customers } = useCustomers();
@@ -497,11 +502,17 @@ const freeSlotOptions = computed(() =>
           <div v-else class="text-center">{{ availabilityMessage }}</div>
         </div>
       </template>
+      <!-- ⚠️ Prenotare è `bookings.manage`, che è un permesso DIVERSO da quello che apre la Mappa
+           (`map.read`). Dopo D-063 un operatore può avere l'uno e non l'altro: offrirgli i bottoni
+           lo porterebbe a compilare un modale per raccogliere un 403 alla conferma. -->
       <template #footer>
-        <div class="flex flex-col gap-2">
+        <div v-if="canManageBookings" class="flex flex-col gap-2">
           <Button @click="openModal()"><Icon name="plus" :size="17" />Nuova prenotazione</Button>
           <Button variant="secondary" @click="openModal('subscription')"><Icon name="star" :size="15" />Abbonamento</Button>
         </div>
+        <p v-else class="text-center text-[12.5px] text-[var(--color-text-muted)]">
+          Non hai il permesso di gestire le prenotazioni.
+        </p>
       </template>
     </Drawer>
 
@@ -522,7 +533,10 @@ const freeSlotOptions = computed(() =>
             <Option value="" disabled>Seleziona un cliente…</Option>
             <Option v-for="c in (customers ?? [])" :key="c.id" :value="c.id">{{ c.firstName }} {{ c.lastName }}</Option>
           </Select>
-          <p v-if="(customers ?? []).length === 0" class="mt-1.5 text-[11.5px] text-[var(--color-text-muted)]">
+          <p v-if="!canManageCustomers" data-testid="customers-denied" class="mt-1.5 text-[11.5px] text-[var(--color-text-muted)]">
+            Non hai accesso all'anagrafica clienti: chiedi all'amministratore del lido.
+          </p>
+          <p v-else-if="(customers ?? []).length === 0" class="mt-1.5 text-[11.5px] text-[var(--color-text-muted)]">
             Nessun cliente. <router-link to="/customers" class="font-semibold text-[var(--color-accent)]">Crea un cliente</router-link>.
           </p>
         </div>

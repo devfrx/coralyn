@@ -1,6 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.PERMISSION_LABELS = exports.CONFIGURABLE_PERMISSIONS = exports.NON_CONFIGURABLE_PERMISSIONS = exports.Permission = exports.Role = void 0;
+exports.PERMISSION_ROLES = exports.PERMISSION_LABELS = exports.CONFIGURABLE_PERMISSIONS = exports.NON_CONFIGURABLE_PERMISSIONS = exports.Permission = exports.Role = void 0;
+exports.permissionsOfRoleDefault = permissionsOfRoleDefault;
 /** Application roles. See ADR-0015 (platform superuser). */
 var Role;
 (function (Role) {
@@ -115,4 +116,45 @@ exports.PERMISSION_LABELS = {
     [Permission.PlatformAdminister]: 'Console di piattaforma',
     [Permission.SessionRead]: 'Lettura della propria sessione',
 };
+/**
+ * Quali ruoli detengono ciascun permesso **per difetto di fabbrica** (ADR-0057, ADR-0063).
+ *
+ * ⚠️ **Da ADR-0063 questa tabella è il default, non la risposta.** Per lo `staff` la risposta la
+ * dà `StaffPermissionsService`, che applica sopra gli override configurati dall'admin del lido.
+ * Resta ciò che vale per un lido che non ha configurato nulla — e per ogni permesso aggiunto in
+ * futuro all'enum, che eredita il default invece di nascere negato.
+ *
+ * ⚠️ **Vive qui e non in `apps/api/`** (ADR-0064): il banco di prova di web-staff deve poter
+ * costruire un operatore realistico, e la lista dello staff era *ricopiata a mano* in
+ * `apps/web-staff/src/test/utils.ts` con un commento che la dichiarava derivata. Con il gating
+ * per query di ADR-0064 una divergenza avrebbe fatto esercitare a tutta la suite un operatore
+ * inesistente. `apps/api/src/identity/permission.ts` la ri-esporta, come già fa per `Permission`.
+ *
+ * `Record` completo e non parziale: un permesso nuovo senza riga **non compila**.
+ */
+exports.PERMISSION_ROLES = {
+    [Permission.MapRead]: [Role.Admin, Role.Staff],
+    [Permission.BookingsManage]: [Role.Admin, Role.Staff],
+    [Permission.BookingsAdminister]: [Role.Admin],
+    [Permission.CustomersManage]: [Role.Admin, Role.Staff],
+    [Permission.CustomersErase]: [Role.Admin],
+    [Permission.CustomerAccessManage]: [Role.Admin],
+    [Permission.RentalsOperate]: [Role.Admin, Role.Staff],
+    [Permission.RentalCatalogManage]: [Role.Admin, Role.Staff],
+    [Permission.PricingManage]: [Role.Admin, Role.Staff],
+    [Permission.RenewalsManage]: [Role.Admin, Role.Staff],
+    [Permission.ReportsRead]: [Role.Admin, Role.Staff],
+    [Permission.EstablishmentRead]: [Role.Admin, Role.Staff],
+    [Permission.EstablishmentManage]: [Role.Admin],
+    [Permission.LegalProfileManage]: [Role.Admin],
+    [Permission.StructureRead]: [Role.Admin, Role.Staff],
+    [Permission.StructureManage]: [Role.Admin],
+    [Permission.TeamManage]: [Role.Admin],
+    [Permission.PlatformAdminister]: [Role.Superuser],
+    [Permission.SessionRead]: [Role.Admin, Role.Staff, Role.Superuser],
+};
+/** I permessi che un ruolo detiene per difetto di fabbrica. */
+function permissionsOfRoleDefault(role) {
+    return Object.values(Permission).filter((p) => exports.PERMISSION_ROLES[p].includes(role));
+}
 //# sourceMappingURL=index.js.map

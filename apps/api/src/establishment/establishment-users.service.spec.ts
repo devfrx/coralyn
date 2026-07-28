@@ -1,6 +1,11 @@
 import { ConflictException, NotFoundException, UnprocessableEntityException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
-import { Permission } from '@coralyn/contracts';
+import {
+  Permission,
+  CONFIGURABLE_PERMISSIONS,
+  permissionsOfRoleDefault,
+  Role as ContractRole,
+} from '@coralyn/contracts';
 import { EstablishmentUsersService } from './establishment-users.service';
 import { StaffPermissionsService } from '../identity/staff-permissions.service';
 
@@ -158,23 +163,27 @@ describe('EstablishmentUsersService', () => {
       const { service, user, staffPermissionOverride } = makeService();
       user.findFirst.mockResolvedValue(staffTarget);
       // Il default dello staff, chiesto tale e quale: zero scarto, zero righe.
-      const defaults = [
-        Permission.MapRead, Permission.BookingsManage, Permission.CustomersManage,
-        Permission.RentalsOperate, Permission.RentalCatalogManage, Permission.PricingManage,
-        Permission.RenewalsManage, Permission.ReportsRead, Permission.EstablishmentRead,
-        Permission.StructureRead,
-      ];
+      // ⚠️ Derivato e non ricopiato (ADR-0064): una copia stantia farebbe passare il test su uno
+      // scarto che non è quello vero.
+      const defaults = permissionsOfRoleDefault(ContractRole.Staff).filter((p) =>
+        CONFIGURABLE_PERMISSIONS.includes(p),
+      );
       await service.setPermissions('u-9', { permissions: defaults });
       expect(righeScritte(staffPermissionOverride)).toEqual([]);
     });
 
-    it('scrive UNA riga granted:false per il permesso revocato rispetto al default', async () => {
+    it('revocare tutto tranne map.read scrive una riga granted:false per OGNI altro configurabile', async () => {
+      // ⚠️ Il titolo diceva «scrive UNA riga»: ne scrive nove, ed è giusto così — il body è
+      // l'insieme completo desiderato, quindi ogni configurabile assente dal body e presente nel
+      // default è una revoca. L'asserzione era per giunta un `toContain`, che sarebbe passato
+      // anche se il service ne avesse scritte tre a caso in più.
       const { service, user, staffPermissionOverride } = makeService();
       user.findFirst.mockResolvedValue(staffTarget);
       await service.setPermissions('u-9', { permissions: [Permission.MapRead] });
       const righe = righeScritte(staffPermissionOverride);
-      const revocate = righe.filter((r) => !r.granted).map((r) => r.permission);
-      expect(revocate).toContain(Permission.PricingManage);
+      const attese = permissionsOfRoleDefault(ContractRole.Staff)
+        .filter((p) => CONFIGURABLE_PERMISSIONS.includes(p) && p !== Permission.MapRead);
+      expect([...righe.filter((r) => !r.granted).map((r) => r.permission)].sort()).toEqual([...attese].sort());
       expect(righe.map((r) => r.permission)).not.toContain(Permission.MapRead); // resta al default
       expect(righe.every((r) => r.establishmentId === TENANT && r.userId === 'u-9')).toBe(true);
     });
@@ -216,7 +225,7 @@ describe('EstablishmentUsersService', () => {
       );
     });
 
-    it('422 se il target è un admin: l’admin non è configurabile (ADR-0063 §2.2)', async () => {
+    it('422 se il target è un admin: l’admin non è configurabile (ADR-0063, Decision 2)', async () => {
       const { service, user, staffPermissionOverride } = makeService();
       user.findFirst.mockResolvedValue({ id: 'u-adm', role: 'admin' });
       await expect(service.setPermissions('u-adm', { permissions: [] })).rejects.toBeInstanceOf(UnprocessableEntityException);

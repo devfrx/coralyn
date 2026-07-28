@@ -1,4 +1,5 @@
 import type { CreateRateInput, RateDTO, UpdateRateInput } from '@coralyn/contracts';
+import { Permission } from '@coralyn/contracts';
 import { queryResource, mutationResource } from '@coralyn/data-layer';
 import { apiFetch } from '@/lib/http';
 import { queryKeys } from '@/lib/queryKeys';
@@ -10,7 +11,7 @@ export function useRates(getSeasonId: () => string) {
   return queryResource({
     queryKey: () => queryKeys.rates(session.establishmentId, getSeasonId()),
     queryFn: () => apiFetch<RateDTO[]>(`/rates?seasonId=${getSeasonId()}`),
-    enabled: () => !!getSeasonId(),
+    enabled: () => !!getSeasonId() && session.hasPermission(Permission.PricingManage),
   });
 }
 

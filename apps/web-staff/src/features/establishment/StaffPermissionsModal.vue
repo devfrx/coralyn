@@ -7,8 +7,8 @@ import { useStaffPermissions, useSetStaffPermissions } from './useEstablishment'
 /**
  * I permessi di un operatore, un interruttore per voce (ADR-0063).
  *
- * Componente a sé e non altre 100 righe dentro `EstablishmentView.vue`, che è già a 290: qui la
- * responsabilità è una sola, ed è la stessa scelta già fatta per `LegalProfileModal.vue`.
+ * Componente a sé e non altre 100 righe dentro `EstablishmentView.vue`, che è già oltre le 300:
+ * qui la responsabilità è una sola, ed è la stessa scelta già fatta per `LegalProfileModal.vue`.
  *
  * ⚠️ Si mostrano i **17 configurabili**, non tutti e 19: `platform.administer` è di piattaforma e
  * `session.read` disabiliterebbe l'account invece di esprimere una divisione dei compiti. Il
@@ -48,6 +48,11 @@ function toggle(p: Permission): void {
 }
 
 function submit(): void {
+  // ⚠️ Senza i dati letti, `granted` è ancora l'insieme VUOTO iniziale, e il PUT lo tratta come
+  // insieme completo desiderato: salverebbe una revoca totale con conferma di successo. Il footer
+  // del Modal sta fuori dal QueryBoundary, quindi il gate visivo da solo non basta — questa è
+  // l'invariante nel punto in cui l'effetto accade.
+  if (!data.value) return;
   save.mutate(
     { id: props.userId, permissions: [...granted.value] },
     {
@@ -101,10 +106,19 @@ function submit(): void {
         </div>
       </div>
     </QueryBoundary>
+    <!-- ⚠️ Il footer è uno slot del Modal e sta FUORI dal QueryBoundary: va gated sul dato per
+         conto suo. `:disabled` deve ripetere `save.isPending` perché il fallthrough attr VINCE sul
+         `:disabled="loading || undefined"` interno di `Button.vue` (misurato) — lasciarlo implicito
+         riaprirebbe la finestra di doppio invio. Stesso idioma di `MultiPanel.vue` e `RowPanel.vue`. -->
     <template #footer>
       <div class="flex justify-end gap-2.5">
         <Button variant="secondary" type="button" @click="open = false">Annulla</Button>
-        <Button data-testid="save-permissions" :loading="save.isPending.value" @click="submit">Salva</Button>
+        <Button
+          data-testid="save-permissions"
+          :disabled="!data || save.isPending.value"
+          :loading="save.isPending.value"
+          @click="submit"
+        >Salva</Button>
       </div>
     </template>
   </Modal>

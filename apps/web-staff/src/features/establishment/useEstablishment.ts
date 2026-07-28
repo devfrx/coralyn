@@ -16,18 +16,24 @@ import { apiFetch } from '@/lib/http';
 import { queryKeys } from '@/lib/queryKeys';
 import { useSessionStore } from '@/stores/session';
 
+/** Intestazione del lido, caricata dall'app-shell a ogni navigazione.
+ *  ⚠️ `establishment.read` è nel default di fabbrica dello staff, ma dopo D-063 è revocabile:
+ *  senza il gate un operatore ristretto pagherebbe due 403 (`retry: 1`) a ogni caricamento. */
 export function useEstablishmentOverview() {
   const session = useSessionStore();
   return queryResource({
     queryKey: () => queryKeys.establishmentOverview(session.establishmentId),
     queryFn: () => apiFetch<EstablishmentOverviewDTO>('/establishment/overview'),
+    enabled: () => session.hasPermission(Permission.EstablishmentRead),
   });
 }
 
 /** Team del lido (sotto `team.manage`: disabilitata per chi non ce l'ha, come `useSetupStatus`).
  *  Query separata dall'overview di proposito: l'overview la carica l'app-shell a ogni
- *  navigazione ed è leggibile da tutto lo staff, quindi non può portare le email degli
- *  operatori (D-064). Senza il gate, ogni operatore che apre Stabilimento farebbe un 403.
+ *  navigazione ed è leggibile **da chiunque abbia `establishment.read`** — che è nel default di
+ *  fabbrica dello staff ma da D-063 è revocabile, quindi non «da tutto lo staff» —, e proprio per
+ *  questo non può portare le email degli operatori (D-064). Senza il gate, ogni operatore che apre
+ *  Stabilimento farebbe un 403.
  *  ⚠️ Il gate è sul PERMESSO e non più sul ruolo (ADR-0063): un operatore a cui l'admin ha
  *  concesso `team.manage` deve vedere il team, e col controllo sul ruolo non lo vedrebbe. */
 export function useEstablishmentTeam() {
@@ -93,9 +99,16 @@ export function useSetStaffPermissions() {
         method: 'PUT',
         body: JSON.stringify({ permissions: vars.permissions }),
       }),
-    // Il team NON cambia, ma i permessi di chi sta configurando sì se ha configurato se stesso:
-    // invalidare la sua sessione sarebbe fuori portata di questo hook, e il caso è impedito a
-    // monte (l'admin non è configurabile, ADR-0063 §2.2).
+    // Il team NON cambia, quindi non c'è altro da invalidare.
+    //
+    // ⚠️ Resta il caso «ho configurato me stesso», in cui la sessione in `UserDTO` diventa stantia.
+    // NON è impedito dal fatto che l'admin non sia configurabile — un `staff` a cui è stato
+    // concesso `team.manage` **può** revocarselo, e ADR-0063 lo dice nelle Note dichiarando che
+    // sul server non c'è una guardia. È impedito **da questa UI**: `EstablishmentView.vue` nasconde
+    // l'intera barra di azioni sulla propria riga (`v-if="!u.you"`), quindi il bottone «Permessi»
+    // su se stessi non esiste. Chi chiamasse il PUT direttamente resterebbe con i permessi vecchi
+    // in sessione fino al prossimo `/auth/me`, e vedrebbe porte che il server nega comunque: la
+    // protezione è il 403, questo è cortesia (ADR-0063).
     invalidates: () => [queryKeys.establishmentTeam(session.establishmentId)],
   });
 }
@@ -105,6 +118,7 @@ export function useLegalProfile() {
   return queryResource({
     queryKey: () => queryKeys.legalProfile(session.establishmentId),
     queryFn: () => apiFetch<EstablishmentLegalProfileDTO>('/establishment/legal-profile'),
+    enabled: () => session.hasPermission(Permission.LegalProfileManage),
   });
 }
 

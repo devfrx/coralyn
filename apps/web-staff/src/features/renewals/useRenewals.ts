@@ -1,5 +1,6 @@
 import { type Ref } from 'vue';
 import type { BookingDTO, RenewalCampaignDetailDTO, SubscriptionListItemDTO } from '@coralyn/contracts';
+import { Permission } from '@coralyn/contracts';
 import { queryResource, mutationResource } from '@coralyn/data-layer';
 import { apiFetch } from '@/lib/http';
 import { queryKeys } from '@/lib/queryKeys';
@@ -11,7 +12,9 @@ export function useSubscriptions(seasonId: Ref<string>) {
   return queryResource({
     queryKey: () => queryKeys.subscriptions(session.establishmentId, seasonId.value),
     queryFn: () => apiFetch<SubscriptionListItemDTO[]>(`/bookings/subscriptions?seasonId=${seasonId.value}`),
-    enabled: () => !!seasonId.value,
+    // ⚠️ `bookings.manage`, non `renewals.manage`: la rotta sta in `BookingsController`
+    // (`bookings.controller.ts:42`). La vista Rinnovi ha il permesso della campagna, non questo.
+    enabled: () => !!seasonId.value && session.hasPermission(Permission.BookingsManage),
   });
 }
 
@@ -32,7 +35,7 @@ export function useRenewalCampaign(destinationSeasonId: Ref<string>) {
   return queryResource({
     queryKey: () => queryKeys.renewalCampaign(session.establishmentId, destinationSeasonId.value),
     queryFn: () => apiFetch<RenewalCampaignDetailDTO | null>(`/renewal-campaigns?destinationSeasonId=${destinationSeasonId.value}`),
-    enabled: () => !!destinationSeasonId.value,
+    enabled: () => !!destinationSeasonId.value && session.hasPermission(Permission.RenewalsManage),
   });
 }
 

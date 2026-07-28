@@ -1,5 +1,6 @@
 import { type Ref } from 'vue';
 import type { BookingDTO, CreateBookingInput, SettlePaymentInput } from '@coralyn/contracts';
+import { Permission } from '@coralyn/contracts';
 import { queryResource, mutationResource } from '@coralyn/data-layer';
 import { apiFetch } from '@/lib/http';
 import { queryKeys } from '@/lib/queryKeys';
@@ -10,6 +11,7 @@ export function useDayBookings(date: Ref<string>) {
   return queryResource({
     queryKey: () => queryKeys.bookings(session.establishmentId, date.value),
     queryFn: () => apiFetch<BookingDTO[]>(`/bookings?date=${date.value}`),
+    enabled: () => session.hasPermission(Permission.BookingsManage),
   });
 }
 

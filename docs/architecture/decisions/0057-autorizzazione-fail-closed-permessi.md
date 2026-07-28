@@ -63,7 +63,11 @@ scoperti — è stato **verificato e scartato**: si veda *Alternatives considere
 - La dichiarazione è **leggibile**: `@RequiresPermission(Permission.CustomersErase)` dice cosa
   l'endpoint fa, non chi lo usa oggi.
 - Il lavoro di annotazione è **speso una volta sola**: quando i permessi diventeranno configurabili
-  per tenant (D-063), cambia la *risoluzione*, non le ~60 annotazioni.
+  per tenant (D-063), cambia la *risoluzione*, non le annotazioni.
+  ⚠️ **«~60» è il conteggio delle ROTTE scoperte all'audit, non delle annotazioni.** Le due cose
+  non coincidono, perché un `@RequiresPermission` di classe copre tutti gli handler del
+  controller: misurati oggi sul repo, **37 decoratori** nei `*.controller.ts` (21 di classe, 16
+  di metodo) coprono **119 handler**. Il referente giusto della frase sono le rotte.
 - Il test di copertura sposta l'errore da runtime a CI, e non invecchia: il set di controller è il
   filesystem, non una lista scritta a mano.
 

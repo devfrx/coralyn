@@ -3,6 +3,7 @@ import { computed, ref, watchEffect } from 'vue';
 import { Button, Card, DataTable, QueryBoundary, EmptyState, Modal, ConfirmDialog, Field, Input, Select, Option, Icon, IconButton, ActionBar, formatEuro } from '@coralyn/ui-kit';
 import type { DataTableColumn } from '@coralyn/ui-kit';
 import type { RentalItemDTO, RentalTariffDTO } from '@coralyn/contracts';
+import { Permission } from '@coralyn/contracts';
 import { seasonIdCoveringDate } from '@/lib/seasons';
 import { useSessionStore } from '@/stores/session';
 import { useSeasons } from '@/features/pricing/useSeasons';
@@ -25,6 +26,7 @@ import {
 
 // --- Stagioni (riuso: nessuna gestione CRUD qui, solo selettore per le tariffe) ---
 const session = useSessionStore();
+const canManagePricing = computed(() => session.hasPermission(Permission.PricingManage));
 const { data: seasons } = useSeasons();
 const activeSeasonId = ref('');
 const seasonOptions = computed(() => (seasons.value ?? []).map((s) => ({ value: s.id, label: s.name })));
@@ -259,11 +261,18 @@ function onConfirmDelete() {
     <!-- Editor tariffe stagionali dell'articolo selezionato -->
     <EmptyState v-if="!selectedItem" message="Seleziona un articolo dal catalogo per gestirne le tariffe." />
     <template v-else>
+      <!-- ⚠️ Le stagioni stanno sotto `pricing.manage`, non sotto `rental-catalog.manage`
+           (ADR-0063). È l'esempio con cui l'ADR spiega la feature: revocare il listino lasciando
+           il listino noleggi. Senza le stagioni non c'è `activeSeasonId`, quindi «Nuova tariffa»
+           resta disabilitata e la tabella vuota — va detto, non lasciato indovinare. -->
       <div class="mb-3 flex flex-wrap items-center gap-3">
         <span class="text-[13px] font-semibold text-[var(--color-text-2nd)]">Tariffe · {{ selectedItem.name }}</span>
         <Select v-model="activeSeasonId" data-test="season-select" class="min-w-[150px]">
           <Option v-for="o in seasonOptions" :key="o.value" :value="o.value">{{ o.label }}</Option>
         </Select>
+        <span v-if="!canManagePricing" data-testid="seasons-denied" class="text-[11.5px] text-[var(--color-text-muted)]">
+          Non hai accesso al listino: senza stagioni le tariffe non sono configurabili.
+        </span>
         <div class="flex-1"></div>
         <Button variant="secondary" size="sm" data-test="new-tariff" :disabled="!activeSeasonId" @click="openCreateTariff">
           <Icon name="plus" :size="16" />Nuova tariffa

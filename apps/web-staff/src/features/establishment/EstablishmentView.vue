@@ -61,7 +61,7 @@ const team = computed(() =>
     ini: m.email.slice(0, 2).toUpperCase(),
     you: session.userEmail === m.email,
     // Solo lo `staff` è configurabile: l'admin conserva i permessi impliciti del ruolo, e
-    // lasciarglieli revocare chiuderebbe il lido fuori dalla gestione (ADR-0063 §2.2).
+    // lasciarglieli revocare chiuderebbe il lido fuori dalla gestione (ADR-0063, Decision 2).
     configurable: m.role === 'staff',
     disabled: m.disabledAt !== null,
   })),
