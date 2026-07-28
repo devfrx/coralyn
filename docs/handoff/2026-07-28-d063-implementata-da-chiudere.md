@@ -1,5 +1,9 @@
 # Handoff 2026-07-28 (sessione 11): D-063 è implementata e verde, ma NON è finita
 
+> ⚠️ **SUPERATO.** Il punto d'ingresso è
+> [2026-07-28 D-063 chiusa e mergiata](2026-07-28-d063-chiusa-e-mergiata.md). Tutto il §6 di questo
+> documento è stato chiuso: i due difetti gravi, gli 11 del §6.2 e i 17 residui del §6.3.
+
 > **Punto d'ingresso unico.** Sostituisce
 > [2026-07-27 AUD-022 chiusa](2026-07-27-aud-022-chiusa-prossimo-d063.md), che resta **superato**.
 > Questo documento è **autosufficiente**: ambiente, gotcha, metodo e regole di ingaggio sono dentro,
