@@ -848,12 +848,45 @@ modalità Seleziona) · `StructureRow.vue`
 `RowPanel`, `UmbrellaPanel`, `MultiPanel`, `SectorCreatePanel`, `RowCreatePanel`,
 `UmbrellaCreatePanel`) · `StructureGuidedSetup.vue` (card 3-passi, §15.5) ·
 `useEstablishmentStructure.ts` (query + mutation, incluse le 2 bulk — tutte invalidano anche
-l'overview, §15.3).
+l'overview, §15.3, **e la Mappa del giorno**: l'ordine dell'editor *è* l'ordine della Mappa).
+
+### 15.7 Riordino dell'ombrellone per trascinamento ([ADR-0065](../architecture/decisions/0065-riordino-ombrellone-per-trascinamento.md))
+
+**Solo `lg+` (≥1024px). Sotto quel breakpoint l'affordance non si rende affatto.** Non è una
+dimenticanza responsive: sotto `lg` il `Drawer` scrive `body.style.pointerEvents = "none"` appena
+qualcosa è selezionato, quindi la scena è pointer-morta proprio quando si vorrebbe trascinare. Una
+maniglia inerte è peggio della sua assenza. Il caso scoperto è [D-071](../architecture/deferred.md#d-071).
+
+- **La maniglia sta FUORI dalla cella**, in alto a sinistra dello slot, in posizione assoluta: se
+  occupasse spazio ogni cella sarebbe più larga e cambierebbe la densità del Cantiere. Compare
+  all'hover della fila, come le azioni del rail (§15.1).
+- **Non è focalizzabile e non è annunciata** (`aria-hidden`, `<span>` e non `<button>`): non esiste
+  equivalente da tastiera, e annunciarla prometterebbe un'interazione che non c'è. Le celle restano
+  `<button>` nativi. ⚠️ È anche un vincolo di test: oltre 20 asserzioni indicizzano
+  `[data-testid="scene-cell"] button` **per posizione**.
+- **Sparisce in modalità «Seleziona»** (§15.4): lì ogni clic è additivo, e un drag degenerato in
+  clic toglierebbe l'ombrellone dalla selezione.
+- **La barra d'inserimento vive nel gap** (uno `::before`, non un elemento in flusso): un flex item
+  in più farebbe scorrere le celle sotto il puntatore e il segno oscillerebbe.
+- **I tab settore si aprono a molla**: sostando ~700 ms su un tab compatibile durante il
+  trascinamento, la scena passa a quel settore e il rilascio avviene poi sulla fila esatta. Serve
+  perché la sabbia rende **un settore per volta** (§15.1), quindi le file degli altri settori non
+  sono nel DOM. Sui settori di `kind` diverso la molla **non scatta**: là nessun rilascio sarebbe
+  legale.
+- **Anteprima ottimistica**: la cella si sposta subito, prima della risposta del server.
+- **Disclosure, non blocco**: se la mossa esce dal settore e almeno uno dei due ha tariffe dedicate,
+  un `ConfirmDialog` dichiara che il prezzo dei **rinnovi futuri** cambierà base — e che le
+  prenotazioni già registrate non cambiano. Stesso dialogo sul **ripristino** di un ritirato in un
+  settore diverso da quello di provenienza.
 
 ## 16. Accessibilità (trasversale)
 
-- Contrasti testo **AA**; verifica dei token di stato/ink in CI (un test che calcola il rapporto
-  di contrasto etichetta↔stato fallisce sotto 4.5).
+- Contrasti testo **AA**, come **obiettivo di progetto verificato a mano**.
+  ⚠️ **Corretto il 2026-07-29 (D-038):** questa riga prometteva «verifica dei token di stato/ink in
+  CI (un test che calcola il rapporto di contrasto etichetta↔stato fallisce sotto 4.5)». **Quel test
+  non esiste**: `grep -rln "contrast\|contrasto" packages/ui-kit/src packages/docs-lint/src
+  apps/web-staff/src --include=*.spec.ts` → zero file. Un gate promesso e inesistente è peggio di un
+  gate assente, perché chi legge smette di controllare a mano.
 - Focus **sempre** visibile (`--ring-focus`); navigazione completa da tastiera; primitivi Reka UI
   per focus trap/ESC/ARIA su drawer, dialog, menu, combobox.
 - Colore **mai** unico veicolo: testo + `aria-label` ovunque (celle, badge di stato, legende).
@@ -861,10 +894,16 @@ l'overview, §15.3).
 
 ## 17. Disciplina anti-debito ([ADR-0017](../architecture/decisions/0017-design-system-frontend.md))
 
-1. **Solo token** come valori nei componenti (niente hex/px) — verificato da lint.
+1. **Solo token** come valori nei componenti (niente hex/px) — **convenzione, tenuta dalla review**.
+   ⚠️ **Corretto il 2026-07-29 (D-038):** questa riga diceva «verificato da lint». **Nessuna regola
+   lo verifica**: `eslint.config.mjs` (91 righe, lette per intero) dichiara `no-unused-vars`,
+   `no-restricted-imports`, `no-explicit-any` a warn nei test e due regole spente — niente che guardi
+   hex o px nei componenti.
 2. **Regola di promozione**: se un elemento è riusato o ha superficie a11y → `ui-kit`; se è
    composizione di una singola schermata → resta locale.
-3. **Lint** a supporto del confine `ui-kit` e dell'uso dei token.
+3. **Lint** a supporto del confine `ui-kit`: `no-restricted-imports` vieta il barrel dove serve il
+   subpath e blocca `@IsUUID` su `apps/api`. ⚠️ **Corretto il 2026-07-29:** questa riga diceva anche
+   «e dell'uso dei token» — vedi il punto 1: quella parte non esiste. Il confine sì, i token no.
 4. Le estensioni di contratto necessarie alla mappa (`Tipologia.icona`, stato per fascia) sono
    **tracciate** e additive ([ADR-0020](../architecture/decisions/0020-resa-mappa.md)); fallback FE
    finché il backend non le espone.

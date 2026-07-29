@@ -32,16 +32,20 @@ porti **più informazioni insieme**. Vanno scelti la **tecnica di resa** e il **
 della cella**.
 
 Ogni cella ha **quattro assi** da comunicare: **etichetta** (numero fisico reale,
-[ADR-0016](0016-tipologia-ombrellone.md)) · **stato** (libero/abbonato/giornaliero/prenotato,
+[ADR-0016](0016-tipologia-ombrellone.md)) · **stato** (libero/abbonato/giornaliero/prenotato/coperto,
 eventualmente **diverso per fascia**, [ADR-0013](0013-granularita-disponibilita-a-slot.md)) ·
 **tipologia** (Normale/Mini-palma/Palma…, [ADR-0016](0016-tipologia-ombrellone.md)) ·
 **selezione**.
+
+> ⚠️ **Corretto il 2026-07-29 (D-038):** l'elenco degli stati ne portava **quattro**, senza
+> `coperto`. Lo stato `covered` esiste dal 2026-07-06 ([D-048](../deferred.md), fasce sovrapposte):
+> nel codice sono **cinque** (`UmbrellaCell.vue:19-23`).
 
 ## Decision
 
 **Resa in HTML/CSS** (non SVG) per la mappa strutturata dell'MVP.
 
-- La mappa è una griglia di componenti **`OmbrelloneCell`** (Settore → Fila → Ombrellone,
+- La mappa è una griglia di componenti **`UmbrellaCell`** (Settore → Fila → Ombrellone,
   layout di default "file impilate verso il mare", [ADR-0014](0014-setup-mappa-strutturato.md)).
 - **Linguaggio della cella (4 assi):**
   - **Etichetta** = il **numero fisico reale**, mostrato nella cella
@@ -51,7 +55,11 @@ eventualmente **diverso per fascia**, [ADR-0013](0013-granularita-disponibilita-
   - **Tipologia** = **marcatore a icona modulare** d'angolo, **data-driven** dal campo
     `Tipologia.icona` (nome Iconify) reso via `<Icon>` ([ADR-0018](0018-linguaggio-visivo.md));
     Normale (`NULL`) = nessun marcatore.
-  - **Selezione** = **anello teal**.
+  - **Selezione** = **anello corallo** (`--color-brand`, cioè `--color-coral-500`).
+    ⚠️ **Corretto il 2026-07-29 (D-038):** questa riga diceva «anello **teal**», e nel codice
+    l'anello è corallo dalla prima resa (`UmbrellaCell.vue:53`). Il nome del componente in questo
+    ADR era inoltre `OmbrelloneCell`, morto dal rename inglese
+    ([ADR-0030](0030-codice-e-db-in-inglese.md)): sostituito ovunque.
 - **Ombrelloni speciali** (palme): in un **settore "Speciali"** dedicato
   ([ADR-0016](0016-tipologia-ombrellone.md)).
 - **Accessibilità:** ogni cella è un **elemento focusabile** (`button`) con **`aria-label`**
@@ -75,7 +83,7 @@ rifacimento.
 ### Positive
 - **Accessibilità nativa** (focus, ARIA, tastiera) → risolve anche il limite "colore-da-solo".
 - Semplicità di sviluppo e responsive; nessuna complessità SVG non necessaria ora (YAGNI).
-- La cella è un **componente isolato** (`OmbrelloneCell`), testabile.
+- La cella è un **componente isolato** (`UmbrellaCell`), testabile.
 
 ### Negative / Trade-off
 - Mappe molto grandi (migliaia di celle) = molti nodi DOM; per i lidi target (centinaia) è
@@ -104,7 +112,7 @@ rifacimento.
    over-engineering.
 2. **Convenzioni** — per una griglia strutturata, HTML/CSS accessibile è la via convenzionale;
    SVG per il disegno libero.
-3. **Modularità** — `OmbrelloneCell` isolato; tipologia **data-driven** (icona); presentazione
+3. **Modularità** — `UmbrellaCell` isolato; tipologia **data-driven** (icona); presentazione
    separata dal modello.
 4. **Zero debito** — niente complessità SVG per una feature rimandata; la planimetria è additiva
    ([D-005](../deferred.md)); il pattern colorblind è tracciato ([D-020](../deferred.md));

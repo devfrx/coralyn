@@ -246,10 +246,16 @@ Conseguenze che il piano deve onorare:
 
 - L'affordance di trascinamento **non si rende** sotto `lg`: mostrare una maniglia inerte è peggio
   della sua assenza.
-- ⚠️ **I test del drag devono stubbare `matchMedia`.** `useMediaQuery` ritorna `false` quando
-  `matchMedia` manca (`useMediaQuery.ts:6`), quindi **ogni spec dell'editor gira oggi nel ramo
-  Drawer** — cioè nel ramo in cui il gesto non esiste. Un test del drag scritto senza stub
-  passerebbe *senza esercitare nulla*.
+- ⚠️ **I test del drag devono dichiarare in quale ramo girano.** `useMediaQuery` ritorna `false`
+  quando `matchMedia` manca (`useMediaQuery.ts:6`), quindi un test del drag scritto in un file senza
+  stub passerebbe *senza esercitare nulla*.
+  ⚠️ **Corretto il 2026-07-29 in fase di esecuzione:** questa riga diceva «**ogni** spec dell'editor
+  gira oggi nel ramo Drawer», ed è **falsa**. `EstablishmentStructureView.spec.ts:51-63` definisce
+  già `stubDesktopMatchMedia()` e lo applica in un `beforeEach` **globale del file**, con
+  `vi.unstubAllGlobals()` in coda: quella spec gira **interamente** nel ramo desktop, e contiene
+  persino un test che sovrascrive lo stub per esercitare il Drawer (`:277-290`). Non serviva quindi
+  aggiungere alcuno stub a `src/test/setup.ts` — che avrebbe ribaltato il ramo di ogni spec che
+  monta la shell: bastava riusare l'helper e il pattern di override già presenti.
 - Riaprire il caso `< lg` è materiale da deferred, non da questa slice.
 
 ### 5.4 Nessun equivalente da tastiera
@@ -279,7 +285,17 @@ l'invalidazione, chi ha la Mappa aperta al banco continua a vedere la disposizio
 
 Quando la destinazione è in un settore diverso **e** esiste almeno una tariffa con `sectorId` uguale
 al settore di partenza o a quello d'arrivo, prima di confermare si mostra un `ConfirmDialog` che
-nomina le tariffe coinvolte e il loro prezzo. Fuori da questo caso il gesto è diretto, senza
+**nomina i due settori** e dichiara che il prezzo dei rinnovi futuri cambierà base.
+
+> ⚠️ **Corretto il 2026-07-29 in fase di esecuzione:** questa riga chiedeva un dialogo «che nomina
+> le tariffe coinvolte e il loro prezzo». **Non ha una risposta unica corretta**: le tariffe sono
+> per stagione (`GET /rates?seasonId=…`) e la conseguenza è sui **rinnovi**, cioè su una stagione
+> futura le cui tariffe possono non esistere ancora — qualunque stagione si scegliesse renderebbe il
+> testo parzialmente falso. Il trigger arriva invece da `StructureSectorDTO.hasDedicatedRates`,
+> calcolato dal server: sempre corretto, senza permesso in più e senza stagione da indovinare
+> ([ADR-0065](../../architecture/decisions/0065-riordino-ombrellone-per-trascinamento.md) §7).
+
+Fuori da questo caso il gesto è diretto, senza
 interruzioni — coerente con [ADR-0052](../../architecture/decisions/0052-editor-struttura-cantiere.md),
 che riserva `ConfirmDialog` al distruttivo e a ciò che l'utente non può disfare a colpo d'occhio.
 

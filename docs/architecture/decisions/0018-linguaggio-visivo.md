@@ -27,8 +27,14 @@ neutri freddi puliti; calmo, sobrio, identità balneare riconoscibile.
 - **Feedback:** success `#3F9D5B`, warning `#E8A93C`, danger `#D6453D`, info `#4F86E0`.
 
 **Stati della mappa** (token semantici): Libero `#7BB661`, Abbonato `#5B8DEF`, Giornaliero
-`#E8843C`, Prenotato `#F0C24A`, Selezionato = **anello teal**. Resa e accessibilità in
-[ADR-0020](0020-resa-mappa.md).
+`#E8843C`, Prenotato `#F0C24A`, Coperto `--color-state-covered`, Selezionato = **anello corallo**
+(`--color-brand`). Resa e accessibilità in [ADR-0020](0020-resa-mappa.md).
+
+> ⚠️ **Aggiornato il 2026-07-29 (D-038):** questa riga diceva «Selezionato = **anello teal**» e non
+> elencava lo stato **Coperto**. Nel codice l'anello usa `--color-brand`, cioè `--color-coral-500`
+> (`UmbrellaCell.vue:53`), e gli stati sono **cinque**: `covered` esiste dal 2026-07-06
+> ([D-048](../deferred.md)). Corretta anche in [ADR-0020](0020-resa-mappa.md), che rimanda qui per i
+> token: lasciare la radice sbagliata avrebbe rimesso in circolo la stessa affermazione.
 
 **Tipografia:** **Inter** per la UI. Scala: 12/13 (denso/tabelle), 14 (corpo), 16/18
 (sezione), 22/26 (titolo); pesi 400/500/600. **`tabular-nums`** per prezzi, date e quantità.

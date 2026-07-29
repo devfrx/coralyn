@@ -31,14 +31,23 @@ rappresentazione, editor ancora astratto).
 
 - **Il paradigma resta «per form + numerazione automatica» — [ADR-0014](0014-setup-mappa-strutturato.md)
   confermato, non contraddetto**: cambia *dove* vivono i form (ispettore in scena, non modali), non
-  il modello. Niente drag&drop/planimetria: restano deferiti ([D-005](../deferred.md),
-  [D-038](../deferred.md)).
+  il modello. Niente planimetria a coordinate libere: resta deferita ([D-005](../deferred.md)).
+  ⚠️ **Corretto il 2026-07-29:** questa riga diceva «Niente drag&drop/planimetria: restano deferiti
+  (D-005, D-038)». **Il drag&drop non è più escluso**: [ADR-0065](0065-riordino-ombrellone-per-trascinamento.md)
+  lo introduce per il **solo ombrellone**, come gesto di riordino su una capacità già modellata
+  (`logicalOrder`), e chiude [D-038](../deferred.md#d-038) su quel fronte. Restano fuori il riordino
+  di **file e settori** e la planimetria.
 - **Tipologie nell'ispettore-radice «Spiaggia»** (pannello di default a selezione vuota, CRUD
   inline). La toolbar della scena naviga la spiaggia (tab settori, ricerca implicita via selezione),
   non gestisce entità.
 - **Bulk con semantica «salta e riporta»**, speculare al `generate` esistente: **mai 409 sul
-  batch**. Due endpoint dedicati nel modulo `establishment/umbrellas` (`@Roles(Role.Admin)` +
-  `forTenant`, transazionali):
+  batch**. Due endpoint dedicati nel modulo `establishment/umbrellas`
+  (`@RequiresPermission(Permission.StructureManage)` + `forTenant`, transazionali):
+  ⚠️ **Aggiornato il 2026-07-29:** questa riga diceva `@Roles(Role.Admin)`. Era **vera quando
+  quest'ADR fu scritto** (2026-07-22) ed è stata **superata** da
+  [ADR-0057](0057-autorizzazione-fail-closed-permessi.md) (2026-07-25), che ha sostituito ruoli con
+  permessi: in `apps/api/src/establishment/` oggi non esiste alcun `@Roles`. Aggiornata qui perché
+  un endpoint nuovo scritto seguendo la vecchia riga fallirebbe sul guard fail-closed.
   - `POST /establishment/umbrellas/bulk-delete` — elimina gli ombrelloni del tenant senza
     prenotazioni; quelli con prenotazioni (o id estranei al tenant, mai trovati) vengono **saltati**
     e conteggiati in `skipped`. Risposta `{ deleted, skipped }`.
@@ -103,9 +112,13 @@ block-409 (mai cascade) — invariate anche nel bulk-delete, che *salta* invece 
 
 ### Neutre / Note
 
-- [D-005](../deferred.md) (planimetria a coordinate libere) e [D-038](../deferred.md)
-  (drag-reorder/re-parent) restano **deferiti**: questo ADR non li tocca, il paradigma per-form +
-  numerazione automatica resta la via principale di costruzione della struttura.
+- [D-005](../deferred.md) (planimetria a coordinate libere) resta **deferita**: questo ADR non la
+  tocca, il paradigma per-form + numerazione automatica resta la via principale di costruzione della
+  struttura. ⚠️ **Aggiornato il 2026-07-29:** questa riga elencava anche
+  [D-038](../deferred.md#d-038) fra i deferiti, ed è **superata**:
+  [ADR-0065](0065-riordino-ombrellone-per-trascinamento.md) la chiude per l'ombrellone. Il paradigma
+  per-form resta comunque la via di **costruzione**; il trascinamento è un gesto di **riordino** su
+  ciò che i form hanno già creato, non un secondo modo di crearlo.
 - Il settore «Speciali» resta un tab come gli altri nell'editor (contesto di editing, un settore alla
   volta) — diverge deliberatamente dalla convenzione della Mappa (blocco sempre in coda): contesti
   d'uso diversi, non un'incoerenza da correggere.
@@ -116,7 +129,7 @@ block-409 (mai cascade) — invariate anche nel bulk-delete, che *salta* invece 
    applicato a un dominio molto più semplice: niente sovra-ingegneria, la scena resta la stessa Riva
    della Mappa.
 2. **Convenzioni** — riuso di `map-scene.css`, `Drawer`/`ConfirmDialog` ui-kit, `mutationResource`
-   con toast/errore di default, `forTenant` + `@Roles(Role.Admin)` sui nuovi endpoint: nessun pattern
+   con toast/errore di default, `forTenant` + `@RequiresPermission` sui nuovi endpoint: nessun pattern
    nuovo introdotto, solo applicato a una superficie nuova.
 3. **Modularità** — `UmbrellaCell` resta l'unica sorgente dell'anatomia Tessera (estensione additiva,
    non una seconda implementazione); i due endpoint bulk sono generici (id-based), riusati sia da
