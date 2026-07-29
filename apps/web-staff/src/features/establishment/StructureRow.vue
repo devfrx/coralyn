@@ -13,6 +13,8 @@ const props = defineProps<{
   selection: Selection;
   selectMode: boolean;
   canManage: boolean;
+  /** `false` sotto `lg`: il Drawer di reka-ui azzera i pointer-events e il gesto non esiste (D-071). */
+  canDrag: boolean;
   dragging: UmbrellaDrag | null;
 }>();
 const emit = defineEmits<{
@@ -147,8 +149,9 @@ function slotClass(i: number): string[] {
              annunciare una maniglia inerte prometterebbe un'interazione che non c'e'. Il caso
              scoperto e' tracciato in D-071, non nascosto. Il trascinamento sparisce in modalita'
              «Seleziona»: li' ogni clic e' additivo, e un drag degenerato in clic TOGLIE dalla
-             selezione (EstablishmentStructureView.vue:95,99). -->
-        <span v-if="canManage && !selectMode" class="st-drag-handle" draggable="true" aria-hidden="true"
+             selezione (EstablishmentStructureView.vue:95,99). E sotto `lg` non si rende affatto:
+             un'affordance inerte dove il puntatore e' morto e' peggio della sua assenza. -->
+        <span v-if="canManage && !selectMode && canDrag" class="st-drag-handle" draggable="true" aria-hidden="true"
           data-testid="drag-handle" @dragstart="onDragStart($event, u.id)" @dragend="emit('umbrella-drag-end')"></span>
       </span>
       <button v-if="canManage" type="button" class="st-ghost-cell focus-visible:outline-none focus-visible:[box-shadow:var(--ring-focus)]"

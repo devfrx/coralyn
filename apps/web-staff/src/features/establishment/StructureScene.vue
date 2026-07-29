@@ -15,6 +15,9 @@ const props = defineProps<{
   selection: Selection;
   selectMode: boolean;
   canManage: boolean;
+  /** `false` sotto `lg`, deciso una volta sola dalla shell che possiede gia' la media query per il
+   *  Drawer: due `useMediaQuery` con la stessa soglia sarebbero due posti dove cambiarla. */
+  canDrag: boolean;
 }>();
 const emit = defineEmits<{
   'select-sector': [id: string]; 'create-sector': [];
@@ -153,7 +156,7 @@ function onTabKeydown(e: KeyboardEvent, i: number) {
         </div>
         <StructureRow v-for="r in current.rows" :key="r.id" class="map-row-in" :row="r" :sector-name="current.name"
           :sector-kind="current.kind" :types="types" :selection="selection" :select-mode="selectMode"
-          :can-manage="canManage" :dragging="dragging"
+          :can-manage="canManage" :can-drag="canDrag" :dragging="dragging"
           @select-row="(id) => emit('select-row', id)" @select-umbrella="(id, add) => emit('select-umbrella', id, add)"
           @create-umbrella="(rid) => emit('create-umbrella', rid)"
           @row-generate="(id) => emit('row-generate', id)" @row-danger="(id) => emit('row-danger', id)"

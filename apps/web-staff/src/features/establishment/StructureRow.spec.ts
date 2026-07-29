@@ -18,11 +18,12 @@ const ROW: StructureRowDTO = {
 
 interface RowProps {
   row: StructureRowDTO; sectorName: string; sectorKind: SectorKind; types: UmbrellaTypeDTO[];
-  selection: Selection; selectMode: boolean; canManage: boolean; dragging: UmbrellaDrag | null;
+  selection: Selection; selectMode: boolean; canManage: boolean; canDrag: boolean;
+  dragging: UmbrellaDrag | null;
 }
 const base: RowProps = {
   row: ROW, sectorName: 'Centro', sectorKind: 'grid', types: [],
-  selection: { kind: 'beach' }, selectMode: false, canManage: true, dragging: null,
+  selection: { kind: 'beach' }, selectMode: false, canManage: true, canDrag: true, dragging: null,
 };
 
 function mountRow(over: Partial<RowProps> = {}) {
@@ -71,6 +72,12 @@ describe('StructureRow — maniglia', () => {
 
   it('senza permesso di gestione non si rende', () => {
     expect(mountRow({ canManage: false }).findAll('[data-testid="drag-handle"]')).toHaveLength(0);
+  });
+
+  it('sotto lg non si rende, ma le celle restano: l’assenza è mirata', () => {
+    const w = mountRow({ canDrag: false });
+    expect(w.findAll('[data-testid="drag-handle"]')).toHaveLength(0);
+    expect(w.findAll('[data-testid="scene-cell"]')).toHaveLength(3);
   });
 
   it('dragstart annuncia quale ombrellone e da quale fila', async () => {

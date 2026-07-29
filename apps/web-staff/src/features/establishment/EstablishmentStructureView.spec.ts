@@ -637,4 +637,39 @@ describe('EstablishmentStructureView — shell Cantiere', () => {
     expect(insp().get('[data-testid="row-danger-section"]').attributes('data-focus')).toBe('on');
     expect(insp().get('[data-testid="row-generate-section"]').attributes('data-focus')).toBeUndefined();
   });
+
+  // D-038 §5.3: il trascinamento è dichiaratamente solo `lg+`. La coppia di test sotto è l'unica
+  // che prova il gating dove vive davvero — la shell possiede la media query — e va letta insieme:
+  // se passassero entrambi con lo stesso stub, il gating non starebbe facendo nulla.
+  it('lg+: la maniglia di trascinamento è nel DOM', async () => {
+    useFixture();
+    const w = mountApp(EstablishmentStructureView, { attachTo: document.body });
+    const session = useSessionStore();
+    session.user = { id: 'u-1', email: 'admin@coralyn.dev', role: Role.Admin, establishmentId: 'e-1', establishmentName: 'Lido Maestrale', permissions: permissionsOfRole(Role.Admin) };
+    await settle();
+    expect(w.findAll('[data-testid="drag-handle"]')).toHaveLength(2);
+  });
+
+  it('sotto lg la maniglia NON si rende: là il Drawer azzera i pointer-events (D-071)', async () => {
+    useFixture();
+    // Sovrascrive lo stub desktop del beforeEach, come già fa il test del Drawer sopra.
+    vi.stubGlobal('matchMedia', (query: string) => ({
+      matches: false,
+      media: query,
+      onchange: null,
+      addEventListener: () => {},
+      removeEventListener: () => {},
+      addListener: () => {},
+      removeListener: () => {},
+      dispatchEvent: () => false,
+    }));
+    const w = mountApp(EstablishmentStructureView, { attachTo: document.body });
+    const session = useSessionStore();
+    session.user = { id: 'u-1', email: 'admin@coralyn.dev', role: Role.Admin, establishmentId: 'e-1', establishmentName: 'Lido Maestrale', permissions: permissionsOfRole(Role.Admin) };
+    await settle();
+    expect(w.findAll('[data-testid="drag-handle"]')).toHaveLength(0);
+    // L'assenza dev'essere MIRATA: se sparisse tutta la scena il test sopra passerebbe lo stesso,
+    // e direbbe soltanto che il componente non è stato reso.
+    expect(w.findAll('[data-testid="scene-cell"]')).toHaveLength(2);
+  });
 });

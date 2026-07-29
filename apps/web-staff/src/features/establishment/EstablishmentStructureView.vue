@@ -139,7 +139,7 @@ onUnmounted(() => window.removeEventListener('keydown', onKeydown));
 
     <div v-else-if="data" class="grid min-h-0 flex-1 grid-cols-1 overflow-hidden rounded-[var(--radius-lg)] border border-[var(--color-border)] lg:grid-cols-[1fr_320px]">
       <StructureScene :sectors="data.sectors" :types="data.umbrellaTypes" :selected-sector-id="selectedSectorId"
-        :selection="selection" :select-mode="selectMode" :can-manage="canManage"
+        :selection="selection" :select-mode="selectMode" :can-manage="canManage" :can-drag="isDesktop"
         @select-sector="onSelectSector" @create-sector="selection = { kind: 'create-sector' }"
         @select-row="(id) => selection = { kind: 'row', id }" @create-row="(sid) => selection = { kind: 'create-row', sectorId: sid }"
         @select-umbrella="onSelectUmbrella" @create-umbrella="(rid) => selection = { kind: 'create-umbrella', rowId: rid }"

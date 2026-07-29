@@ -16,7 +16,7 @@ const SECTORS: StructureSectorDTO[] = [
   ] },
   { id: 's-2', name: 'Speciali', sortOrder: 2, kind: 'special', rows: [] },
 ];
-const base = { sectors: SECTORS, types: [], selectedSectorId: 's-1', selection: { kind: 'beach' } as const, selectMode: false, canManage: true };
+const base = { sectors: SECTORS, types: [], selectedSectorId: 's-1', selection: { kind: 'beach' } as const, selectMode: false, canManage: true, canDrag: true };
 
 const SECTORS_NO_ROWS: StructureSectorDTO[] = [
   { id: 's-1', name: 'Centro', sortOrder: 1, kind: 'grid', rows: [] },
