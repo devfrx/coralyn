@@ -105,11 +105,11 @@ describe('targetIndex', () => {
 describe('applyMove', () => {
   const umb = (id: string) => ({ id, label: id, umbrellaTypeId: null });
   const tree = (): StructureSectorDTO[] => [
-    { id: 's-1', name: 'Centro', sortOrder: 1, kind: 'grid', rows: [
+    { id: 's-1', name: 'Centro', sortOrder: 1, kind: 'grid', hasDedicatedRates: false, rows: [
       { id: 'r-1', label: 'F1', sortOrder: 1, umbrellas: [umb('A'), umb('B'), umb('C')] },
       { id: 'r-2', label: 'F2', sortOrder: 2, umbrellas: [umb('D'), umb('E')] },
     ] },
-    { id: 's-2', name: 'Levante', sortOrder: 2, kind: 'grid', rows: [
+    { id: 's-2', name: 'Levante', sortOrder: 2, kind: 'grid', hasDedicatedRates: false, rows: [
       { id: 'r-3', label: 'F3', sortOrder: 1, umbrellas: [umb('F')] },
     ] },
   ];

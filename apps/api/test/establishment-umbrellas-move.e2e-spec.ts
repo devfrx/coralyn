@@ -77,6 +77,15 @@ describe('Establishment umbrellas move (e2e)', () => {
       pal = (await tx.row.create({ data: { establishmentId: s1, sectorId: palme.id, label: 'P1', sortOrder: 1 } })).id;
       await umb(pal, 'MV-P1', 1);
 
+      // Una tariffa che nomina «Griglia»: e' cio' che rende `hasDedicatedRates` vero per quel
+      // settore e falso per gli altri. Senza, il presidio sotto passerebbe con tutti `false` e non
+      // proverebbe che la bandiera legge dati veri.
+      const season = await tx.season.create({
+        data: { establishmentId: s1, name: 'Estate 2026', startDate: new Date('2026-05-01T00:00:00Z'), endDate: new Date('2026-09-30T00:00:00Z') },
+      });
+      const pricing = await tx.pricing.create({ data: { establishmentId: s1, seasonId: season.id } });
+      await tx.rate.create({ data: { establishmentId: s1, pricingId: pricing.id, sectorId: griglia.id, price: 35 } });
+
       retired = (await tx.umbrella.create({
         data: {
           establishmentId: s1, rowId: null, label: 'MV-R', logicalOrder: 4,
@@ -95,6 +104,11 @@ describe('Establishment umbrellas move (e2e)', () => {
     for (const s of [s1, s2]) {
       await prisma.forTenant(s, async (tx) => {
         await tx.umbrella.deleteMany({ where: { establishmentId: s } });
+        // Prima dei settori: `Rate.sector` e' `onDelete: Restrict` (D-058), quindi una tariffa viva
+        // impedisce di cancellare il settore che nomina.
+        await tx.rate.deleteMany({ where: { establishmentId: s } });
+        await tx.pricing.deleteMany({ where: { establishmentId: s } });
+        await tx.season.deleteMany({ where: { establishmentId: s } });
         await tx.row.deleteMany({ where: { establishmentId: s } });
         await tx.sector.deleteMany({ where: { establishmentId: s } });
       });
@@ -112,6 +126,17 @@ describe('Establishment umbrellas move (e2e)', () => {
       });
       return rows.map((u) => [u.label, u.logicalOrder] as [string, number]);
     });
+
+  // L'editor deve poter dichiarare, PRIMA di spostare fuori dal settore, che il prezzo dei rinnovi
+  // cambiera' base. L'informazione viaggia con la struttura invece che da `GET /rates` perche' li'
+  // servirebbe `pricing.manage`, che chi gestisce la struttura puo' non avere (D-063), e perche'
+  // le tariffe sono per stagione mentre la conseguenza e' su una stagione futura.
+  it('la struttura dichiara quali settori hanno tariffe dedicate', async () => {
+    const res = await request(app.getHttpServer()).get('/api/establishment/structure').set(...bearer(adminT)).expect(200);
+    const flags = (res.body.sectors as { name: string; hasDedicatedRates: boolean }[])
+      .map((s) => [s.name, s.hasDedicatedRates] as const);
+    expect(Object.fromEntries(flags)).toEqual({ Griglia: true, Levante: false, Palme: false });
+  });
 
   it('403 per staff', async () => {
     await request(app.getHttpServer()).post(`/api/establishment/umbrellas/${m1}/move`).set(...bearer(staffT))

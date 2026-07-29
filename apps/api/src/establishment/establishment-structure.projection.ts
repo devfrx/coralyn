@@ -2,7 +2,7 @@ import type { EstablishmentStructureDTO, RetiredUmbrellaDTO, SectorKind, Structu
 
 type RawUmbrella = { id: string; label: string; umbrellaTypeId: string | null; logicalOrder: number };
 type RawRow = { id: string; label: string; sortOrder: number; umbrellas: RawUmbrella[] };
-type RawSector = { id: string; name: string; sortOrder: number; kind: string; rows: RawRow[] };
+type RawSector = { id: string; name: string; sortOrder: number; kind: string; _count: { rates: number }; rows: RawRow[] };
 type RawType = { id: string; name: string; sortOrder: number; icon: string | null };
 
 export function toStructureUmbrella(u: RawUmbrella): StructureUmbrellaDTO {
@@ -20,7 +20,10 @@ export function toStructureRow(r: RawRow): StructureRowDTO {
 }
 
 export function toStructureSector(s: RawSector): StructureSectorDTO {
-  return { id: s.id, name: s.name, sortOrder: s.sortOrder, kind: s.kind as SectorKind, rows: s.rows.map(toStructureRow) };
+  return {
+    id: s.id, name: s.name, sortOrder: s.sortOrder, kind: s.kind as SectorKind,
+    hasDedicatedRates: s._count.rates > 0, rows: s.rows.map(toStructureRow),
+  };
 }
 
 export function toEstablishmentStructure(raw: { sectors: RawSector[]; umbrellaTypes: RawType[] }): EstablishmentStructureDTO {

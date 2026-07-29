@@ -772,7 +772,11 @@ export type SectorKind = 'grid' | 'special';
 /** Ombrellone nell'editor struttura (senza stato prenotazioni, a differenza di UmbrellaDTO della mappa). */
 export interface StructureUmbrellaDTO { id: string; label: string; umbrellaTypeId: string | null; }
 export interface StructureRowDTO { id: string; label: string; sortOrder: number; umbrellas: StructureUmbrellaDTO[]; }
-export interface StructureSectorDTO { id: string; name: string; sortOrder: number; kind: SectorKind; rows: StructureRowDTO[]; }
+/** `hasDedicatedRates` = esiste almeno una tariffa che nomina QUESTO settore (in una stagione
+ *  qualsiasi). Serve all'editor per dichiarare, prima di spostare un ombrellone fuori dal settore,
+ *  che il prezzo dei rinnovi futuri cambierà base. Non dice che il settore sia prezzato: senza
+ *  tariffe dedicate lo è comunque, dai wildcard. */
+export interface StructureSectorDTO { id: string; name: string; sortOrder: number; kind: SectorKind; hasDedicatedRates: boolean; rows: StructureRowDTO[]; }
 /** Albero completo (GET /api/establishment/structure, admin-only). */
 export interface EstablishmentStructureDTO {
   sectors: StructureSectorDTO[];   // ordinati per sortOrder; ogni fila per sortOrder, ombrelloni per logicalOrder

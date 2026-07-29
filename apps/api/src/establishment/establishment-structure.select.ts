@@ -15,6 +15,11 @@ export const SECTOR_SELECT = Prisma.validator<Prisma.SectorSelect>()({
   name: true,
   sortOrder: true,
   kind: true,
+  // Basta sapere SE ne esiste una: il conteggio viaggia nella stessa query (nessun N+1) e non
+  // richiede al chiamante il permesso sul listino, che è invece quello che chiederebbe
+  // `GET /rates`. Non è filtrato per stagione di proposito: una tariffa dedicata in una stagione
+  // qualsiasi è comunque una base di prezzo che lo spostamento cambierebbe.
+  _count: { select: { rates: true } },
   rows: { orderBy: { sortOrder: 'asc' }, select: ROW_SELECT },
 });
 

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
-import { Icon, Drawer, Skeleton, EmptyState, useDelayedLoading } from '@coralyn/ui-kit';
+import { Icon, Drawer, Skeleton, EmptyState, ConfirmDialog, useDelayedLoading } from '@coralyn/ui-kit';
 import { Permission } from '@coralyn/contracts';
 import { useSessionStore } from '@/stores/session';
 import { useMediaQuery } from '@/lib/useMediaQuery';
@@ -42,8 +42,37 @@ const previewSectors = computed(() => {
   if (!moveUmbrella.isPending.value || !vars) return sectors;
   return applyMove(sectors, vars.id, vars.rowId, vars.position);
 });
+/**
+ * Disclosure, non blocco (spec §2.5). Se una tariffa nomina il settore di partenza o quello
+ * d'arrivo, il prezzo dei RINNOVI cambia base — `renew()` ripassa dal pricing e risolve la
+ * posizione corrente — e l'unica cosa scorretta sarebbe farlo in silenzio. Bloccare sarebbe
+ * sbagliato nel merito: una tariffa «Settore A» *deve* smettere di coprire chi esce da A.
+ *
+ * La bandiera arriva con la struttura e non da `GET /rates`: là servirebbe `pricing.manage`, che
+ * chi gestisce la struttura può non avere (D-063), e le tariffe sono per stagione mentre la
+ * conseguenza è su una stagione futura.
+ */
+const pendingMove = ref<{ umbrellaId: string; label: string; rowId: string; position: number; from: string; to: string } | null>(null);
+
 function onMoveUmbrella(umbrellaId: string, rowId: string, position: number): void {
+  const origin = data.value ? findUmbrella(data.value, umbrellaId) : null;
+  const destination = data.value?.sectors.find((s) => s.rows.some((r) => r.id === rowId)) ?? null;
+  if (origin && destination && origin.sector.id !== destination.id
+    && (origin.sector.hasDedicatedRates || destination.hasDedicatedRates)) {
+    pendingMove.value = {
+      umbrellaId, label: origin.umbrella.label, rowId, position,
+      from: origin.sector.name, to: destination.name,
+    };
+    return;
+  }
   moveUmbrella.mutate({ id: umbrellaId, rowId, position });
+}
+
+function confirmMove(): void {
+  const pending = pendingMove.value;
+  if (!pending) return;
+  pendingMove.value = null;
+  moveUmbrella.mutate({ id: pending.umbrellaId, rowId: pending.rowId, position: pending.position });
 }
 
 const isDesktop = useMediaQuery('(min-width: 1024px)');
@@ -178,5 +207,18 @@ onUnmounted(() => window.removeEventListener('keydown', onKeydown));
         </div>
       </Drawer>
     </div>
+
+    <!-- Nessun componente nuovo: è il ConfirmDialog di ui-kit con contenuto nello slot, come già
+         fa ADR-0052 per il distruttivo. Il tono resta `default`: non si sta distruggendo nulla. -->
+    <ConfirmDialog :open="pendingMove !== null" @update:open="(v: boolean) => { if (!v) pendingMove = null; }"
+      title="Il prezzo dei rinnovi cambierà base" confirm-label="Sposta comunque" data-testid="move-disclosure"
+      @confirm="confirmMove">
+      <p v-if="pendingMove" class="text-[13px] leading-relaxed text-[var(--color-text-2nd)]">
+        Il listino ha tariffe dedicate a «{{ pendingMove.from }}» o a «{{ pendingMove.to }}».
+        Spostando l’ombrellone <strong>{{ pendingMove.label }}</strong> in «{{ pendingMove.to }}»,
+        i <strong>rinnovi futuri</strong> saranno prezzati con le tariffe di «{{ pendingMove.to }}».
+        Le prenotazioni già registrate non cambiano: il loro prezzo è uno snapshot scritto alla conferma.
+      </p>
+    </ConfirmDialog>
   </section>
 </template>

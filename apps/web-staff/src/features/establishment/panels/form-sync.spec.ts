@@ -44,12 +44,12 @@ describe('pannelli form — sync per id, non per identità oggetto', () => {
 
   it('SectorPanel: refetch stesso id → bozza preservata; id diverso → form resettato', async () => {
     const w = mountApp(SectorPanel, { props: {
-      sector: { id: 's-1', name: 'Centro', sortOrder: 1, kind: 'grid', rows: [] }, canManage: true,
+      sector: { id: 's-1', name: 'Centro', sortOrder: 1, kind: 'grid', hasDedicatedRates: false, rows: [] }, canManage: true,
     } });
     await w.find('[data-testid="sector-name"]').setValue('Centro-bozza');
-    await w.setProps({ sector: { id: 's-1', name: 'Centro', sortOrder: 1, kind: 'grid', rows: [] } });
+    await w.setProps({ sector: { id: 's-1', name: 'Centro', sortOrder: 1, kind: 'grid', hasDedicatedRates: false, rows: [] } });
     expect(input(w, 'sector-name')).toBe('Centro-bozza');
-    await w.setProps({ sector: { id: 's-2', name: 'Speciali', sortOrder: 2, kind: 'special', rows: [] } });
+    await w.setProps({ sector: { id: 's-2', name: 'Speciali', sortOrder: 2, kind: 'special', hasDedicatedRates: false, rows: [] } });
     expect(input(w, 'sector-name')).toBe('Speciali');
     expect(w.get('[data-testid="sector-kind"]').text()).toContain('Speciali: posti fuori griglia');
   });

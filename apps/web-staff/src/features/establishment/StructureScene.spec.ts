@@ -8,26 +8,26 @@ import type { StructureSectorDTO } from '@coralyn/contracts';
 enableAutoUnmount(afterEach);
 
 const SECTORS: StructureSectorDTO[] = [
-  { id: 's-1', name: 'Centro', sortOrder: 1, kind: 'grid', rows: [
+  { id: 's-1', name: 'Centro', sortOrder: 1, kind: 'grid', hasDedicatedRates: false, rows: [
     { id: 'r-1', label: 'Fila 1', sortOrder: 1, umbrellas: [
       { id: 'u-1', label: 'A1', umbrellaTypeId: null },
       { id: 'u-2', label: 'A2', umbrellaTypeId: 'typ-1' },
     ] },
   ] },
-  { id: 's-2', name: 'Speciali', sortOrder: 2, kind: 'special', rows: [] },
+  { id: 's-2', name: 'Speciali', sortOrder: 2, kind: 'special', hasDedicatedRates: false, rows: [] },
 ];
 const base = { sectors: SECTORS, types: [], selectedSectorId: 's-1', selection: { kind: 'beach' } as const, selectMode: false, canManage: true, canDrag: true };
 
 const SECTORS_NO_ROWS: StructureSectorDTO[] = [
-  { id: 's-1', name: 'Centro', sortOrder: 1, kind: 'grid', rows: [] },
-  { id: 's-2', name: 'Speciali', sortOrder: 2, kind: 'special', rows: [] },
+  { id: 's-1', name: 'Centro', sortOrder: 1, kind: 'grid', hasDedicatedRates: false, rows: [] },
+  { id: 's-2', name: 'Speciali', sortOrder: 2, kind: 'special', hasDedicatedRates: false, rows: [] },
 ];
 
 const SECTORS_ROWS_NO_UMBRELLAS: StructureSectorDTO[] = [
-  { id: 's-1', name: 'Centro', sortOrder: 1, kind: 'grid', rows: [
+  { id: 's-1', name: 'Centro', sortOrder: 1, kind: 'grid', hasDedicatedRates: false, rows: [
     { id: 'r-1', label: 'Fila 1', sortOrder: 1, umbrellas: [] },
   ] },
-  { id: 's-2', name: 'Speciali', sortOrder: 2, kind: 'special', rows: [] },
+  { id: 's-2', name: 'Speciali', sortOrder: 2, kind: 'special', hasDedicatedRates: false, rows: [] },
 ];
 
 describe('StructureScene', () => {
@@ -160,11 +160,11 @@ describe('StructureScene', () => {
 // sono nel DOM e nessun rilascio puo' raggiungerle: senza la molla lo spostamento fra settori
 // sarebbe capacita' dell'API senza alcun percorso nel prodotto.
 const SECTORS_SPRING: StructureSectorDTO[] = [
-  { id: 's-1', name: 'Centro', sortOrder: 1, kind: 'grid', rows: [
+  { id: 's-1', name: 'Centro', sortOrder: 1, kind: 'grid', hasDedicatedRates: false, rows: [
     { id: 'r-1', label: 'Fila 1', sortOrder: 1, umbrellas: [{ id: 'u-1', label: 'A1', umbrellaTypeId: null }] },
   ] },
-  { id: 's-2', name: 'Speciali', sortOrder: 2, kind: 'special', rows: [] },
-  { id: 's-3', name: 'Levante', sortOrder: 3, kind: 'grid', rows: [
+  { id: 's-2', name: 'Speciali', sortOrder: 2, kind: 'special', hasDedicatedRates: false, rows: [] },
+  { id: 's-3', name: 'Levante', sortOrder: 3, kind: 'grid', hasDedicatedRates: false, rows: [
     { id: 'r-3', label: 'Fila 3', sortOrder: 1, umbrellas: [] },
   ] },
 ];

@@ -28,12 +28,12 @@ describe('SectorsService', () => {
     tx.sector.findFirst
       .mockResolvedValueOnce(null)            // clash check
       .mockResolvedValueOnce({ sortOrder: 4 }); // nextSortOrder
-    tx.sector.create.mockResolvedValue({ id: 'n', name: 'Centro', sortOrder: 5, kind: 'grid', rows: [] });
+    tx.sector.create.mockResolvedValue({ id: 'n', name: 'Centro', sortOrder: 5, kind: 'grid', _count: { rates: 0 }, rows: [] });
     const res = await service.create({ name: '  Centro  ', kind: 'grid' });
     expect(tx.sector.create).toHaveBeenCalledWith(expect.objectContaining({
       data: { establishmentId: TENANT, name: 'Centro', kind: 'grid', sortOrder: 5 },
     }));
-    expect(res).toEqual({ id: 'n', name: 'Centro', sortOrder: 5, kind: 'grid', rows: [] });
+    expect(res).toEqual({ id: 'n', name: 'Centro', sortOrder: 5, kind: 'grid', hasDedicatedRates: false, rows: [] });
   });
 
   it('update: 404 se assente', async () => {
@@ -46,9 +46,9 @@ describe('SectorsService', () => {
     const { service, tx } = makeService();
     tx.sector.findUnique.mockResolvedValue({ id: 's', name: 'Centro', sortOrder: 1, kind: 'grid' });
     tx.sector.findFirst.mockResolvedValue(null); // no clash
-    tx.sector.update.mockResolvedValue({ id: 's', name: 'Centro Mare', sortOrder: 1, kind: 'grid', rows: [] });
+    tx.sector.update.mockResolvedValue({ id: 's', name: 'Centro Mare', sortOrder: 1, kind: 'grid', _count: { rates: 0 }, rows: [] });
     const res = await service.update('s', { name: 'Centro Mare' });
-    expect(res).toEqual({ id: 's', name: 'Centro Mare', sortOrder: 1, kind: 'grid', rows: [] });
+    expect(res).toEqual({ id: 's', name: 'Centro Mare', sortOrder: 1, kind: 'grid', hasDedicatedRates: false, rows: [] });
   });
 
   it('remove: 404 se assente', async () => {
@@ -59,7 +59,7 @@ describe('SectorsService', () => {
 
   it('remove: 409 con messaggio sulle sole file se contiene file (non nomina le tariffe)', async () => {
     const { service, tx } = makeService();
-    tx.sector.findUnique.mockResolvedValue({ id: 's', name: 'Centro', sortOrder: 1, kind: 'grid', rows: [] });
+    tx.sector.findUnique.mockResolvedValue({ id: 's', name: 'Centro', sortOrder: 1, kind: 'grid', _count: { rates: 0 }, rows: [] });
     tx.row.count.mockResolvedValue(2);
     tx.rate.count.mockResolvedValue(0);
     await expect(service.remove('s')).rejects.toBeInstanceOf(ConflictException);
@@ -69,7 +69,7 @@ describe('SectorsService', () => {
 
   it('remove: 409 con messaggio sulle sole tariffe se referenziato da tariffe (non nomina le file)', async () => {
     const { service, tx } = makeService();
-    tx.sector.findUnique.mockResolvedValue({ id: 's', name: 'Centro', sortOrder: 1, kind: 'grid', rows: [] });
+    tx.sector.findUnique.mockResolvedValue({ id: 's', name: 'Centro', sortOrder: 1, kind: 'grid', _count: { rates: 0 }, rows: [] });
     tx.row.count.mockResolvedValue(0);
     tx.rate.count.mockResolvedValue(3);
     await expect(service.remove('s')).rejects.toBeInstanceOf(ConflictException);
@@ -79,7 +79,7 @@ describe('SectorsService', () => {
 
   it('remove: 409 con messaggio combinato se ha sia file sia tariffe', async () => {
     const { service, tx } = makeService();
-    tx.sector.findUnique.mockResolvedValue({ id: 's', name: 'Centro', sortOrder: 1, kind: 'grid', rows: [] });
+    tx.sector.findUnique.mockResolvedValue({ id: 's', name: 'Centro', sortOrder: 1, kind: 'grid', _count: { rates: 0 }, rows: [] });
     tx.row.count.mockResolvedValue(2);
     tx.rate.count.mockResolvedValue(3);
     await expect(service.remove('s')).rejects.toThrow(
@@ -90,11 +90,11 @@ describe('SectorsService', () => {
 
   it('remove: elimina se vuoto e senza tariffe, ritorna il DTO', async () => {
     const { service, tx } = makeService();
-    tx.sector.findUnique.mockResolvedValue({ id: 's', name: 'Centro', sortOrder: 1, kind: 'grid', rows: [] });
+    tx.sector.findUnique.mockResolvedValue({ id: 's', name: 'Centro', sortOrder: 1, kind: 'grid', _count: { rates: 0 }, rows: [] });
     tx.row.count.mockResolvedValue(0);
     tx.rate.count.mockResolvedValue(0);
     const res = await service.remove('s');
     expect(tx.sector.delete).toHaveBeenCalledWith({ where: { id: 's' } });
-    expect(res).toEqual({ id: 's', name: 'Centro', sortOrder: 1, kind: 'grid', rows: [] });
+    expect(res).toEqual({ id: 's', name: 'Centro', sortOrder: 1, kind: 'grid', hasDedicatedRates: false, rows: [] });
   });
 });

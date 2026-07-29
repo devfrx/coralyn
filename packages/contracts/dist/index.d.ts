@@ -687,11 +687,16 @@ export interface StructureRowDTO {
     sortOrder: number;
     umbrellas: StructureUmbrellaDTO[];
 }
+/** `hasDedicatedRates` = esiste almeno una tariffa che nomina QUESTO settore (in una stagione
+ *  qualsiasi). Serve all'editor per dichiarare, prima di spostare un ombrellone fuori dal settore,
+ *  che il prezzo dei rinnovi futuri cambierà base. Non dice che il settore sia prezzato: senza
+ *  tariffe dedicate lo è comunque, dai wildcard. */
 export interface StructureSectorDTO {
     id: string;
     name: string;
     sortOrder: number;
     kind: SectorKind;
+    hasDedicatedRates: boolean;
     rows: StructureRowDTO[];
 }
 /** Albero completo (GET /api/establishment/structure, admin-only). */

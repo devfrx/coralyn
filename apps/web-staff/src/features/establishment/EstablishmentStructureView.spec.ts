@@ -7,6 +7,7 @@ import { mountApp, selectOption, permissionsOfRole } from '@/test/utils';
 import { server } from '@/mocks/server';
 import { useSessionStore } from '@/stores/session';
 import EstablishmentStructureView from './EstablishmentStructureView.vue';
+import StructureScene from './StructureScene.vue';
 import { STRUCTURE_FIXTURE } from './structure.fixtures';
 
 const tick = () => new Promise((r) => setTimeout(r, 0));
@@ -758,5 +759,74 @@ describe('EstablishmentStructureView — shell Cantiere', () => {
     expect(keys).toContainEqual(['map', 'e-1', useSessionStore().activeDate]);
     expect(keys).toContainEqual(['establishment', 'e-1', 'structure']);
     invalidate.mockRestore();
+  });
+
+  /**
+   * Disclosure sul prezzo (spec §2.5). I test entrano dal confine scena→shell invece di rifare la
+   * coreografia del gesto — trascina, sosta sul tab, aspetta la molla, rilascia — che è già provata
+   * in StructureRow.spec.ts e StructureScene.spec.ts. Qui si prova la DECISIONE, non il gesto.
+   */
+  describe('disclosure sul prezzo', () => {
+    // Due settori grid: solo il primo ha tariffe dedicate. Serve un albero apposta perché
+    // STRUCTURE_FIXTURE ha un solo grid, e uno spostamento fra settori non sarebbe rappresentabile.
+    const TWO_GRIDS = {
+      sectors: [
+        { id: 's-1', name: 'Centro', sortOrder: 1, kind: 'grid' as const, hasDedicatedRates: true, rows: [
+          { id: 'r-1', label: 'Fila 1', sortOrder: 1, umbrellas: [{ id: 'u-1', label: 'A1', umbrellaTypeId: null }] },
+        ] },
+        { id: 's-3', name: 'Levante', sortOrder: 2, kind: 'grid' as const, hasDedicatedRates: false, rows: [
+          { id: 'r-3', label: 'Fila 3', sortOrder: 1, umbrellas: [] },
+        ] },
+      ],
+      umbrellaTypes: [],
+    };
+
+    async function sceneMoves(structure: typeof TWO_GRIDS, rowId: string) {
+      server.use(http.get('/api/establishment/structure', () => HttpResponse.json(structure)));
+      let posted = false;
+      server.use(http.post('/api/establishment/umbrellas/:id/move', () => {
+        posted = true;
+        return HttpResponse.json({ id: 'u-1', label: 'A1', umbrellaTypeId: null });
+      }));
+      const w = mountApp(EstablishmentStructureView, { attachTo: document.body });
+      asAdmin();
+      await settle();
+      w.findComponent(StructureScene).vm.$emit('move-umbrella', 'u-1', rowId, 0);
+      await settle();
+      return { w, posted: () => posted };
+    }
+
+    it('fuori dal settore con tariffe dedicate: chiede prima, e NON scrive', async () => {
+      const { w, posted } = await sceneMoves(TWO_GRIDS, 'r-3');
+      expect(posted()).toBe(false);
+      // reka-ui teleporta il dialogo fuori dall'albero del wrapper: si guarda su document.body.
+      expect(document.body.textContent).toContain('Il prezzo dei rinnovi cambierà base');
+      expect(document.body.textContent).toContain('Levante');
+      w.unmount();
+    });
+
+    it('confermando, lo spostamento parte', async () => {
+      const { w, posted } = await sceneMoves(TWO_GRIDS, 'r-3');
+      const confirm = [...document.body.querySelectorAll('button')].find((b) => b.textContent?.includes('Sposta comunque'))!;
+      confirm.click();
+      await settle();
+      expect(posted()).toBe(true);
+      w.unmount();
+    });
+
+    it('dentro lo stesso settore non chiede nulla: il prezzo non cambia base', async () => {
+      const { w, posted } = await sceneMoves(TWO_GRIDS, 'r-1');
+      expect(posted()).toBe(true);
+      expect(document.body.textContent).not.toContain('Il prezzo dei rinnovi cambierà base');
+      w.unmount();
+    });
+
+    it('senza tariffe dedicate da nessuna delle due parti il gesto è diretto', async () => {
+      const senzaTariffe = { ...TWO_GRIDS, sectors: TWO_GRIDS.sectors.map((s) => ({ ...s, hasDedicatedRates: false })) };
+      const { w, posted } = await sceneMoves(senzaTariffe, 'r-3');
+      expect(posted()).toBe(true);
+      expect(document.body.textContent).not.toContain('Il prezzo dei rinnovi cambierà base');
+      w.unmount();
+    });
   });
 });
