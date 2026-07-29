@@ -5,10 +5,11 @@ import { Icon, Drawer, Skeleton, EmptyState, useDelayedLoading } from '@coralyn/
 import { Permission } from '@coralyn/contracts';
 import { useSessionStore } from '@/stores/session';
 import { useMediaQuery } from '@/lib/useMediaQuery';
-import { useEstablishmentStructure } from './useEstablishmentStructure';
+import { useEstablishmentStructure, useMoveUmbrella } from './useEstablishmentStructure';
 import StructureScene from './StructureScene.vue';
 import InspectorPanels from './InspectorPanels.vue';
 import { findUmbrella, type Selection } from './structureSelection';
+import { applyMove } from './umbrellaMove';
 
 const session = useSessionStore();
 const router = useRouter();
@@ -29,6 +30,21 @@ const counts = computed(() => {
   const umbrellas = s.reduce((n, x) => n + x.rows.reduce((m, r) => m + r.umbrellas.length, 0), 0);
   return { sectors: s.length, rows, umbrellas, types: data.value?.umbrellaTypes.length ?? 0 };
 });
+
+// Spostamento per trascinamento (D-038). L'anteprima ottimistica si fa QUI e non nel data-layer:
+// `mutationResource` restituisce l'oggetto `useMutation` intero (`useQueryResource.ts:31`), quindi
+// `isPending` e `variables` sono già leggibili. Senza anteprima la cella resta ferma fino alla
+// risposta del server e poi salta.
+const moveUmbrella = useMoveUmbrella();
+const previewSectors = computed(() => {
+  const sectors = data.value?.sectors ?? [];
+  const vars = moveUmbrella.variables.value;
+  if (!moveUmbrella.isPending.value || !vars) return sectors;
+  return applyMove(sectors, vars.id, vars.rowId, vars.position);
+});
+function onMoveUmbrella(umbrellaId: string, rowId: string, position: number): void {
+  moveUmbrella.mutate({ id: umbrellaId, rowId, position });
+}
 
 const isDesktop = useMediaQuery('(min-width: 1024px)');
 const drawerOpen = computed({
@@ -138,13 +154,14 @@ onUnmounted(() => window.removeEventListener('keydown', onKeydown));
     <EmptyState v-else-if="!isLoading && !data" message="Struttura non disponibile." />
 
     <div v-else-if="data" class="grid min-h-0 flex-1 grid-cols-1 overflow-hidden rounded-[var(--radius-lg)] border border-[var(--color-border)] lg:grid-cols-[1fr_320px]">
-      <StructureScene :sectors="data.sectors" :types="data.umbrellaTypes" :selected-sector-id="selectedSectorId"
+      <StructureScene :sectors="previewSectors" :types="data.umbrellaTypes" :selected-sector-id="selectedSectorId"
         :selection="selection" :select-mode="selectMode" :can-manage="canManage" :can-drag="isDesktop"
         @select-sector="onSelectSector" @create-sector="selection = { kind: 'create-sector' }"
         @select-row="(id) => selection = { kind: 'row', id }" @create-row="(sid) => selection = { kind: 'create-row', sectorId: sid }"
         @select-umbrella="onSelectUmbrella" @create-umbrella="(rid) => selection = { kind: 'create-umbrella', rowId: rid }"
         @select-beach="reset" @toggle-select-mode="toggleSelectMode"
-        @row-generate="(id) => selection = { kind: 'row', id, focus: 'generate' }" @row-danger="(id) => selection = { kind: 'row', id, focus: 'danger' }" />
+        @row-generate="(id) => selection = { kind: 'row', id, focus: 'generate' }" @row-danger="(id) => selection = { kind: 'row', id, focus: 'danger' }"
+        @move-umbrella="onMoveUmbrella" />
 
       <aside v-if="isDesktop" data-testid="inspector" class="min-w-0 overflow-auto border-l border-[var(--color-border)] bg-[var(--color-raised)]" aria-label="Ispettore">
         <InspectorPanels :data="data" :selection="selection" :can-manage="canManage"

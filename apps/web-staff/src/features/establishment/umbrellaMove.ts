@@ -1,4 +1,4 @@
-import type { SectorKind } from '@coralyn/contracts';
+import type { SectorKind, StructureSectorDTO } from '@coralyn/contracts';
 
 /**
  * Il minimo di un rettangolo che serve a decidere dove cade il puntatore. Un `DOMRect` vero
@@ -30,6 +30,35 @@ export interface UmbrellaDrag { umbrellaId: string; fromRowId: string; kind: Sec
  */
 export function isCompatible(from: SectorKind, to: SectorKind): boolean {
   return from === to;
+}
+
+/**
+ * Applica lo spostamento all'albero della struttura, per l'ANTEPRIMA ottimistica: senza, la cella
+ * non si muove affatto finche' il server non risponde, e poi salta.
+ *
+ * Riproduce la semantica dell'API invece di approssimarla: `position` e' l'indice FINALE nella fila
+ * di destinazione, cioe' l'indice d'inserimento in una fila da cui l'ombrellone e' gia' uscito. Se
+ * i due divergessero, l'anteprima mostrerebbe una disposizione che il refetch poi smentisce.
+ *
+ * Un id sconosciuto restituisce l'albero invariato: l'anteprima non e' il posto dove far fallire
+ * qualcosa, e il server resta l'unica autorita' sull'esito.
+ */
+export function applyMove(
+  sectors: readonly StructureSectorDTO[],
+  umbrellaId: string,
+  toRowId: string,
+  position: number,
+): StructureSectorDTO[] {
+  const moved = sectors.flatMap((s) => s.rows).flatMap((r) => r.umbrellas).find((u) => u.id === umbrellaId);
+  if (!moved) return [...sectors];
+  return sectors.map((s) => ({
+    ...s,
+    rows: s.rows.map((r) => {
+      const without = r.umbrellas.filter((u) => u.id !== umbrellaId);
+      if (r.id !== toRowId) return without.length === r.umbrellas.length ? r : { ...r, umbrellas: without };
+      return { ...r, umbrellas: [...without.slice(0, position), moved, ...without.slice(position)] };
+    }),
+  }));
 }
 
 interface VisualLine { indices: number[]; top: number; bottom: number }

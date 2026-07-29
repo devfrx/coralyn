@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { http, HttpResponse } from 'msw';
 import { flushPromises, enableAutoUnmount } from '@vue/test-utils';
+import { QueryClient } from '@tanstack/vue-query';
 import { Permission, Role } from '@coralyn/contracts';
 import { mountApp, selectOption, permissionsOfRole } from '@/test/utils';
 import { server } from '@/mocks/server';
@@ -671,5 +672,91 @@ describe('EstablishmentStructureView — shell Cantiere', () => {
     // L'assenza dev'essere MIRATA: se sparisse tutta la scena il test sopra passerebbe lo stesso,
     // e direbbe soltanto che il componente non è stato reso.
     expect(w.findAll('[data-testid="scene-cell"]')).toHaveLength(2);
+  });
+
+  /**
+   * jsdom restituisce rettangoli a ZERO: senza queste misure la geometria non verrebbe esercitata
+   * e il calcolo della posizione direbbe sempre 0, qualunque sia il puntatore. Sono quelle vere:
+   * cella 40px, gap 9px (`structure-scene.css:17-18`).
+   */
+  function layoutCells(w: ReturnType<typeof mountApp>): void {
+    w.findAll('[data-testid="scene-cell"]').forEach((c, i) => {
+      const left = i * 49;
+      c.element.getBoundingClientRect = () =>
+        ({ left, right: left + 40, top: 0, bottom: 40, x: left, y: 0, width: 40, height: 40, toJSON: () => ({}) }) as DOMRect;
+    });
+  }
+  const asAdmin = () => {
+    useSessionStore().user = { id: 'u-1', email: 'admin@coralyn.dev', role: Role.Admin, establishmentId: 'e-1', establishmentName: 'Lido Maestrale', permissions: permissionsOfRole(Role.Admin) };
+  };
+
+  it('il rilascio manda POST :id/move con la posizione calcolata dalla geometria', async () => {
+    useFixture();
+    let movedId: string | null = null;
+    let body: unknown = null;
+    server.use(http.post('/api/establishment/umbrellas/:id/move', async ({ request, params }) => {
+      movedId = params.id as string;
+      body = await request.json();
+      return HttpResponse.json({ id: 'u-1', label: 'A1', umbrellaTypeId: null });
+    }));
+    const w = mountApp(EstablishmentStructureView, { attachTo: document.body });
+    asAdmin();
+    await settle();
+    layoutCells(w);
+
+    await w.findAll('[data-testid="drag-handle"]')[0].trigger('dragstart');
+    // Oltre l'ultima cella: A1 esce dal calcolo, resta la sola metà di A2 (69), superata.
+    await w.find('.st-cells').trigger('drop', { clientX: 300, clientY: 20 });
+    await settle();
+
+    expect(movedId).toBe('u-1');
+    expect(body).toEqual({ rowId: 'r-1', position: 1 });
+  });
+
+  it('anteprima ottimistica: le celle si riordinano PRIMA che il server risponda', async () => {
+    useFixture();
+    let release: () => void = () => {};
+    server.use(http.post('/api/establishment/umbrellas/:id/move', async () => {
+      await new Promise<void>((resolve) => { release = resolve; });
+      return HttpResponse.json({ id: 'u-1', label: 'A1', umbrellaTypeId: null });
+    }));
+    const w = mountApp(EstablishmentStructureView, { attachTo: document.body });
+    asAdmin();
+    await settle();
+    layoutCells(w);
+    expect(w.findAll('[data-testid="scene-cell"] button').map((b) => b.text())).toEqual(['A1', 'A2']);
+
+    await w.findAll('[data-testid="drag-handle"]')[0].trigger('dragstart');
+    await w.find('.st-cells').trigger('drop', { clientX: 300, clientY: 20 });
+    await settle();
+
+    // La mutation è ancora pending e il server non ha detto nulla: se questo passasse senza
+    // anteprima, la cella resterebbe ferma fino alla risposta e poi salterebbe.
+    expect(w.findAll('[data-testid="scene-cell"] button').map((b) => b.text())).toEqual(['A2', 'A1']);
+    release();
+    await settle();
+  });
+
+  // L'ordine dell'editor È l'ordine della Mappa operativa: `map.service.ts:22,25,26` ordina con gli
+  // stessi campi. Senza questa invalidazione chi ha la Mappa aperta al banco resta con la
+  // disposizione vecchia — e nessuna mutazione di struttura la invalidava, non solo il move.
+  it('il move invalida anche la Mappa del giorno', async () => {
+    useFixture();
+    server.use(http.post('/api/establishment/umbrellas/:id/move', () =>
+      HttpResponse.json({ id: 'u-1', label: 'A1', umbrellaTypeId: null })));
+    const invalidate = vi.spyOn(QueryClient.prototype, 'invalidateQueries');
+    const w = mountApp(EstablishmentStructureView, { attachTo: document.body });
+    asAdmin();
+    await settle();
+    layoutCells(w);
+
+    await w.findAll('[data-testid="drag-handle"]')[0].trigger('dragstart');
+    await w.find('.st-cells').trigger('drop', { clientX: 300, clientY: 20 });
+    await settle();
+
+    const keys = invalidate.mock.calls.map((c) => (c[0] as { queryKey: readonly unknown[] }).queryKey);
+    expect(keys).toContainEqual(['map', 'e-1', useSessionStore().activeDate]);
+    expect(keys).toContainEqual(['establishment', 'e-1', 'structure']);
+    invalidate.mockRestore();
   });
 });
