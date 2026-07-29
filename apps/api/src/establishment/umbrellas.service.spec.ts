@@ -1,5 +1,9 @@
+import 'reflect-metadata';
 import { ConflictException, NotFoundException, UnprocessableEntityException } from '@nestjs/common';
 import { UmbrellasService } from './umbrellas.service';
+import { UmbrellasController } from './umbrellas.controller';
+import { Permission } from '../identity/permission';
+import { PERMISSION_KEY } from '../identity/permission.decorator';
 import { TEST_TENANT as TENANT, fakeTenantPrisma, fakeTenantContext } from '../test/tenant-prisma';
 
 function makeService() {
@@ -469,6 +473,24 @@ describe('UmbrellasService', () => {
         where: { retiredAt: { not: null } }, orderBy: { retiredAt: 'desc' },
       }));
       expect(list[0]).toEqual({ id: 'u-1', label: '12', umbrellaTypeId: null, retiredAt: '2026-07-22T10:00:00.000Z', retiredFrom: 'Centro · F1' });
+    });
+  });
+
+  // Sta qui, accanto alle altre prove sull'endpoint, invece che in un file dedicato a una sola
+  // asserzione. È l'UNICO presidio che rende visibile la scelta: `authorization-coverage.spec.ts`
+  // legge «metodo ?? classe», quindi accetterebbe l'eredità e resterebbe verde anche togliendo il
+  // decoratore da `move`. Un permesso implicito è un permesso non deciso, e questa è una scrittura
+  // che cambia ciò che l'operatore vede al banco.
+  describe('move: il permesso è dichiarato sul metodo', () => {
+    it('@RequiresPermission sta sul metodo, non solo sulla classe', () => {
+      // Le funzioni non ereditano i metadati del costruttore: leggendo il metodo si legge SOLO ciò
+      // che è stato dichiarato lì sopra.
+      const onMethod = Reflect.getMetadata(PERMISSION_KEY, UmbrellasController.prototype.move) as Permission | undefined;
+      expect(onMethod).toBe(Permission.StructureManage);
+      // E lo ripete, non lo abbassa: a differenza della GET retired, che dichiara di proposito un
+      // permesso più debole di quello di classe.
+      const onClass = Reflect.getMetadata(PERMISSION_KEY, UmbrellasController) as Permission | undefined;
+      expect(onMethod).toBe(onClass);
     });
   });
 });

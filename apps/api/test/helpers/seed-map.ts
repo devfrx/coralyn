@@ -61,66 +61,6 @@ export async function seedMapTenant(
   });
 }
 
-export interface SeededRow { id: string; umbrellas: string[] }
-
-export interface MultiSectorSeedIds {
-  /** Secondo settore `grid`, con DUE file: destinazione legittima di uno spostamento. */
-  gridSectorId: string;
-  gridRowA: SeededRow;
-  gridRowB: SeededRow;
-  /** Settore `special`: destinazione che uno spostamento da `grid` deve rifiutare. */
-  specialSectorId: string;
-  specialRow: SeededRow;
-}
-
-/**
- * Aggiunge a un tenant un secondo settore `grid` (due file) e un settore `special` (una fila).
- *
- * Sta accanto a `seedMapTenant` invece che dentro, e non è una preferenza: `seedMapTenant` è usato
- * da 16 spec e2e, e due di loro asseriscono la CARDINALITÀ del mondo seedato — `map.e2e-spec.ts:53`
- * (`sectors` di lunghezza 1) e `establishment.e2e-spec.ts:66` (`{ sectors: 1, umbrellas: 2, … }`).
- * Estendere l'helper condiviso avrebbe costretto a riscrivere asserzioni corrette per una fixture
- * che quelle spec non usano. Additivo, ogni spec dichiara il mondo che le serve.
- *
- * Non serve una `clean` dedicata: `cleanMapTenant` cancella tutti gli umbrella/row/sector del tenant.
- *
- * ⚠️ La fila B nasce con ordini SPARSI (10, 20). È lo stato in cui una fila finisce dopo il primo
- * spostamento verso un'altra fila — il buco non si richiude — quindi è il caso realistico, non
- * quello di laboratorio.
- */
-export async function seedMultiSectorTenant(
-  prisma: PrismaService,
-  establishmentId: TenantId,
-): Promise<MultiSectorSeedIds> {
-  return prisma.forTenant(establishmentId, async (tx) => {
-    const row = async (sectorId: string, label: string, sortOrder: number) =>
-      tx.row.create({ data: { establishmentId, sectorId, label, sortOrder } });
-    const umbrella = async (rowId: string, label: string, logicalOrder: number) =>
-      tx.umbrella.create({ data: { establishmentId, rowId, umbrellaTypeId: null, label, logicalOrder } });
-
-    const grid = await tx.sector.create({ data: { establishmentId, name: 'Levante', sortOrder: 2, kind: 'grid' } });
-    const rowA = await row(grid.id, 'Fila A', 1);
-    const a1 = await umbrella(rowA.id, 'A1', 1);
-    const a2 = await umbrella(rowA.id, 'A2', 2);
-    const rowB = await row(grid.id, 'Fila B', 2);
-    const b1 = await umbrella(rowB.id, 'B1', 10);
-    const b2 = await umbrella(rowB.id, 'B2', 20);
-
-    const special = await tx.sector.create({ data: { establishmentId, name: 'Palme', sortOrder: 3, kind: 'special' } });
-    const rowS = await row(special.id, 'Palme 1', 1);
-    const s1 = await umbrella(rowS.id, 'P1', 1);
-    const s2 = await umbrella(rowS.id, 'P2', 2);
-
-    return {
-      gridSectorId: grid.id,
-      gridRowA: { id: rowA.id, umbrellas: [a1.id, a2.id] },
-      gridRowB: { id: rowB.id, umbrellas: [b1.id, b2.id] },
-      specialSectorId: special.id,
-      specialRow: { id: rowS.id, umbrellas: [s1.id, s2.id] },
-    };
-  });
-}
-
 /** Pulisce la struttura mappa di un tenant (ordine FK: umbrellas → rows → sectors; types; slots). */
 export async function cleanMapTenant(
   prisma: PrismaService,
