@@ -170,6 +170,22 @@ const SECTORS_SPRING: StructureSectorDTO[] = [
 ];
 const springBase = { ...base, sectors: SECTORS_SPRING };
 
+// Gemella del presidio su «prima linea» in MapView.spec.ts. È la dichiarazione che l'ordine delle
+// file non è un elenco ma una distanza dal mare: da D-038 quell'ordine si cambia con un gesto,
+// quindi la promessa è verificabile a runtime e va verificata. Copertura precedente: zero righe.
+describe('StructureScene — la semantica dell’ordine è dichiarata', () => {
+  it('la didascalia del settore lega l’ordine delle file alla distanza dal mare', () => {
+    const w = mount(StructureScene, { props: base });
+    // Sulla frase, non sulla punteggiatura: è la CLAIM a dover restare, non la sua forma esatta.
+    expect(w.get('.st-sector-cap').text()).toMatch(/più in alto.*più vicine al mare/);
+  });
+
+  it('la didascalia c’è per ogni settore aperto, non solo per il primo', () => {
+    const w = mount(StructureScene, { props: { ...base, selectedSectorId: 's-2' } });
+    expect(w.get('.st-sector-cap').text()).toMatch(/più in alto.*più vicine al mare/);
+  });
+});
+
 describe('StructureScene — tab a molla (D-038)', () => {
   beforeEach(() => { vi.useFakeTimers(); });
   afterEach(() => { vi.useRealTimers(); });

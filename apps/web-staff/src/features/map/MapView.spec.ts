@@ -884,5 +884,37 @@ describe('MapView', () => {
     w.unmount();
   });
 
+  // «prima linea» è l'UNICA dichiarazione, in tutto il prodotto, che l'ordine delle file porti un
+  // significato fisico e non solo di elenco. Fino a D-038 quell'ordine non era modificabile da
+  // nessun gesto e la promessa non poteva essere smentita a runtime; ora lo è, quindi va tenuta.
+  // Prima di questo test la stringa aveva ZERO copertura:
+  // `grep -rn "prima linea|più in alto" apps/web-staff/src --include=*.spec.ts` → 0 righe.
+  it('«prima linea» sta solo sulla PRIMA fila resa, e le altre restano etichettate', async () => {
+    const umbrella = (id: string, rowId: string) => ({
+      id, label: id, umbrellaTypeId: 't-palma', rowId,
+      stateBySlot: { alba: 'free', giorno: 'free', tramonto: 'free' },
+    });
+    server.use(http.get('/api/map', () => HttpResponse.json({
+      ...mapSeed3,
+      sectors: [{
+        id: 's-centro', name: 'Centro', sortOrder: 1, kind: 'grid',
+        rows: [
+          { id: 'row-a', label: 'Fila A', sortOrder: 1, umbrellas: [umbrella('a1', 'row-a')] },
+          { id: 'row-b', label: 'Fila B', sortOrder: 2, umbrellas: [umbrella('b1', 'row-b')] },
+        ],
+      }],
+    })));
+    const w = await mountMap();
+    const rows = w.findAll('.map-row-in');
+    expect(rows).toHaveLength(2);
+    expect(rows[0].text()).toContain('prima linea');
+    expect(rows[1].text()).not.toContain('prima linea');
+    // L'assenza dev'essere MIRATA: senza queste due righe il test passerebbe anche se la seconda
+    // fila non fosse stata resa affatto.
+    expect(rows[0].text()).toContain('FILA A');
+    expect(rows[1].text()).toContain('FILA B');
+    w.unmount();
+  });
+
   afterEach(() => { vi.restoreAllMocks(); });
 });
