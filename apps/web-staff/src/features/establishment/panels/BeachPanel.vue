@@ -45,10 +45,44 @@ const restore = useRestoreUmbrella();
 const restoreRowByUmbrella = ref<Record<string, string>>({});
 const allRows = computed(() =>
   props.data.sectors.flatMap((s) => s.rows.map((r) => ({ id: r.id, label: r.label, sectorName: s.name }))));
+/**
+ * Il settore di provenienza sta dentro `retiredFrom`, lo snapshot «Settore · Fila» scritto al
+ * ritiro (`umbrellas.service.ts:169`). È testo, non un riferimento vivo: se il settore è stato
+ * rinominato dopo il ritiro non combacia più con nessuno esistente e il confronto per nome dice
+ * «diverso». Il verso dell'errore è quello giusto — si avvisa di troppo, non di meno.
+ */
+function sectorOfSnapshot(retiredFrom: string | null): string | null {
+  if (!retiredFrom) return null;
+  return retiredFrom.split(' · ')[0].trim() || null;
+}
+
+// Stessa disclosure dello spostamento (spec §5.6): il ripristino riaggancia a QUALSIASI fila,
+// quindi a qualsiasi settore, e finora lo faceva senza dire nulla sul prezzo.
+const pendingRestore = ref<{ id: string; label: string; rowId: string; from: string; to: string } | null>(null);
+
+function runRestore(id: string, rowId: string) {
+  restore.mutate({ id, rowId }, { onSuccess: () => pushToast('Ombrellone ripristinato.') });
+}
+
 function onRestore(id: string) {
   const rowId = restoreRowByUmbrella.value[id];
   if (!rowId) return;
-  restore.mutate({ id, rowId }, { onSuccess: () => pushToast('Ombrellone ripristinato.') });
+  const umbrella = retired.data.value?.find((u) => u.id === id) ?? null;
+  const target = props.data.sectors.find((s) => s.rows.some((r) => r.id === rowId)) ?? null;
+  const from = sectorOfSnapshot(umbrella?.retiredFrom ?? null);
+  const origin = from ? props.data.sectors.find((s) => s.name === from) ?? null : null;
+  if (umbrella && target && from && from !== target.name && (target.hasDedicatedRates || origin?.hasDedicatedRates)) {
+    pendingRestore.value = { id, label: umbrella.label, rowId, from, to: target.name };
+    return;
+  }
+  runRestore(id, rowId);
+}
+
+function confirmRestore() {
+  const pending = pendingRestore.value;
+  if (!pending) return;
+  pendingRestore.value = null;
+  runRestore(pending.id, pending.rowId);
 }
 </script>
 
@@ -124,5 +158,14 @@ function onRestore(id: string) {
     <ConfirmDialog :open="deleting !== null" @update:open="(v: boolean) => { if (!v) deleting = null; }"
       title="Eliminare definitivamente?" :description="`«${deleting?.name}» verrà rimossa dal catalogo. Se è in uso da ombrelloni non sarà eliminata.`"
       confirm-label="Elimina" tone="danger" @confirm="confirmDelete" />
+    <ConfirmDialog :open="pendingRestore !== null" @update:open="(v: boolean) => { if (!v) pendingRestore = null; }"
+      title="Il prezzo dei rinnovi cambierà base" confirm-label="Ripristina comunque" @confirm="confirmRestore">
+      <p v-if="pendingRestore" class="text-[13px] leading-relaxed text-[var(--color-text-2nd)]">
+        L’ombrellone <strong>{{ pendingRestore.label }}</strong> era stato ritirato da «{{ pendingRestore.from }}»
+        e sta tornando in «{{ pendingRestore.to }}», dove il listino ha tariffe dedicate.
+        I <strong>rinnovi futuri</strong> saranno prezzati con le tariffe di «{{ pendingRestore.to }}».
+        Le prenotazioni già registrate non cambiano: il loro prezzo è uno snapshot scritto alla conferma.
+      </p>
+    </ConfirmDialog>
   </div>
 </template>
