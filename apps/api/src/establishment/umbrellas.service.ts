@@ -1,13 +1,14 @@
 import { ConflictException, Injectable, NotFoundException, UnprocessableEntityException } from '@nestjs/common';
 import type { Prisma } from '@prisma/client';
 import type {
-  BulkDeleteUmbrellasInput, BulkDeleteUmbrellasResultDTO, BulkAssignUmbrellaTypeInput, BulkAssignUmbrellaTypeResultDTO, CreateUmbrellaInput, GenerateUmbrellasInput, GenerateUmbrellasResultDTO, RestoreUmbrellaInput, RetiredUmbrellaDTO, StructureUmbrellaDTO, UpdateUmbrellaInput,
+  BulkDeleteUmbrellasInput, BulkDeleteUmbrellasResultDTO, BulkAssignUmbrellaTypeInput, BulkAssignUmbrellaTypeResultDTO, CreateUmbrellaInput, GenerateUmbrellasInput, GenerateUmbrellasResultDTO, MoveUmbrellaInput, RestoreUmbrellaInput, RetiredUmbrellaDTO, StructureUmbrellaDTO, UpdateUmbrellaInput,
 } from '@coralyn/contracts';
 import { PrismaService } from '../prisma/prisma.service';
 import { TenantContext } from '../tenant/tenant-context';
 import { todayInRome, toDbDate } from '../common/dates';
 import { UMBRELLA_SELECT } from './establishment-structure.select';
 import { toStructureUmbrella, toRetiredUmbrella } from './establishment-structure.projection';
+import { planUmbrellaMove } from './umbrella-order';
 
 @Injectable()
 export class UmbrellasService {
@@ -147,6 +148,72 @@ export class UmbrellasService {
       });
       return { updated: res.count };
     });
+  }
+
+  /**
+   * Sposta un ombrellone attivo all'indice `position` di una fila, anche di un altro settore purché
+   * dello stesso `kind`. Nessuna guardia sulle prenotazioni, a differenza di `retire`: `Booking` e
+   * `BookingCoverage` puntano a `umbrellaId` e non a `rowId`, quindi la prenotazione segue
+   * l'ombrellone, e `totalPrice` è uno snapshot che nessun update riscrive.
+   */
+  async move(id: string, input: MoveUmbrellaInput): Promise<StructureUmbrellaDTO> {
+    const tenantId = this.tenant.require();
+    const result = await this.prisma.forTenant(tenantId, async (tx) => {
+      const existing = await tx.umbrella.findUnique({
+        where: { id },
+        include: { row: { select: { sectorId: true, sector: { select: { kind: true } } } } },
+      });
+      if (!existing) return null;
+      // Senza questa guardia il move RESUSCITA un ritirato: nessuna query di mappa o struttura
+      // filtra `retiredAt`, l'esclusione dipende solo dal `rowId` che `retire` azzera. Riassegnare
+      // una fila lo rimetterebbe in scena, prenotabile, con `retiredAt` ancora valorizzato.
+      if (existing.retiredAt != null) throw new ConflictException('Ombrellone ritirato: ripristinalo prima di spostarlo.');
+      // `rowId` è null solo sui ritirati (`retire` lo azzera, `restore` lo riassegna): dopo la
+      // guardia sopra la fila di origine c'è sempre. Il narrow serve al tipo, non a un caso vivo.
+      const fromRow = existing.row!;
+
+      // `establishmentId` esplicito, a differenza di `assertRow` che si affida alla sola policy
+      // RLS: qui si cambia il genitore di una riga, e la tenancy della destinazione si asserisce.
+      const destRow = await tx.row.findFirst({
+        where: { id: input.rowId, establishmentId: tenantId },
+        select: { id: true, sector: { select: { kind: true } } },
+      });
+      if (!destRow) throw new NotFoundException('Fila non trovata');
+      if (destRow.sector.kind !== fromRow.sector.kind) {
+        throw new UnprocessableEntityException('Un ombrellone può spostarsi solo in un settore della stessa tipologia.');
+      }
+
+      const others = await tx.umbrella.findMany({
+        where: { rowId: destRow.id, id: { not: id } },
+        orderBy: { logicalOrder: 'asc' },
+        select: { logicalOrder: true },
+      });
+      const plan = planUmbrellaMove({
+        destOrders: others.map((u) => u.logicalOrder),
+        position: input.position,
+        currentOrder: existing.rowId === destRow.id ? existing.logicalOrder : null,
+      });
+      if (!plan.ok) throw new UnprocessableEntityException('Posizione fuori dalla fila di destinazione.');
+      // No-op calcolato, non richiesta ignorata: la posizione chiesta è già quella occupata.
+      if (plan.write === null) {
+        return { id: existing.id, label: existing.label, umbrellaTypeId: existing.umbrellaTypeId, logicalOrder: existing.logicalOrder };
+      }
+
+      const { shift, targetOrder } = plan.write;
+      if (shift) {
+        await tx.umbrella.updateMany({
+          where: { rowId: destRow.id, logicalOrder: { gte: shift.fromOrder, lte: shift.toOrder } },
+          data: { logicalOrder: shift.delta === 1 ? { increment: 1 } : { decrement: 1 } },
+        });
+      }
+      return tx.umbrella.update({
+        where: { id },
+        data: { rowId: destRow.id, logicalOrder: targetOrder },
+        select: UMBRELLA_SELECT,
+      });
+    });
+    if (!result) throw new NotFoundException('Ombrellone non trovato');
+    return toStructureUmbrella(result);
   }
 
   /** Guardia: prenotazioni confermate non ancora concluse bloccano il ritiro (spec §4, D-055). */

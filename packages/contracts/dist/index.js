@@ -70,7 +70,7 @@ var Permission;
     Permission["SessionRead"] = "session.read";
 })(Permission || (exports.Permission = Permission = {}));
 /**
- * I due permessi che l'admin di un lido **non** può concedere né revocare (ADR-0063 §5.1),
+ * I due permessi che l'admin di un lido **non** può concedere né revocare (ADR-0063, Decision 7),
  * per ragioni diverse:
  *
  * - `platform.administer` è cross-tenant e del solo distributore (ADR-0015): non è del lido

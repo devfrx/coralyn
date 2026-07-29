@@ -9,10 +9,14 @@ import { GenerateUmbrellasDto } from './dto/generate-umbrellas.dto';
 import { BulkDeleteUmbrellasDto } from './dto/bulk-delete-umbrellas.dto';
 import { BulkAssignUmbrellaTypeDto } from './dto/bulk-assign-umbrella-type.dto';
 import { RestoreUmbrellaDto } from './dto/restore-umbrella.dto';
+import { MoveUmbrellaDto } from './dto/move-umbrella.dto';
 
-// Editor della struttura di default. La sola GET retired dichiara un override sul metodo (in
-// getAllAndOverride il metodo vince sulla classe): serve alla risoluzione delle label storiche in
-// Prenotazioni/Rinnovi (D-060) ed è pura struttura senza PII, come la day-map che lo staff già vede.
+// Editor della struttura di default. Due metodi dichiarano un permesso proprio, per ragioni
+// opposte: GET retired lo ABBASSA (in getAllAndOverride il metodo vince sulla classe) perché serve
+// alla risoluzione delle label storiche in Prenotazioni/Rinnovi (D-060) ed è pura struttura senza
+// PII, come la day-map che lo staff già vede; POST :id/move RIPETE quello di classe, perché
+// authorization-coverage legge «metodo ?? classe» e un endpoint nuovo erediterebbe il permesso in
+// silenzio — nessun rosso, nessun 403, nessuna decisione presa.
 @Controller('establishment/umbrellas')
 @RequiresPermission(Permission.StructureManage)
 export class UmbrellasController {
@@ -54,6 +58,15 @@ export class UmbrellasController {
   @Post(':id/restore')
   restore(@Param('id', ParseUUIDPipe) id: string, @Body() body: RestoreUmbrellaDto): Promise<StructureUmbrellaDTO> {
     return this.umbrellas.restore(id, body);
+  }
+
+  // Endpoint d'azione dedicato, come retire/restore: la PATCH resta ai campi propri dell'entità.
+  // Una PATCH con `rowId` sarebbe anche muta — la ValidationPipe è senza `forbidNonWhitelisted`,
+  // quindi un campo fuori dal DTO viene scartato in silenzio e la richiesta risponde 200.
+  @Post(':id/move')
+  @RequiresPermission(Permission.StructureManage)
+  move(@Param('id', ParseUUIDPipe) id: string, @Body() body: MoveUmbrellaDto): Promise<StructureUmbrellaDTO> {
+    return this.umbrellas.move(id, body);
   }
 
   @Patch(':id')

@@ -4,7 +4,7 @@ import { TEST_TENANT as TENANT, fakeTenantPrisma, fakeTenantContext } from '../t
 
 function makeService() {
   const tx = {
-    row: { findUnique: jest.fn() },
+    row: { findUnique: jest.fn(), findFirst: jest.fn() },
     umbrellaType: { findUnique: jest.fn() },
     umbrella: {
       findFirst: jest.fn(), findUnique: jest.fn(), findMany: jest.fn(), create: jest.fn(), createManyAndReturn: jest.fn(), update: jest.fn(), delete: jest.fn(), deleteMany: jest.fn(), updateMany: jest.fn(),
@@ -287,6 +287,125 @@ describe('UmbrellasService', () => {
       await expect(service.bulkAssignType({ ids: ['u-1'], umbrellaTypeId: 'typ-x' }))
         .rejects.toBeInstanceOf(UnprocessableEntityException);
       expect(tx.umbrella.updateMany).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('move (D-038)', () => {
+    /** Ombrellone attivo in `r-1` (settore `grid`), con la fila di destinazione già risolta. */
+    function arrange(over: {
+      existing?: Record<string, unknown> | null;
+      destRow?: Record<string, unknown> | null;
+      others?: Array<{ logicalOrder: number }>;
+    } = {}) {
+      const { service, tx } = makeService();
+      tx.umbrella.findUnique.mockResolvedValue(
+        over.existing === undefined
+          ? { id: 'u-1', label: '12', umbrellaTypeId: null, rowId: 'r-1', logicalOrder: 2, retiredAt: null, row: { sectorId: 's-1', sector: { kind: 'grid' } } }
+          : over.existing,
+      );
+      tx.row.findFirst.mockResolvedValue(
+        over.destRow === undefined ? { id: 'r-2', sector: { kind: 'grid' } } : over.destRow,
+      );
+      tx.umbrella.findMany.mockResolvedValue(over.others ?? [{ logicalOrder: 1 }, { logicalOrder: 2 }, { logicalOrder: 3 }]);
+      tx.umbrella.updateMany.mockResolvedValue({ count: 0 });
+      tx.umbrella.update.mockResolvedValue({ id: 'u-1', label: '12', umbrellaTypeId: null, logicalOrder: 1 });
+      return { service, tx };
+    }
+
+    it('404 se l’ombrellone non esiste', async () => {
+      const { service, tx } = arrange({ existing: null });
+      await expect(service.move('u-x', { rowId: 'r-2', position: 0 })).rejects.toBeInstanceOf(NotFoundException);
+      expect(tx.umbrella.update).not.toHaveBeenCalled();
+      expect(tx.umbrella.updateMany).not.toHaveBeenCalled();
+    });
+
+    // Senza questa guardia il move riaggancia una fila a un ritirato e lo rimette in scena: nessuna
+    // query di mappa o struttura filtra `retiredAt`, l'esclusione dipende solo da `rowId = null`.
+    it('409 se è ritirato: non lo si sposta, lo si ripristina', async () => {
+      const { service, tx } = arrange({
+        existing: { id: 'u-1', label: '12', umbrellaTypeId: null, rowId: null, logicalOrder: 2, retiredAt: new Date('2026-07-01T00:00:00Z'), row: null },
+      });
+      await expect(service.move('u-1', { rowId: 'r-2', position: 0 })).rejects.toBeInstanceOf(ConflictException);
+      expect(tx.umbrella.update).not.toHaveBeenCalled();
+      expect(tx.umbrella.updateMany).not.toHaveBeenCalled();
+    });
+
+    // `assertRow` si affida alla sola policy RLS; qui si cambia il genitore di una riga, e la
+    // tenancy della destinazione si asserisce invece di ereditarla.
+    it('404 se la fila di destinazione non esiste, e la cerca con establishmentId esplicito', async () => {
+      const { service, tx } = arrange({ destRow: null });
+      await expect(service.move('u-1', { rowId: 'r-x', position: 0 })).rejects.toBeInstanceOf(NotFoundException);
+      expect(tx.row.findFirst).toHaveBeenCalledWith(expect.objectContaining({
+        where: { id: 'r-x', establishmentId: TENANT },
+      }));
+      expect(tx.umbrella.update).not.toHaveBeenCalled();
+    });
+
+    it('422 se il settore di destinazione ha un kind diverso', async () => {
+      const { service, tx } = arrange({ destRow: { id: 'r-2', sector: { kind: 'special' } } });
+      await expect(service.move('u-1', { rowId: 'r-2', position: 0 })).rejects.toBeInstanceOf(UnprocessableEntityException);
+      expect(tx.umbrella.update).not.toHaveBeenCalled();
+      expect(tx.umbrella.updateMany).not.toHaveBeenCalled();
+    });
+
+    it('422 se position è oltre la coda della fila di destinazione', async () => {
+      const { service, tx } = arrange({ others: [{ logicalOrder: 1 }, { logicalOrder: 2 }] });
+      await expect(service.move('u-1', { rowId: 'r-2', position: 3 })).rejects.toBeInstanceOf(UnprocessableEntityException);
+      expect(tx.umbrella.update).not.toHaveBeenCalled();
+      expect(tx.umbrella.updateMany).not.toHaveBeenCalled();
+    });
+
+    it('fila diversa: DUE scritture, l’intervallo avanza e l’ombrellone prende il posto liberato', async () => {
+      const { service, tx } = arrange({ others: [{ logicalOrder: 5 }, { logicalOrder: 9 }, { logicalOrder: 40 }] });
+      await service.move('u-1', { rowId: 'r-2', position: 1 });
+      expect(tx.umbrella.findMany).toHaveBeenCalledWith(expect.objectContaining({
+        where: { rowId: 'r-2', id: { not: 'u-1' } }, orderBy: { logicalOrder: 'asc' },
+      }));
+      expect(tx.umbrella.updateMany).toHaveBeenCalledWith({
+        where: { rowId: 'r-2', logicalOrder: { gte: 9, lte: 40 } },
+        data: { logicalOrder: { increment: 1 } },
+      });
+      expect(tx.umbrella.update).toHaveBeenCalledWith(expect.objectContaining({
+        where: { id: 'u-1' }, data: { rowId: 'r-2', logicalOrder: 9 },
+      }));
+    });
+
+    it('in coda: nessuna traslazione, una sola scrittura', async () => {
+      const { service, tx } = arrange({ others: [{ logicalOrder: 5 }, { logicalOrder: 9 }] });
+      await service.move('u-1', { rowId: 'r-2', position: 2 });
+      expect(tx.umbrella.updateMany).not.toHaveBeenCalled();
+      expect(tx.umbrella.update).toHaveBeenCalledWith(expect.objectContaining({
+        data: { rowId: 'r-2', logicalOrder: 10 },
+      }));
+    });
+
+    it('stessa fila all’indietro: l’intervallo arretra, e la fila d’origine è quella di arrivo', async () => {
+      const { service, tx } = arrange({
+        destRow: { id: 'r-1', sector: { kind: 'grid' } },
+        others: [{ logicalOrder: 1 }, { logicalOrder: 3 }],
+      });
+      // L'ombrellone è a logicalOrder 2, cioè indice 1: portarlo a 0 fa avanzare il solo `1`.
+      await service.move('u-1', { rowId: 'r-1', position: 0 });
+      expect(tx.umbrella.updateMany).toHaveBeenCalledWith({
+        where: { rowId: 'r-1', logicalOrder: { gte: 1, lte: 1 } },
+        data: { logicalOrder: { increment: 1 } },
+      });
+      expect(tx.umbrella.update).toHaveBeenCalledWith(expect.objectContaining({
+        data: { rowId: 'r-1', logicalOrder: 1 },
+      }));
+    });
+
+    // 200 e nessuna scrittura, ma è un no-op CALCOLATO: il precedente da non replicare è il ramo
+    // idempotente di `restore`, che dichiara `rowId` obbligatorio e poi lo ignora.
+    it('posizione già occupata: nessuna scrittura, e risponde con l’ombrellone', async () => {
+      const { service, tx } = arrange({
+        destRow: { id: 'r-1', sector: { kind: 'grid' } },
+        others: [{ logicalOrder: 1 }, { logicalOrder: 3 }],
+      });
+      const dto = await service.move('u-1', { rowId: 'r-1', position: 1 });
+      expect(tx.umbrella.updateMany).not.toHaveBeenCalled();
+      expect(tx.umbrella.update).not.toHaveBeenCalled();
+      expect(dto).toEqual({ id: 'u-1', label: '12', umbrellaTypeId: null });
     });
   });
 

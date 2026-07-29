@@ -64,7 +64,7 @@ export declare enum Permission {
     SessionRead = "session.read"
 }
 /**
- * I due permessi che l'admin di un lido **non** può concedere né revocare (ADR-0063 §5.1),
+ * I due permessi che l'admin di un lido **non** può concedere né revocare (ADR-0063, Decision 7),
  * per ragioni diverse:
  *
  * - `platform.administer` è cross-tenant e del solo distributore (ADR-0015): non è del lido
@@ -763,6 +763,12 @@ export interface BulkAssignUmbrellaTypeInput {
 }
 export interface BulkAssignUmbrellaTypeResultDTO {
     updated: number;
+}
+/** Sposta un ombrellone attivo. `position` = indice 0-based nella fila di destinazione
+ *  (`n` = in coda); `logicalOrder` resta interno al server e non attraversa il confine. */
+export interface MoveUmbrellaInput {
+    rowId: string;
+    position: number;
 }
 /** Ombrellone ritirato (soft-delete, D-055): fuori da struttura/mappa, storico conservato. */
 export interface RetiredUmbrellaDTO {

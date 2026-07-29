@@ -808,6 +808,9 @@ export interface BulkDeleteUmbrellasResultDTO { deleted: number; skipped: number
 /** Bulk-assegnazione tipologia (null = Normale). */
 export interface BulkAssignUmbrellaTypeInput { ids: string[]; umbrellaTypeId: string | null }
 export interface BulkAssignUmbrellaTypeResultDTO { updated: number }
+/** Sposta un ombrellone attivo. `position` = indice 0-based nella fila di destinazione
+ *  (`n` = in coda); `logicalOrder` resta interno al server e non attraversa il confine. */
+export interface MoveUmbrellaInput { rowId: string; position: number }
 
 /** Ombrellone ritirato (soft-delete, D-055): fuori da struttura/mappa, storico conservato. */
 export interface RetiredUmbrellaDTO {
