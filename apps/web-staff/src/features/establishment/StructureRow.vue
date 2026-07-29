@@ -1,14 +1,19 @@
 <script setup lang="ts">
+import { computed, ref, watch } from 'vue';
 import { UmbrellaCell, IconButton } from '@coralyn/ui-kit';
-import type { StructureRowDTO, UmbrellaTypeDTO } from '@coralyn/contracts';
+import type { SectorKind, StructureRowDTO, UmbrellaTypeDTO } from '@coralyn/contracts';
 import type { Selection } from './structureSelection';
+import { isCompatible, targetIndex, type CellRect, type UmbrellaDrag } from './umbrellaMove';
 
 const props = defineProps<{
   row: StructureRowDTO;
   sectorName: string;
+  sectorKind: SectorKind;
   types: UmbrellaTypeDTO[];
   selection: Selection;
+  selectMode: boolean;
   canManage: boolean;
+  dragging: UmbrellaDrag | null;
 }>();
 const emit = defineEmits<{
   'select-row': [id: string];
@@ -16,6 +21,9 @@ const emit = defineEmits<{
   'create-umbrella': [rowId: string];
   'row-generate': [id: string];
   'row-danger': [id: string];
+  'umbrella-drag-start': [umbrellaId: string, rowId: string];
+  'umbrella-drag-end': [];
+  'move-umbrella': [umbrellaId: string, rowId: string, position: number];
 }>();
 
 function typeIcon(umbrellaTypeId: string | null): string | null {
@@ -27,10 +35,95 @@ function isSelected(id: string): boolean {
   return (s.kind === 'umbrella' && s.id === id) || (s.kind === 'multi' && s.ids.includes(id));
 }
 const rowSelected = (): boolean => props.selection.kind === 'row' && props.selection.id === props.row.id;
+
+// --- Trascinamento (D-038) ---------------------------------------------------
+
+/** Indice che verrebbe inviato all'API rilasciando ora. `null` = questa fila non e' il bersaglio. */
+const dropIndex = ref<number | null>(null);
+
+/** Posizione dell'ombrellone trascinato DENTRO questa fila, o -1 se arriva da un'altra. */
+const draggedIndex = computed(() => {
+  const d = props.dragging;
+  if (!d || d.fromRowId !== props.row.id) return -1;
+  return props.row.umbrellas.findIndex((u) => u.id === d.umbrellaId);
+});
+
+/** Il trascinamento e' finito (rilascio o Esc): il segno del bersaglio va tolto ovunque, non solo
+ *  nella fila d'origine, perche' `dragend` scatta sulla sorgente e non sul bersaglio. */
+watch(() => props.dragging, (d) => { if (!d) dropIndex.value = null; });
+
+/** Il trascinamento accettabile da QUESTA fila, oppure null. Restituisce l'oggetto e non un
+ *  booleano cosi' il narrowing arriva ai chiamanti. */
+function acceptedDrag(): UmbrellaDrag | null {
+  const d = props.dragging;
+  if (!props.canManage || props.selectMode || !d) return null;
+  return isCompatible(d.kind, props.sectorKind) ? d : null;
+}
+
+/**
+ * Rettangoli delle SOLE celle, senza quella trascinata. Entrambi i filtri servono: `.st-cells`
+ * contiene anche la ghost «+» e il `<p>` di fila vuota, e l'indice che l'API vuole e' quello
+ * FINALE, cioe' calcolato su una fila da cui l'ombrellone e' gia' uscito.
+ */
+function cellRects(container: HTMLElement): CellRect[] {
+  const skip = draggedIndex.value;
+  return Array.from(container.querySelectorAll('[data-testid="scene-cell"]'))
+    .filter((_, i) => i !== skip)
+    .map((el) => el.getBoundingClientRect());
+}
+
+function onDragStart(e: DragEvent, umbrellaId: string): void {
+  // Firefox non avvia alcun trascinamento senza un payload; il dato vero viaggia nello stato del
+  // componente perche' `dataTransfer` e' illeggibile durante il `dragover`.
+  e.dataTransfer?.setData('text/plain', umbrellaId);
+  if (e.dataTransfer) e.dataTransfer.effectAllowed = 'move';
+  emit('umbrella-drag-start', umbrellaId, props.row.id);
+}
+
+function onDragOver(e: DragEvent): void {
+  if (!acceptedDrag()) return;
+  // Senza `preventDefault` il browser rifiuta il rilascio: e' la firma di «qui si puo' lasciare».
+  e.preventDefault();
+  if (e.dataTransfer) e.dataTransfer.dropEffect = 'move';
+  dropIndex.value = targetIndex(cellRects(e.currentTarget as HTMLElement), { x: e.clientX, y: e.clientY });
+}
+
+function onDragLeave(e: DragEvent): void {
+  // `dragleave` scatta anche passando da un figlio all'altro dentro lo stesso contenitore: il segno
+  // si toglie solo uscendo davvero, altrimenti lampeggia a ogni cella attraversata.
+  const to = e.relatedTarget as Node | null;
+  if (to && (e.currentTarget as HTMLElement).contains(to)) return;
+  dropIndex.value = null;
+}
+
+function onDrop(e: DragEvent): void {
+  const drag = acceptedDrag();
+  if (!drag) return;
+  e.preventDefault();
+  const position = targetIndex(cellRects(e.currentTarget as HTMLElement), { x: e.clientX, y: e.clientY });
+  dropIndex.value = null;
+  emit('move-umbrella', drag.umbrellaId, props.row.id, position);
+}
+
+/** Dove disegnare la barra d'inserimento. `dropIndex` conta sugli ALTRI, la resa conta su tutti:
+ *  se l'ombrellone trascinato e' in questa fila, oltre la sua posizione i due indici divergono. */
+const markerAt = computed<number | null>(() => {
+  const p = dropIndex.value;
+  if (p === null) return null;
+  return draggedIndex.value >= 0 && p >= draggedIndex.value ? p + 1 : p;
+});
+
+function slotClass(i: number): string[] {
+  const out: string[] = [];
+  if (markerAt.value === i) out.push('st-drop-before');
+  if (markerAt.value === props.row.umbrellas.length && i === props.row.umbrellas.length - 1) out.push('st-drop-after');
+  if (draggedIndex.value === i) out.push('st-cell-dragged');
+  return out;
+}
 </script>
 
 <template>
-  <div class="st-row" :class="rowSelected() ? 'st-row-sel' : ''" data-testid="scene-row">
+  <div class="st-row" :class="[rowSelected() ? 'st-row-sel' : '', dropIndex !== null ? 'st-row-drop' : '']" data-testid="scene-row">
     <div class="pt-[7px]">
       <button type="button" class="st-rail-name focus-visible:outline-none focus-visible:[box-shadow:var(--ring-focus)]"
         :aria-label="`${row.label}, settore ${sectorName}`" @click="emit('select-row', row.id)">{{ row.label.toUpperCase() }}</button>
@@ -40,11 +133,23 @@ const rowSelected = (): boolean => props.selection.kind === 'row' && props.selec
         <IconButton icon="trash-2" label="Svuota o elimina fila" variant="danger" size="sm" data-testid="rail-danger" @click="emit('row-danger', row.id)" />
       </div>
     </div>
-    <div class="st-cells">
-      <span v-for="u in row.umbrellas" :key="u.id" data-testid="scene-cell">
-        <UmbrellaCell :label="u.label" :ariaLabel="`Ombrellone ${u.label}, ${row.label}, settore ${sectorName}`"
-          :type-icon="typeIcon(u.umbrellaTypeId)" :selected="isSelected(u.id)"
-          @select="emit('select-umbrella', u.id, ($event as MouseEvent | undefined)?.shiftKey ?? false)" />
+    <div class="st-cells" @dragover="onDragOver" @dragleave="onDragLeave" @drop="onDrop">
+      <!-- La cella resta il solo `<button>` dentro `[data-testid="scene-cell"]`: oltre 20 asserzioni
+           indicizzano quel selettore per posizione, e un secondo bottone la' dentro le arrosserebbe
+           tutte senza che una logica sia rotta. La maniglia e' quindi FUORI, sorella dello span. -->
+      <span v-for="(u, i) in row.umbrellas" :key="u.id" class="st-cell-slot" :class="slotClass(i)">
+        <span data-testid="scene-cell">
+          <UmbrellaCell :label="u.label" :ariaLabel="`Ombrellone ${u.label}, ${row.label}, settore ${sectorName}`"
+            :type-icon="typeIcon(u.umbrellaTypeId)" :selected="isSelected(u.id)"
+            @select="emit('select-umbrella', u.id, ($event as MouseEvent | undefined)?.shiftKey ?? false)" />
+        </span>
+        <!-- Non focalizzabile e `aria-hidden`: non esiste equivalente da tastiera (spec §5.4), e
+             annunciare una maniglia inerte prometterebbe un'interazione che non c'e'. Il caso
+             scoperto e' tracciato in D-071, non nascosto. Il trascinamento sparisce in modalita'
+             «Seleziona»: li' ogni clic e' additivo, e un drag degenerato in clic TOGLIE dalla
+             selezione (EstablishmentStructureView.vue:95,99). -->
+        <span v-if="canManage && !selectMode" class="st-drag-handle" draggable="true" aria-hidden="true"
+          data-testid="drag-handle" @dragstart="onDragStart($event, u.id)" @dragend="emit('umbrella-drag-end')"></span>
       </span>
       <button v-if="canManage" type="button" class="st-ghost-cell focus-visible:outline-none focus-visible:[box-shadow:var(--ring-focus)]"
         data-testid="ghost-cell" :aria-label="`Aggiungi ombrellone alla fila ${row.label}`" @click="emit('create-umbrella', row.id)">+</button>

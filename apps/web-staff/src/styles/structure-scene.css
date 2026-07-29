@@ -15,8 +15,23 @@
 .st-rail-actions { display: flex; gap: 4px; margin-top: 7px; opacity: 0; transition: opacity var(--motion-fast) var(--ease-standard); }
 .st-row:hover .st-rail-actions, .st-row-sel .st-rail-actions { opacity: 1; }
 .st-cells { display: flex; flex-wrap: wrap; gap: 9px; align-items: center; }
+/* Trascinamento (D-038). La maniglia sta FUORI dal flusso: se occupasse spazio ogni cella sarebbe
+   piu' larga e cambierebbe la densita' del Cantiere. Compare all'hover della fila, come .st-rail-actions. */
+.st-cell-slot { position: relative; display: inline-flex; }
+.st-drag-handle { position: absolute; top: -6px; left: -6px; width: 15px; height: 15px; border-radius: 7px; border: 1.5px solid var(--color-border-input); background-color: var(--color-surface); background-image: radial-gradient(var(--color-placeholder) .8px, transparent .8px); background-size: 4px 4px; background-position: center; cursor: grab; opacity: 0; transition: opacity var(--motion-fast) var(--ease-standard); }
+.st-row:hover .st-drag-handle, .st-row-sel .st-drag-handle { opacity: 1; }
+.st-drag-handle:hover { border-color: var(--color-brand); }
+.st-drag-handle:active { cursor: grabbing; }
+.st-cell-dragged { opacity: .4; }
+.st-row-drop { background: color-mix(in srgb, var(--color-coral-050) 55%, transparent); }
+/* La barra d'inserimento vive nel gap e NON e' un elemento in flusso: un flex item in piu' farebbe
+   scorrere le celle sotto il puntatore, l'indice si ricalcolerebbe e il segno oscillerebbe. */
+.st-drop-before::before, .st-drop-after::after { content: ''; position: absolute; top: -3px; bottom: -3px; width: 3px; border-radius: 2px; background: var(--color-brand); }
+.st-drop-before::before { left: -6px; }
+.st-drop-after::after { right: -6px; }
+.st-tab-spring { box-shadow: inset 0 0 0 1.5px var(--color-brand); }
 .st-ghost-cell { display: grid; place-items: center; width: 40px; height: 40px; border-radius: 12px; border: 1.5px dashed var(--color-border-input); background: transparent; color: var(--color-placeholder); font-size: 16px; }
 .st-ghost-cell:hover { border-color: var(--color-brand); color: var(--color-brand-ink); background: var(--color-coral-050); }
 .st-ghost-row { margin: 14px -8px 0; padding: 13px 8px; width: calc(100% + 16px); border: 1.5px dashed var(--color-border-input); border-radius: var(--radius-md); display: flex; align-items: center; gap: 9px; color: var(--color-text-muted); font-size: 12.5px; font-weight: 600; background: transparent; }
 .st-ghost-row:hover { border-color: var(--color-brand); color: var(--color-brand-ink); background: color-mix(in srgb, var(--color-coral-050) 65%, transparent); }
-@media (prefers-reduced-motion: reduce) { .st-rail-actions { transition: none !important; } }
+@media (prefers-reduced-motion: reduce) { .st-rail-actions, .st-drag-handle { transition: none !important; } }

@@ -13,6 +13,15 @@ import type { SectorKind } from '@coralyn/contracts';
 export interface CellRect { top: number; bottom: number; left: number; right: number }
 
 /**
+ * Trascinamento in corso. Vive nello stato di `StructureScene` e scende come prop alle file, perche'
+ * il `dataTransfer` non e' leggibile durante il `dragover` in nessun browser: li' si sa solo che
+ * QUALCOSA sta arrivando, non cosa. Il `kind` e' quello del settore di PARTENZA, catturato al
+ * `dragstart`: dopo un cambio di tab a molla il settore corrente e' un altro, e il vincolo di
+ * compatibilita' va valutato sull'origine.
+ */
+export interface UmbrellaDrag { umbrellaId: string; fromRowId: string; kind: SectorKind }
+
+/**
  * Destinazione ammessa: una fila il cui settore ha lo STESSO `kind`. Mai `grid → special`, mai il
  * contrario. Il vincolo è di dominio e non tecnico — un ombrellone «fuori griglia» e uno di fila
  * regolare non sono intercambiabili nella scena, e la Mappa li rende in due blocchi distinti

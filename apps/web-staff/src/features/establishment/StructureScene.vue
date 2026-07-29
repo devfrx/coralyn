@@ -1,9 +1,10 @@
 <script setup lang="ts">
-import { computed, ref, onBeforeUpdate } from 'vue';
+import { computed, ref, onBeforeUpdate, onBeforeUnmount } from 'vue';
 import type { StructureSectorDTO, UmbrellaTypeDTO } from '@coralyn/contracts';
 import StructureGuidedSetup from './StructureGuidedSetup.vue';
 import StructureRow from './StructureRow.vue';
 import type { Selection } from './structureSelection';
+import { isCompatible, type UmbrellaDrag } from './umbrellaMove';
 import '@/styles/map-scene.css';
 import '@/styles/structure-scene.css';
 
@@ -21,6 +22,7 @@ const emit = defineEmits<{
   'select-umbrella': [id: string, additive: boolean]; 'create-umbrella': [rowId: string];
   'select-beach': []; 'toggle-select-mode': [];
   'row-generate': [id: string]; 'row-danger': [id: string];
+  'move-umbrella': [umbrellaId: string, rowId: string, position: number];
 }>();
 
 const current = computed(() => props.sectors.find((s) => s.id === props.selectedSectorId) ?? props.sectors[0] ?? null);
@@ -44,6 +46,51 @@ function handleGuidedAdvance(): void {
   else if (guidedStep.value === 2 && firstSectorId.value) emit('create-row', firstSectorId.value);
   else if (guidedStep.value === 3 && firstRowId.value) emit('select-row', firstRowId.value);
 }
+
+// --- Trascinamento (D-038) ---------------------------------------------------
+//
+// Lo stato vive qui e non nelle file perche' un trascinamento comincia in una fila e finisce in
+// un'altra, e perche' i tab ne hanno bisogno: la sabbia rende UN SOLO settore per volta
+// (`current`), quindi le file di un altro settore non sono nel DOM e nessun rilascio potrebbe
+// raggiungerle. Sostare su un tab durante il trascinamento lo apre — il pattern delle cartelle a
+// molla — e il rilascio avviene poi sulla fila e sulla posizione esatte, invece di indovinarle.
+
+const SPRING_MS = 700;
+
+const dragging = ref<UmbrellaDrag | null>(null);
+let springTimer: ReturnType<typeof setTimeout> | null = null;
+const springSectorId = ref<string | null>(null);
+
+function cancelSpring(): void {
+  if (springTimer) clearTimeout(springTimer);
+  springTimer = null;
+  springSectorId.value = null;
+}
+
+function onUmbrellaDragStart(umbrellaId: string, rowId: string): void {
+  const kind = current.value?.kind;
+  if (!kind) return;
+  dragging.value = { umbrellaId, fromRowId: rowId, kind };
+}
+
+function onUmbrellaDragEnd(): void {
+  dragging.value = null;
+  cancelSpring();
+}
+
+function onTabDragOver(e: DragEvent, sector: StructureSectorDTO): void {
+  const drag = dragging.value;
+  // La molla non scatta verso un `kind` estraneo: portarci l'utente vorrebbe dire aprirgli un
+  // settore in cui nessun rilascio e' legale (il server risponderebbe 422).
+  if (!drag || sector.id === current.value?.id || !isCompatible(drag.kind, sector.kind)) return;
+  e.preventDefault();
+  if (springSectorId.value === sector.id) return; // gia' in attesa su questo tab
+  cancelSpring();
+  springSectorId.value = sector.id;
+  springTimer = setTimeout(() => { cancelSpring(); emit('select-sector', sector.id); }, SPRING_MS);
+}
+
+onBeforeUnmount(cancelSpring);
 
 // Roving tabindex APG per i tab settore: un solo tab nel tab-order (il selezionato), frecce con
 // wrap + Home/End spostano fuoco e selezione (attivazione automatica, coerente col click).
@@ -79,8 +126,9 @@ function onTabKeydown(e: KeyboardEvent, i: number) {
           aria-controls="st-tabpanel" :aria-selected="current?.id === s.id"
           :tabindex="current?.id === s.id ? 0 : -1" :ref="(el) => setTabRef(el, i)"
           class="rounded-full border-[1.5px] px-3.5 py-1.5 text-[12.5px] font-bold focus-visible:outline-none focus-visible:[box-shadow:var(--ring-focus)]"
-          :class="current?.id === s.id ? 'border-[var(--color-border-input)] bg-[var(--color-surface)] text-[var(--color-text)] [box-shadow:var(--shadow-soft)]' : 'border-transparent text-[var(--color-text-2nd)]'"
-          @click="emit('select-sector', s.id)" @keydown="onTabKeydown($event, i)">
+          :class="[current?.id === s.id ? 'border-[var(--color-border-input)] bg-[var(--color-surface)] text-[var(--color-text)] [box-shadow:var(--shadow-soft)]' : 'border-transparent text-[var(--color-text-2nd)]', springSectorId === s.id ? 'st-tab-spring' : '']"
+          @click="emit('select-sector', s.id)" @keydown="onTabKeydown($event, i)"
+          @dragover="onTabDragOver($event, s)" @dragleave="cancelSpring">
           {{ s.name }} <span class="ml-1 text-[11.5px] font-semibold text-[var(--color-text-muted)] [font-variant-numeric:tabular-nums]">{{ seats(s) }} posti</span>
         </button>
       </div>
@@ -104,10 +152,13 @@ function onTabKeydown(e: KeyboardEvent, i: number) {
           <span class="st-sub">{{ current.rows.length }} file · {{ seats(current) }} ombrelloni · le file più in alto sono più vicine al mare</span>
         </div>
         <StructureRow v-for="r in current.rows" :key="r.id" class="map-row-in" :row="r" :sector-name="current.name"
-          :types="types" :selection="selection" :can-manage="canManage"
+          :sector-kind="current.kind" :types="types" :selection="selection" :select-mode="selectMode"
+          :can-manage="canManage" :dragging="dragging"
           @select-row="(id) => emit('select-row', id)" @select-umbrella="(id, add) => emit('select-umbrella', id, add)"
           @create-umbrella="(rid) => emit('create-umbrella', rid)"
-          @row-generate="(id) => emit('row-generate', id)" @row-danger="(id) => emit('row-danger', id)" />
+          @row-generate="(id) => emit('row-generate', id)" @row-danger="(id) => emit('row-danger', id)"
+          @umbrella-drag-start="onUmbrellaDragStart" @umbrella-drag-end="onUmbrellaDragEnd"
+          @move-umbrella="(uid, rid, pos) => emit('move-umbrella', uid, rid, pos)" />
         <button v-if="canManage" type="button" class="st-ghost-row focus-visible:outline-none focus-visible:[box-shadow:var(--ring-focus)]"
           data-testid="ghost-row" @click="emit('create-row', current.id)">
           <span class="grid size-6 place-items-center rounded-[8px] border-[1.5px] border-dashed border-current text-sm">+</span>

@@ -1,4 +1,4 @@
-import { describe, it, expect, afterEach } from 'vitest';
+import { describe, it, expect, afterEach, beforeEach, vi } from 'vitest';
 import { mount, enableAutoUnmount } from '@vue/test-utils';
 import StructureScene from './StructureScene.vue';
 import type { StructureSectorDTO } from '@coralyn/contracts';
@@ -153,5 +153,88 @@ describe('StructureScene', () => {
     expect(w.emitted('select-sector')![2]).toEqual(['s-2']);
     expect(document.activeElement).toBe(tabs[1].element);
     w.unmount();
+  });
+});
+
+// La sabbia rende UN SOLO settore per volta (`current`), quindi le file di un altro settore non
+// sono nel DOM e nessun rilascio puo' raggiungerle: senza la molla lo spostamento fra settori
+// sarebbe capacita' dell'API senza alcun percorso nel prodotto.
+const SECTORS_SPRING: StructureSectorDTO[] = [
+  { id: 's-1', name: 'Centro', sortOrder: 1, kind: 'grid', rows: [
+    { id: 'r-1', label: 'Fila 1', sortOrder: 1, umbrellas: [{ id: 'u-1', label: 'A1', umbrellaTypeId: null }] },
+  ] },
+  { id: 's-2', name: 'Speciali', sortOrder: 2, kind: 'special', rows: [] },
+  { id: 's-3', name: 'Levante', sortOrder: 3, kind: 'grid', rows: [
+    { id: 'r-3', label: 'Fila 3', sortOrder: 1, umbrellas: [] },
+  ] },
+];
+const springBase = { ...base, sectors: SECTORS_SPRING };
+
+describe('StructureScene — tab a molla (D-038)', () => {
+  beforeEach(() => { vi.useFakeTimers(); });
+  afterEach(() => { vi.useRealTimers(); });
+
+  function scene() {
+    return mount(StructureScene, { props: springBase });
+  }
+  const grab = (w: ReturnType<typeof scene>) => w.findAll('[data-testid="drag-handle"]')[0].trigger('dragstart');
+
+  it('sostare su un tab compatibile lo apre, ma solo dopo l’attesa', async () => {
+    const w = scene();
+    await grab(w);
+    await w.findAll('[role="tab"]')[2].trigger('dragover');
+    expect(w.findAll('[role="tab"]')[2].classes()).toContain('st-tab-spring');
+    expect(w.emitted('select-sector')).toBeUndefined();
+    vi.advanceTimersByTime(1000);
+    expect(w.emitted('select-sector')![0]).toEqual(['s-3']);
+  });
+
+  it('su un settore di kind diverso la molla NON scatta: là nessun rilascio sarebbe legale', async () => {
+    const w = scene();
+    await grab(w);
+    await w.findAll('[role="tab"]')[1].trigger('dragover'); // «Speciali»
+    expect(w.findAll('[role="tab"]')[1].classes()).not.toContain('st-tab-spring');
+    vi.advanceTimersByTime(1000);
+    expect(w.emitted('select-sector')).toBeUndefined();
+  });
+
+  it('senza trascinamento in corso il tab resta un tab', async () => {
+    const w = scene();
+    await w.findAll('[role="tab"]')[2].trigger('dragover');
+    vi.advanceTimersByTime(1000);
+    expect(w.emitted('select-sector')).toBeUndefined();
+  });
+
+  it('il tab già aperto non scatta', async () => {
+    const w = scene();
+    await grab(w);
+    await w.findAll('[role="tab"]')[0].trigger('dragover');
+    vi.advanceTimersByTime(1000);
+    expect(w.emitted('select-sector')).toBeUndefined();
+  });
+
+  it('uscendo prima dell’attesa la molla si annulla', async () => {
+    const w = scene();
+    await grab(w);
+    await w.findAll('[role="tab"]')[2].trigger('dragover');
+    await w.findAll('[role="tab"]')[2].trigger('dragleave');
+    vi.advanceTimersByTime(1000);
+    expect(w.emitted('select-sector')).toBeUndefined();
+  });
+
+  it('se il trascinamento finisce, la molla pendente non apre più nulla', async () => {
+    const w = scene();
+    await grab(w);
+    await w.findAll('[role="tab"]')[2].trigger('dragover');
+    await w.findAll('[data-testid="drag-handle"]')[0].trigger('dragend');
+    vi.advanceTimersByTime(1000);
+    expect(w.emitted('select-sector')).toBeUndefined();
+  });
+
+  it('il rilascio risale dalla fila alla scena', async () => {
+    const w = scene();
+    await grab(w);
+    await w.find('.st-cells').trigger('drop', { clientX: 0, clientY: 0 });
+    expect(w.emitted('move-umbrella')![0]).toEqual(['u-1', 'r-1', 0]);
   });
 });
