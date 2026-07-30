@@ -776,6 +776,91 @@ describe('EstablishmentStructureView — shell Cantiere', () => {
     await settle();
   });
 
+  // L'albero come il server lo restituisce DOPO lo spostamento: A2 prima di A1.
+  const MOSSO = {
+    ...STRUCTURE_FIXTURE,
+    sectors: STRUCTURE_FIXTURE.sectors.map((s) => (s.id !== 's-1' ? s
+      : { ...s, rows: s.rows.map((r) => ({ ...r, umbrellas: [...r.umbrellas].reverse() })) })),
+  };
+
+  /**
+   * Il RIMBALZO, che il test sopra da solo non vede: quello guarda la finestra PRIMA della risposta
+   * al POST, questo quella fra la risposta al POST e la rilettura della struttura. Le due risposte
+   * sono rilasciate a mano, una per volta, e la GET restituisce l'albero POST-spostamento: così si
+   * distingue l'anteprima ottimistica dalla rilettura e si legge la sequenza vera. Attesa:
+   * nuovo → nuovo. Con l'anteprima condizionata al solo `isPending`: nuovo → **vecchio** → nuovo.
+   */
+  it('fra la risposta al POST e la rilettura le celle NON tornano indietro', async () => {
+    let letture = 0;
+    let releaseGet: () => void = () => {};
+    server.use(http.get('/api/establishment/structure', async () => {
+      letture += 1;
+      if (letture === 1) return HttpResponse.json(STRUCTURE_FIXTURE);
+      await new Promise<void>((resolve) => { releaseGet = resolve; });
+      return HttpResponse.json(MOSSO);
+    }));
+    let releasePost: () => void = () => {};
+    server.use(http.post('/api/establishment/umbrellas/:id/move', async () => {
+      await new Promise<void>((resolve) => { releasePost = resolve; });
+      return HttpResponse.json({ id: 'u-1', label: 'A1', umbrellaTypeId: null });
+    }));
+    const w = mountApp(EstablishmentStructureView, { attachTo: document.body });
+    asAdmin();
+    await settle();
+    layoutCells(w);
+    const celle = () => w.findAll('[data-testid="scene-cell"] button').map((b) => b.text());
+
+    await w.findAll('[data-testid="drag-handle"]')[0].trigger('dragstart');
+    await w.find('.st-cells').trigger('drop', { clientX: 300, clientY: 20 });
+    await settle();
+    expect(celle()).toEqual(['A2', 'A1']); // anteprima: il POST non ha ancora risposto
+
+    releasePost();
+    await settle();
+    expect(letture).toBe(2); // la rilettura è partita ed è ancora in volo
+    expect(celle()).toEqual(['A2', 'A1']); // ⚠️ qui casca il rimbalzo
+
+    releaseGet();
+    await settle();
+    await settle();
+    expect(celle()).toEqual(['A2', 'A1']); // ora è il server a dirlo, non l'anteprima
+  });
+
+  /**
+   * Il verso opposto, che il test del rimbalzo non copre: dopo un RIFIUTO le `variables` della
+   * mutation restano dove sono, e la rilettura parte lo stesso (`mutationResource` invalida su
+   * entrambi gli esiti). Se l'anteprima si accontentasse di «la struttura sta rileggendo», in
+   * quella finestra rimetterebbe a schermo uno spostamento che il server ha appena respinto.
+   */
+  it('dopo un rifiuto la rilettura NON rimette a schermo lo spostamento respinto', async () => {
+    let letture = 0;
+    let releaseGet: () => void = () => {};
+    server.use(http.get('/api/establishment/structure', async () => {
+      letture += 1;
+      if (letture === 1) return HttpResponse.json(STRUCTURE_FIXTURE);
+      await new Promise<void>((resolve) => { releaseGet = resolve; });
+      return HttpResponse.json(STRUCTURE_FIXTURE); // il rifiuto non ha cambiato nulla
+    }));
+    server.use(http.post('/api/establishment/umbrellas/:id/move', () =>
+      HttpResponse.json({ message: 'Posizione fuori dalla fila.' }, { status: 422 })));
+    const w = mountApp(EstablishmentStructureView, { attachTo: document.body });
+    asAdmin();
+    await settle();
+    layoutCells(w);
+    const celle = () => w.findAll('[data-testid="scene-cell"] button').map((b) => b.text());
+
+    await w.findAll('[data-testid="drag-handle"]')[0].trigger('dragstart');
+    await w.find('.st-cells').trigger('drop', { clientX: 300, clientY: 20 });
+    await settle();
+
+    expect(letture).toBe(2); // la rilettura è partita ed è ancora in volo
+    expect(celle()).toEqual(['A1', 'A2']); // ⚠️ nessun fantasma dello spostamento respinto
+
+    releaseGet();
+    await settle();
+    expect(celle()).toEqual(['A1', 'A2']);
+  });
+
   // L'ordine dell'editor È l'ordine della Mappa operativa: `map.service.ts:22,25,26` ordina con gli
   // stessi campi. Senza questa invalidazione chi ha la Mappa aperta al banco resta con la
   // disposizione vecchia — e nessuna mutazione di struttura la invalidava, non solo il move.

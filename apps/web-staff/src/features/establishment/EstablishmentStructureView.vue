@@ -14,7 +14,7 @@ import { applyMove } from './umbrellaMove';
 const session = useSessionStore();
 const router = useRouter();
 const canManage = computed(() => session.hasPermission(Permission.StructureManage));
-const { data, isLoading } = useEstablishmentStructure();
+const { data, isLoading, isFetching } = useEstablishmentStructure();
 const skeletonVisible = useDelayedLoading(() => isLoading.value);
 
 const selection = ref<Selection>({ kind: 'beach' });
@@ -32,14 +32,33 @@ const counts = computed(() => {
 });
 
 // Spostamento per trascinamento (D-038). L'anteprima ottimistica si fa QUI e non nel data-layer:
-// `mutationResource` restituisce l'oggetto `useMutation` intero (`useQueryResource.ts:31`), quindi
-// `isPending` e `variables` sono già leggibili. Senza anteprima la cella resta ferma fino alla
-// risposta del server e poi salta.
+// `mutationResource` restituisce l'oggetto `useMutation` intero, quindi lo stato della mutation è
+// già leggibile. Senza anteprima la cella resta ferma fino alla risposta del server e poi salta.
 const moveUmbrella = useMoveUmbrella();
+/**
+ * L'anteprima regge finché l'ALBERO non ha recepito lo spostamento, non finché la mutation è
+ * pendente. `isPending` cade quando risponde il POST, ma la rilettura della struttura è ancora in
+ * volo e `useQuery` conserva il dato precedente durante un refetch di background: nella finestra
+ * fra le due risposte la cella tornava al punto di partenza e poi risaltava — un rimbalzo, peggiore
+ * del salto singolo che l'anteprima doveva evitare.
+ *
+ * Fra i due segnali non c'è buco: l'invalidazione fa partire il fetch in modo SINCRONO (nessun
+ * await fra `Query.fetch()` e il dispatch di `fetch`), e query-core dispaccia `success` solo dopo
+ * che l'`onSettled` che l'ha invalidata è ritornato. Quando `isPending` cade, `isFetching` è già
+ * vero.
+ *
+ * ⚠️ `isSuccess`, e non il solo `isFetching`: dopo un rifiuto del server le `variables` restano
+ * lì, e senza quel termine la prima rilettura successiva rimetterebbe a schermo uno spostamento
+ * che il server ha respinto. Sul verso opposto non serve nulla: su un albero che lo spostamento
+ * ce l'ha già `applyMove` è l'identità, perché togliere l'ombrellone dall'indice `position` e
+ * reinserirlo lì ridà la fila di partenza.
+ */
+const moveSettling = computed(() =>
+  moveUmbrella.isPending.value || (moveUmbrella.isSuccess.value && isFetching.value));
 const previewSectors = computed(() => {
   const sectors = data.value?.sectors ?? [];
   const vars = moveUmbrella.variables.value;
-  if (!moveUmbrella.isPending.value || !vars) return sectors;
+  if (!moveSettling.value || !vars) return sectors;
   return applyMove(sectors, vars.id, vars.rowId, vars.position);
 });
 /**
