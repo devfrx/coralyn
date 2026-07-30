@@ -74,6 +74,27 @@ function cellRects(container: HTMLElement): CellRect[] {
     .map((el) => el.getBoundingClientRect());
 }
 
+/**
+ * L'indice che il rilascio scriverebbe ORA. Sta qui e non in `targetIndex` perche' e' conoscenza del
+ * chiamante: la funzione pura vede solo i rect delle celle, ma la zona di rilascio e' `.st-cells`
+ * intero, che di celle ne contiene anche zero in certe bande. `.st-cells` e' `flex-wrap: wrap`
+ * (`structure-scene.css:17`), quindi la ghost «+» va a capo da sola quando le celle riempiono la
+ * riga e apre una banda alta 40px senza una cella dentro; e la cella trascinata, esclusa dai rect ma
+ * ancora in flusso, puo' essere l'unica dell'ultima riga visiva. In entrambi i casi `targetIndex`
+ * ripiegherebbe sulla riga di celle piu' vicina — quella SOPRA — e con la X piccola ne uscirebbe la
+ * TESTA della fila. Un puntatore sotto tutti i rect sta chiedendo la coda.
+ *
+ * Un solo posto per `dragover` e `drop`: se divergessero, la barra mostrerebbe un indice e il
+ * rilascio ne scriverebbe un altro.
+ */
+function dropTarget(e: DragEvent): number {
+  const rects = cellRects(e.currentTarget as HTMLElement);
+  let lowest = -Infinity;
+  for (const r of rects) if (r.bottom > lowest) lowest = r.bottom;
+  if (e.clientY > lowest) return rects.length;
+  return targetIndex(rects, { x: e.clientX, y: e.clientY });
+}
+
 function onDragStart(e: DragEvent, umbrellaId: string): void {
   // Firefox non avvia alcun trascinamento senza un payload; il dato vero viaggia nello stato del
   // componente perche' `dataTransfer` e' illeggibile durante il `dragover`.
@@ -87,7 +108,7 @@ function onDragOver(e: DragEvent): void {
   // Senza `preventDefault` il browser rifiuta il rilascio: e' la firma di «qui si puo' lasciare».
   e.preventDefault();
   if (e.dataTransfer) e.dataTransfer.dropEffect = 'move';
-  dropIndex.value = targetIndex(cellRects(e.currentTarget as HTMLElement), { x: e.clientX, y: e.clientY });
+  dropIndex.value = dropTarget(e);
 }
 
 function onDragLeave(e: DragEvent): void {
@@ -102,7 +123,7 @@ function onDrop(e: DragEvent): void {
   const drag = acceptedDrag();
   if (!drag) return;
   e.preventDefault();
-  const position = targetIndex(cellRects(e.currentTarget as HTMLElement), { x: e.clientX, y: e.clientY });
+  const position = dropTarget(e);
   dropIndex.value = null;
   emit('move-umbrella', drag.umbrellaId, props.row.id, position);
 }
@@ -115,11 +136,16 @@ const markerAt = computed<number | null>(() => {
   return draggedIndex.value >= 0 && p >= draggedIndex.value ? p + 1 : p;
 });
 
+/**
+ * Solo le barre d'inserimento, che sono `::before`/`::after` dello slot. Lo sbiadimento della cella
+ * trascinata NON sta qui: quando si trascina l'ultimo ombrellone della fila `st-drop-after` e la
+ * cella trascinata cadono sullo stesso indice, e `opacity: .4` sullo slot si applicherebbe anche al
+ * suo `::after` — la barra di coda si dipingerebbe sbiadita proprio quando serve. Sta sulla cella.
+ */
 function slotClass(i: number): string[] {
   const out: string[] = [];
   if (markerAt.value === i) out.push('st-drop-before');
   if (markerAt.value === props.row.umbrellas.length && i === props.row.umbrellas.length - 1) out.push('st-drop-after');
-  if (draggedIndex.value === i) out.push('st-cell-dragged');
   return out;
 }
 </script>
@@ -140,7 +166,7 @@ function slotClass(i: number): string[] {
            indicizzano quel selettore per posizione, e un secondo bottone la' dentro le arrosserebbe
            tutte senza che una logica sia rotta. La maniglia e' quindi FUORI, sorella dello span. -->
       <span v-for="(u, i) in row.umbrellas" :key="u.id" class="st-cell-slot" :class="slotClass(i)">
-        <span data-testid="scene-cell">
+        <span data-testid="scene-cell" :class="draggedIndex === i ? 'st-cell-dragged' : ''">
           <UmbrellaCell :label="u.label" :ariaLabel="`Ombrellone ${u.label}, ${row.label}, settore ${sectorName}`"
             :type-icon="typeIcon(u.umbrellaTypeId)" :selected="isSelected(u.id)"
             @select="emit('select-umbrella', u.id, ($event as MouseEvent | undefined)?.shiftKey ?? false)" />

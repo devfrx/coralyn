@@ -36,17 +36,35 @@ function mountRow(over: Partial<RowProps> = {}) {
  * sempre, qualunque sia il puntatore. Le misure sono quelle vere: cella 40px, gap 9px.
  */
 function layout(w: ReturnType<typeof mountRow>): void {
+  layoutAt(w, w.findAll('[data-testid="scene-cell"]').map((_, i): [number, number] => [i * 49, 0]));
+}
+
+/** Lo stesso, con l'angolo di ogni cella dato per esteso: serve alle geometrie che vanno a capo. */
+function layoutAt(w: ReturnType<typeof mountRow>, at: [number, number][]): void {
   w.findAll('[data-testid="scene-cell"]').forEach((c, i) => {
-    const left = i * 49;
+    const [left, top] = at[i];
     c.element.getBoundingClientRect = () =>
-      ({ left, right: left + 40, top: 0, bottom: 40, x: left, y: 0, width: 40, height: 40, toJSON: () => ({}) }) as DOMRect;
+      ({ left, right: left + 40, top, bottom: top + 40, x: left, y: top, width: 40, height: 40, toJSON: () => ({}) }) as DOMRect;
   });
+}
+
+/**
+ * `trigger` costruisce l'evento e lo butta via: `defaultPrevented` si legge solo sull'oggetto vero.
+ * `cancelable` e' obbligatorio, altrimenti `preventDefault` e' un no-op e l'asserzione sarebbe verde
+ * per la ragione sbagliata.
+ */
+function dispatchDragOver(w: ReturnType<typeof mountRow>, clientX: number, clientY: number): Event {
+  const e = new MouseEvent('dragover', { bubbles: true, cancelable: true, clientX, clientY });
+  w.find('.st-cells').element.dispatchEvent(e);
+  return e;
 }
 
 /** Trascinamento in arrivo da un'altra fila dello stesso settore. */
 const FROM_ELSEWHERE: UmbrellaDrag = { umbrellaId: 'u-9', fromRowId: 'r-9', kind: 'grid' };
 /** Trascinamento della prima cella di QUESTA fila. */
 const FROM_HERE: UmbrellaDrag = { umbrellaId: 'u-1', fromRowId: 'r-1', kind: 'grid' };
+/** Trascinamento dell'ULTIMA cella di questa fila: l'indice della barra di coda e il suo coincidono. */
+const LAST_FROM_HERE: UmbrellaDrag = { umbrellaId: 'u-3', fromRowId: 'r-1', kind: 'grid' };
 
 describe('StructureRow — maniglia', () => {
   it('c’è una maniglia per ombrellone, e sta FUORI da scene-cell', () => {
@@ -117,7 +135,7 @@ describe('StructureRow — rilascio', () => {
     // Posizione 1 fra gli ALTRI, ma A1 è ancora reso: la barra va prima della terza cella.
     expect(w.findAll('.st-cell-slot')[2].classes()).toContain('st-drop-before');
     expect(w.find('.st-row').classes()).toContain('st-row-drop');
-    expect(w.findAll('.st-cell-slot')[0].classes()).toContain('st-cell-dragged');
+    expect(w.findAll('[data-testid="scene-cell"]')[0].classes()).toContain('st-cell-dragged');
   });
 
   it('kind incompatibile: nessun rilascio, il server non deve nemmeno essere disturbato', async () => {
@@ -156,5 +174,65 @@ describe('StructureRow — rilascio', () => {
     // `dragend` scatta sulla SORGENTE: qui arriva solo l'azzeramento della prop.
     await w.setProps({ dragging: null });
     expect(w.find('.st-row').classes()).not.toContain('st-row-drop');
+  });
+});
+
+describe('StructureRow — il rilascio sotto le celle', () => {
+  it('la banda della ghost «+» chiede la CODA, non la testa della riga sopra', async () => {
+    const w = mountRow({ dragging: FROM_ELSEWHERE });
+    layout(w);
+    // Celle tutte sulla prima riga (bottom 40). y=60 e' la banda che la ghost «+» apre andando a
+    // capo da sola: zona di rilascio senza una cella dentro. x=5 sta a sinistra di ogni meta', ed e'
+    // il punto esatto in cui ripiegare sulla riga sopra farebbe uscire la TESTA della fila.
+    await w.find('.st-cells').trigger('drop', { clientX: 5, clientY: 60 });
+    expect(w.emitted('move-umbrella')![0]).toEqual(['u-9', 'r-1', 3]);
+  });
+
+  it('la barra mostra lo stesso posto che il rilascio scrive', async () => {
+    const w = mountRow({ dragging: FROM_ELSEWHERE });
+    layout(w);
+    const cells = w.find('.st-cells');
+    await cells.trigger('dragover', { clientX: 5, clientY: 60 });
+    expect(w.findAll('.st-cell-slot')[2].classes()).toContain('st-drop-after');
+    await cells.trigger('drop', { clientX: 5, clientY: 60 });
+    expect(w.emitted('move-umbrella')![0][2]).toBe(3);
+  });
+
+  it('la cella trascinata sola sull’ultima riga: rilasciarla dov’è la lascia in coda', async () => {
+    const w = mountRow({ dragging: LAST_FROM_HERE });
+    layoutAt(w, [[0, 0], [49, 0], [0, 49]]);
+    // A3 e' esclusa dai rect ma occupa ancora la sua riga: sotto i superstiti (bottom 40) c'e' solo
+    // lei, e rilasciarla dov'e' gia' non deve mandarla in testa.
+    await w.find('.st-cells').trigger('drop', { clientX: 5, clientY: 60 });
+    expect(w.emitted('move-umbrella')![0]).toEqual(['u-3', 'r-1', 2]);
+  });
+});
+
+describe('StructureRow — la firma del bersaglio valido', () => {
+  it('su una fila compatibile il dragover è cancellato: senza, il browser non emette mai drop', () => {
+    const w = mountRow({ dragging: FROM_ELSEWHERE });
+    layout(w);
+    expect(dispatchDragOver(w, 70, 20).defaultPrevented).toBe(true);
+  });
+
+  it('su un kind incompatibile NON è cancellato: quella fila non è un bersaglio', () => {
+    const w = mountRow({ sectorKind: 'special', dragging: FROM_ELSEWHERE });
+    layout(w);
+    expect(dispatchDragOver(w, 70, 20).defaultPrevented).toBe(false);
+  });
+});
+
+describe('StructureRow — la barra di coda', () => {
+  it('trascinando l’ultima cella la barra c’è, e non sbiadisce insieme alla cella', async () => {
+    const w = mountRow({ dragging: LAST_FROM_HERE });
+    layout(w);
+    // Escluso A3 restano le meta' 20 e 69: x=200 le supera entrambe, quindi la coda.
+    await w.find('.st-cells').trigger('dragover', { clientX: 200, clientY: 20 });
+    const slots = w.findAll('.st-cell-slot');
+    expect(slots[2].classes()).toContain('st-drop-after');
+    // Le due classi non stanno piu' sullo stesso elemento: `opacity: .4` sullo slot si applicherebbe
+    // anche al suo `::after`, cioe' alla barra.
+    expect(slots[2].classes()).not.toContain('st-cell-dragged');
+    expect(w.findAll('[data-testid="scene-cell"]')[2].classes()).toContain('st-cell-dragged');
   });
 });

@@ -22,6 +22,8 @@
 .st-row:hover .st-drag-handle, .st-row-sel .st-drag-handle { opacity: 1; }
 .st-drag-handle:hover { border-color: var(--color-brand); }
 .st-drag-handle:active { cursor: grabbing; }
+/* Sulla CELLA e non sullo slot: lo slot porta le barre d'inserimento come pseudo-elementi, e
+   trascinando l'ultimo ombrellone della fila lo slot e' lo stesso che porta .st-drop-after. */
 .st-cell-dragged { opacity: .4; }
 .st-row-drop { background: color-mix(in srgb, var(--color-coral-050) 55%, transparent); }
 /* La barra d'inserimento vive nel gap e NON e' un elemento in flusso: un flex item in piu' farebbe
