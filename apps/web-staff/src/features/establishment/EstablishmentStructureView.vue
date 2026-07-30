@@ -44,11 +44,23 @@ const moveUmbrella = useMoveUmbrella();
  * del salto singolo che l'anteprima doveva evitare.
  *
  * `treeAtWrite` è la fotografia di `dataUpdatedAt` — l'istante dell'ultima rilettura riuscita —
- * scattata quando la scrittura viene accettata. La finestra vale finché quella fotografia combacia,
- * cioè finché a schermo c'è ancora lo STESSO albero su cui l'anteprima è stata calcolata: si chiude
- * alla prima rilettura che atterra dopo la scrittura, che è la nostra perché l'invalidazione parte
- * dentro l'`onSettled` di quella stessa mutation. E non si riapre, perché la fotografia non viene
- * ri-scattata se non alla scrittura successiva.
+ * scattata quando la scrittura viene accettata. Cattura l'albero PRIMA della scrittura per un
+ * fatto interno all'ordine dei callback di TanStack Query: l'`onSettled` di `mutationResource` (dove
+ * l'invalidazione PARTE) viene atteso prima che gli osservatori notifichino il successo, quindi
+ * prima di questo `onSuccess` — ma la sua promise è scartata di proposito (vedi il commento in
+ * `useQueryResource.ts`), perciò quando questo `onSuccess` legge `dataUpdatedAt` la rilettura è
+ * solo partita, non atterrata. Se quella promise venisse un domani attesa lì, questo `onSuccess`
+ * scatterebbe solo dopo l'atterraggio, e la fotografia diventerebbe silenziosamente «l'albero dopo»
+ * invece che «prima».
+ *
+ * La finestra vale finché quella fotografia combacia, cioè finché a schermo c'è ancora lo STESSO
+ * albero su cui l'anteprima è stata calcolata: si chiude alla prima rilettura che atterra con un
+ * `dataUpdatedAt` diverso da questa fotografia — nella pratica la prima dopo la scrittura.
+ * L'assunzione che regge davvero questa condizione non è che l'orologio non torni indietro, ma che
+ * due letture riuscite consecutive non atterrino nello STESSO millisecondo: se accadesse il
+ * timestamp non cambierebbe e la finestra resterebbe aperta un giro in più — benigno, perché in
+ * quel giro l'albero a schermo contiene già lo spostamento. E non si riapre, perché la fotografia
+ * non viene ri-scattata se non alla scrittura successiva.
  *
  * ⚠️ Legare la finestra a `isFetching` invece che a questa fotografia sembrava equivalente e non lo
  * era: `isSuccess` non torna mai falso e `isFetching` è vero per QUALUNQUE rilettura, comprese
@@ -73,6 +85,12 @@ const previewSectors = computed(() => {
 });
 
 function submitMove(vars: { id: string } & MoveUmbrellaInput): void {
+  // Azzerato ad OGNI nuovo invio, non solo al montaggio: senza, un secondo spostamento lanciato
+  // mentre la rilettura del primo (riuscito) è ancora in volo erediterebbe questa fotografia, e se
+  // quel secondo spostamento venisse RESPINTO la finestra resterebbe aperta sulle sue `variables` —
+  // un rifiuto travestito da anteprima ancora valida. Innocuo qui: da qui in poi la finestra è
+  // tenuta da `isPending`, che si accende comunque per la durata di QUESTA mutation.
+  treeAtWrite.value = null;
   moveUmbrella.mutate(vars, { onSuccess: () => { treeAtWrite.value = dataUpdatedAt.value; } });
 }
 /**

@@ -862,6 +862,52 @@ describe('EstablishmentStructureView — shell Cantiere', () => {
   });
 
   /**
+   * Il fantasma che azzerare `treeAtWrite` ad ogni invio esiste apposta per escludere: un secondo
+   * spostamento lanciato mentre la rilettura del PRIMO (riuscito) è ancora in volo, e che viene
+   * RESPINTO, non deve lasciare la finestra aperta sulle `variables` del rifiuto. Senza
+   * l'azzeramento, `treeAtWrite` resterebbe quello del primo successo; la rilettura del primo non è
+   * ancora atterrata (stessa `dataUpdatedAt`), e l'anteprima mostrerebbe lo spostamento respinto
+   * come se fosse ancora quello in corso.
+   */
+  it('un rifiuto lanciato mentre la rilettura del move precedente è ancora in volo non lascia la finestra aperta sul rifiuto', async () => {
+    let letture = 0;
+    let releaseGet: () => void = () => {};
+    server.use(http.get('/api/establishment/structure', async () => {
+      letture += 1;
+      if (letture === 1) return HttpResponse.json(STRUCTURE_FIXTURE);
+      await new Promise<void>((resolve) => { releaseGet = resolve; });
+      return HttpResponse.json(STRUCTURE_FIXTURE); // qui conta solo che questa rilettura non atterri
+    }));
+    let chiamate = 0;
+    server.use(http.post('/api/establishment/umbrellas/:id/move', () => {
+      chiamate += 1;
+      if (chiamate === 1) return HttpResponse.json({ id: 'u-1', label: 'A1', umbrellaTypeId: null });
+      return HttpResponse.json({ message: 'Posizione fuori dalla fila.' }, { status: 422 });
+    }));
+    const w = mountApp(EstablishmentStructureView, { attachTo: document.body });
+    asAdmin();
+    await settle();
+    const celle = () => w.findAll('[data-testid="scene-cell"] button').map((b) => b.text());
+
+    // 1. Primo spostamento: risolve, ma la sua rilettura resta in volo per tutto il test.
+    w.findComponent(StructureScene).vm.$emit('move-umbrella', 'u-1', 'r-1', 1);
+    await settle();
+    expect(celle()).toEqual(['A2', 'A1']); // anteprima del primo, in attesa della rilettura
+
+    // 2. Secondo spostamento, lanciato mentre quella rilettura è ancora in volo: viene RESPINTO.
+    w.findComponent(StructureScene).vm.$emit('move-umbrella', 'u-1', 'r-1', 1);
+    await settle();
+
+    // L'albero vero non è mai cambiato (la rilettura del primo non è atterrata): un rifiuto non
+    // deve rimettere a schermo alcuna anteprima, né quella del primo né quella, respinta, del secondo.
+    expect(celle()).toEqual(['A1', 'A2']);
+
+    releaseGet();
+    await settle();
+    w.unmount();
+  });
+
+  /**
    * ⚠️ La finestra dell'anteprima si chiude alla rilettura di QUELLO spostamento e non si riapre
    * per innesco altrui. Legarla a «la struttura sta rileggendo» sembrava equivalente e non lo era:
    * lo stato di successo della mutation non torna mai indietro, quindi ogni rilettura successiva —
@@ -874,7 +920,7 @@ describe('EstablishmentStructureView — shell Cantiere', () => {
    * `applyMove(…, 'r-1', 1)` non è affatto l'identità: toglie A1, e reinserirlo all'indice 1 di
    * [A3] dà **[A3, A1]**. Due celle scambiate per tutta la durata della terza GET, e poi il salto.
    */
-  it('una rilettura innescata da un altra mutazione non riapre l anteprima dello spostamento vecchio', async () => {
+  it('una rilettura innescata da un\'altra mutazione non riapre l\'anteprima dello spostamento vecchio', async () => {
     const TRE = {
       umbrellaTypes: [],
       sectors: [{ id: 's-1', name: 'Centro', sortOrder: 1, kind: 'grid' as const, hasDedicatedRates: false, rows: [
@@ -905,8 +951,10 @@ describe('EstablishmentStructureView — shell Cantiere', () => {
       posizione = ((await request.json()) as { position: number }).position;
       return HttpResponse.json({ id: 'u-1', label: 'A1', umbrellaTypeId: null });
     }));
-    server.use(http.delete('/api/establishment/umbrellas/:id', () =>
-      HttpResponse.json({ id: 'u-2', label: 'A2', umbrellaTypeId: null })));
+    // L'id nella risposta segue quello richiesto (non un `u-2` fisso): la seconda eliminazione di
+    // questa sequenza colpisce l'indice 0 di [A1, A3], cioè A1, non A2.
+    server.use(http.delete('/api/establishment/umbrellas/:id', ({ params }) =>
+      HttpResponse.json({ id: params.id as string, label: 'x', umbrellaTypeId: null })));
     const w = mountApp(EstablishmentStructureView, { attachTo: document.body });
     asAdmin();
     await settle();
