@@ -93,6 +93,24 @@ function onTabDragOver(e: DragEvent, sector: StructureSectorDTO): void {
   springTimer = setTimeout(() => { cancelSpring(); emit('select-sector', sector.id); }, SPRING_MS);
 }
 
+// Stessa guardia di `onDragLeave` in StructureRow.vue: il tab contiene lo <span> «N posti», e
+// passare dal testo del bottone al figlio (o viceversa) fa scattare `dragleave` senza che si sia
+// usciti davvero dal tab, riazzerando la molla appena armata.
+function onTabDragLeave(e: DragEvent): void {
+  const to = e.relatedTarget as Node | null;
+  if (to && (e.currentTarget as HTMLElement).contains(to)) return;
+  cancelSpring();
+}
+
+// Il tab non e' un bersaglio di rilascio (la posizione si sceglie sulla fila): annullare qui il
+// default del browser evita che il rilascio venga interpretato come navigazione col payload
+// `text/plain` impostato in `onDragStart` (StructureRow.vue). Nessuna emit qui: lo stato del
+// trascinamento si azzera comunque in `dragend`, che scatta sulla sorgente a prescindere da dove
+// sia avvenuto il rilascio.
+function onTabDrop(e: DragEvent): void {
+  e.preventDefault();
+}
+
 onBeforeUnmount(cancelSpring);
 
 // Roving tabindex APG per i tab settore: un solo tab nel tab-order (il selezionato), frecce con
@@ -131,7 +149,7 @@ function onTabKeydown(e: KeyboardEvent, i: number) {
           class="rounded-full border-[1.5px] px-3.5 py-1.5 text-[12.5px] font-bold focus-visible:outline-none focus-visible:[box-shadow:var(--ring-focus)]"
           :class="[current?.id === s.id ? 'border-[var(--color-border-input)] bg-[var(--color-surface)] text-[var(--color-text)] [box-shadow:var(--shadow-soft)]' : 'border-transparent text-[var(--color-text-2nd)]', springSectorId === s.id ? 'st-tab-spring' : '']"
           @click="emit('select-sector', s.id)" @keydown="onTabKeydown($event, i)"
-          @dragover="onTabDragOver($event, s)" @dragleave="cancelSpring">
+          @dragover="onTabDragOver($event, s)" @dragleave="onTabDragLeave" @drop="onTabDrop">
           {{ s.name }} <span class="ml-1 text-[11.5px] font-semibold text-[var(--color-text-muted)] [font-variant-numeric:tabular-nums]">{{ seats(s) }} posti</span>
         </button>
       </div>

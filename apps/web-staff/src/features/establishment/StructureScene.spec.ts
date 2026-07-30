@@ -253,4 +253,41 @@ describe('StructureScene — tab a molla (D-038)', () => {
     await w.find('.st-cells').trigger('drop', { clientX: 0, clientY: 0 });
     expect(w.emitted('move-umbrella')![0]).toEqual(['u-1', 'r-1', 0]);
   });
+
+  it('il rilascio sul tab non scrive nulla ed e\' annullato: la posizione si sceglie sulla fila', async () => {
+    const w = scene();
+    await grab(w);
+    const tab = w.findAll('[role="tab"]')[2];
+    await tab.trigger('dragover'); // arma la molla, cosi' il test copre anche la sua pulizia
+    // `trigger` costruisce l'evento e lo butta via: `defaultPrevented` si legge solo sull'oggetto vero
+    // (stesso accorgimento di `dispatchDragOver` in StructureRow.spec.ts).
+    const event = new MouseEvent('drop', { bubbles: true, cancelable: true });
+    tab.element.dispatchEvent(event);
+    expect(w.emitted('move-umbrella')).toBeUndefined();
+    expect(event.defaultPrevented).toBe(true);
+  });
+
+  it('attraversare lo <span> «N posti» dentro il tab non annulla la molla; uscire davvero sì', async () => {
+    const w = scene();
+    await grab(w);
+    const tab = w.findAll('[role="tab"]')[2];
+    await tab.trigger('dragover');
+    expect(tab.classes()).toContain('st-tab-spring');
+    // Il figlio del bottone e' proprio lo <span> «N posti»: relatedTarget interno = non e' un'uscita.
+    await tab.trigger('dragleave', { relatedTarget: tab.get('span').element });
+    expect(tab.classes()).toContain('st-tab-spring');
+    vi.advanceTimersByTime(1000);
+    expect(w.emitted('select-sector')![0]).toEqual(['s-3']);
+  });
+
+  it('uscendo davvero dal tab (relatedTarget esterno) la molla si annulla', async () => {
+    const w = scene();
+    await grab(w);
+    const tab = w.findAll('[role="tab"]')[2];
+    await tab.trigger('dragover');
+    await tab.trigger('dragleave', { relatedTarget: null });
+    expect(tab.classes()).not.toContain('st-tab-spring');
+    vi.advanceTimersByTime(1000);
+    expect(w.emitted('select-sector')).toBeUndefined();
+  });
 });
