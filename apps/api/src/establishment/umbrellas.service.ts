@@ -1,5 +1,5 @@
 import { ConflictException, Injectable, NotFoundException, UnprocessableEntityException } from '@nestjs/common';
-import type { Prisma } from '@prisma/client';
+import { Prisma } from '@prisma/client';
 import type {
   BulkDeleteUmbrellasInput, BulkDeleteUmbrellasResultDTO, BulkAssignUmbrellaTypeInput, BulkAssignUmbrellaTypeResultDTO, CreateUmbrellaInput, GenerateUmbrellasInput, GenerateUmbrellasResultDTO, MoveUmbrellaInput, RestoreUmbrellaInput, RetiredUmbrellaDTO, StructureUmbrellaDTO, UpdateUmbrellaInput,
 } from '@coralyn/contracts';
@@ -206,11 +206,21 @@ export class UmbrellasService {
           data: { logicalOrder: shift.delta === 1 ? { increment: 1 } : { decrement: 1 } },
         });
       }
-      return tx.umbrella.update({
-        where: { id },
-        data: { rowId: destRow.id, logicalOrder: targetOrder },
-        select: UMBRELLA_SELECT,
-      });
+      // `where` esteso, non solo `{ id }`: la guardia sopra legge lo stato al TEMPO della lettura,
+      // READ COMMITTED e senza lock. Se un `retire` concorrente committa nel frattempo, questa
+      // scrittura non trova più la riga (P2025) invece di riassegnare la fila a un ritirato.
+      try {
+        return await tx.umbrella.update({
+          where: { id, retiredAt: null },
+          data: { rowId: destRow.id, logicalOrder: targetOrder },
+          select: UMBRELLA_SELECT,
+        });
+      } catch (e) {
+        if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2025') {
+          throw new ConflictException('Ombrellone ritirato: ripristinalo prima di spostarlo.');
+        }
+        throw e;
+      }
     });
     if (!result) throw new NotFoundException('Ombrellone non trovato');
     return toStructureUmbrella(result);

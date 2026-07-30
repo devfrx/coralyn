@@ -1,5 +1,6 @@
 import 'reflect-metadata';
 import { ConflictException, NotFoundException, UnprocessableEntityException } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { UmbrellasService } from './umbrellas.service';
 import { UmbrellasController } from './umbrellas.controller';
 import { Permission } from '../identity/permission';
@@ -295,16 +296,17 @@ describe('UmbrellasService', () => {
   });
 
   describe('move (D-038)', () => {
-    /** Ombrellone attivo in `r-1` (settore `grid`), con la fila di destinazione già risolta. */
+    /** Ombrellone attivo in `r-1` (settore `grid` di default, cfr. `over.fromKind`), con la fila di destinazione già risolta. */
     function arrange(over: {
       existing?: Record<string, unknown> | null;
+      fromKind?: string;
       destRow?: Record<string, unknown> | null;
       others?: Array<{ logicalOrder: number }>;
     } = {}) {
       const { service, tx } = makeService();
       tx.umbrella.findUnique.mockResolvedValue(
         over.existing === undefined
-          ? { id: 'u-1', label: '12', umbrellaTypeId: null, rowId: 'r-1', logicalOrder: 2, retiredAt: null, row: { sectorId: 's-1', sector: { kind: 'grid' } } }
+          ? { id: 'u-1', label: '12', umbrellaTypeId: null, rowId: 'r-1', logicalOrder: 2, retiredAt: null, row: { sectorId: 's-1', sector: { kind: over.fromKind ?? 'grid' } } }
           : over.existing,
       );
       tx.row.findFirst.mockResolvedValue(
@@ -334,6 +336,21 @@ describe('UmbrellasService', () => {
       expect(tx.umbrella.updateMany).not.toHaveBeenCalled();
     });
 
+    // La guardia in lettura sopra non basta da sola: `forTenant` è READ COMMITTED senza lock, e un
+    // `retire` concorrente può committare fra la lettura e questa scrittura. Il `where` esteso sulla
+    // scrittura finale (`{ id, retiredAt: null }`) deve rifiutare quel caso con lo STESSO 409 e lo
+    // STESSO messaggio della guardia in lettura, non con un 500 da P2025 non gestito.
+    it('409 se il ritiro arriva fra la lettura e la scrittura finale (P2025 sul where esteso)', async () => {
+      const { service, tx } = arrange({ others: [{ logicalOrder: 1 }, { logicalOrder: 2 }, { logicalOrder: 3 }] });
+      tx.umbrella.update.mockRejectedValue(
+        new Prisma.PrismaClientKnownRequestError('No record was found for an update.', { code: 'P2025', clientVersion: 'x' }),
+      );
+      await expect(service.move('u-1', { rowId: 'r-2', position: 1 })).rejects.toBeInstanceOf(ConflictException);
+      expect(tx.umbrella.update).toHaveBeenCalledWith(expect.objectContaining({
+        where: { id: 'u-1', retiredAt: null },
+      }));
+    });
+
     // `assertRow` si affida alla sola policy RLS; qui si cambia il genitore di una riga, e la
     // tenancy della destinazione si asserisce invece di ereditarla.
     it('404 se la fila di destinazione non esiste, e la cerca con establishmentId esplicito', async () => {
@@ -347,6 +364,17 @@ describe('UmbrellasService', () => {
 
     it('422 se il settore di destinazione ha un kind diverso', async () => {
       const { service, tx } = arrange({ destRow: { id: 'r-2', sector: { kind: 'special' } } });
+      await expect(service.move('u-1', { rowId: 'r-2', position: 0 })).rejects.toBeInstanceOf(UnprocessableEntityException);
+      expect(tx.umbrella.update).not.toHaveBeenCalled();
+      expect(tx.umbrella.updateMany).not.toHaveBeenCalled();
+    });
+
+    // Il confronto è simmetrico (`!==`), ma finora era provato in una direzione sola: sempre
+    // un'origine `grid`, con `special` visto solo come destinazione. Qui l'origine è `special` e la
+    // destinazione `grid`, per rendere rossa la mutazione che sostituisce il confronto fra i due
+    // `kind` con un confronto contro la costante `'grid'`.
+    it('422 se l’origine è special e la destinazione grid (il confronto è simmetrico)', async () => {
+      const { service, tx } = arrange({ fromKind: 'special', destRow: { id: 'r-2', sector: { kind: 'grid' } } });
       await expect(service.move('u-1', { rowId: 'r-2', position: 0 })).rejects.toBeInstanceOf(UnprocessableEntityException);
       expect(tx.umbrella.update).not.toHaveBeenCalled();
       expect(tx.umbrella.updateMany).not.toHaveBeenCalled();
@@ -370,7 +398,7 @@ describe('UmbrellasService', () => {
         data: { logicalOrder: { increment: 1 } },
       });
       expect(tx.umbrella.update).toHaveBeenCalledWith(expect.objectContaining({
-        where: { id: 'u-1' }, data: { rowId: 'r-2', logicalOrder: 9 },
+        where: { id: 'u-1', retiredAt: null }, data: { rowId: 'r-2', logicalOrder: 9 },
       }));
     });
 

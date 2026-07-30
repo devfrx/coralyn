@@ -102,6 +102,16 @@ describe('planUmbrellaMove', () => {
         .toEqual({ ok: true, write: { shift: { fromOrder: 5, toOrder: 9, delta: -1 }, targetOrder: 9 } });
     });
 
+    // Sopra `currentOrder` vale sempre il minimo di `destOrders` (`index` = 0): l'estremo basso
+    // dell'intervallo, `destOrders[index]`, coincide per caso con `destOrders[0]`, e un fuori-di-uno
+    // sull'indice resterebbe invisibile. Qui c'è un ombrellone SOTTO l'ombrellone spostato
+    // (`index` = 1), cosa che rende i due estremi diversi e la mutazione visibile.
+    it('in avanti con un altro ombrellone sotto di sé (index > 0) → l’estremo basso è il proprio, non il primo della fila', () => {
+      // [A@1, B@5, C@9, D@20, E@40], si sposta B (sotto: A) all’indice finale 3.
+      expect(planUmbrellaMove({ destOrders: [1, 9, 20, 40], position: 3, currentOrder: 5 }))
+        .toEqual({ ok: true, write: { shift: { fromOrder: 9, toOrder: 20, delta: -1 }, targetOrder: 20 } });
+    });
+
     it('indietro → gli scavalcati AVANZANO e liberano l’estremo basso', () => {
       // [A@1, B@5, C@9], si sposta C all’indice finale 0.
       expect(planUmbrellaMove({ destOrders: [1, 5], position: 0, currentOrder: 9 }))
