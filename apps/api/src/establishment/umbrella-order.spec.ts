@@ -117,6 +117,16 @@ describe('planUmbrellaMove', () => {
       expect(planUmbrellaMove({ destOrders: [1, 5], position: 0, currentOrder: 9 }))
         .toEqual({ ok: true, write: { shift: { fromOrder: 1, toOrder: 5, delta: 1 }, targetOrder: 1 } });
     });
+
+    // Sopra, `currentOrder` era sempre il PIÙ GRANDE di `destOrders` (`index` = n): l'estremo alto
+    // dell'intervallo, `destOrders[index - 1]`, coincide per caso con `destOrders[n - 1]`, e un
+    // fuori-di-uno sull'indice resterebbe invisibile. Qui c'è un ombrellone SOPRA quello spostato
+    // (`index` < n), cosa che rende i due estremi diversi e la mutazione visibile.
+    it('indietro con un altro ombrellone sopra di sé (index < n) → l’estremo alto è il proprio, non l’ultimo della fila', () => {
+      // [A@1, B@9, C@20, D@25, E@40], si sposta D (sopra: E) all’indice finale 1.
+      expect(planUmbrellaMove({ destOrders: [1, 9, 20, 40], position: 1, currentOrder: 25 }))
+        .toEqual({ ok: true, write: { shift: { fromOrder: 9, toOrder: 20, delta: 1 }, targetOrder: 9 } });
+    });
   });
 
   // Le asserzioni sopra fissano la FORMA del piano; queste ne provano l'ESITO su ogni coppia

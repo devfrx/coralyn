@@ -341,14 +341,27 @@ describe('UmbrellasService', () => {
     // scrittura finale (`{ id, retiredAt: null }`) deve rifiutare quel caso con lo STESSO 409 e lo
     // STESSO messaggio della guardia in lettura, non con un 500 da P2025 non gestito.
     it('409 se il ritiro arriva fra la lettura e la scrittura finale (P2025 sul where esteso)', async () => {
-      const { service, tx } = arrange({ others: [{ logicalOrder: 1 }, { logicalOrder: 2 }, { logicalOrder: 3 }] });
+      const { service, tx } = arrange();
       tx.umbrella.update.mockRejectedValue(
         new Prisma.PrismaClientKnownRequestError('No record was found for an update.', { code: 'P2025', clientVersion: 'x' }),
       );
-      await expect(service.move('u-1', { rowId: 'r-2', position: 1 })).rejects.toBeInstanceOf(ConflictException);
+      const promise = service.move('u-1', { rowId: 'r-2', position: 1 });
+      await expect(promise).rejects.toBeInstanceOf(ConflictException);
+      // Stesso messaggio della guardia in lettura qui sopra: senza questa asserzione, nulla
+      // arrossirebbe se domani i due testi divergessero.
+      await expect(promise).rejects.toThrow('Ombrellone ritirato: ripristinalo prima di spostarlo.');
       expect(tx.umbrella.update).toHaveBeenCalledWith(expect.objectContaining({
         where: { id: 'u-1', retiredAt: null },
       }));
+    });
+
+    // Il rethrow dev'essere SELETTIVO: mutarlo in una ConflictException incondizionata lascerebbe
+    // verde tutta la suite, trasformando qualunque guasto Prisma non-P2025 in un 409 muto.
+    it('un errore Prisma diverso da P2025 propaga invariato, non diventa un 409', async () => {
+      const { service, tx } = arrange();
+      const boom = new Prisma.PrismaClientKnownRequestError('Unique constraint failed', { code: 'P2002', clientVersion: 'x' });
+      tx.umbrella.update.mockRejectedValue(boom);
+      await expect(service.move('u-1', { rowId: 'r-2', position: 1 })).rejects.toBe(boom);
     });
 
     // `assertRow` si affida alla sola policy RLS; qui si cambia il genitore di una riga, e la
