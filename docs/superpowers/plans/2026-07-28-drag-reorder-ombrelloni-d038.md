@@ -5,6 +5,12 @@
 > **Baseline attesa su `main`:** `pnpm run test` → 1268/185 · `test:e2e` → 529/44 · lint 0 err /
 > 87 warn · typecheck 9 progetti. **Se i numeri non tornano è l'ambiente, non il codice.**
 
+> ⚠️ **Le coordinate `file:riga` di questo piano sono contro `main` al 2026-07-28**, cioè al codice
+> *prima* della slice: erano giuste alla scrittura, e l'implementazione ha poi spostato molte di
+> quelle righe. Nell'albero consegnato la maggior parte cade su codice vicino ma diverso — puntatori
+> stantii, non affermazioni false. Quelle riverificate il 2026-07-30 portano la nuova coordinata e la
+> vecchia accanto; per le altre, cerca il simbolo, non il numero.
+
 ---
 
 ## Global Constraints
@@ -170,14 +176,18 @@ presidio è l'unico che rende la scelta visibile.
 - `targetIndex(rects: DOMRect[], pointerY: number, pointerX: number): number`
 - `isCompatible(fromKind, toKind): boolean`
 
-⚠️ **Questa separazione non è stile, è l'unico modo di provarlo.** L'ambiente di test è `jsdom`
-(`vitest.config.ts:23`), `grep -rn "getBoundingClientRect" apps/web-staff/src packages/ui-kit/src`
-→ **zero righe**, e non esiste alcun test di browser (nessun Playwright/Cypress in alcun
-`package.json`). jsdom restituisce rettangoli a zero: la geometria si prova **solo** iniettando i
-rect in una funzione pura.
+⚠️ **Questa separazione non è stile, è il modo di provarlo.** L'ambiente di test è `jsdom`
+(`apps/web-staff/vitest.config.ts:22`) e non esiste alcun test di browser (nessun Playwright/Cypress
+in alcun `package.json`). jsdom restituisce rettangoli a **zero**: i rect vanno forniti a mano,
+iniettandoli in una funzione pura oppure stubbandoli per elemento nel test del componente.
+⚠️ **Corretto il 2026-07-30:** questa nota citava `vitest.config.ts:23` (è `:22`, ed era `:22` anche
+allora) ed esibiva come prova un `grep -rn "getBoundingClientRect"` che «dà zero righe». Era vero il
+2026-07-28 e non lo è più: l'implementazione lo chiama in `StructureRow.vue`, e due spec lo stubbano.
+Una prova esibita invecchia come qualsiasi altra affermazione.
 
 ⚠️ Il contenitore delle celle contiene **figli che non sono celle** — la ghost `+`
-(`StructureRow.vue:49-50`) e il `<p>` «Nessun ombrellone» (`:51`): l'indice del figlio DOM **non è**
+(`[data-testid="ghost-cell"]` in `StructureRow.vue`, era `:49-50` contro `main`) e il `<p>` «Nessun
+ombrellone» della fila vuota (era `:51`): l'indice del figlio DOM **non è**
 l'indice dell'ombrellone. La funzione riceve i rect delle sole celle, filtrati dal chiamante.
 
 **Verifica:** `umbrellaMove.spec.ts` con rect iniettati, compresi i casi limite (fila vuota, drop
@@ -194,8 +204,11 @@ oltre l'ultima cella, `flex-wrap` su più righe).
 355,377,395,417,434-435,459-460,483-484,512-513,525-526,544-545,560-561`; `StructureScene.spec.ts:44,46`).
 Un secondo `<button>` dentro la cella le arrossa tutte **senza che una logica sia rotta**.
 
-Drag **disabilitato** quando `selectMode` è attivo (spec §5.2): `selectMode` si aggancia al primo
-Maiusc+clic e da lì ogni clic è additivo — un drag degenerato in clic **toglie** dalla selezione.
+Drag **disabilitato** quando `selectMode` è attivo (spec §5.2): con la modalità accesa si costruisce
+una **selezione multipla**, e il drag di più celle è escluso dallo scope (spec §2.1).
+⚠️ **Corretto il 2026-07-30:** questa riga motivava il divieto dicendo che «un drag degenerato in
+clic **toglie** dalla selezione». È falso — la maniglia sta fuori dalla cella (riga sopra) e non ha
+alcun percorso verso la selezione. Vedi la nota estesa nella spec §5.2.
 
 ⚠️ `selectMode` **non è oggi passato a `StructureRow`** (props: `row/sectorName/types/selection/canManage`):
 va aggiunto.
@@ -211,16 +224,23 @@ Sotto 1024px la struttura resta modificabile solo con i percorsi esistenti.
 
 La conseguenza va **implementata**, non subita: la maniglia di trascinamento **non si rende** sotto
 `lg` — un'affordance inerte dove il puntatore è morto è peggio della sua assenza. Il gating usa
-`useMediaQuery` come già fa la vista per il `Drawer` (`EstablishmentStructureView.vue:35`).
+`useMediaQuery` come già fa la vista per il `Drawer` (il getter di `drawerOpen`,
+`EstablishmentStructureView.vue:129-131`; era `:35` contro `main`).
 
 ⚠️ **Trappola dei test, da disinnescare qui e non scoprire dopo.** `useMediaQuery` ritorna `false`
-quando `matchMedia` manca (`useMediaQuery.ts:6`), quindi **ogni spec dell'editor gira oggi nel ramo
-Drawer** — cioè nel ramo in cui il gesto non esiste. Un test del drag scritto senza stub di
-`matchMedia` **passerebbe senza esercitare nulla**: il verde direbbe solo che il codice non è
-stato eseguito.
+quando `matchMedia` manca (`useMediaQuery.ts:6`), quindi un test del drag scritto in un file **senza
+stub** passerebbe *senza esercitare nulla*: il verde direbbe solo che il codice non è stato eseguito.
 
-Aggiungere lo stub in `apps/web-staff/src/test/setup.ts` accanto a quelli già presenti
-(`ResizeObserver`, pointer-capture, `scrollIntoView`), o localmente nei soli spec del drag.
+⚠️ **Corretto il 2026-07-30 (D-038):** questa riga diceva «**ogni** spec dell'editor gira oggi nel
+ramo Drawer», ed era **falsa già alla scrittura** — non superata dopo. `EstablishmentStructureView.spec.ts`
+definiva `stubDesktopMatchMedia()` e lo applicava in un `beforeEach` **globale del file**, con
+`vi.unstubAllGlobals()` in coda, **già su `main`** e da prima di questo branch: quella spec gira
+**interamente** nel ramo desktop e contiene persino un test che sovrascrive lo stub per esercitare il
+Drawer. La spec sorella portava già questa correzione in linea (§5.3); il piano era rimasto indietro.
+
+⚠️ E l'istruzione che ne discendeva — **aggiungere lo stub in `apps/web-staff/src/test/setup.ts`** —
+va **NON eseguita**: ribalterebbe il ramo di ogni spec che monta la shell. Basta riusare l'helper e
+il pattern di override già presenti in quel file, o stubbare localmente nei soli spec del drag.
 
 **Verifica — la mutazione nei due versi:** con lo stub attivo la maniglia esiste e il gesto parte;
 senza stub (cioè sotto `lg`) la maniglia **non è nel DOM**. Se il secondo test passa in entrambi i
@@ -256,9 +276,12 @@ Estendere la stessa disclosure al **ripristino** in un settore diverso da `retir
 `StructureScene.spec.ts`: la caption dichiara la relazione col mare.
 
 ⚠️ Sono l'**unica** dichiarazione nel prodotto che l'ordine porti un significato fisico
-(`MapView.vue:400`, `StructureScene.vue:104`) e oggi hanno **zero** copertura
-(`grep -rn "prima linea\|più in alto" apps/web-staff/src --include=*.spec.ts` → 0 righe). Entrano
-qui perché è la slice che rende quell'ordine modificabile da un gesto.
+(`MapView.vue:400`, `StructureScene.vue:173`) e alla scrittura di questo piano avevano **zero**
+copertura (`grep -rn "prima linea\|più in alto" apps/web-staff/src --include=*.spec.ts` → 0 righe).
+Entrano qui perché è la slice che rende quell'ordine modificabile da un gesto.
+⚠️ **Aggiornato il 2026-07-30:** quel `grep` **non dà più zero righe** — i due presidi esistono
+(`MapView.spec.ts`, `StructureScene.spec.ts`), che è l'esito voluto; e `StructureScene.vue:104` era
+la coordinata contro `main`, spostata dal branch.
 
 ---
 

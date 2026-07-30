@@ -196,14 +196,21 @@ Otto correzioni sono nel commit `3b4ecda`. Le più utili da conoscere:
 - **ADR-0020 e ADR-0018**: anello **corallo**, non teal; **cinque** stati, non quattro;
   `UmbrellaCell`, non `OmbrelloneCell`. Corretti entrambi, perché la claim nasceva in ADR-0018.
 - **D-040** descriveva un file da «~406 righe / 5 modali» che oggi è **224 righe senza modali**.
-  ⚠️ **È quasi vuota**: `SectorKind` è già esportato dai contracts, la union icone è in **un** punto.
-  **Candidata alla chiusura**, non chiusa d'autorità.
+  ⚠️ **Ricalibrata il 2026-07-30:** la parte «è quasi vuota, la union icone è in un punto» era
+  sbagliata. Vuoto è `SectorKind` (già esportato dai contracts); la **lista delle chiavi** icona è
+  ancora nei **quattro** punti di sempre — gli `ICON_KEYS` dei due DTO tipologia (create e update) e
+  i due di `BeachPanel.vue` (tipo del `ref` + gli `<Option>` della Select). **Non** è candidata alla
+  chiusura per questa via.
 - **`design-system.md`**: il test di contrasto in CI **non esiste**; «solo token verificato da lint»
-  **non esiste**. ⚠️ Ma il confine `ui-kit` **sì**: `no-restricted-imports` è reale. La spec diceva
-  «due gate inesistenti» ed esagerava di mezzo.
+  **non esiste**. ⚠️ **Ricorretto il 2026-07-30:** e **nemmeno** il gate sul confine `ui-kit` esiste.
+  `eslint.config.mjs` ha un solo `no-restricted-imports`, ed è il divieto di `IsUUID` su `apps/api`;
+  «ui-kit» compare in quel file solo dentro un commento su un'altra regola. La spec diceva «due gate
+  inesistenti» e aveva ragione: a esagerare fu la correzione, non la diagnosi.
 - **spec §5.3** diceva «ogni spec dell'editor gira nel ramo Drawer»: **falso**.
-  `EstablishmentStructureView.spec.ts:51-63` ha già `stubDesktopMatchMedia()` in un `beforeEach`
-  globale del file. Non aggiungere stub a `src/test/setup.ts`: ribalterebbe il ramo di ogni spec.
+  `EstablishmentStructureView.spec.ts:50-67` ha già `stubDesktopMatchMedia()` in un `beforeEach`
+  globale del file (era `:51-63` contro `main`; il branch ha spostato quelle righe). Non aggiungere
+  stub a `src/test/setup.ts`: ribalterebbe il ramo di ogni spec. ⚠️ La stessa frase falsa era
+  rimasta nel **piano** §Task 7 insieme all'istruzione che ne discendeva: corretta il 2026-07-30.
 - **spec §5.6** chiedeva un dialogo «che nomina le tariffe e il loro prezzo»: **non ha una risposta
   unica corretta**, perché le tariffe sono per stagione e la conseguenza è sui rinnovi.
 
@@ -219,7 +226,8 @@ Otto correzioni sono nel commit `3b4ecda`. Le più utili da conoscere:
   apposta, e c'è un presidio in `StructureRow.spec.ts` che è l'**unico** a vederlo.
 - ⚠️ **`Select` di ui-kit è reka-ui, non un `<select>` nativo**: usa `selectOption(trigger, label)`
   da `@/test/utils`. C'è già un uso su quella stessa Select in
-  `EstablishmentStructureView.spec.ts:601`.
+  `EstablishmentStructureView.spec.ts`, sul trigger `[data-testid="retired-restore-row"]` (era
+  `:601` contro `main`, oggi `:639`: la coordinata invecchia, il `data-testid` no).
 - ⚠️ **jsdom restituisce rettangoli a ZERO.** La geometria si prova **solo** iniettando i rect in
   funzioni pure (`umbrellaMove.ts`), oppure stubbando `getBoundingClientRect` per elemento.
 - **Per asserire un'invalidazione**: `vi.spyOn(QueryClient.prototype, 'invalidateQueries')` e leggi
@@ -332,6 +340,10 @@ autenticarsi. Servono **due schermi**: `lg+` dove il gesto deve funzionare, e **
 maniglia dev'essere **assente**. Da guardare in particolare: la **molla sui tab** (sosta ~0,7 s su un
 altro settore `grid`), il fatto che sul tab `special` la molla **non** scatti, e la **barra corallo**
 d'inserimento, che non deve far ballare le celle.
+⚠️ Aggiunti alla lista il 2026-07-30, perché jsdom non li può vedere: (a) la **maniglia** non sbiadisce
+più insieme alla cella trascinata — effetto collaterale di una correzione, va guardato se è
+accettabile o se stona; (b) l'**evidenza della fila bersaglio** (`.st-row-drop`), che sulla carta è
+battuta da `.st-row:hover` e potrebbe non vedersi affatto — è [D-074](../architecture/deferred.md#d-074).
 
 ⚠️ Le immagini Docker sono ferme a prima degli ultimi commit: per vedere il codice attuale usa
 `pnpm --filter @coralyn/web-staff dev` contro l'API in container.
@@ -357,8 +369,12 @@ d'inserimento, che non deve far ballare le celle.
 
 ### 6.3 Numeri liberi
 
-**Prossimo ADR libero: 0066.** **Prossima deferred libera: D-072.**
-D-070 e D-071 sono state aperte in questa sessione, D-038 chiusa.
+**Prossimo ADR libero: 0066.** **Prossima deferred libera: D-075.**
+D-070 e D-071 sono state aperte in questa sessione, D-038 chiusa. **Aggiornato il 2026-07-30:** la
+review avversariale ha aggiunto **D-072** (rename del settore che zittisce la disclosure sul
+ripristino), **D-073** (Scheda cliente non invalidata — **preesistente**) e **D-074**
+(`.st-row-drop` battuta da `.st-row:hover`); il caso delle tariffe di **fila** cieche a
+`hasDedicatedRates` è finito **dentro D-070**, che già lo copriva, invece che in una voce nuova.
 
 ### 6.4 Lavoro successivo, quando D-038 sarà mergiata
 
@@ -366,7 +382,7 @@ D-070 e D-071 sono state aperte in questa sessione, D-038 chiusa.
   «Sposta in…» nel pannello ombrellone, che è anche l'alternativa scartata in ADR-0065 §Alternatives
   proprio perché avrebbe intaccato questa voce.
 - **D-070** (la dimensione «fila» del listino).
-- **D-040** — candidata alla chiusura, vedi §4b.
+- **D-040** — ~~candidata alla chiusura~~ **no**: vedi §4b, la duplicazione che traccia è intatta.
 - **D-068** — `packages/contracts/dist` tracciato e in CRLF.
 
 ### 6.5 Azioni dell'utente ancora pendenti

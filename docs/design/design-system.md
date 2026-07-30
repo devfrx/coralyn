@@ -864,8 +864,12 @@ maniglia inerte è peggio della sua assenza. Il caso scoperto è [D-071](../arch
   equivalente da tastiera, e annunciarla prometterebbe un'interazione che non c'è. Le celle restano
   `<button>` nativi. ⚠️ È anche un vincolo di test: oltre 20 asserzioni indicizzano
   `[data-testid="scene-cell"] button` **per posizione**.
-- **Sparisce in modalità «Seleziona»** (§15.4): lì ogni clic è additivo, e un drag degenerato in
-  clic toglierebbe l'ombrellone dalla selezione.
+- **Sparisce in modalità «Seleziona»** (§15.4): lì si costruisce una selezione multipla, e
+  trascinare più celle è escluso per decisione ([ADR-0065](../architecture/decisions/0065-riordino-ombrellone-per-trascinamento.md) §1)
+  — la maniglia prometterebbe un gesto che non esiste. ⚠️ **Corretto il 2026-07-30:** questa riga
+  diceva «un drag degenerato in clic toglierebbe l'ombrellone dalla selezione». Falso: la maniglia
+  è uno `<span>` senza `@click` e **fuori** dal `<button>` della cella, quindi non ha alcun percorso
+  verso la selezione.
 - **La barra d'inserimento vive nel gap** (uno `::before`, non un elemento in flusso): un flex item
   in più farebbe scorrere le celle sotto il puntatore e il segno oscillerebbe.
 - **I tab settore si aprono a molla**: sostando ~700 ms su un tab compatibile durante il
@@ -897,13 +901,22 @@ maniglia inerte è peggio della sua assenza. Il caso scoperto è [D-071](../arch
 1. **Solo token** come valori nei componenti (niente hex/px) — **convenzione, tenuta dalla review**.
    ⚠️ **Corretto il 2026-07-29 (D-038):** questa riga diceva «verificato da lint». **Nessuna regola
    lo verifica**: `eslint.config.mjs` (91 righe, lette per intero) dichiara `no-unused-vars`,
-   `no-restricted-imports`, `no-explicit-any` a warn nei test e due regole spente — niente che guardi
-   hex o px nei componenti.
+   `no-restricted-imports`, `no-explicit-any` a warn nei test e **tre** regole spente
+   (`vue/multi-word-component-names`, `no-undef`, `vue/no-reserved-component-names`) — niente che
+   guardi hex o px nei componenti. ⚠️ Le regole spente erano dichiarate «due» il 2026-07-29: sono
+   tre, ricontate il 2026-07-30.
 2. **Regola di promozione**: se un elemento è riusato o ha superficie a11y → `ui-kit`; se è
    composizione di una singola schermata → resta locale.
-3. **Lint** a supporto del confine `ui-kit`: `no-restricted-imports` vieta il barrel dove serve il
-   subpath e blocca `@IsUUID` su `apps/api`. ⚠️ **Corretto il 2026-07-29:** questa riga diceva anche
-   «e dell'uso dei token» — vedi il punto 1: quella parte non esiste. Il confine sì, i token no.
+3. **Il confine `ui-kit` è una convenzione, non un gate**: nessuna regola di lint lo verifica.
+   ⚠️ **Ricorretto il 2026-07-30 (D-038):** questa riga affermava che `no-restricted-imports` «vieta
+   il barrel dove serve il subpath» a supporto del confine. **Quel divieto non esiste.**
+   `eslint.config.mjs` contiene **un solo** blocco `no-restricted-imports`, con **una sola** voce: il
+   divieto di `IsUUID` da `class-validator` su `apps/api/**/*.ts` (punto 1), che con `ui-kit` non ha
+   nulla a che vedere; l'unica occorrenza della stringa «ui-kit» in quel file è dentro un commento su
+   una regola diversa, `vue/multi-word-component-names`. ⚠️ E la riga sbagliata era essa stessa una
+   **correzione**, del 2026-07-29 (`3b4ecda`): la diagnosi di partenza — «due gate inesistenti» — era
+   giusta, e fu la correzione a salvarne metà senza averla verificata. Una correzione può peggiorare
+   le cose: questo è il caso in cui è successo.
 4. Le estensioni di contratto necessarie alla mappa (`Tipologia.icona`, stato per fascia) sono
    **tracciate** e additive ([ADR-0020](../architecture/decisions/0020-resa-mappa.md)); fallback FE
    finché il backend non le espone.

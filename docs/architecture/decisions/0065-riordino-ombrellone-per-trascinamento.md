@@ -12,7 +12,10 @@
   [ADR-0032](0032-pricing-engine-precedenza.md) (specificità delle tariffe),
   [ADR-0020](0020-resa-mappa.md) (HTML/CSS invece di SVG, per non ricostruire fuoco e ARIA)
 - **Chiude:** [D-038](../deferred.md#d-038) **per l'ombrellone** (file e settori restano).
-  **Apre** [D-070](../deferred.md#d-070) e [D-071](../deferred.md#d-071).
+  **Apre** [D-070](../deferred.md#d-070) e [D-071](../deferred.md#d-071); dopo la review
+  avversariale del 2026-07-30 anche [D-072](../deferred.md#d-072) e [D-074](../deferred.md#d-074),
+  più [D-073](../deferred.md#d-073) — quest'ultima **preesistente**, trovata di passaggio e non
+  causata da questa slice. Il caso di [D-070](../deferred.md#d-070) è stato esteso, non duplicato.
 
 ## Context
 
@@ -100,6 +103,12 @@ processabile, non un conflitto di stato.
 **resusciterebbe** un ombrellone ritirato, rimettendolo in scena e rendendolo prenotabile. Senza
 questa guardia la feature introdurrebbe un difetto di dominio, non un fastidio.
 
+⚠️ **La guardia è ripetuta nella scrittura finale, e non per abbondanza** (aggiunto il 2026-07-30,
+dalla review): la lettura sopra vede lo stato al *tempo della lettura*, in READ COMMITTED e senza
+lock, quindi un `retire` che committi nel frattempo passerebbe sotto. L'`update` finale porta perciò
+`retiredAt: null` nel proprio `where`: se la riga non c'è più, Prisma alza `P2025` e il servizio
+risponde **409** con lo stesso messaggio della guardia in lettura. La corsa è chiusa, non ristretta.
+
 Simmetricamente, **nessun ramo idempotente silenzioso**: se la posizione richiesta coincide con
 quella corrente la risposta è 200 e la transazione non scrive, ma è un no-op **calcolato**. Il
 precedente da non replicare è dentro la stessa feature: `restore` dichiara `rowId` obbligatorio nel
@@ -147,6 +156,14 @@ stagione, quindi quella richiesta non ha una risposta unica corretta. La spec è
 Il campo **non** dice che il settore sia prezzato — senza tariffe dedicate lo è comunque, dai
 wildcard di [ADR-0032](0032-pricing-engine-precedenza.md) — e il nome lo dichiara.
 
+⚠️ **E non vede le tariffe di FILA** (registrato il 2026-07-30, dalla review): il `_count` è sulla
+relazione `Sector.rates`, mentre nel motore la fila ha specificità **maggiore** del settore
+(`pricing.engine.ts:57`, criterio 2 contro 3). Uno spostamento fra due file dello stesso settore non
+apre nemmeno il dialogo. Oggi non è un difetto vivo — **nessuna UI scrive `rowId`** su una tariffa,
+che è esattamente il corpo di [D-070](../deferred.md#d-070) — ma chi esporrà la fila nel listino
+deve estendere anche questa bandiera, o la disclosure nascerà falsa lo stesso giorno. Il caso è
+registrato dentro D-070 e non in una voce propria.
+
 ### 8. La maniglia sta fuori dalla cella, non è focalizzabile e non è annunciata
 
 ⚠️ **Vincolo misurato, non estetico.** `UmbrellaCell` è un `<button>` e **oltre 20 asserzioni**
@@ -161,8 +178,17 @@ restano `<button>` nativi, focalizzabili e annunciati come prima — questa slic
 credito che [ADR-0020](0020-resa-mappa.md) si era guadagnato scegliendo HTML/CSS contro SVG.
 
 Il trascinamento **sparisce in modalità «Seleziona»**: lì `selectMode` si aggancia al primo
-Maiusc+clic e da quel momento ogni clic è additivo, quindi un drag degenerato in clic
-**toglierebbe** l'ombrellone dalla selezione — una mutazione di stato, non un artefatto visivo.
+Maiusc+clic e si sta costruendo una **selezione multipla**, mentre trascinare più celle è escluso
+(§1). Offrire la maniglia là prometterebbe un gesto che non esiste.
+
+⚠️ **Corretto il 2026-07-30 (review avversariale).** Questa riga motivava la sparizione dicendo che
+«un drag degenerato in clic **toglierebbe** l'ombrellone dalla selezione — una mutazione di stato».
+La motivazione è **falsa**: la maniglia non ha alcun percorso verso la selezione. È uno `<span>`
+senza `@click` e **fuori** dal `<button>` della cella — sorella dello span che lo contiene — e
+nessun antenato fino a `.st-cells` ascolta il clic; la selezione passa solo per l'evento `select`
+di `UmbrellaCell`. La
+decisione resta valida, la ragione registrata era sbagliata — e veniva dalla spec di design, dove è
+stata corretta alla radice.
 
 ### 9. I tab settore si aprono a molla durante il trascinamento
 
@@ -215,10 +241,22 @@ ciò che l'operatore vede al banco.
 
 - **Il riordino smette di passare da elimina+ricrea**, che perdeva lo storico o costringeva a
   ritirare e ripristinare.
-- **La Mappa operativa resta allineata all'editor.** `structureKeys` guadagna la chiave della mappa:
-  ⚠️ prima **nessuna** delle quindici mutazioni di struttura la invalidava, quindi anche creare o
-  eliminare un ombrellone lasciava la Mappa stantia al banco. La correzione è alla radice e vale per
-  tutte, non solo per lo spostamento.
+- **La Mappa operativa resta allineata all'editor.** `structureKeys` guadagna il **prefisso** delle
+  mappe del giorno, non la chiave della sola data a schermo: ciò che queste scritture cambiano è
+  l'ordine logico, e la Mappa ordina per quello senza che la data entri nell'ordinamento — dopo la
+  scrittura è sbagliata **ogni giornata già in cache**, non solo quella davanti agli occhi, e la data
+  si cambia dalla topbar. ⚠️ Prima **nessuna** delle **diciassette** mutazioni di struttura la
+  invalidava, quindi anche creare o eliminare un ombrellone lasciava la Mappa stantia al banco. La
+  correzione è alla radice e vale per tutte, non solo per lo spostamento.
+  ⚠️ **Ricontato e corretto il 2026-07-30:** questa riga diceva «la chiave della mappa» e
+  «quindici». Quindici sono le mutazioni che chiamano `structureKeys` **direttamente**; `retire` e
+  `restore` ci arrivano via `retireKeys`, e vanno contate.
+
+- **L'invalidazione scatta anche quando il server rifiuta.** `mutationResource` invalida in
+  `onSettled` e non più in `onSuccess`: gli errori più probabili di una scrittura su un albero
+  condiviso — «quella fila non esiste più», «quella posizione è fuori dalla fila» — dicono proprio
+  che la cache è vecchia, e prima nessuno la rinfrescava dopo un fallimento. È un cambio nel
+  **data-layer**, quindi vale per ogni mutation delle tre app, non solo per lo spostamento.
 - **Un comportamento silenzioso in meno**: `restore` cambiava settore senza dire nulla sul prezzo.
 - **Due frasi del prodotto smettono di essere promesse non tenute.** «prima linea» e «le file più in
   alto sono più vicine al mare» sono l'unica dichiarazione che l'ordine porti un significato fisico,
@@ -241,8 +279,10 @@ ciò che l'operatore vede al banco.
   asserisce, non si eredita — ma va saputo che a tenerla è un'asserzione di **forma** in un unit,
   non di comportamento.
 - **Il gesto non ha un presidio end-to-end in browser.** L'ambiente di test è `jsdom` e in tutto il
-  repo non esiste un test di browser: la geometria è provabile **solo** estraendola in funzioni pure
-  su rect iniettati. Ciò che resta scoperto è il collante fra puntatore reale e quelle funzioni.
+  repo non esiste un test di browser: jsdom restituisce rettangoli a **zero**, quindi i rect vanno
+  forniti a mano — iniettati nelle funzioni pure, oppure stubbati **per elemento** nel test del
+  componente, come fa `StructureRow.spec.ts` per la banda sotto le celle. Ciò che resta scoperto è il
+  collante fra puntatore reale e quelle funzioni.
 
 ### Neutre / Note
 
@@ -300,6 +340,8 @@ ciò che l'operatore vede al banco.
 3. **Modularità** — la geometria e il calcolo dell'intervallo sono funzioni pure senza DOM né DB; lo
    stato del trascinamento vive nella scena, che è l'unico componente che deve conoscerlo sia per le
    file sia per i tab.
-4. **Zero debito** — due voci aperte, entrambe **deliberate e nominate** ([D-070](../deferred.md#d-070),
-   [D-071](../deferred.md#d-071)); nessuna migration; nessuna dipendenza nuova; nessun campo
-   speculativo.
+4. **Zero debito** — **quattro** voci aperte, tutte **deliberate e nominate**:
+   [D-070](../deferred.md#d-070) e [D-071](../deferred.md#d-071) alla scrittura,
+   [D-072](../deferred.md#d-072) e [D-074](../deferred.md#d-074) aggiunte dalla review avversariale
+   del 2026-07-30 (erano due, ricontate lì); nessuna migration; nessuna dipendenza nuova; nessun
+   campo speculativo.

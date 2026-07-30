@@ -174,9 +174,17 @@ function slotClass(i: number): string[] {
         <!-- Non focalizzabile e `aria-hidden`: non esiste equivalente da tastiera (spec §5.4), e
              annunciare una maniglia inerte prometterebbe un'interazione che non c'e'. Il caso
              scoperto e' tracciato in D-071, non nascosto. Il trascinamento sparisce in modalita'
-             «Seleziona»: li' ogni clic e' additivo, e un drag degenerato in clic TOGLIE dalla
-             selezione (EstablishmentStructureView.vue:95,99). E sotto `lg` non si rende affatto:
-             un'affordance inerte dove il puntatore e' morto e' peggio della sua assenza. -->
+             «Seleziona» perche' li' si sta costruendo una selezione multipla, e la selezione
+             multipla trascinabile e' esclusa per decisione (ADR-0065 §1): offrire la maniglia
+             prometterebbe un gesto che non esiste.
+             ⚠️ Corretto il 2026-07-30: qui si leggeva che in «Seleziona» «un drag degenerato in clic
+             TOGLIE dalla selezione». Non regge: la maniglia non ha alcun percorso verso la
+             selezione. E' uno `<span>` senza `@click` e FUORI dal `<button>` della cella (sorella
+             dello span che lo contiene), e nessun antenato fino a `.st-cells` ascolta il clic — la
+             selezione passa solo per l'evento `select` di `UmbrellaCell`, cioe' per
+             `onSelectUmbrella` nella vista.
+             E sotto `lg` non si rende affatto: un'affordance inerte dove il puntatore e' morto e'
+             peggio della sua assenza. -->
         <span v-if="canManage && !selectMode && canDrag" class="st-drag-handle" draggable="true" aria-hidden="true"
           data-testid="drag-handle" @dragstart="onDragStart($event, u.id)" @dragend="emit('umbrella-drag-end')"></span>
       </span>

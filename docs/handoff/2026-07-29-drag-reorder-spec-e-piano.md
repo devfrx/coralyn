@@ -5,6 +5,12 @@
 > Questo documento è **autosufficiente**: ambiente, gotcha, metodo e regole di ingaggio sono dentro,
 > non per rimando. Il **§0.1 va letto prima di toccare qualsiasi cosa.**
 
+> ⚠️ **Documento superato** dall'handoff
+> [2026-07-30](2026-07-30-drag-reorder-implementata-mancano-review-e-prova-visiva.md), che è il punto
+> d'ingresso corrente. Le coordinate `file:riga` qui dentro sono contro `main` al 2026-07-29, prima
+> che il codice della slice esistesse: nell'albero consegnato molte cadono su codice vicino ma
+> diverso. Quelle riverificate il 2026-07-30 portano la nuova coordinata e la vecchia accanto.
+
 ---
 
 ## 0. In una riga
@@ -173,21 +179,29 @@ riproporlo.** Va invece *implementato* il suo effetto (maniglia assente sotto `l
 - ⚠️⚠️ **Sotto `lg` la scena è pointer-morta.** Il `Drawer` è un `DialogContent` di reka-ui con
   `disableOutsidePointerEvents` a **true** di default: `DismissableLayer` scrive
   `body.style.pointerEvents = "none"` e applica `aria-hidden`, **appena qualcosa è selezionato**
-  (`EstablishmentStructureView.vue:35`).
-- ⚠️⚠️ **`useMediaQuery` ritorna `false` senza `matchMedia`** (`useMediaQuery.ts:6`), quindi **ogni
-  spec dell'editor gira oggi nel ramo Drawer** — quello in cui il gesto non esiste. Un test del drag
-  senza stub di `matchMedia` **passa senza eseguire nulla**.
+  (il getter di `drawerOpen`, `EstablishmentStructureView.vue:129-131`; era `:35` contro `main`).
+- ⚠️⚠️ **`useMediaQuery` ritorna `false` senza `matchMedia`** (`useMediaQuery.ts:6`).
+  ⚠️ **Corretto il 2026-07-30:** questa riga proseguiva con «quindi **ogni** spec dell'editor gira
+  oggi nel ramo Drawer», ed era **falsa già a questa data**: `EstablishmentStructureView.spec.ts`
+  aveva già, **su `main`**, uno `stubDesktopMatchMedia()` in un `beforeEach` globale del file. Vale
+  solo per un file **senza** stub: là un test del drag **passa senza eseguire nulla**.
 - ⚠️⚠️ **Oltre 20 asserzioni indicizzano `[data-testid="scene-cell"] button` per POSIZIONE**
   (`EstablishmentStructureView.spec.ts:83,315,355,377,395,417,434-435,459-460,483-484,512-513,525-526,544-545,560-561`;
   `StructureScene.spec.ts:44,46`). Un secondo `<button>` dentro la cella le arrossa tutte **senza
   che una sola logica sia rotta**.
-- ⚠️ **`selectMode` si aggancia**: un solo Maiusc+clic lo accende
-  (`EstablishmentStructureView.vue:99`) e da lì **ogni** clic è additivo (`:95`). Un drag degenerato
-  in clic **toglie** l'ombrellone dalla selezione.
+- ⚠️ **`selectMode` si aggancia**: un solo Maiusc+clic lo accende e da lì **ogni** clic è additivo
+  (`onSelectUmbrella` in `EstablishmentStructureView.vue`). ⚠️ **Corretto il 2026-07-30:** questa
+  riga proseguiva con «un drag degenerato in clic **toglie** l'ombrellone dalla selezione», ed è
+  **falso** — la maniglia sta fuori dalla cella e non ha alcun percorso verso la selezione. La
+  correzione alla radice è nella spec §5.2. Il drag resta disabilitato in «Seleziona», per un'altra
+  ragione: là si costruisce una selezione multipla, e il drag multiplo è fuori scope.
 - ⚠️ **La geometria non è provabile in questo repo.** `environment: 'jsdom'`
-  (`apps/web-staff/vitest.config.ts:23`); `grep -rn "getBoundingClientRect" apps/web-staff/src
-  packages/ui-kit/src` → **zero righe**; nessun Playwright/Cypress in alcun `package.json`. Qualsiasi
-  calcolo geometrico va estratto in una **funzione pura su rect iniettati**, o nasce non verificato.
+  (`apps/web-staff/vitest.config.ts:22`); nessun Playwright/Cypress in alcun `package.json`.
+  Qualsiasi calcolo geometrico va estratto in una **funzione pura su rect iniettati**, oppure
+  esercitato stubbando `getBoundingClientRect` **per elemento**, o nasce non verificato.
+  ⚠️ **Corretto il 2026-07-30:** la coordinata era `:23` (è `:22`), e la prova esibita — un `grep -rn
+  "getBoundingClientRect"` «→ zero righe» — era vera a questa data e non lo è più: l'implementazione
+  lo chiama in `StructureRow.vue`.
 - ⚠️ **`structureKeys` non contiene `dayMap`** (`useEstablishmentStructure.ts:9-15`: struttura,
   overview, `setupStatus`). Ma `map.service.ts:22,25,26` ordina con gli stessi campi: senza
   invalidarla, chi ha la Mappa aperta al banco resta con l'ordine vecchio.

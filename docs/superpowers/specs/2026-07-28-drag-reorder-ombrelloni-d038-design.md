@@ -5,6 +5,12 @@
   [ADR-0052](../../architecture/decisions/0052-editor-struttura-cantiere.md)
 - **Resta deferita:** [D-005](../../architecture/deferred.md#d-005) (planimetria a coordinate libere)
 
+> ⚠️ **Le coordinate `file:riga` di questo documento sono contro `main` al 2026-07-28**, cioè al
+> codice *prima* della slice: erano giuste quando furono scritte, e l'implementazione ha poi spostato
+> molte di quelle righe. Nell'albero consegnato la maggior parte cade su codice vicino ma diverso —
+> sono puntatori stantii, non affermazioni false. Quelle riverificate il 2026-07-30 portano la nuova
+> coordinata e la vecchia accanto; per le altre, cerca il simbolo, non il numero.
+
 ---
 
 ## 1. Obiettivo
@@ -224,18 +230,29 @@ la suite **senza che una sola logica sia rotta**: rumore che costa e non protegg
 
 ### 5.2 Il drag è disabilitato in modalità «Seleziona»
 
-⚠️ `selectMode` **si aggancia**: un solo Maiusc+clic lo accende
-(`EstablishmentStructureView.vue:99`), e da lì **ogni** clic diventa additivo (`:95`). Un
-trascinamento che degeneri in clic con la modalità accesa **toglie** l'ombrellone dalla selezione —
-una mutazione di stato, non un artefatto visivo. Le due modalità si escludono.
+⚠️ `selectMode` **si aggancia**: un solo Maiusc+clic lo accende e da lì **ogni** clic diventa
+additivo (`onSelectUmbrella` in `EstablishmentStructureView.vue`). Con la modalità accesa si sta
+costruendo una **selezione multipla**, e trascinare un solo ombrellone da dentro una selezione
+multipla non ha semantica: il drag di più celle è escluso dallo scope (§2.1). Le due modalità si
+escludono, e la maniglia non si rende in «Seleziona».
+
+⚠️ **Corretto il 2026-07-30 (review avversariale): la motivazione qui scritta era falsa, e lo era
+già alla scrittura.** Diceva che «un trascinamento che degeneri in clic **toglie** l'ombrellone
+dalla selezione — una mutazione di stato». Non può: §5.1, la sezione immediatamente sopra, aveva
+già deciso che il gesto parte da una **maniglia dedicata adiacente alla cella, non dalla cella**.
+Nel codice consegnato quella maniglia è uno `<span>` senza `@click` e **fuori** dal `<button>` della
+cella — sorella dello span che lo contiene — e nessun antenato fino a `.st-cells` ascolta il clic:
+un drag degenerato non tocca la selezione. **La decisione resta** — cambia la ragione che la sorregge. La stessa
+frase era migrata in altri quattro documenti (piano, handoff 2026-07-29, ADR-0065, design system),
+nella riga di §7 qui sotto e nel commento del componente: corretti tutti.
 
 ### 5.3 ⚠️ Limite dichiarato: la feature è solo `lg+` (≥1024px)
 
 Il `Drawer` è un `DialogContent` di reka-ui con `disableOutsidePointerEvents` a **true** per
 default: `DismissableLayer` scrive `body.style.pointerEvents = "none"` e applica `aria-hidden`.
-Sotto 1024px `drawerOpen` è vero **appena qualcosa è selezionato**
-(`EstablishmentStructureView.vue:35`), quindi la scena è pointer-morta proprio nel momento in cui
-si vorrebbe trascinare.
+Sotto 1024px `drawerOpen` è vero **appena qualcosa è selezionato** (il getter di `drawerOpen` in
+`EstablishmentStructureView.vue:129-131`; era `:35` contro `main`, spostato dal branch stesso),
+quindi la scena è pointer-morta proprio nel momento in cui si vorrebbe trascinare.
 
 **Sotto `lg` non esiste alcun modo di riordinare.** Non è un effetto collaterale scoperto a lavoro
 fatto: è una **rinuncia decisa**, presa sapendo che l'unico modo di coprire quel caso sarebbe un
@@ -250,10 +267,12 @@ Conseguenze che il piano deve onorare:
   quando `matchMedia` manca (`useMediaQuery.ts:6`), quindi un test del drag scritto in un file senza
   stub passerebbe *senza esercitare nulla*.
   ⚠️ **Corretto il 2026-07-29 in fase di esecuzione:** questa riga diceva «**ogni** spec dell'editor
-  gira oggi nel ramo Drawer», ed è **falsa**. `EstablishmentStructureView.spec.ts:51-63` definisce
+  gira oggi nel ramo Drawer», ed è **falsa**. `EstablishmentStructureView.spec.ts:50-67` definisce
   già `stubDesktopMatchMedia()` e lo applica in un `beforeEach` **globale del file**, con
   `vi.unstubAllGlobals()` in coda: quella spec gira **interamente** nel ramo desktop, e contiene
-  persino un test che sovrascrive lo stub per esercitare il Drawer (`:277-290`). Non serviva quindi
+  persino un test che sovrascrive lo stub per esercitare il Drawer (quello intitolato «mobile: rail
+  fila → Drawer con pannello Fila»). ⚠️ Le due coordinate erano `:51-63` e `:277-290` contro `main`
+  e sono state riverificate il 2026-07-30: il branch ha spostato quelle righe. Non serviva quindi
   aggiungere alcuno stub a `src/test/setup.ts` — che avrebbe ribaltato il ramo di ogni spec che
   monta la shell: bastava riusare l'helper e il pattern di override già presenti.
 - Riaprire il caso `< lg` è materiale da deferred, non da questa slice.
@@ -341,7 +360,7 @@ invarianti strutturali.
 | `position` fuori intervallo | unit | manca il 422 |
 | Permesso sul metodo | unit | ⚠️ **non lo vedrebbe nessuno**: `authorization-coverage` accetta l'eredità di classe. Il presidio va scritto apposta |
 | `dayMap` invalidata dal move | unit FE | la Mappa resta stantia |
-| Drag disabilitato in `selectMode` | unit FE | il drag rimuove dalla selezione |
+| Drag disabilitato in `selectMode` | unit FE | ⚠️ **corretto il 2026-07-30**: qui si leggeva «il drag rimuove dalla selezione», e non è ciò che accade (§5.2). Il rischio vero è offrire in «Seleziona» un gesto che lo scope esclude |
 | Maniglia **assente** sotto `lg` | unit FE | ⚠️ appare un'affordance inerte dove il puntatore è morto (§5.3). È l'unico test che gira **senza** stub di `matchMedia`: tutti gli altri del drag lo richiedono |
 | **«prima linea» e «file più in alto vicine al mare»** | unit FE | 🆕 vedi §7.4 |
 
@@ -356,7 +375,7 @@ per gli unit sia per gli e2e, prima di poter dichiarare verde alcunché.
 
 ### 7.4 Due stringhe che dichiarano semantica e non hanno alcun presidio
 
-- `StructureScene.vue:104` — «*le file più in alto sono più vicine al mare*»
+- `StructureScene.vue:173` (era `:104` contro `main`) — «*le file più in alto sono più vicine al mare*»
 - `MapView.vue:400` — `v-if="i === 0"` → «**prima linea**»
 
 Comando: `grep -rn "prima linea\|più in alto" apps/web-staff/src --include=*.spec.ts` → **0 righe**.
@@ -378,8 +397,11 @@ asseriscono un ordine, non lo proteggono: `map.e2e-spec.ts:51,55,56-59`;
 
 - **Riordino di file e settori.** `Row.sortOrder` e `Sector.sortOrder` non si toccano. ⚠️ Il caso
   delle file è più costoso di quanto sembri: l'ordine delle file **è** ciò che il prodotto chiama
-  «prima linea» (§7.4), e i settori sono resi come **tab** (`MapView.vue:69-73`), per i quali un
-  ordine spaziale non ha referente. Restano in [D-038](../../architecture/deferred.md#d-038), che
+  «prima linea» (§7.4), e i settori si **scelgono da un selettore** — `role="tab"` nel Cantiere, un
+  `SegmentedControl` (`role="radiogroup"`) nella Mappa — per il quale un ordine spaziale non ha
+  referente. ⚠️ **Corretto il 2026-07-30:** questa riga diceva «i settori sono resi come **tab**»
+  citando `MapView.vue:69-73`; nella Mappa non sono tab, e la citazione puntava al `computed` delle
+  opzioni, non alla resa. L'argomento regge identico. Restano in [D-038](../../architecture/deferred.md#d-038), che
   questa slice chiude **solo per l'ombrellone**.
 - **Selezione multipla trascinabile.** §2.1.
 - **Equivalente da tastiera, e con esso il riordino sotto `lg`.** Escluso su decisione esplicita

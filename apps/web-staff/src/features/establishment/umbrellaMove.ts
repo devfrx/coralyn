@@ -5,10 +5,16 @@ import type { SectorKind, StructureSectorDTO } from '@coralyn/contracts';
  * soddisfa questo tipo per struttura: è ristretto apposta, perché è ciò che rende la funzione
  * chiamabile dai test con oggetti letterali.
  *
- * ⚠️ Non è una preferenza di stile: `environment: 'jsdom'` (`vitest.config.ts:23`) restituisce
- * rettangoli a zero, `grep -rn "getBoundingClientRect" apps/web-staff/src packages/ui-kit/src` dà
- * zero righe e non esiste alcun test di browser in questo repo (nessun playwright/cypress in alcun
- * `package.json`). Iniettare i rect è l'UNICO modo di provare la geometria.
+ * ⚠️ Non è una preferenza di stile: `environment: 'jsdom'` (`apps/web-staff/vitest.config.ts:22`)
+ * restituisce rettangoli a ZERO, e non esiste alcun test di browser in questo repo (nessun
+ * playwright/cypress in alcun `package.json`). I rect vanno quindi forniti a mano: o iniettati in
+ * una funzione pura come questa, o stubbati per elemento nel test del componente, come fa
+ * `StructureRow.spec.ts` per `dropTarget`.
+ *
+ * ⚠️ Questo commento esibiva come prova un `grep -rn "getBoundingClientRect"` che «dà zero righe».
+ * **Non è più vero, e ha smesso di esserlo nel commit successivo a questo**: `StructureRow.vue`
+ * chiama `getBoundingClientRect` sulle celle vere per costruire questi rect, e due spec lo stubbano.
+ * Corretto il 2026-07-30 rieseguendo il comando, non rileggendo la frase.
  */
 export interface CellRect { top: number; bottom: number; left: number; right: number }
 
@@ -95,9 +101,11 @@ function visualLines(rects: readonly CellRect[]): VisualLine[] {
 /**
  * Indice 0-based a cui l'ombrellone finirebbe rilasciando il puntatore in `pointer`.
  *
- * ⚠️ `rects` sono i rettangoli delle SOLE celle, filtrati dal chiamante: `.st-cells` contiene anche
- * figli che celle non sono — la ghost «+» (`StructureRow.vue:49-50`) e il `<p>` «Nessun ombrellone»
- * (`:51`) — quindi l'indice del figlio DOM non è l'indice dell'ombrellone.
+ * ⚠️ `rects` sono i rettangoli delle SOLE celle, filtrati dal chiamante: in `StructureRow.vue` la
+ * `.st-cells` contiene anche figli che celle non sono — la ghost «+» (`[data-testid="ghost-cell"]`)
+ * e il `<p>` «Nessun ombrellone» della fila vuota — quindi l'indice del figlio DOM non è l'indice
+ * dell'ombrellone. ⚠️ Qui c'erano due coordinate `file:riga`, giuste contro `main` e già scadute
+ * nell'albero consegnato: sostituite il 2026-07-30 con àncore che non invecchiano.
  *
  * ⚠️ E sono i rect della fila di destinazione SENZA l'ombrellone che si sta trascinando. Con
  * quella esclusione il numero che esce è già il `position` che l'API vuole: l'indice FINALE, che
