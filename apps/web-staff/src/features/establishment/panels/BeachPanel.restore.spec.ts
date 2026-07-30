@@ -83,6 +83,22 @@ describe('BeachPanel — disclosure sul ripristino (D-038)', () => {
     w.unmount();
   });
 
+  it('quando ENTRAMBI i settori hanno tariffe dedicate: chiede comunque, col testo della destinazione', async () => {
+    // Terzo ramo della coppia (destinazione, origine): finora c'erano solo «solo destinazione» e
+    // «solo origine» (più «nessuno dei due»). Oggi «entrambi» prende lo stesso percorso di «solo
+    // destinazione» nel codice, ma la copertura dichiarata era di tre rami, non quattro.
+    const entrambe: EstablishmentStructureDTO = {
+      ...DATA, sectors: DATA.sectors.map((s) => ({ ...s, hasDedicatedRates: true })),
+    };
+    const { w, posted } = await panel('Levante · F2', entrambe);
+    await restoreInto(w, 'Centro · F1');
+    expect(posted()).toBeNull();
+    expect(document.body.textContent).toContain('Il prezzo dei rinnovi cambierà base');
+    expect(document.body.textContent).toContain('dove il listino ha tariffe dedicate');
+    expect(document.body.textContent).toContain('saranno prezzati con le tariffe di «Centro»');
+    w.unmount();
+  });
+
   it('uscire da un settore con tariffe dedicate avvisa anche se l’arrivo non ne ha', async () => {
     // Spec §2.5: conta una tariffa agganciata alla partenza O all'arrivo. Uscendo da «Centro» il
     // prezzo smette di essere quello di «Centro», ed è quella la cosa da dichiarare — non che

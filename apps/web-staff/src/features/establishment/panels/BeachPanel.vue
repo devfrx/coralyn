@@ -169,12 +169,15 @@ function confirmRestore() {
         L’ombrellone <strong>{{ pendingRestore.label }}</strong> era stato ritirato da «{{ pendingRestore.from }}»
         e sta tornando in «{{ pendingRestore.to }}», dove il listino ha tariffe dedicate.
         I <strong>rinnovi futuri</strong> saranno prezzati con le tariffe di «{{ pendingRestore.to }}».
-        Le prenotazioni già registrate non cambiano: il loro prezzo è uno snapshot scritto alla conferma.
       </p>
       <p v-else-if="pendingRestore" class="text-[13px] leading-relaxed text-[var(--color-text-2nd)]">
         L’ombrellone <strong>{{ pendingRestore.label }}</strong> era stato ritirato da «{{ pendingRestore.from }}»,
         dove il listino ha tariffe dedicate, e sta tornando in «{{ pendingRestore.to }}», che non le ha.
         I <strong>rinnovi futuri</strong> perdono quella base dedicata e saranno prezzati con il listino generale.
+      </p>
+      <!-- Comune a entrambi i rami sopra: estratta fuori dal condizionale perché una modifica non
+           richieda due edit sincronizzati. -->
+      <p v-if="pendingRestore" class="text-[13px] leading-relaxed text-[var(--color-text-2nd)]">
         Le prenotazioni già registrate non cambiano: il loro prezzo è uno snapshot scritto alla conferma.
       </p>
     </ConfirmDialog>
