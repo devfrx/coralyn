@@ -217,6 +217,13 @@ export class UmbrellasService {
         });
       } catch (e) {
         if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2025') {
+          // Il `where` esteso può mancare per due motivi distinti: un `retire` concorrente (la riga
+          // resta, solo con `retiredAt` valorizzato) oppure un `delete` concorrente — `remove()` fa
+          // hard-delete quando l'ombrellone non ha prenotazioni. Solo il primo è "ritirato": nel
+          // secondo la riga è sparita, e mandare l'operatore all'archivio dei ritirati sarebbe un
+          // messaggio falso — lì non c'è.
+          const stillThere = await tx.umbrella.findUnique({ where: { id }, select: { id: true } });
+          if (!stillThere) throw new NotFoundException('Ombrellone non trovato');
           throw new ConflictException('Ombrellone ritirato: ripristinalo prima di spostarlo.');
         }
         throw e;

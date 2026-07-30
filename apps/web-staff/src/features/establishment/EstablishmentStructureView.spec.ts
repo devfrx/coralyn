@@ -1054,6 +1054,19 @@ describe('EstablishmentStructureView — shell Cantiere', () => {
       umbrellaTypes: [],
     };
 
+    // Caso specchio di TWO_GRIDS: qui è la DESTINAZIONE ad avere tariffe dedicate, l'origine no.
+    const REVERSE_GRIDS = {
+      sectors: [
+        { id: 's-1', name: 'Centro', sortOrder: 1, kind: 'grid' as const, hasDedicatedRates: false, rows: [
+          { id: 'r-1', label: 'Fila 1', sortOrder: 1, umbrellas: [{ id: 'u-1', label: 'A1', umbrellaTypeId: null }] },
+        ] },
+        { id: 's-3', name: 'Levante', sortOrder: 2, kind: 'grid' as const, hasDedicatedRates: true, rows: [
+          { id: 'r-3', label: 'Fila 3', sortOrder: 1, umbrellas: [] },
+        ] },
+      ],
+      umbrellaTypes: [],
+    };
+
     async function sceneMoves(structure: typeof TWO_GRIDS, rowId: string) {
       server.use(http.get('/api/establishment/structure', () => HttpResponse.json(structure)));
       let posted = false;
@@ -1069,12 +1082,29 @@ describe('EstablishmentStructureView — shell Cantiere', () => {
       return { w, posted: () => posted };
     }
 
-    it('fuori dal settore con tariffe dedicate: chiede prima, e NON scrive', async () => {
+    it('uscire da un settore con tariffe dedicate avvisa anche se l’arrivo non ne ha', async () => {
       const { w, posted } = await sceneMoves(TWO_GRIDS, 'r-3');
       expect(posted()).toBe(false);
       // reka-ui teleporta il dialogo fuori dall'albero del wrapper: si guarda su document.body.
       expect(document.body.textContent).toContain('Il prezzo dei rinnovi cambierà base');
       expect(document.body.textContent).toContain('Levante');
+      // La destinazione qui NON ha tariffe dedicate: l'ombrellone la perde, non l'acquista.
+      expect(document.body.textContent).toContain('che non le ha');
+      expect(document.body.textContent).toContain('il listino generale');
+      expect(document.body.textContent).not.toContain('saranno prezzati con le tariffe di «Levante»');
+      expect(document.body.textContent).toContain('prenotazioni già registrate');
+      w.unmount();
+    });
+
+    it('verso un settore con tariffe dedicate: il testo parla della destinazione', async () => {
+      const { w, posted } = await sceneMoves(REVERSE_GRIDS, 'r-3');
+      expect(posted()).toBe(false);
+      expect(document.body.textContent).toContain('Il prezzo dei rinnovi cambierà base');
+      // La destinazione qui HA tariffe dedicate: il testo può dirlo, non l'inverso.
+      expect(document.body.textContent).toContain('dove il listino ha tariffe dedicate');
+      expect(document.body.textContent).toContain('saranno prezzati con le tariffe di «Levante»');
+      expect(document.body.textContent).not.toContain('il listino generale');
+      expect(document.body.textContent).toContain('prenotazioni già registrate');
       w.unmount();
     });
 

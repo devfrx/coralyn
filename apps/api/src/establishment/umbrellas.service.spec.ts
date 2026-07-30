@@ -355,6 +355,25 @@ describe('UmbrellasService', () => {
       }));
     });
 
+    // Stesso P2025 del test sopra, ma con una causa diversa: un `delete` concorrente (`remove()`
+    // fa hard-delete quando l'ombrellone non ha prenotazioni), non un `retire`. La riga qui NON
+    // resta — a differenza del ritiro — quindi la ri-lettura nel `catch` la trova sparita e il
+    // gate deve rispondere 404, non mandare l'operatore a cercarla fra i ritirati dove non è.
+    it('404 se l’ombrellone è stato eliminato (non ritirato) fra la lettura e la scrittura finale', async () => {
+      const { service, tx } = arrange();
+      tx.umbrella.update.mockRejectedValue(
+        new Prisma.PrismaClientKnownRequestError('No record was found for an update.', { code: 'P2025', clientVersion: 'x' }),
+      );
+      // 1ª chiamata (lettura iniziale in move): l'ombrellone esiste ancora. 2ª chiamata (ri-lettura
+      // nel catch, dopo il P2025): è sparito del tutto — il delete concorrente, non un retire.
+      tx.umbrella.findUnique
+        .mockResolvedValueOnce({ id: 'u-1', label: '12', umbrellaTypeId: null, rowId: 'r-1', logicalOrder: 2, retiredAt: null, row: { sectorId: 's-1', sector: { kind: 'grid' } } })
+        .mockResolvedValueOnce(null);
+      const promise = service.move('u-1', { rowId: 'r-2', position: 1 });
+      await expect(promise).rejects.toBeInstanceOf(NotFoundException);
+      await expect(promise).rejects.toThrow('Ombrellone non trovato');
+    });
+
     // Il rethrow dev'essere SELETTIVO: mutarlo in una ConflictException incondizionata lascerebbe
     // verde tutta la suite, trasformando qualunque guasto Prisma non-P2025 in un 409 muto.
     it('un errore Prisma diverso da P2025 propaga invariato, non diventa un 409', async () => {

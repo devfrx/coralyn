@@ -102,8 +102,12 @@ function submitMove(vars: { id: string } & MoveUmbrellaInput): void {
  * La bandiera arriva con la struttura e non da `GET /rates`: là servirebbe `pricing.manage`, che
  * chi gestisce la struttura può non avere (D-063), e le tariffe sono per stagione mentre la
  * conseguenza è su una stagione futura.
+ *
+ * `toHasDedicatedRates` distingue i due testi possibili nello slot (gemello di BeachPanel.vue): il
+ * gate si apre anche quando SOLO l'origine ha tariffe dedicate, e in quel ramo la destinazione non
+ * ne ha — dirlo al contrario (come se la destinazione ne acquisisse una) sarebbe falso.
  */
-const pendingMove = ref<{ umbrellaId: string; label: string; rowId: string; position: number; from: string; to: string } | null>(null);
+const pendingMove = ref<{ umbrellaId: string; label: string; rowId: string; position: number; from: string; to: string; toHasDedicatedRates: boolean } | null>(null);
 
 function onMoveUmbrella(umbrellaId: string, rowId: string, position: number): void {
   const origin = data.value ? findUmbrella(data.value, umbrellaId) : null;
@@ -112,7 +116,7 @@ function onMoveUmbrella(umbrellaId: string, rowId: string, position: number): vo
     && (origin.sector.hasDedicatedRates || destination.hasDedicatedRates)) {
     pendingMove.value = {
       umbrellaId, label: origin.umbrella.label, rowId, position,
-      from: origin.sector.name, to: destination.name,
+      from: origin.sector.name, to: destination.name, toHasDedicatedRates: destination.hasDedicatedRates,
     };
     return;
   }
@@ -264,10 +268,19 @@ onUnmounted(() => window.removeEventListener('keydown', onKeydown));
     <ConfirmDialog :open="pendingMove !== null" @update:open="(v: boolean) => { if (!v) pendingMove = null; }"
       title="Il prezzo dei rinnovi cambierà base" confirm-label="Sposta comunque" data-testid="move-disclosure"
       @confirm="confirmMove">
+      <p v-if="pendingMove && pendingMove.toHasDedicatedRates" class="text-[13px] leading-relaxed text-[var(--color-text-2nd)]">
+        Spostando l’ombrellone <strong>{{ pendingMove.label }}</strong> da «{{ pendingMove.from }}» a «{{ pendingMove.to }}»,
+        dove il listino ha tariffe dedicate, i <strong>rinnovi futuri</strong> saranno prezzati con le tariffe di
+        «{{ pendingMove.to }}».
+      </p>
+      <p v-else-if="pendingMove" class="text-[13px] leading-relaxed text-[var(--color-text-2nd)]">
+        Spostando l’ombrellone <strong>{{ pendingMove.label }}</strong> da «{{ pendingMove.from }}», dove il listino ha
+        tariffe dedicate, a «{{ pendingMove.to }}», che non le ha, i <strong>rinnovi futuri</strong> perdono quella base
+        dedicata e saranno prezzati con il listino generale.
+      </p>
+      <!-- Comune a entrambi i rami sopra: estratta fuori dal condizionale perché una modifica non
+           richieda due edit sincronizzati. -->
       <p v-if="pendingMove" class="text-[13px] leading-relaxed text-[var(--color-text-2nd)]">
-        Il listino ha tariffe dedicate a «{{ pendingMove.from }}» o a «{{ pendingMove.to }}».
-        Spostando l’ombrellone <strong>{{ pendingMove.label }}</strong> in «{{ pendingMove.to }}»,
-        i <strong>rinnovi futuri</strong> saranno prezzati con le tariffe di «{{ pendingMove.to }}».
         Le prenotazioni già registrate non cambiano: il loro prezzo è uno snapshot scritto alla conferma.
       </p>
     </ConfirmDialog>

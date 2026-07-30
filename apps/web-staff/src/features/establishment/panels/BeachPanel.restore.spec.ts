@@ -62,6 +62,7 @@ describe('BeachPanel — disclosure sul ripristino (D-038)', () => {
     expect(document.body.textContent).toContain('dove il listino ha tariffe dedicate');
     expect(document.body.textContent).toContain('saranno prezzati con le tariffe di «Centro»');
     expect(document.body.textContent).not.toContain('il listino generale');
+    expect(document.body.textContent).toContain('prenotazioni già registrate');
     w.unmount();
   });
 
@@ -110,6 +111,7 @@ describe('BeachPanel — disclosure sul ripristino (D-038)', () => {
     expect(document.body.textContent).toContain('che non le ha');
     expect(document.body.textContent).toContain('il listino generale');
     expect(document.body.textContent).not.toContain('saranno prezzati con le tariffe di «Levante»');
+    expect(document.body.textContent).toContain('prenotazioni già registrate');
     w.unmount();
   });
 

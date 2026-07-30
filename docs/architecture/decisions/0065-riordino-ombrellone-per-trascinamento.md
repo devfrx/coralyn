@@ -249,8 +249,11 @@ ciò che l'operatore vede al banco.
   invalidava, quindi anche creare o eliminare un ombrellone lasciava la Mappa stantia al banco. La
   correzione è alla radice e vale per tutte, non solo per lo spostamento.
   ⚠️ **Ricontato e corretto il 2026-07-30:** questa riga diceva «la chiave della mappa» e
-  «quindici». Quindici sono le mutazioni che chiamano `structureKeys` **direttamente**; `retire` e
-  `restore` ci arrivano via `retireKeys`, e vanno contate.
+  «quindici». Quindici erano le mutazioni che chiamano `structureKeys` **direttamente**; `retire` e
+  `restore` ci arrivano via `retireKeys`, e vanno contate. **Ricontato di nuovo lo stesso giorno,
+  in una review successiva:** sono oggi **sedici** le dirette, non più quindici —
+  `useMoveUmbrella` è la sedicesima, aggiunta da questa stessa slice; «quindici» era il conto
+  prima del suo arrivo.
 
 - **L'invalidazione scatta anche quando il server rifiuta.** `mutationResource` invalida in
   `onSettled` e non più in `onSuccess`: gli errori più probabili di una scrittura su un albero

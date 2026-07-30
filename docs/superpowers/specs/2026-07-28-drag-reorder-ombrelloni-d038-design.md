@@ -251,7 +251,7 @@ nella riga di §7 qui sotto e nel commento del componente: corretti tutti.
 Il `Drawer` è un `DialogContent` di reka-ui con `disableOutsidePointerEvents` a **true** per
 default: `DismissableLayer` scrive `body.style.pointerEvents = "none"` e applica `aria-hidden`.
 Sotto 1024px `drawerOpen` è vero **appena qualcosa è selezionato** (il getter di `drawerOpen` in
-`EstablishmentStructureView.vue:129-131`; era `:35` contro `main`, spostato dal branch stesso),
+`EstablishmentStructureView.vue:133-135`; era `:35` contro `main`, spostato dal branch stesso),
 quindi la scena è pointer-morta proprio nel momento in cui si vorrebbe trascinare.
 
 **Sotto `lg` non esiste alcun modo di riordinare.** Non è un effetto collaterale scoperto a lavoro
