@@ -1,4 +1,5 @@
 import { describe, it, expect, afterEach, beforeEach, vi } from 'vitest';
+import { nextTick } from 'vue';
 import { mount, enableAutoUnmount } from '@vue/test-utils';
 import StructureScene from './StructureScene.vue';
 import type { StructureSectorDTO } from '@coralyn/contracts';
@@ -270,6 +271,10 @@ describe('StructureScene — tab a molla (D-038)', () => {
     // il cerchio invece di darlo per assunto.
     await w.findAll('[data-testid="drag-handle"]')[0].trigger('dragend');
     vi.advanceTimersByTime(1000);
+    // Flush esplicito: senza, l'asserzione sotto passerebbe per il dettaglio di scheduling secondo
+    // cui la classe era già stata tolta al passo precedente, non perché il DOM abbia recepito
+    // l'effetto di questo avanzamento dei timer.
+    await nextTick();
     expect(tab.classes()).not.toContain('st-tab-spring');
     expect(w.emitted('select-sector')).toBeUndefined();
   });
