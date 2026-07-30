@@ -58,6 +58,10 @@ describe('BeachPanel — disclosure sul ripristino (D-038)', () => {
     // reka-ui teleporta il dialogo fuori dall'albero del wrapper.
     expect(document.body.textContent).toContain('Il prezzo dei rinnovi cambierà base');
     expect(document.body.textContent).toContain('Levante');
+    // La destinazione ha davvero le tariffe dedicate qui: il testo può dirlo.
+    expect(document.body.textContent).toContain('dove il listino ha tariffe dedicate');
+    expect(document.body.textContent).toContain('saranno prezzati con le tariffe di «Centro»');
+    expect(document.body.textContent).not.toContain('il listino generale');
     w.unmount();
   });
 
@@ -81,11 +85,15 @@ describe('BeachPanel — disclosure sul ripristino (D-038)', () => {
 
   it('uscire da un settore con tariffe dedicate avvisa anche se l’arrivo non ne ha', async () => {
     // Spec §2.5: conta una tariffa agganciata alla partenza O all'arrivo. Uscendo da «Centro» il
-    // prezzo smette di essere quello di «Centro», ed è quella la cosa da dichiarare.
+    // prezzo smette di essere quello di «Centro», ed è quella la cosa da dichiarare — non che
+    // «Levante» ne acquisti una: qui l'ombrellone la PERDE, non il contrario (4a).
     const { w, posted } = await panel('Centro · F1');
     await restoreInto(w, 'Levante · F2');
     expect(posted()).toBeNull();
     expect(document.body.textContent).toContain('Il prezzo dei rinnovi cambierà base');
+    expect(document.body.textContent).toContain('che non le ha');
+    expect(document.body.textContent).toContain('il listino generale');
+    expect(document.body.textContent).not.toContain('saranno prezzati con le tariffe di «Levante»');
     w.unmount();
   });
 
@@ -104,6 +112,30 @@ describe('BeachPanel — disclosure sul ripristino (D-038)', () => {
     const { w, posted } = await panel(null);
     await restoreInto(w, 'Centro · F1');
     expect(posted()).toEqual({ rowId: 'r-1' });
+    expect(document.body.textContent).not.toContain('Il prezzo dei rinnovi cambierà base');
+    w.unmount();
+  });
+
+  it('settore d’origine rinominato dopo il ritiro: il nome snapshot non combacia più e l’avviso salta (difetto noto, non risolto qui)', async () => {
+    // «Ponente» è lo stesso settore fisico che al momento del ritiro si chiamava «Centro» (e aveva
+    // tariffe dedicate: hasDedicatedRates non cambia con un rename). `retiredFrom` porta ancora il
+    // nome vecchio, quindi il confronto per nome non trova più «Centro» fra i settori correnti:
+    // `origin` resta null, il gate ricade sul solo target — «Scirocco», senza tariffe dedicate — e
+    // il ripristino parte senza avviso, pur facendo perdere la tariffa dedicata di «Ponente».
+    const rinominato: EstablishmentStructureDTO = {
+      sectors: [
+        { id: 's-1', name: 'Ponente', sortOrder: 1, kind: 'grid', hasDedicatedRates: true, rows: [
+          { id: 'r-1', label: 'F1', sortOrder: 1, umbrellas: [] },
+        ] },
+        { id: 's-2', name: 'Scirocco', sortOrder: 2, kind: 'grid', hasDedicatedRates: false, rows: [
+          { id: 'r-2', label: 'F2', sortOrder: 1, umbrellas: [] },
+        ] },
+      ],
+      umbrellaTypes: [],
+    };
+    const { w, posted } = await panel('Centro · F1', rinominato);
+    await restoreInto(w, 'Scirocco · F2');
+    expect(posted()).toEqual({ rowId: 'r-2' });
     expect(document.body.textContent).not.toContain('Il prezzo dei rinnovi cambierà base');
     w.unmount();
   });

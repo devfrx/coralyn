@@ -47,9 +47,11 @@ const allRows = computed(() =>
   props.data.sectors.flatMap((s) => s.rows.map((r) => ({ id: r.id, label: r.label, sectorName: s.name }))));
 /**
  * Il settore di provenienza sta dentro `retiredFrom`, lo snapshot «Settore · Fila» scritto al
- * ritiro (`umbrellas.service.ts:169`). È testo, non un riferimento vivo: se il settore è stato
- * rinominato dopo il ritiro non combacia più con nessuno esistente e il confronto per nome dice
- * «diverso». Il verso dell'errore è quello giusto — si avvisa di troppo, non di meno.
+ * ritiro. È testo, non un riferimento vivo: se il settore è stato rinominato dopo il ritiro non
+ * combacia più con nessuno esistente, `origin` sotto non si risolve (resta `null`) e il gate
+ * ricade sul solo `target.hasDedicatedRates`. Il nome stantio può quindi SOPPRIMERE l'avviso sul
+ * ramo dell'origine: un ripristino che fa perdere una tariffa dedicata dell'origine passa senza
+ * dirlo. Non è il verso sicuro — si avvisa di meno, non di più.
  */
 function sectorOfSnapshot(retiredFrom: string | null): string | null {
   if (!retiredFrom) return null;
@@ -58,7 +60,10 @@ function sectorOfSnapshot(retiredFrom: string | null): string | null {
 
 // Stessa disclosure dello spostamento (spec §5.6): il ripristino riaggancia a QUALSIASI fila,
 // quindi a qualsiasi settore, e finora lo faceva senza dire nulla sul prezzo.
-const pendingRestore = ref<{ id: string; label: string; rowId: string; from: string; to: string } | null>(null);
+// `toHasDedicatedRates` distingue i due testi possibili nello slot: il gate si apre anche quando
+// SOLO l'origine ha tariffe dedicate, e in quel ramo la destinazione non ne ha — dirlo al
+// contrario (come se la destinazione ne acquisisse una) sarebbe falso.
+const pendingRestore = ref<{ id: string; label: string; rowId: string; from: string; to: string; toHasDedicatedRates: boolean } | null>(null);
 
 function runRestore(id: string, rowId: string) {
   restore.mutate({ id, rowId }, { onSuccess: () => pushToast('Ombrellone ripristinato.') });
@@ -72,7 +77,7 @@ function onRestore(id: string) {
   const from = sectorOfSnapshot(umbrella?.retiredFrom ?? null);
   const origin = from ? props.data.sectors.find((s) => s.name === from) ?? null : null;
   if (umbrella && target && from && from !== target.name && (target.hasDedicatedRates || origin?.hasDedicatedRates)) {
-    pendingRestore.value = { id, label: umbrella.label, rowId, from, to: target.name };
+    pendingRestore.value = { id, label: umbrella.label, rowId, from, to: target.name, toHasDedicatedRates: target.hasDedicatedRates };
     return;
   }
   runRestore(id, rowId);
@@ -160,10 +165,16 @@ function confirmRestore() {
       confirm-label="Elimina" tone="danger" @confirm="confirmDelete" />
     <ConfirmDialog :open="pendingRestore !== null" @update:open="(v: boolean) => { if (!v) pendingRestore = null; }"
       title="Il prezzo dei rinnovi cambierà base" confirm-label="Ripristina comunque" @confirm="confirmRestore">
-      <p v-if="pendingRestore" class="text-[13px] leading-relaxed text-[var(--color-text-2nd)]">
+      <p v-if="pendingRestore && pendingRestore.toHasDedicatedRates" class="text-[13px] leading-relaxed text-[var(--color-text-2nd)]">
         L’ombrellone <strong>{{ pendingRestore.label }}</strong> era stato ritirato da «{{ pendingRestore.from }}»
         e sta tornando in «{{ pendingRestore.to }}», dove il listino ha tariffe dedicate.
         I <strong>rinnovi futuri</strong> saranno prezzati con le tariffe di «{{ pendingRestore.to }}».
+        Le prenotazioni già registrate non cambiano: il loro prezzo è uno snapshot scritto alla conferma.
+      </p>
+      <p v-else-if="pendingRestore" class="text-[13px] leading-relaxed text-[var(--color-text-2nd)]">
+        L’ombrellone <strong>{{ pendingRestore.label }}</strong> era stato ritirato da «{{ pendingRestore.from }}»,
+        dove il listino ha tariffe dedicate, e sta tornando in «{{ pendingRestore.to }}», che non le ha.
+        I <strong>rinnovi futuri</strong> perdono quella base dedicata e saranno prezzati con il listino generale.
         Le prenotazioni già registrate non cambiano: il loro prezzo è uno snapshot scritto alla conferma.
       </p>
     </ConfirmDialog>
