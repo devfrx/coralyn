@@ -5,6 +5,8 @@ export const queryKeys = {
   cededSubscriptions: (tenantId: string, id: string) => ['customer', tenantId, id, 'ceded'] as const,
   customerAccess: (tenantId: string, bookingId: string) => ['customer-access', tenantId, bookingId] as const,
   dayMap: (tenantId: string, date: string) => ['map', tenantId, date] as const,
+  /** Prefisso di `dayMap`: invalida la mappa di OGNI data in cache, non solo quella attiva. */
+  dayMaps: (tenantId: string) => ['map', tenantId] as const,
   bookings: (tenantId: string, date: string) => ['bookings', tenantId, date] as const,
   packages: (tenantId: string) => ['packages', tenantId] as const,
   allPackages: (tenantId: string) => ['packages', tenantId, 'all'] as const,

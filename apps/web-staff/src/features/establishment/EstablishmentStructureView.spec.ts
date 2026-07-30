@@ -5,6 +5,7 @@ import { QueryClient } from '@tanstack/vue-query';
 import { Permission, Role } from '@coralyn/contracts';
 import { mountApp, selectOption, permissionsOfRole } from '@/test/utils';
 import { server } from '@/mocks/server';
+import { queryKeys } from '@/lib/queryKeys';
 import { useSessionStore } from '@/stores/session';
 import EstablishmentStructureView from './EstablishmentStructureView.vue';
 import StructureScene from './StructureScene.vue';
@@ -389,6 +390,43 @@ describe('EstablishmentStructureView — shell Cantiere', () => {
     w.unmount();
   });
 
+  /**
+   * ⚠️ La conferma di un'azione distruttiva NON deve dipendere dal fatto che il pannello sia
+   * sopravvissuto alla rilettura. Qui la seconda lettura della struttura torna senza `u-1`, quindi
+   * `watch(selectedUmbrella)` riporta la selezione alla Spiaggia e smonta il pannello Ombrellone:
+   * il toast passa comunque, perché query-core conclude la mutation prima che la rilettura atterri.
+   * Se un domani l'invalidazione di `mutationResource` venisse ATTESA, la callback passata alla
+   * singola `mutate()` scatterebbe a pannello già smontato e il toast sparirebbe: è la ragione per
+   * cui quella promise è scartata, e questo test è ciò che lo tiene fermo.
+   */
+  it('il toast del ritiro passa anche se la rilettura smonta il pannello', async () => {
+    let letture = 0;
+    server.use(http.get('/api/establishment/structure', () => {
+      letture += 1;
+      if (letture === 1) return HttpResponse.json(STRUCTURE_FIXTURE);
+      return HttpResponse.json({
+        ...STRUCTURE_FIXTURE,
+        sectors: STRUCTURE_FIXTURE.sectors.map((s) => (s.id !== 's-1' ? s
+          : { ...s, rows: s.rows.map((r) => ({ ...r, umbrellas: r.umbrellas.filter((u) => u.id !== 'u-1') })) })),
+      });
+    }));
+    server.use(http.post('/api/establishment/umbrellas/:id/retire', () =>
+      HttpResponse.json({ id: 'u-1', label: 'A1', umbrellaTypeId: null }, { status: 201 })));
+    const w = mountApp(EstablishmentStructureView, { attachTo: document.body });
+    asAdmin();
+    await settle();
+    await w.findAll('[data-testid="scene-cell"] button')[0].trigger('click');
+    await w.find('[data-testid="umbrella-retire"]').trigger('click');
+    await flushPromises();
+    Array.from(document.body.querySelectorAll('button')).find((b) => b.textContent?.trim() === 'Ritira')!.click();
+    await settle();
+    await settle();
+    const { useToasts } = await import('@coralyn/ui-kit');
+    expect(letture).toBe(2);
+    expect(useToasts().items.some((t) => t.message.includes('Ombrellone ritirato'))).toBe(true);
+    w.unmount();
+  });
+
   it('D-055: staff non vede «Ritira»', async () => {
     useFixture();
     const w = mountApp(EstablishmentStructureView);
@@ -741,7 +779,12 @@ describe('EstablishmentStructureView — shell Cantiere', () => {
   // L'ordine dell'editor È l'ordine della Mappa operativa: `map.service.ts:22,25,26` ordina con gli
   // stessi campi. Senza questa invalidazione chi ha la Mappa aperta al banco resta con la
   // disposizione vecchia — e nessuna mutazione di struttura la invalidava, non solo il move.
-  it('il move invalida anche la Mappa del giorno', async () => {
+  //
+  // ⚠️ Di OGNI giornata, non solo di quella attiva: la data non entra nell'ordinamento, quindi uno
+  // spostamento smentisce anche le mappe di altre date già in cache (la data si cambia dalla
+  // topbar). Non basta guardare la forma della chiave: l'assertion la passa al matcher vero di
+  // TanStack contro due giornate in cache, ed è quello a dire se le scade entrambe.
+  it('il move invalida la Mappa di OGNI giornata in cache, non solo quella attiva', async () => {
     useFixture();
     server.use(http.post('/api/establishment/umbrellas/:id/move', () =>
       HttpResponse.json({ id: 'u-1', label: 'A1', umbrellaTypeId: null })));
@@ -756,9 +799,14 @@ describe('EstablishmentStructureView — shell Cantiere', () => {
     await settle();
 
     const keys = invalidate.mock.calls.map((c) => (c[0] as { queryKey: readonly unknown[] }).queryKey);
-    expect(keys).toContainEqual(['map', 'e-1', useSessionStore().activeDate]);
-    expect(keys).toContainEqual(['establishment', 'e-1', 'structure']);
     invalidate.mockRestore();
+    expect(keys).toContainEqual(['establishment', 'e-1', 'structure']);
+
+    const cache = new QueryClient();
+    cache.setQueryData(queryKeys.dayMap('e-1', useSessionStore().activeDate), { sectors: [] });
+    cache.setQueryData(queryKeys.dayMap('e-1', '2026-08-14'), { sectors: [] });
+    const scadute = keys.flatMap((queryKey) => cache.getQueryCache().findAll({ queryKey }).map((q) => q.queryHash));
+    expect(new Set(scadute).size).toBe(2);
   });
 
   /**

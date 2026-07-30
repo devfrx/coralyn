@@ -7,18 +7,23 @@ import { useSessionStore } from '@/stores/session';
 
 // setupStatus: ogni mutazione di struttura può cambiare lo stato dell'onboarding.
 //
-// ⚠️ `dayMap` è nella lista perché la Mappa operativa ordina con gli STESSI campi dell'editor
+// ⚠️ La Mappa è nella lista perché ordina con gli STESSI campi dell'editor
 // (`map.service.ts:22,25,26`): senza, chi ha la Mappa aperta al banco resta con la disposizione
 // vecchia. Non riguarda solo lo spostamento — anche creare, eliminare o riassegnare la tipologia
 // cambia ciò che la Mappa mostra, e nessuna di quelle mutazioni la invalidava.
-// La chiave porta la data attiva, come già fa `useBookings.ts:25`: la Mappa è sempre interrogata
-// per `session.activeDate`, quindi è quella la voce di cache da scadere.
-function structureKeys(establishmentId: string, activeDate: string) {
+//
+// ⚠️ E ci sta col PREFISSO di ogni data (`dayMaps`), non con la chiave della sola data attiva: ciò
+// che queste mutazioni riscrivono è l'ordine logico, e la Mappa ordina per quello senza che la data
+// entri nell'ordinamento. Dopo la scrittura ogni giornata già in cache è sbagliata, non solo quella
+// a schermo — e la data si cambia dalla topbar, quindi in cache ce n'è più d'una. In TanStack Query
+// l'invalidazione combacia per prefisso, e sotto `'map'` la mappa del giorno è l'unica query
+// registrata: il prefisso non scade nient'altro.
+function structureKeys(establishmentId: string) {
   return [
     queryKeys.establishmentStructure(establishmentId),
     queryKeys.establishmentOverview(establishmentId),
     queryKeys.setupStatus(establishmentId),
-    queryKeys.dayMap(establishmentId, activeDate),
+    queryKeys.dayMaps(establishmentId),
   ];
 }
 
@@ -36,7 +41,7 @@ export function useCreateUmbrellaType() {
   return mutationResource({
     mutationFn: (input: CreateUmbrellaTypeInput) =>
       apiFetch<UmbrellaTypeDTO>('/establishment/umbrella-types', { method: 'POST', body: JSON.stringify(input) }),
-    invalidates: () => structureKeys(session.establishmentId, session.activeDate),
+    invalidates: () => structureKeys(session.establishmentId),
   });
 }
 
@@ -45,7 +50,7 @@ export function useUpdateUmbrellaType() {
   return mutationResource({
     mutationFn: (vars: { id: string } & UpdateUmbrellaTypeInput) =>
       apiFetch<UmbrellaTypeDTO>(`/establishment/umbrella-types/${vars.id}`, { method: 'PATCH', body: JSON.stringify({ name: vars.name, icon: vars.icon }) }),
-    invalidates: () => structureKeys(session.establishmentId, session.activeDate),
+    invalidates: () => structureKeys(session.establishmentId),
   });
 }
 
@@ -53,7 +58,7 @@ export function useDeleteUmbrellaType() {
   const session = useSessionStore();
   return mutationResource({
     mutationFn: (id: string) => apiFetch<UmbrellaTypeDTO>(`/establishment/umbrella-types/${id}`, { method: 'DELETE' }),
-    invalidates: () => structureKeys(session.establishmentId, session.activeDate),
+    invalidates: () => structureKeys(session.establishmentId),
   });
 }
 
@@ -62,7 +67,7 @@ export function useCreateSector() {
   return mutationResource({
     mutationFn: (input: CreateSectorInput) =>
       apiFetch<StructureSectorDTO>('/establishment/sectors', { method: 'POST', body: JSON.stringify(input) }),
-    invalidates: () => structureKeys(session.establishmentId, session.activeDate),
+    invalidates: () => structureKeys(session.establishmentId),
   });
 }
 
@@ -71,7 +76,7 @@ export function useUpdateSector() {
   return mutationResource({
     mutationFn: (vars: { id: string } & UpdateSectorInput) =>
       apiFetch<StructureSectorDTO>(`/establishment/sectors/${vars.id}`, { method: 'PATCH', body: JSON.stringify({ name: vars.name, kind: vars.kind }) }),
-    invalidates: () => structureKeys(session.establishmentId, session.activeDate),
+    invalidates: () => structureKeys(session.establishmentId),
   });
 }
 
@@ -79,7 +84,7 @@ export function useDeleteSector() {
   const session = useSessionStore();
   return mutationResource({
     mutationFn: (id: string) => apiFetch<StructureSectorDTO>(`/establishment/sectors/${id}`, { method: 'DELETE' }),
-    invalidates: () => structureKeys(session.establishmentId, session.activeDate),
+    invalidates: () => structureKeys(session.establishmentId),
   });
 }
 
@@ -88,7 +93,7 @@ export function useCreateRow() {
   return mutationResource({
     mutationFn: (input: CreateRowInput) =>
       apiFetch<StructureRowDTO>('/establishment/rows', { method: 'POST', body: JSON.stringify(input) }),
-    invalidates: () => structureKeys(session.establishmentId, session.activeDate),
+    invalidates: () => structureKeys(session.establishmentId),
   });
 }
 
@@ -97,7 +102,7 @@ export function useUpdateRow() {
   return mutationResource({
     mutationFn: (vars: { id: string } & UpdateRowInput) =>
       apiFetch<StructureRowDTO>(`/establishment/rows/${vars.id}`, { method: 'PATCH', body: JSON.stringify({ label: vars.label }) }),
-    invalidates: () => structureKeys(session.establishmentId, session.activeDate),
+    invalidates: () => structureKeys(session.establishmentId),
   });
 }
 
@@ -105,7 +110,7 @@ export function useDeleteRow() {
   const session = useSessionStore();
   return mutationResource({
     mutationFn: (id: string) => apiFetch<StructureRowDTO>(`/establishment/rows/${id}`, { method: 'DELETE' }),
-    invalidates: () => structureKeys(session.establishmentId, session.activeDate),
+    invalidates: () => structureKeys(session.establishmentId),
   });
 }
 
@@ -114,7 +119,7 @@ export function useCreateUmbrella() {
   return mutationResource({
     mutationFn: (input: CreateUmbrellaInput) =>
       apiFetch<StructureUmbrellaDTO>('/establishment/umbrellas', { method: 'POST', body: JSON.stringify(input) }),
-    invalidates: () => structureKeys(session.establishmentId, session.activeDate),
+    invalidates: () => structureKeys(session.establishmentId),
   });
 }
 
@@ -123,7 +128,7 @@ export function useUpdateUmbrella() {
   return mutationResource({
     mutationFn: (vars: { id: string } & UpdateUmbrellaInput) =>
       apiFetch<StructureUmbrellaDTO>(`/establishment/umbrellas/${vars.id}`, { method: 'PATCH', body: JSON.stringify({ label: vars.label, umbrellaTypeId: vars.umbrellaTypeId }) }),
-    invalidates: () => structureKeys(session.establishmentId, session.activeDate),
+    invalidates: () => structureKeys(session.establishmentId),
   });
 }
 
@@ -131,7 +136,7 @@ export function useDeleteUmbrella() {
   const session = useSessionStore();
   return mutationResource({
     mutationFn: (id: string) => apiFetch<StructureUmbrellaDTO>(`/establishment/umbrellas/${id}`, { method: 'DELETE' }),
-    invalidates: () => structureKeys(session.establishmentId, session.activeDate),
+    invalidates: () => structureKeys(session.establishmentId),
   });
 }
 
@@ -140,7 +145,7 @@ export function useGenerateUmbrellas() {
   return mutationResource({
     mutationFn: (input: GenerateUmbrellasInput) =>
       apiFetch<GenerateUmbrellasResultDTO>('/establishment/umbrellas/generate', { method: 'POST', body: JSON.stringify(input) }),
-    invalidates: () => structureKeys(session.establishmentId, session.activeDate),
+    invalidates: () => structureKeys(session.establishmentId),
   });
 }
 
@@ -149,7 +154,7 @@ export function useBulkDeleteUmbrellas() {
   return mutationResource({
     mutationFn: (input: BulkDeleteUmbrellasInput) =>
       apiFetch<BulkDeleteUmbrellasResultDTO>('/establishment/umbrellas/bulk-delete', { method: 'POST', body: JSON.stringify(input) }),
-    invalidates: () => structureKeys(session.establishmentId, session.activeDate),
+    invalidates: () => structureKeys(session.establishmentId),
   });
 }
 
@@ -158,7 +163,7 @@ export function useBulkAssignUmbrellaType() {
   return mutationResource({
     mutationFn: (input: BulkAssignUmbrellaTypeInput) =>
       apiFetch<BulkAssignUmbrellaTypeResultDTO>('/establishment/umbrellas/bulk-assign-type', { method: 'POST', body: JSON.stringify(input) }),
-    invalidates: () => structureKeys(session.establishmentId, session.activeDate),
+    invalidates: () => structureKeys(session.establishmentId),
   });
 }
 
@@ -168,13 +173,13 @@ export function useMoveUmbrella() {
   return mutationResource({
     mutationFn: (vars: { id: string } & MoveUmbrellaInput) =>
       apiFetch<StructureUmbrellaDTO>(`/establishment/umbrellas/${vars.id}/move`, { method: 'POST', body: JSON.stringify({ rowId: vars.rowId, position: vars.position }) }),
-    invalidates: () => structureKeys(session.establishmentId, session.activeDate),
+    invalidates: () => structureKeys(session.establishmentId),
   });
 }
 
 // Ritiro ombrelloni: estende structureKeys con retiredUmbrellas per invalidazione congiunta
-function retireKeys(establishmentId: string, activeDate: string) {
-  return [...structureKeys(establishmentId, activeDate), queryKeys.retiredUmbrellas(establishmentId)];
+function retireKeys(establishmentId: string) {
+  return [...structureKeys(establishmentId), queryKeys.retiredUmbrellas(establishmentId)];
 }
 
 export function useRetiredUmbrellas() {
@@ -193,7 +198,7 @@ export function useRetireUmbrella() {
   return mutationResource({
     mutationFn: (id: string) =>
       apiFetch<RetiredUmbrellaDTO>(`/establishment/umbrellas/${id}/retire`, { method: 'POST' }),
-    invalidates: () => retireKeys(session.establishmentId, session.activeDate),
+    invalidates: () => retireKeys(session.establishmentId),
   });
 }
 
@@ -202,6 +207,6 @@ export function useRestoreUmbrella() {
   return mutationResource({
     mutationFn: (vars: { id: string } & RestoreUmbrellaInput) =>
       apiFetch<StructureUmbrellaDTO>(`/establishment/umbrellas/${vars.id}/restore`, { method: 'POST', body: JSON.stringify({ rowId: vars.rowId }) }),
-    invalidates: () => retireKeys(session.establishmentId, session.activeDate),
+    invalidates: () => retireKeys(session.establishmentId),
   });
 }
