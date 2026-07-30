@@ -861,6 +861,89 @@ describe('EstablishmentStructureView — shell Cantiere', () => {
     expect(celle()).toEqual(['A1', 'A2']);
   });
 
+  /**
+   * ⚠️ La finestra dell'anteprima si chiude alla rilettura di QUELLO spostamento e non si riapre
+   * per innesco altrui. Legarla a «la struttura sta rileggendo» sembrava equivalente e non lo era:
+   * lo stato di successo della mutation non torna mai indietro, quindi ogni rilettura successiva —
+   * comprese quelle delle altre mutazioni di struttura — riapplicava lo spostamento VECCHIO a un
+   * albero che nel frattempo era cambiato sotto.
+   *
+   * La sequenza qui è quella minima che lo smaschera: serve che l'albero sia derivato **due volte**
+   * dopo lo spostamento, perché durante una rilettura a schermo c'è ancora l'albero precedente.
+   * Spostato A1 all'indice 1 l'albero è [A2, A1, A3]; eliminato A2 diventa [A1, A3], e su quello
+   * `applyMove(…, 'r-1', 1)` non è affatto l'identità: toglie A1, e reinserirlo all'indice 1 di
+   * [A3] dà **[A3, A1]**. Due celle scambiate per tutta la durata della terza GET, e poi il salto.
+   */
+  it('una rilettura innescata da un altra mutazione non riapre l anteprima dello spostamento vecchio', async () => {
+    const TRE = {
+      umbrellaTypes: [],
+      sectors: [{ id: 's-1', name: 'Centro', sortOrder: 1, kind: 'grid' as const, hasDedicatedRates: false, rows: [
+        { id: 'r-1', label: 'Fila 1', sortOrder: 1, umbrellas: [
+          { id: 'u-1', label: 'A1', umbrellaTypeId: null },
+          { id: 'u-2', label: 'A2', umbrellaTypeId: null },
+          { id: 'u-3', label: 'A3', umbrellaTypeId: null },
+        ] },
+      ] }],
+    };
+    const soloLabel = (labels: string[]) => ({
+      ...TRE,
+      sectors: [{ ...TRE.sectors[0], rows: [{ ...TRE.sectors[0].rows[0],
+        umbrellas: labels.map((l) => TRE.sectors[0].rows[0].umbrellas.find((u) => u.label === l)!) }] }],
+    });
+    // 1ª lettura: l'albero di partenza. 2ª: dopo lo spostamento di A1 all'indice 1.
+    // 3ª: dopo l'eliminazione di A2. 4ª: tenuta in volo, è quella in cui si vedeva lo scambio.
+    const alberi = [['A1', 'A2', 'A3'], ['A2', 'A1', 'A3'], ['A1', 'A3'], ['A1', 'A3']];
+    let letture = 0;
+    let releaseGet: () => void = () => {};
+    server.use(http.get('/api/establishment/structure', async () => {
+      letture += 1;
+      if (letture >= 4) await new Promise<void>((resolve) => { releaseGet = resolve; });
+      return HttpResponse.json(soloLabel(alberi[Math.min(letture, alberi.length) - 1]));
+    }));
+    let posizione: unknown = null;
+    server.use(http.post('/api/establishment/umbrellas/:id/move', async ({ request }) => {
+      posizione = ((await request.json()) as { position: number }).position;
+      return HttpResponse.json({ id: 'u-1', label: 'A1', umbrellaTypeId: null });
+    }));
+    server.use(http.delete('/api/establishment/umbrellas/:id', () =>
+      HttpResponse.json({ id: 'u-2', label: 'A2', umbrellaTypeId: null })));
+    const w = mountApp(EstablishmentStructureView, { attachTo: document.body });
+    asAdmin();
+    await settle();
+    layoutCells(w);
+    const celle = () => w.findAll('[data-testid="scene-cell"] button').map((b) => b.text());
+
+    // 1. Sposta A1 all'indice 1. Escluso A1, i mezzi delle altre due celle stanno a 69 e 118:
+    //    un rilascio a 80 ne oltrepassa una sola.
+    await w.findAll('[data-testid="drag-handle"]')[0].trigger('dragstart');
+    await w.find('.st-cells').trigger('drop', { clientX: 80, clientY: 20 });
+    await settle();
+    expect(posizione).toBe(1);
+    expect(celle()).toEqual(['A2', 'A1', 'A3']);
+
+    // 2. Elimina A2 dal pannello Ombrellone: l'albero diventa [A1, A3].
+    await w.findAll('[data-testid="scene-cell"] button')[0].trigger('click');
+    await w.find('[data-testid="umbrella-delete"]').trigger('click');
+    await flushPromises();
+    Array.from(document.body.querySelectorAll('button')).find((b) => b.textContent?.trim() === 'Elimina')!.click();
+    await settle();
+    await settle();
+    expect(celle()).toEqual(['A1', 'A3']);
+
+    // 3. Una qualunque mutazione successiva rilegge la struttura. Durante quella GET l'anteprima
+    //    NON deve tornare: `applyMove` su [A1, A3] darebbe [A3, A1].
+    await w.findAll('[data-testid="scene-cell"] button')[0].trigger('click');
+    await w.find('[data-testid="umbrella-delete"]').trigger('click');
+    await flushPromises();
+    Array.from(document.body.querySelectorAll('button')).find((b) => b.textContent?.trim() === 'Elimina')!.click();
+    await settle();
+    expect(letture).toBe(4); // la quarta rilettura è in volo
+    expect(celle()).toEqual(['A1', 'A3']);
+
+    releaseGet();
+    await settle();
+  });
+
   // L'ordine dell'editor È l'ordine della Mappa operativa: `map.service.ts:22,25,26` ordina con gli
   // stessi campi. Senza questa invalidazione chi ha la Mappa aperta al banco resta con la
   // disposizione vecchia — e nessuna mutazione di struttura la invalidava, non solo il move.
@@ -887,11 +970,20 @@ describe('EstablishmentStructureView — shell Cantiere', () => {
     invalidate.mockRestore();
     expect(keys).toContainEqual(['establishment', 'e-1', 'structure']);
 
+    // ⚠️ In cache ci sono anche due voci che il prefisso NON deve toccare: la mappa di un altro
+    // lido e una risorsa di dominio diverso. Senza, un prefisso troppo largo — `['map']`, o il
+    // caso limite di una chiave vuota — passerebbe questo test insieme a quello giusto: il conteggio
+    // atteso deve dire sia «le scade entrambe» sia «non scade nient'altro».
     const cache = new QueryClient();
     cache.setQueryData(queryKeys.dayMap('e-1', useSessionStore().activeDate), { sectors: [] });
     cache.setQueryData(queryKeys.dayMap('e-1', '2026-08-14'), { sectors: [] });
-    const scadute = keys.flatMap((queryKey) => cache.getQueryCache().findAll({ queryKey }).map((q) => q.queryHash));
-    expect(new Set(scadute).size).toBe(2);
+    cache.setQueryData(queryKeys.dayMap('e-2', '2026-08-14'), { sectors: [] });
+    cache.setQueryData(queryKeys.bookings('e-1', '2026-08-14'), []);
+    const scadute = new Set(keys.flatMap((queryKey) => cache.getQueryCache().findAll({ queryKey }).map((q) => q.queryHash)));
+    expect(scadute).toEqual(new Set([
+      JSON.stringify(queryKeys.dayMap('e-1', useSessionStore().activeDate)),
+      JSON.stringify(queryKeys.dayMap('e-1', '2026-08-14')),
+    ]));
   });
 
   /**

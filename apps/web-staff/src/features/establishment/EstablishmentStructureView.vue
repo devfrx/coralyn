@@ -2,6 +2,7 @@
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { Icon, Drawer, Skeleton, EmptyState, ConfirmDialog, useDelayedLoading } from '@coralyn/ui-kit';
+import type { MoveUmbrellaInput } from '@coralyn/contracts';
 import { Permission } from '@coralyn/contracts';
 import { useSessionStore } from '@/stores/session';
 import { useMediaQuery } from '@/lib/useMediaQuery';
@@ -14,7 +15,7 @@ import { applyMove } from './umbrellaMove';
 const session = useSessionStore();
 const router = useRouter();
 const canManage = computed(() => session.hasPermission(Permission.StructureManage));
-const { data, isLoading, isFetching } = useEstablishmentStructure();
+const { data, isLoading, dataUpdatedAt } = useEstablishmentStructure();
 const skeletonVisible = useDelayedLoading(() => isLoading.value);
 
 const selection = ref<Selection>({ kind: 'beach' });
@@ -36,31 +37,44 @@ const counts = computed(() => {
 // già leggibile. Senza anteprima la cella resta ferma fino alla risposta del server e poi salta.
 const moveUmbrella = useMoveUmbrella();
 /**
- * L'anteprima regge finché l'ALBERO non ha recepito lo spostamento, non finché la mutation è
+ * L'anteprima regge finché l'ALBERO non ha recepito QUELLO spostamento, non finché la mutation è
  * pendente. `isPending` cade quando risponde il POST, ma la rilettura della struttura è ancora in
  * volo e `useQuery` conserva il dato precedente durante un refetch di background: nella finestra
  * fra le due risposte la cella tornava al punto di partenza e poi risaltava — un rimbalzo, peggiore
  * del salto singolo che l'anteprima doveva evitare.
  *
- * Fra i due segnali non c'è buco: l'invalidazione fa partire il fetch in modo SINCRONO (nessun
- * await fra `Query.fetch()` e il dispatch di `fetch`), e query-core dispaccia `success` solo dopo
- * che l'`onSettled` che l'ha invalidata è ritornato. Quando `isPending` cade, `isFetching` è già
- * vero.
+ * `treeAtWrite` è la fotografia di `dataUpdatedAt` — l'istante dell'ultima rilettura riuscita —
+ * scattata quando la scrittura viene accettata. La finestra vale finché quella fotografia combacia,
+ * cioè finché a schermo c'è ancora lo STESSO albero su cui l'anteprima è stata calcolata: si chiude
+ * alla prima rilettura che atterra dopo la scrittura, che è la nostra perché l'invalidazione parte
+ * dentro l'`onSettled` di quella stessa mutation. E non si riapre, perché la fotografia non viene
+ * ri-scattata se non alla scrittura successiva.
  *
- * ⚠️ `isSuccess`, e non il solo `isFetching`: dopo un rifiuto del server le `variables` restano
- * lì, e senza quel termine la prima rilettura successiva rimetterebbe a schermo uno spostamento
- * che il server ha respinto. Sul verso opposto non serve nulla: su un albero che lo spostamento
- * ce l'ha già `applyMove` è l'identità, perché togliere l'ombrellone dall'indice `position` e
- * reinserirlo lì ridà la fila di partenza.
+ * ⚠️ Legare la finestra a `isFetching` invece che a questa fotografia sembrava equivalente e non lo
+ * era: `isSuccess` non torna mai falso e `isFetching` è vero per QUALUNQUE rilettura, comprese
+ * quelle delle altre diciassette mutazioni di `structureKeys`. Per il resto della sessione ogni
+ * rilettura riapplicava lo spostamento vecchio a un albero che nel frattempo era cambiato sotto —
+ * bastava eliminare un ombrellone che lo precedeva perché `applyMove` producesse uno scambio.
+ *
+ * ⚠️ La fotografia si scatta nell'`onSuccess` della singola `mutate()`, non in un `watch`:
+ * query-core la esegue dentro la stessa notifica che porta `isPending` a falso e prima di
+ * aggiornare i ref letti di qui, quindi non c'è ordine di flush di Vue da cui dipendere. Vale
+ * perché la vista che possiede la mutation è anche quella che rende l'anteprima: se si smontasse
+ * non ci sarebbe più nessuna anteprima da tenere.
  */
-const moveSettling = computed(() =>
-  moveUmbrella.isPending.value || (moveUmbrella.isSuccess.value && isFetching.value));
+const treeAtWrite = ref<number | null>(null);
+const moveSettling = computed(() => moveUmbrella.isPending.value
+  || (treeAtWrite.value !== null && dataUpdatedAt.value === treeAtWrite.value));
 const previewSectors = computed(() => {
   const sectors = data.value?.sectors ?? [];
   const vars = moveUmbrella.variables.value;
   if (!moveSettling.value || !vars) return sectors;
   return applyMove(sectors, vars.id, vars.rowId, vars.position);
 });
+
+function submitMove(vars: { id: string } & MoveUmbrellaInput): void {
+  moveUmbrella.mutate(vars, { onSuccess: () => { treeAtWrite.value = dataUpdatedAt.value; } });
+}
 /**
  * Disclosure, non blocco (spec §2.5). Se una tariffa nomina il settore di partenza o quello
  * d'arrivo, il prezzo dei RINNOVI cambia base — `renew()` ripassa dal pricing e risolve la
@@ -84,14 +98,14 @@ function onMoveUmbrella(umbrellaId: string, rowId: string, position: number): vo
     };
     return;
   }
-  moveUmbrella.mutate({ id: umbrellaId, rowId, position });
+  submitMove({ id: umbrellaId, rowId, position });
 }
 
 function confirmMove(): void {
   const pending = pendingMove.value;
   if (!pending) return;
   pendingMove.value = null;
-  moveUmbrella.mutate({ id: pending.umbrellaId, rowId: pending.rowId, position: pending.position });
+  submitMove({ id: pending.umbrellaId, rowId: pending.rowId, position: pending.position });
 }
 
 const isDesktop = useMediaQuery('(min-width: 1024px)');
