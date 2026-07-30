@@ -227,7 +227,7 @@ Otto correzioni sono nel commit `3b4ecda`. Le più utili da conoscere:
 - ⚠️ **`Select` di ui-kit è reka-ui, non un `<select>` nativo**: usa `selectOption(trigger, label)`
   da `@/test/utils`. C'è già un uso su quella stessa Select in
   `EstablishmentStructureView.spec.ts`, sul trigger `[data-testid="retired-restore-row"]` (era
-  `:601` contro `main`, oggi `:639`: la coordinata invecchia, il `data-testid` no).
+  `:599` contro `main`, oggi `:639`: la coordinata invecchia, il `data-testid` no).
 - ⚠️ **jsdom restituisce rettangoli a ZERO.** La geometria si prova **solo** iniettando i rect in
   funzioni pure (`umbrellaMove.ts`), oppure stubbando `getBoundingClientRect` per elemento.
 - **Per asserire un'invalidazione**: `vi.spyOn(QueryClient.prototype, 'invalidateQueries')` e leggi

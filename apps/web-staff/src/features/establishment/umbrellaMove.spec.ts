@@ -3,7 +3,7 @@ import type { StructureSectorDTO } from '@coralyn/contracts';
 import { applyMove, isCompatible, targetIndex, type CellRect } from './umbrellaMove';
 
 // Misure prese dal CSS vero: `.st-cells` ha `gap: 9px` (structure-scene.css:17) e la cella è 40x40
-// come `.st-ghost-cell` (:18). Scriverle qui rende i numeri dei test leggibili come una pianta.
+// come `.st-ghost-cell` (:35). Scriverle qui rende i numeri dei test leggibili come una pianta.
 const SIZE = 40;
 const GAP = 9;
 const STEP = SIZE + GAP;

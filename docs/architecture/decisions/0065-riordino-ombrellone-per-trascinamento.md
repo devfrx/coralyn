@@ -340,7 +340,7 @@ ciò che l'operatore vede al banco.
 3. **Modularità** — la geometria e il calcolo dell'intervallo sono funzioni pure senza DOM né DB; lo
    stato del trascinamento vive nella scena, che è l'unico componente che deve conoscerlo sia per le
    file sia per i tab.
-4. **Zero debito** — **quattro** voci aperte, tutte **deliberate e nominate**:
+4. **Zero debito** — **quattro** voci aperte **causate da questa slice**, tutte **deliberate e nominate**:
    [D-070](../deferred.md#d-070) e [D-071](../deferred.md#d-071) alla scrittura,
    [D-072](../deferred.md#d-072) e [D-074](../deferred.md#d-074) aggiunte dalla review avversariale
    del 2026-07-30 (erano due, ricontate lì); nessuna migration; nessuna dipendenza nuova; nessun
