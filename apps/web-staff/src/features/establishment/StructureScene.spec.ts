@@ -254,17 +254,24 @@ describe('StructureScene — tab a molla (D-038)', () => {
     expect(w.emitted('move-umbrella')![0]).toEqual(['u-1', 'r-1', 0]);
   });
 
-  it('il rilascio sul tab non scrive nulla ed e\' annullato: la posizione si sceglie sulla fila', async () => {
+  it('il rilascio sul tab non scrive nulla, annulla il default, e la molla non sopravvive al dragend che segue', async () => {
     const w = scene();
     await grab(w);
     const tab = w.findAll('[role="tab"]')[2];
-    await tab.trigger('dragover'); // arma la molla, cosi' il test copre anche la sua pulizia
+    await tab.trigger('dragover'); // arma la molla
     // `trigger` costruisce l'evento e lo butta via: `defaultPrevented` si legge solo sull'oggetto vero
     // (stesso accorgimento di `dispatchDragOver` in StructureRow.spec.ts).
     const event = new MouseEvent('drop', { bubbles: true, cancelable: true });
     tab.element.dispatchEvent(event);
     expect(w.emitted('move-umbrella')).toBeUndefined();
     expect(event.defaultPrevented).toBe(true);
+    // `onTabDrop` non tocca `springTimer`/`springSectorId`: la pulizia arriva da `dragend`, che
+    // scatta SEMPRE sulla sorgente a fine trascinamento (WHATWG), qui simulato per chiudere davvero
+    // il cerchio invece di darlo per assunto.
+    await w.findAll('[data-testid="drag-handle"]')[0].trigger('dragend');
+    vi.advanceTimersByTime(1000);
+    expect(tab.classes()).not.toContain('st-tab-spring');
+    expect(w.emitted('select-sector')).toBeUndefined();
   });
 
   it('attraversare lo <span> «N posti» dentro il tab non annulla la molla; uscire davvero sì', async () => {
