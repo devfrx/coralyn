@@ -77,8 +77,8 @@ function cellRects(container: HTMLElement): CellRect[] {
 /**
  * L'indice che il rilascio scriverebbe ORA. Sta qui e non in `targetIndex` perche' e' conoscenza del
  * chiamante: la funzione pura vede solo i rect delle celle, ma la zona di rilascio e' `.st-cells`
- * intero, che di celle ne contiene anche zero in certe bande. `.st-cells` e' `flex-wrap: wrap`
- * (`structure-scene.css:17`), quindi la ghost «+» va a capo da sola quando le celle riempiono la
+ * intero, che di celle ne contiene anche zero in certe bande. `.st-cells` e' `flex-wrap: wrap`,
+ * quindi la ghost «+» va a capo da sola quando le celle riempiono la
  * riga e apre una banda alta 40px senza una cella dentro; e la cella trascinata, esclusa dai rect ma
  * ancora in flusso, puo' essere l'unica dell'ultima riga visiva. In entrambi i casi `targetIndex`
  * ripiegherebbe sulla riga di celle piu' vicina — quella SOPRA — e con la X piccola ne uscirebbe la
@@ -166,7 +166,7 @@ function slotClass(i: number): string[] {
            indicizzano quel selettore per posizione, e un secondo bottone la' dentro le arrosserebbe
            tutte senza che una logica sia rotta. La maniglia e' quindi FUORI, sorella dello span. -->
       <span v-for="(u, i) in row.umbrellas" :key="u.id" class="st-cell-slot" :class="slotClass(i)">
-        <span data-testid="scene-cell" :class="draggedIndex === i ? 'st-cell-dragged' : ''">
+        <span data-testid="scene-cell" :class="{ 'st-cell-dragged': draggedIndex === i }">
           <UmbrellaCell :label="u.label" :ariaLabel="`Ombrellone ${u.label}, ${row.label}, settore ${sectorName}`"
             :type-icon="typeIcon(u.umbrellaTypeId)" :selected="isSelected(u.id)"
             @select="emit('select-umbrella', u.id, ($event as MouseEvent | undefined)?.shiftKey ?? false)" />

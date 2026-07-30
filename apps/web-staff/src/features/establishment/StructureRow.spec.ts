@@ -41,7 +41,14 @@ function layout(w: ReturnType<typeof mountRow>): void {
 
 /** Lo stesso, con l'angolo di ogni cella dato per esteso: serve alle geometrie che vanno a capo. */
 function layoutAt(w: ReturnType<typeof mountRow>, at: [number, number][]): void {
-  w.findAll('[data-testid="scene-cell"]').forEach((c, i) => {
+  const cells = w.findAll('[data-testid="scene-cell"]');
+  // Senza questa guardia un `at` più corto delle celle esplode con un TypeError opaco (destrutturare
+  // `undefined`): questa è la funzione che ogni test geometrico futuro userà, e merita un fallimento
+  // leggibile invece di un messaggio che non dice quale test l'ha chiamata male.
+  if (at.length < cells.length) {
+    throw new Error(`layoutAt: servono ${cells.length} posizioni (una per cella), ricevute ${at.length}.`);
+  }
+  cells.forEach((c, i) => {
     const [left, top] = at[i];
     c.element.getBoundingClientRect = () =>
       ({ left, right: left + 40, top, bottom: top + 40, x: left, y: top, width: 40, height: 40, toJSON: () => ({}) }) as DOMRect;
@@ -55,6 +62,13 @@ function layoutAt(w: ReturnType<typeof mountRow>, at: [number, number][]): void 
  */
 function dispatchDragOver(w: ReturnType<typeof mountRow>, clientX: number, clientY: number): Event {
   const e = new MouseEvent('dragover', { bubbles: true, cancelable: true, clientX, clientY });
+  w.find('.st-cells').element.dispatchEvent(e);
+  return e;
+}
+
+/** Stesso accorgimento di `dispatchDragOver`, per `onDrop`. */
+function dispatchDrop(w: ReturnType<typeof mountRow>, clientX: number, clientY: number): Event {
+  const e = new MouseEvent('drop', { bubbles: true, cancelable: true, clientX, clientY });
   w.find('.st-cells').element.dispatchEvent(e);
   return e;
 }
@@ -211,14 +225,26 @@ describe('StructureRow — il rilascio sotto le celle', () => {
 describe('StructureRow — la firma del bersaglio valido', () => {
   it('su una fila compatibile il dragover è cancellato: senza, il browser non emette mai drop', () => {
     const w = mountRow({ dragging: FROM_ELSEWHERE });
-    layout(w);
+    // Nessun `layout(w)`: `preventDefault()` è chiamato PRIMA del calcolo della geometria, quindi
+    // la geometria non è una dipendenza di questa asserzione.
     expect(dispatchDragOver(w, 70, 20).defaultPrevented).toBe(true);
   });
 
   it('su un kind incompatibile NON è cancellato: quella fila non è un bersaglio', () => {
     const w = mountRow({ sectorKind: 'special', dragging: FROM_ELSEWHERE });
-    layout(w);
     expect(dispatchDragOver(w, 70, 20).defaultPrevented).toBe(false);
+  });
+
+  // Stessa classe di buco del dragover prima del Task 2: `onDrop` chiama `preventDefault()` prima
+  // di calcolare la posizione, ma nessun presidio lo esercitava.
+  it('su una fila compatibile il drop è cancellato: senza, il browser tratterebbe il rilascio come navigazione', () => {
+    const w = mountRow({ dragging: FROM_ELSEWHERE });
+    expect(dispatchDrop(w, 70, 20).defaultPrevented).toBe(true);
+  });
+
+  it('su un kind incompatibile il drop NON è cancellato: quella fila non è un bersaglio', () => {
+    const w = mountRow({ sectorKind: 'special', dragging: FROM_ELSEWHERE });
+    expect(dispatchDrop(w, 70, 20).defaultPrevented).toBe(false);
   });
 });
 
