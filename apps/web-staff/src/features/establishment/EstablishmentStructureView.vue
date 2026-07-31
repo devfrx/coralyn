@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
-import { Icon, Drawer, Skeleton, EmptyState, ConfirmDialog, useDelayedLoading } from '@coralyn/ui-kit';
+import { Icon, Drawer, Skeleton, EmptyState, ConfirmDialog, useDelayedLoading, pushToast } from '@coralyn/ui-kit';
 import type { MoveUmbrellaInput } from '@coralyn/contracts';
 import { Permission } from '@coralyn/contracts';
 import { useSessionStore } from '@/stores/session';
@@ -84,14 +84,23 @@ const previewSectors = computed(() => {
   return applyMove(sectors, vars.id, vars.rowId, vars.position);
 });
 
-function submitMove(vars: { id: string } & MoveUmbrellaInput): void {
+function submitMove(vars: { id: string } & MoveUmbrellaInput, notify: boolean): void {
   // Azzerato ad OGNI nuovo invio, non solo al montaggio: senza, un secondo spostamento lanciato
   // mentre la rilettura del primo (riuscito) è ancora in volo erediterebbe questa fotografia, e se
   // quel secondo spostamento venisse RESPINTO la finestra resterebbe aperta sulle sue `variables` —
   // un rifiuto travestito da anteprima ancora valida. Innocuo qui: da qui in poi la finestra è
   // tenuta da `isPending`, che si accende comunque per la durata di QUESTA mutation.
   treeAtWrite.value = null;
-  moveUmbrella.mutate(vars, { onSuccess: () => { treeAtWrite.value = dataUpdatedAt.value; } });
+  moveUmbrella.mutate(vars, {
+    onSuccess: () => {
+      treeAtWrite.value = dataUpdatedAt.value;
+      // ⚠️ Notifica SOLO il percorso del pannello (D-071). Sotto `lg` il Drawer copre la scena con
+      // lo scrim e le toglie i pointer-event, quindi l'anteprima ottimistica non si vede e senza
+      // toast non resterebbe alcun riscontro. Il trascinamento invece la cella l'ha già mossa sotto
+      // gli occhi, e un toast per gesto sarebbe rumore su dieci spostamenti di fila.
+      if (notify) pushToast('Ombrellone spostato.');
+    },
+  });
 }
 /**
  * Disclosure, non blocco (spec §2.5). Se una tariffa nomina il settore di partenza o quello
@@ -107,27 +116,37 @@ function submitMove(vars: { id: string } & MoveUmbrellaInput): void {
  * gate si apre anche quando SOLO l'origine ha tariffe dedicate, e in quel ramo la destinazione non
  * ne ha — dirlo al contrario (come se la destinazione ne acquisisse una) sarebbe falso.
  */
-const pendingMove = ref<{ umbrellaId: string; label: string; rowId: string; position: number; from: string; to: string; toHasDedicatedRates: boolean } | null>(null);
+const pendingMove = ref<{ umbrellaId: string; label: string; rowId: string; position: number; notify: boolean; from: string; to: string; toHasDedicatedRates: boolean } | null>(null);
 
-function onMoveUmbrella(umbrellaId: string, rowId: string, position: number): void {
+/**
+ * L'unico ingresso della scrittura, per ENTRAMBI i canali: il trascinamento nella scena
+ * (`notify: false`) e il controllo «Sposta» del pannello (`notify: true`, D-071).
+ *
+ * ⚠️ Che sia uno solo è la decisione, non un dettaglio: un secondo gate sarebbe il terzo esemplare
+ * di questa logica — dopo questo e il gemello del ripristino in `BeachPanel` — e i gemelli divergono
+ * in silenzio. `notify` è l'unica cosa che i due canali non condividono.
+ */
+function requestMove(umbrellaId: string, rowId: string, position: number, notify: boolean): void {
   const origin = data.value ? findUmbrella(data.value, umbrellaId) : null;
   const destination = data.value?.sectors.find((s) => s.rows.some((r) => r.id === rowId)) ?? null;
   if (origin && destination && origin.sector.id !== destination.id
     && (origin.sector.hasDedicatedRates || destination.hasDedicatedRates)) {
     pendingMove.value = {
-      umbrellaId, label: origin.umbrella.label, rowId, position,
+      umbrellaId, label: origin.umbrella.label, rowId, position, notify,
       from: origin.sector.name, to: destination.name, toHasDedicatedRates: destination.hasDedicatedRates,
     };
     return;
   }
-  submitMove({ id: umbrellaId, rowId, position });
+  submitMove({ id: umbrellaId, rowId, position }, notify);
 }
 
 function confirmMove(): void {
   const pending = pendingMove.value;
   if (!pending) return;
   pendingMove.value = null;
-  submitMove({ id: pending.umbrellaId, rowId: pending.rowId, position: pending.position });
+  // `notify` viaggia dentro `pendingMove`: la conferma arriva dopo, e a quel punto chi ha chiesto
+  // lo spostamento non è più deducibile da nulla.
+  submitMove({ id: pending.umbrellaId, rowId: pending.rowId, position: pending.position }, pending.notify);
 }
 
 const isDesktop = useMediaQuery('(min-width: 1024px)');
@@ -245,20 +264,24 @@ onUnmounted(() => window.removeEventListener('keydown', onKeydown));
         @select-umbrella="onSelectUmbrella" @create-umbrella="(rid) => selection = { kind: 'create-umbrella', rowId: rid }"
         @select-beach="reset" @toggle-select-mode="toggleSelectMode"
         @row-generate="(id) => selection = { kind: 'row', id, focus: 'generate' }" @row-danger="(id) => selection = { kind: 'row', id, focus: 'danger' }"
-        @move-umbrella="onMoveUmbrella" />
+        @move-umbrella="(id: string, rid: string, pos: number) => requestMove(id, rid, pos, false)" />
 
       <aside v-if="isDesktop" data-testid="inspector" class="min-w-0 overflow-auto border-l border-[var(--color-border)] bg-[var(--color-raised)]" aria-label="Ispettore">
         <InspectorPanels :data="data" :selection="selection" :can-manage="canManage"
           :selected-sector="selectedSector" :selected-row="selectedRow" :selected-umbrella="selectedUmbrella"
           :create-row-sector="createRowSector" :create-umbrella-row="createUmbrellaRow" :multi-labels="multiLabels"
-          @close="reset" @created="(id) => selectedSectorId = id" />
+          :move-pending="moveUmbrella.isPending.value"
+          @close="reset" @created="(id) => selectedSectorId = id"
+          @move-umbrella="(id: string, rid: string, pos: number) => requestMove(id, rid, pos, true)" />
       </aside>
       <Drawer v-else v-model:open="drawerOpen" title="Ispettore">
         <div data-testid="inspector">
           <InspectorPanels :data="data" :selection="selection" :can-manage="canManage"
             :selected-sector="selectedSector" :selected-row="selectedRow" :selected-umbrella="selectedUmbrella"
             :create-row-sector="createRowSector" :create-umbrella-row="createUmbrellaRow" :multi-labels="multiLabels"
-            @close="reset" @created="(id) => selectedSectorId = id" />
+            :move-pending="moveUmbrella.isPending.value"
+            @close="reset" @created="(id) => selectedSectorId = id"
+            @move-umbrella="(id: string, rid: string, pos: number) => requestMove(id, rid, pos, true)" />
         </div>
       </Drawer>
     </div>

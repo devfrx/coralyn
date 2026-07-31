@@ -18,9 +18,11 @@ const input = (w: ReturnType<typeof mountApp>, testid: string) =>
 // sull'identità oggetto azzererebbe le bozze dell'utente a ogni refetch.
 describe('pannelli form — sync per id, non per identità oggetto', () => {
   it('UmbrellaPanel: refetch stesso id → bozza preservata; id diverso → form resettato', async () => {
+    const ROW = { id: 'r-1', label: 'Fila 1', sortOrder: 1, umbrellas: [{ id: 'u-1', label: 'A1', umbrellaTypeId: null }] };
+    const SECTOR = { id: 's-1', name: 'Centro', sortOrder: 1, kind: 'grid' as const, hasDedicatedRates: false, rows: [ROW] };
     const w = mountApp(UmbrellaPanel, { props: {
       umbrella: { id: 'u-1', label: 'A1', umbrellaTypeId: null },
-      rowLabel: 'Fila 1', sectorName: 'Centro', types: TYPES, canManage: true,
+      row: ROW, sector: SECTOR, sectors: [SECTOR], types: TYPES, canManage: true, movePending: false,
     } });
     await w.find('[data-testid="umbrella-label"]').setValue('A1-bozza');
     await w.setProps({ umbrella: { id: 'u-1', label: 'A1', umbrellaTypeId: null } }); // refetch: oggetto nuovo, stesso id

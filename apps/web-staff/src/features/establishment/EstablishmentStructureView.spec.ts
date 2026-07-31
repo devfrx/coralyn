@@ -1132,4 +1132,125 @@ describe('EstablishmentStructureView — shell Cantiere', () => {
       w.unmount();
     });
   });
+
+  describe('«Sposta» dal pannello (D-071)', () => {
+    // Fixture propria: TWO_GRIDS della disclosure ha una fila da UN solo ombrellone, dove un
+    // riordino dentro la fila non è rappresentabile — e allargarla toccherebbe cinque test verdi
+    // che non c'entrano. STRUCTURE_FIXTURE non va bene per la stessa ragione dei suoi contatori.
+    const ALBERO = {
+      sectors: [
+        { id: 's-1', name: 'Centro', sortOrder: 1, kind: 'grid' as const, hasDedicatedRates: true, rows: [
+          { id: 'r-1', label: 'Fila 1', sortOrder: 1, umbrellas: [
+            { id: 'u-1', label: 'A1', umbrellaTypeId: null },
+            { id: 'u-2', label: 'A2', umbrellaTypeId: null },
+          ] },
+        ] },
+        { id: 's-2', name: 'Levante', sortOrder: 2, kind: 'grid' as const, hasDedicatedRates: false, rows: [
+          { id: 'r-2', label: 'Fila 2', sortOrder: 1, umbrellas: [] },
+        ] },
+      ],
+      umbrellaTypes: [],
+    };
+
+    /** Monta la shell sull'albero qui sopra e apre il pannello del primo ombrellone (`u-1`). */
+    async function shell() {
+      let posted: unknown = null;
+      server.use(
+        http.get('/api/establishment/structure', () => HttpResponse.json(ALBERO)),
+        http.post('/api/establishment/umbrellas/:id/move', async ({ request }) => {
+          posted = await request.json();
+          return HttpResponse.json({ id: 'u-1', label: 'A1', umbrellaTypeId: null });
+        }),
+      );
+      const w = mountApp(EstablishmentStructureView, { attachTo: document.body });
+      asAdmin();
+      await settle();
+      await w.findAll('[data-testid="scene-cell"] button')[0].trigger('click');
+      await settle();
+      return { w, posted: () => posted };
+    }
+
+    const spostato = async () => {
+      const { useToasts } = await import('@coralyn/ui-kit');
+      return useToasts().items.some((t) => t.message.includes('Ombrellone spostato'));
+    };
+
+    it('riordino dentro la fila: scrive senza chiedere nulla, e notifica', async () => {
+      const { w, posted } = await shell();
+      await selectOption(w.get('[data-testid="umbrella-move-position"]'), 'In coda');
+      await w.get('[data-testid="umbrella-move-submit"]').trigger('click');
+      await settle();
+      // «senza» u-1 la fila è [A2]: la coda è 1.
+      expect(posted()).toEqual({ rowId: 'r-1', position: 1 });
+      expect(document.body.textContent).not.toContain('Il prezzo dei rinnovi cambierà base');
+      expect(await spostato()).toBe(true);
+      w.unmount();
+    });
+
+    it('attraversando un confine con tariffe dedicate riusa la disclosure, e NON scrive', async () => {
+      const { w, posted } = await shell();
+      await selectOption(w.get('[data-testid="umbrella-move-row"]'), 'Levante · Fila 2');
+      await w.get('[data-testid="umbrella-move-submit"]').trigger('click');
+      await settle();
+      expect(posted()).toBeNull();
+      expect(document.body.textContent).toContain('Il prezzo dei rinnovi cambierà base');
+      // Esce da «Centro», che ha le tariffe dedicate, verso «Levante» che non le ha: le PERDE.
+      expect(document.body.textContent).toContain('il listino generale');
+      expect(await spostato()).toBe(false);
+      w.unmount();
+    });
+
+    it('confermando la disclosure, la scrittura parte con la fila e la posizione scelte', async () => {
+      const { w, posted } = await shell();
+      await selectOption(w.get('[data-testid="umbrella-move-row"]'), 'Levante · Fila 2');
+      await w.get('[data-testid="umbrella-move-submit"]').trigger('click');
+      await settle();
+      const confirm = [...document.body.querySelectorAll('button')].find((b) => b.textContent?.includes('Sposta comunque'))!;
+      confirm.click();
+      await settle();
+      expect(posted()).toEqual({ rowId: 'r-2', position: 0 });
+      expect(await spostato()).toBe(true);
+      w.unmount();
+    });
+
+    /**
+     * ⚠️ Il presidio del ramo <lg, ed è quello che conta di più: sotto quella soglia il controllo
+     * «Sposta» è l'UNICO modo di riordinare, ed è la ragione per cui D-071 esiste. Scritto dopo una
+     * mutazione che NON aveva prodotto rossi: staccando `@move-umbrella` dalla sola `InspectorPanels`
+     * dentro il `Drawer`, tutti i 187 test di `features/establishment` restavano verdi — la mutazione
+     * provava l'assenza di COPERTURA, non l'assenza del difetto. Lo stesso bug è già capitato in
+     * questo file («i pannelli Fila cablati solo nell'aside»), ed è il motivo del commento a
+     * `InspectorPanels.vue`: la shell monta quel componente DUE volte.
+     */
+    it('sotto lg il controllo vive nel Drawer, e da lì scrive davvero', async () => {
+      vi.stubGlobal('matchMedia', (query: string) => ({
+        matches: false, media: query, onchange: null,
+        addEventListener: () => {}, removeEventListener: () => {},
+        addListener: () => {}, removeListener: () => {}, dispatchEvent: () => false,
+      }));
+      const { w, posted } = await shell();
+      // Il Drawer (reka-ui DialogPortal) teleporta il contenuto fuori dall'albero del wrapper.
+      const row = document.body.querySelector('[data-testid="umbrella-move-row"]')!;
+      await selectOption(row, 'Levante · Fila 2');
+      (document.body.querySelector('[data-testid="umbrella-move-submit"]') as HTMLButtonElement).click();
+      await settle();
+      // «Centro» ha tariffe dedicate e «Levante» no: la disclosure si apre anche da qui.
+      expect(posted()).toBeNull();
+      expect(document.body.textContent).toContain('Il prezzo dei rinnovi cambierà base');
+      const confirm = [...document.body.querySelectorAll('button')].find((b) => b.textContent?.includes('Sposta comunque'))!;
+      confirm.click();
+      await settle();
+      expect(posted()).toEqual({ rowId: 'r-2', position: 0 });
+      w.unmount();
+    });
+
+    it('il trascinamento NON notifica: la cella si è già mossa sotto gli occhi', async () => {
+      const { w, posted } = await shell();
+      w.findComponent(StructureScene).vm.$emit('move-umbrella', 'u-1', 'r-1', 1);
+      await settle();
+      expect(posted()).toEqual({ rowId: 'r-1', position: 1 });
+      expect(await spostato()).toBe(false);
+      w.unmount();
+    });
+  });
 });
