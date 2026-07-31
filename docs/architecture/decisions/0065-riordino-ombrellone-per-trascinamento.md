@@ -21,6 +21,12 @@
   trascinamento è ancora solo `lg+` e la maniglia non si rende sotto quella soglia — ma **quattro
   righe che davano il caso tablet/telefono per scoperto non lo sono più**, e portano la nota accanto:
   §8, §10, §Negative e §Alternatives.
+- ⚠️ **Aggiornamento 2026-07-31**: delle voci elencate sopra ne restano aperte **due**,
+  [D-070](../deferred.md#d-070) e [D-075](../deferred.md#d-075). [D-072](../deferred.md#d-072) è
+  chiusa da [ADR-0067](0067-provenienza-ritirato-per-riferimento.md), che **non tocca la §6 di
+  questo ADR**: la disclosure sul prezzo resta quella decisa qui, cambia solo **come si risolve il
+  settore di provenienza** (per riferimento, non per nome). [D-073](../deferred.md#d-073) e
+  [D-074](../deferred.md#d-074) sono chiuse nella stessa slice, senza ADR proprio.
 
 ## Context
 
@@ -369,3 +375,10 @@ ciò che l'operatore vede al banco.
    [D-072](../deferred.md#d-072) e [D-074](../deferred.md#d-074) aggiunte dalla review avversariale
    del 2026-07-30 (erano due, ricontate lì); nessuna migration; nessuna dipendenza nuova; nessun
    campo speculativo.
+   ⚠️ **Superato il 2026-07-31, ed era vero quando fu scritto:** di quelle quattro ne resta aperta
+   **una**, [D-070](../deferred.md#d-070). [D-071](../deferred.md#d-071) è chiusa da
+   [ADR-0066](0066-sposta-in-pannello-ombrellone.md), [D-072](../deferred.md#d-072) da
+   [ADR-0067](0067-provenienza-ritirato-per-riferimento.md), [D-074](../deferred.md#d-074) nella
+   stessa slice di D-072. Anche il «nessuna migration» resta vero **di questa slice**: la migration
+   è arrivata con ADR-0067, ed è esattamente il costo che questo ADR aveva dichiarato in anticipo
+   rimandando D-072 invece di risolverla qui.
