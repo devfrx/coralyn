@@ -171,9 +171,13 @@ function slotClass(i: number): string[] {
             :type-icon="typeIcon(u.umbrellaTypeId)" :selected="isSelected(u.id)"
             @select="emit('select-umbrella', u.id, ($event as MouseEvent | undefined)?.shiftKey ?? false)" />
         </span>
-        <!-- Non focalizzabile e `aria-hidden`: non esiste equivalente da tastiera (spec §5.4), e
-             annunciare una maniglia inerte prometterebbe un'interazione che non c'e'. Il caso
-             scoperto e' tracciato in D-071, non nascosto. Il trascinamento sparisce in modalita'
+        <!-- Non focalizzabile e `aria-hidden`: LA MANIGLIA non ha equivalente da tastiera, e
+             annunciare un'affordance inerte prometterebbe un'interazione che non c'e'.
+             ⚠️ Aggiornato il 2026-07-31: qui si leggeva «il caso scoperto e' tracciato in D-071».
+             D-071 e' CHIUSA da ADR-0066: lo SPOSTAMENTO un equivalente da tastiera ora ce l'ha, ed
+             e' il controllo «Sposta» del pannello ombrellone, reso a ogni larghezza. La frase resta
+             vera della maniglia, non piu' della funzione — ed e' lo stesso emendamento fatto in
+             ADR-0065 §8 e in design-system §15.7. Il trascinamento sparisce in modalita'
              «Seleziona» perche' li' si sta costruendo una selezione multipla, e la selezione
              multipla trascinabile e' esclusa per decisione (ADR-0065 §1): offrire la maniglia
              prometterebbe un gesto che non esiste.

@@ -12,8 +12,16 @@ const props = defineProps<{
   sectors: StructureSectorDTO[];
   types: UmbrellaTypeDTO[];
   canManage: boolean;
-  /** `isPending` della mutation, che vive nella shell: serve a non far partire due scritture con un
-   *  doppio clic, perché fino alla rilettura la scelta a schermo resta quella di prima. */
+  /**
+   * `isPending` della mutation, che vive nella shell.
+   *
+   * ⚠️ Il doppio clic sullo STESSO invio lo chiude già `onMove`, che consuma l'intenzione: quello
+   * che resta a `movePending` è il caso in cui l'operatore, mentre la scrittura è ancora in volo,
+   * sceglie una destinazione **nuova** — lì `moveIsNoop` è falso e a tenere spento il bottone c'è
+   * solo questa prop. ⚠️ Questo commento diceva la prima cosa e non la seconda: era la ragione
+   * valida prima che l'intenzione si consumasse, ed è rimasto indietro. Corretto dalla review
+   * finale d'insieme del 2026-07-31.
+   */
   movePending: boolean;
 }>();
 const emit = defineEmits<{ close: []; move: [rowId: string, position: number] }>();
@@ -57,14 +65,22 @@ const chosenRowId = ref<string | null>(null);
 const chosenPosition = ref<string | null>(null);
 
 /**
- * La fila di destinazione effettiva. La scelta vale **solo se è ancora fra quelle offerte**: se la
- * fila scelta esce dall'albero — eliminata da un'altra postazione — il controllo torna sulla fila
- * corrente invece di continuare a offrire un `rowId` morto, che il server rifiuterebbe con 404.
+ * L'intenzione vale **come un blocco**: se la fila scelta esce dall'albero — eliminata da un'altra
+ * postazione — cade tutta, posizione compresa.
+ *
+ * ⚠️ Trovato dalla review finale d'insieme del 2026-07-31, e riprodotto prima di correggerlo: far
+ * cadere la sola fila non basta. Una posizione scelta **per un'altra fila** non significa nulla in
+ * questa, ma verrebbe riletta sui suoi vicini — «prima di D» diventa «prima di A» — e il bottone si
+ * armerebbe su uno spostamento che l'operatore non ha mai chiesto.
  */
-const effectiveRowId = computed(() => {
-  const chosen = chosenRowId.value;
-  return chosen !== null && targets.value.some((t) => t.id === chosen) ? chosen : props.row.id;
-});
+const intentValid = computed(() => chosenRowId.value === null
+  || targets.value.some((t) => t.id === chosenRowId.value));
+
+/** La fila di destinazione effettiva: quella scelta finché l'intenzione regge, altrimenti la
+ *  corrente — mai un `rowId` morto, che il server rifiuterebbe con 404. */
+const effectiveRowId = computed(() => (intentValid.value && chosenRowId.value !== null
+  ? chosenRowId.value
+  : props.row.id));
 
 const targetRow = computed(() =>
   props.sectors.flatMap((s) => s.rows).find((r) => r.id === effectiveRowId.value) ?? props.row);
@@ -83,7 +99,7 @@ const defaultPosition = computed(() => (effectiveRowId.value === props.row.id
  * il ripiego. Ciò che si invia è ciò che si vede.
  */
 const position = computed(() => {
-  const wanted = chosenPosition.value ?? defaultPosition.value;
+  const wanted = intentValid.value ? (chosenPosition.value ?? defaultPosition.value) : defaultPosition.value;
   const chosen = positions.value.find((p) => String(p.position) === wanted);
   return String((chosen ?? positions.value[positions.value.length - 1]).position);
 });
@@ -117,6 +133,12 @@ function onPositionChange(v: string | undefined): void {
  * cambia, e mai per una rilettura che non cambia nulla — è una stringa derivata dal contenuto.
  */
 const positionKey = computed(() => JSON.stringify(positions.value.map((p) => p.beforeLabel)));
+
+/** Stessa ragione del doc-comment qui sopra, per il `Select` della fila: le sue etichette vengono da
+ *  `targets`, che cambia quando un settore o una fila viene rinominata, e senza chiave il controllo
+ *  continuerebbe a mostrare il nome vecchio di dove sta l'ombrellone. Misurato con lo stesso metodo:
+ *  il presidio è in `UmbrellaPanel.move.spec.ts`. */
+const targetsKey = computed(() => JSON.stringify(targets.value.map((t) => `${t.sectorName} · ${t.label}`)));
 
 const moveIsNoop = computed(() =>
   effectiveRowId.value === props.row.id && Number(position.value) === currentPosition.value);
@@ -207,7 +229,7 @@ function onRetire() {
       <div v-if="canManage" data-testid="umbrella-move" class="flex flex-col gap-3 rounded-[var(--radius-md)] border border-[var(--color-border-row)] p-3">
         <p class="text-[10px] font-extrabold uppercase tracking-[.09em] text-[var(--color-text-muted)]">Sposta</p>
         <Field label="Fila di destinazione">
-          <Select v-model="targetRowId" data-testid="umbrella-move-row">
+          <Select :key="targetsKey" v-model="targetRowId" data-testid="umbrella-move-row">
             <Option v-for="t in targets" :key="t.id" :value="t.id">{{ t.sectorName }} · {{ t.label }}</Option>
           </Select>
         </Field>

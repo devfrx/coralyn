@@ -358,9 +358,13 @@ Atteso: **FAIL** — il pannello non ha `[data-testid="umbrella-move-row"]`, qui
 > consegnata **deriva** invece di memorizzare (`chosenRowId`/`chosenPosition` a `null` finché non c'è
 > un'intenzione) e non ha alcun `watch` per lo spostamento. **La fonte autorevole è
 > [ADR-0066](../../architecture/decisions/0066-sposta-in-pannello-ombrellone.md) §9**, non questo
-> passo. ⚠️ I due simboli `targetRowIdRef` e `positionRef` **non esistono nel sorgente consegnato**:
-> un `grep` che li cerchi non trova nulla, ed è atteso. Il resto dello Step — props, template,
-> `data-testid`, il `:disabled` che include `movePending` — è rimasto valido.
+> passo. ⚠️ I due simboli `targetRowIdRef` e `positionRef` **non esistono nel sorgente consegnato**
+> (`grep -rn "targetRowIdRef\|positionRef" apps/` → zero righe), ed è atteso.
+> ⚠️ **Nemmeno il template qui sotto è più quello consegnato**: la review ha aggiunto **due `:key`**
+> — uno per `Select`, legati al contenuto dei rispettivi elenchi — senza i quali reka-ui mostra
+> un'etichetta stantia, e il `Select` della posizione scrive su un simbolo che non c'è più. Restano
+> validi: le props, i `data-testid`, la struttura del blocco e il `:disabled` che include
+> `movePending` nella propria espressione.
 
 In `apps/web-staff/src/features/establishment/panels/UmbrellaPanel.vue`, sostituisci il blocco
 `<script setup>` con:
@@ -819,7 +823,9 @@ Struttura obbligatoria, copiata da ADR-0065 (che è il modello più vicino):
 - **Status:** Accepted
 - **Data:** 2026-07-31
 - **Decisori:** Team di progetto
-- **Non supera nulla:** [ADR-0065](0065-riordino-ombrellone-per-trascinamento.md) resta valido
+- **Non supera alcuna decisione di** [ADR-0065](0065-riordino-ombrellone-per-trascinamento.md) — ma
+  ⚠️ **nomina le righe che questa slice rende superate**, invece di scrivere «resta valido parola per
+  parola»: una formula assoluta che il corpo dell'ADR smentisce
 - **ADR correlati:** [ADR-0052](0052-editor-struttura-cantiere.md), [ADR-0063](0063-permessi-staff-configurabili-per-operatore.md)
 - **Chiude:** [D-071](../deferred.md#d-071)
 

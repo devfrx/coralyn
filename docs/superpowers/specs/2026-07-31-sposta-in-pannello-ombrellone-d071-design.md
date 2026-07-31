@@ -2,8 +2,14 @@
 
 - **Deferred chiusa:** [D-071](../../architecture/deferred.md#d-071)
 - **ADR:** ADR-0066 (da scrivere col piano)
-- **Non supera nulla:** [ADR-0065](../../architecture/decisions/0065-riordino-ombrellone-per-trascinamento.md)
-  resta valido parola per parola. Questa slice **aggiunge** un canale, non ne estende uno.
+- **Non supera alcuna decisione di** [ADR-0065](../../architecture/decisions/0065-riordino-ombrellone-per-trascinamento.md):
+  questa slice **aggiunge** un canale, non ne estende uno.
+  ⚠️ **Ne supera però quattro righe** — quelle che davano il caso tablet/telefono per scoperto e
+  quella che dichiarava inesistente un equivalente da tastiera: portano la nota accanto nell'ADR.
+  ⚠️ Questa riga diceva «resta valido **parola per parola**», ed era il **gemello non corretto** di
+  quella di ADR-0066: la review dei documenti emendò l'ADR e lasciò intatta la spec, nello stesso
+  commit. L'ha trovato la review finale d'insieme del 2026-07-31 — che è precisamente ciò per cui
+  quel passaggio esiste.
 - **Resta deferita:** [D-070](../../architecture/deferred.md#d-070) (la dimensione «fila» del listino)
 
 > ⚠️ **Le coordinate `file:riga` di questo documento sono contro `main` al 2026-07-31**, cioè al
@@ -301,5 +307,5 @@ si ripresenta.
 3. **Modularità** — la selezione delle destinazioni e l'aritmetica della posizione sono funzioni pure
    senza DOM; il pannello non conosce né HTTP né cache; la shell resta l'unica proprietaria della
    scrittura.
-4. **Zero debito** — nessuna voce nuova aperta da questa slice; nessuna dipendenza; nessun campo
+4. **Zero debito** — nessuna voce aperta **causata** da questa slice; nessuna dipendenza; nessun campo
    speculativo; nessun ramo condizionato al viewport.

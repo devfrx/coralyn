@@ -70,7 +70,7 @@ describe('UmbrellaPanel — «Sposta in…» (D-071)', () => {
     await selectOption(w.get('[data-testid="umbrella-move-row"]'), 'Centro · F2');
     expect(w.get('[data-testid="umbrella-move-row"]').text()).toContain('Centro · F2');
     // ⚠️ Il caso in cui i due numeri COINCIDONO: la coda di r-1 senza B è 2, quella di r-2 senza B
-    // è 1, e `positionRef` era già '1' (posizione attuale di B in r-1). Il modelValue quindi non
+    // è 1, e la posizione mostrata era già '1' (posizione attuale di B in r-1). Il modelValue non
     // cambia, e senza il `:key` sul Select reka-ui continuerebbe a mostrare l'etichetta vecchia —
     // «Prima di «C»», un ombrellone che in r-2 non c'è. Valore giusto, etichetta che mente.
     expect(w.get('[data-testid="umbrella-move-position"]').text()).toContain('In coda');
@@ -165,6 +165,25 @@ describe('UmbrellaPanel — «Sposta in…» (D-071)', () => {
     w.unmount();
   });
 
+  /**
+   * ⚠️ Review finale d'insieme del 2026-07-31. Il ripiego sulla fila corrente non basta se la
+   * POSIZIONE scelta per l'altra fila sopravvive: si applica alla fila corrente, e il bottone si
+   * arma su una destinazione che l'operatore non ha mai chiesto. L'intenzione vale come un blocco.
+   */
+  it('se la fila scelta esce dall’albero cade anche la posizione scelta per quella fila', async () => {
+    const w = await panel();
+    await selectOption(w.get('[data-testid="umbrella-move-row"]'), 'Centro · F2');
+    await selectOption(w.get('[data-testid="umbrella-move-position"]'), 'Prima di «D»'); // position 0 di r-2
+    // Un collega elimina «F2». Senza la caduta in blocco, quello 0 verrebbe riletto sulla fila
+    // d'ORIGINE — «Prima di «A»» — e il bottone si armerebbe su uno spostamento mai chiesto.
+    await w.setProps({ sectors: [{ ...SECTORS[0], rows: [row('r-1')] }, SECTORS[1]] });
+    await settle();
+    expect(w.get('[data-testid="umbrella-move-row"]').text()).toContain('Centro · F1');
+    expect(w.get('[data-testid="umbrella-move-position"]').text()).toContain('Prima di «C»'); // dove B sta
+    expect(isDisabled(w)).toBe(true);
+    w.unmount();
+  });
+
   it('dopo l’invio il bottone si spegne subito, senza aspettare che la rilettura atterri', async () => {
     const w = await panel();
     await selectOption(w.get('[data-testid="umbrella-move-row"]'), 'Centro · F2');
@@ -175,6 +194,22 @@ describe('UmbrellaPanel — «Sposta in…» (D-071)', () => {
     expect(isDisabled(w)).toBe(true);
     await submit(w).trigger('click');
     expect(w.emitted('move')).toHaveLength(1);
+    w.unmount();
+  });
+
+  /**
+   * ⚠️ Review finale d'insieme: dei tre `Select` del pannello solo quello della posizione porta il
+   * `:key`. Il `Select` della fila ha la stessa esposizione — le sue etichette vengono da `targets`,
+   * che cambia quando un settore o una fila viene rinominata — quindi il registro valore→testo di
+   * reka-ui può restare indietro allo stesso modo.
+   */
+  it('rinominando la fila corrente il Select della destinazione mostra il nome NUOVO', async () => {
+    const w = await panel();
+    expect(w.get('[data-testid="umbrella-move-row"]').text()).toContain('Centro · F1');
+    const rinominata = { ...row('r-1'), label: 'F1-bis' };
+    await w.setProps({ row: rinominata, sectors: [{ ...SECTORS[0], rows: [rinominata, row('r-2')] }, SECTORS[1]] });
+    await settle();
+    expect(w.get('[data-testid="umbrella-move-row"]').text()).toContain('Centro · F1-bis');
     w.unmount();
   });
 
