@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import type { StructureSectorDTO } from '@coralyn/contracts';
-import { applyMove, isCompatible, targetIndex, type CellRect } from './umbrellaMove';
+import type { StructureRowDTO, StructureSectorDTO } from '@coralyn/contracts';
+import { applyMove, isCompatible, moveTargets, positionOptions, targetIndex, type CellRect } from './umbrellaMove';
 
 // Misure prese dal CSS vero: `.st-cells` ha `gap: 9px` (structure-scene.css:17) e la cella è 40x40
 // come `.st-ghost-cell` (:35). Scriverle qui rende i numeri dei test leggibili come una pianta.
@@ -162,5 +162,76 @@ describe('applyMove', () => {
     applyMove(before, 'A', 'r-2', 0);
     expect(labels(before, 'r-1')).toEqual(['A', 'B', 'C']);
     expect(labels(before, 'r-2')).toEqual(['D', 'E']);
+  });
+});
+
+describe('moveTargets', () => {
+  const misto = (): StructureSectorDTO[] => [
+    { id: 's-1', name: 'Centro', sortOrder: 1, kind: 'grid', hasDedicatedRates: false, rows: [
+      { id: 'r-1', label: 'F1', sortOrder: 1, umbrellas: [] },
+      { id: 'r-2', label: 'F2', sortOrder: 2, umbrellas: [] },
+    ] },
+    { id: 's-2', name: 'Speciali', sortOrder: 2, kind: 'special', hasDedicatedRates: false, rows: [
+      { id: 'r-3', label: 'Palme', sortOrder: 1, umbrellas: [] },
+    ] },
+    { id: 's-3', name: 'Levante', sortOrder: 3, kind: 'grid', hasDedicatedRates: false, rows: [
+      { id: 'r-4', label: 'F4', sortOrder: 1, umbrellas: [] },
+    ] },
+  ];
+
+  it('offre solo le file dei settori con lo STESSO kind', () => {
+    expect(moveTargets(misto(), 'grid').map((t) => t.id)).toEqual(['r-1', 'r-2', 'r-4']);
+    expect(moveTargets(misto(), 'special').map((t) => t.id)).toEqual(['r-3']);
+  });
+
+  it('porta il nome del settore accanto a quello della fila, senza formattarli', () => {
+    expect(moveTargets(misto(), 'special')).toEqual([{ id: 'r-3', label: 'Palme', sectorName: 'Speciali' }]);
+  });
+
+  it('un settore senza file non contribuisce nulla', () => {
+    const vuoto: StructureSectorDTO[] = [
+      { id: 's-1', name: 'Centro', sortOrder: 1, kind: 'grid', hasDedicatedRates: false, rows: [] },
+    ];
+    expect(moveTargets(vuoto, 'grid')).toEqual([]);
+  });
+});
+
+describe('positionOptions', () => {
+  const umb = (id: string) => ({ id, label: id, umbrellaTypeId: null });
+  const row = (ids: string[]): StructureRowDTO => ({ id: 'r-1', label: 'F1', sortOrder: 1, umbrellas: ids.map(umb) });
+
+  // L'esclusione dell'ombrellone che si sposta è ciò che rende il numero prodotto GIÀ il `position`
+  // che l'API vuole: l'indice FINALE (ADR-0065 §3), identico dentro la stessa fila e fra file diverse.
+  it('nella propria fila: l’ombrellone non compare fra i vicini e le voci sono n', () => {
+    expect(positionOptions(row(['A', 'B', 'C']), 'B')).toEqual([
+      { position: 0, beforeLabel: 'A' },
+      { position: 1, beforeLabel: 'C' },
+      { position: 2, beforeLabel: null },
+    ]);
+  });
+
+  it('in una fila che non lo contiene: n+1 voci, tutti i vicini restano', () => {
+    expect(positionOptions(row(['A', 'B']), 'Z')).toEqual([
+      { position: 0, beforeLabel: 'A' },
+      { position: 1, beforeLabel: 'B' },
+      { position: 2, beforeLabel: null },
+    ]);
+  });
+
+  it('la coda è l’ULTIMA voce: l’elenco legge la fila da testa a coda', () => {
+    const opts = positionOptions(row(['A', 'B']), 'Z');
+    expect(opts[opts.length - 1].beforeLabel).toBeNull();
+  });
+
+  it('fila vuota, e fila col solo ombrellone da spostare: resta la sola coda, position 0', () => {
+    expect(positionOptions(row([]), 'Z')).toEqual([{ position: 0, beforeLabel: null }]);
+    expect(positionOptions(row(['A']), 'A')).toEqual([{ position: 0, beforeLabel: null }]);
+  });
+
+  it('la posizione della coda è sempre pari al numero di vicini rimasti', () => {
+    for (const ids of [[], ['A'], ['A', 'B'], ['A', 'B', 'C']]) {
+      const opts = positionOptions(row(ids), 'A');
+      expect(opts[opts.length - 1].position).toBe(ids.filter((i) => i !== 'A').length);
+    }
   });
 });

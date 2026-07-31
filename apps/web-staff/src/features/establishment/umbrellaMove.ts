@@ -1,4 +1,4 @@
-import type { SectorKind, StructureSectorDTO } from '@coralyn/contracts';
+import type { SectorKind, StructureRowDTO, StructureSectorDTO } from '@coralyn/contracts';
 
 /**
  * Il minimo di un rettangolo che serve a decidere dove cade il puntatore. Un `DOMRect` vero
@@ -137,4 +137,48 @@ export function targetIndex(rects: readonly CellRect[], pointer: { x: number; y:
   // Gli indici di una riga sono contigui per costruzione, quindi il primo indice della riga è
   // l'offset da cui contare.
   return line.indices[0] + passed;
+}
+
+/**
+ * Le file su cui uno spostamento è ammesso: quelle di un settore con lo STESSO `kind`
+ * (ADR-0065 §4), in ordine d'albero, **compresa la fila di partenza** — senza la quale il riordino
+ * dentro la propria fila non esisterebbe.
+ *
+ * Restituisce dati e non testo: la formattazione «Settore · Fila» resta nel template, come in
+ * `BeachPanel.vue` per il ripristino.
+ *
+ * ⚠️ Non è il gemello di `allRows` di `BeachPanel` e **non va unificata con essa**: `restore` non ha
+ * alcuna guardia sul `kind` — `umbrellas.service.ts` chiama solo `assertRow`, che verifica la sola
+ * esistenza della fila — quindi quella lista è senza filtro di proposito, ed è fedele al suo server.
+ * L'asimmetria fra le due porte è registrata come D-075, e non è compito di questo modulo sanarla.
+ */
+export function moveTargets(
+  sectors: readonly StructureSectorDTO[],
+  fromKind: SectorKind,
+): { id: string; label: string; sectorName: string }[] {
+  return sectors
+    .filter((s) => isCompatible(fromKind, s.kind))
+    .flatMap((s) => s.rows.map((r) => ({ id: r.id, label: r.label, sectorName: s.name })));
+}
+
+/**
+ * Le posizioni offribili nella fila di destinazione, calcolate sulla fila **privata**
+ * dell'ombrellone che si sta spostando. Con quell'esclusione il numero prodotto è già il `position`
+ * che l'API vuole — l'indice FINALE (ADR-0065 §3) — e vale identico dentro la stessa fila e fra file
+ * diverse, senza un ramo che distingua i due casi.
+ *
+ * `beforeLabel === null` è la coda, ed è l'ULTIMA voce perché l'elenco legge la fila da testa a
+ * coda. Esiste sempre: una fila vuota, o che contenga solo l'ombrellone da spostare, produce la sola
+ * coda a `position` 0. Ciò rende l'elenco un ripiego sicuro quando una scelta memorizzata esce
+ * dall'intervallo per una rilettura.
+ */
+export function positionOptions(
+  row: StructureRowDTO,
+  umbrellaId: string,
+): { position: number; beforeLabel: string | null }[] {
+  const without = row.umbrellas.filter((u) => u.id !== umbrellaId);
+  return [
+    ...without.map((u, i) => ({ position: i, beforeLabel: u.label })),
+    { position: without.length, beforeLabel: null },
+  ];
 }
