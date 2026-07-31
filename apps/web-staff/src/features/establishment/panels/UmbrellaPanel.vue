@@ -40,12 +40,41 @@ const targets = computed(() => moveTargets(props.sectors, props.sector.kind));
  *  lascerebbe l'albero invariato — e quindi quella su cui il bottone resta spento. */
 const currentPosition = computed(() => props.row.umbrellas.findIndex((u) => u.id === props.umbrella.id));
 
-const targetRowIdRef = ref(props.row.id);
-const positionRef = ref(String(currentPosition.value));
+/**
+ * L'INTENZIONE dell'operatore, `null` finché non ne esprime una. Il controllo non memorizza uno
+ * stato da tenere sincronizzato: mostra **dove sta l'ombrellone** finché nessuno lo tocca, e la
+ * scelta esplicita ha la precedenza solo finché resta praticabile.
+ *
+ * ⚠️ **Questa forma viene dalla review avversariale del 2026-07-31**, e la prima correzione era
+ * sbagliata. Con lo stato memorizzato e un `watch` che lo risincronizzava, l'ombrellone spostato da
+ * fuori — trascinato qui a `lg+`, o mosso da un collega — lasciava il controllo puntato sulla fila
+ * vecchia, col bottone acceso su un gesto che lo **riportava indietro**. Ma risincronizzare sulla
+ * coppia fila-indice trattava la **cancellazione di un vicino** come uno spostamento, e buttava via
+ * la scelta in corso dell'operatore: un difetto scambiato con un altro. Derivare invece di
+ * memorizzare li chiude entrambi, e non ha alcun `watch` da ordinare.
+ */
+const chosenRowId = ref<string | null>(null);
+const chosenPosition = ref<string | null>(null);
+
+/**
+ * La fila di destinazione effettiva. La scelta vale **solo se è ancora fra quelle offerte**: se la
+ * fila scelta esce dall'albero — eliminata da un'altra postazione — il controllo torna sulla fila
+ * corrente invece di continuare a offrire un `rowId` morto, che il server rifiuterebbe con 404.
+ */
+const effectiveRowId = computed(() => {
+  const chosen = chosenRowId.value;
+  return chosen !== null && targets.value.some((t) => t.id === chosen) ? chosen : props.row.id;
+});
 
 const targetRow = computed(() =>
-  props.sectors.flatMap((s) => s.rows).find((r) => r.id === targetRowIdRef.value) ?? props.row);
+  props.sectors.flatMap((s) => s.rows).find((r) => r.id === effectiveRowId.value) ?? props.row);
 const positions = computed(() => positionOptions(targetRow.value, props.umbrella.id));
+
+/** Dove il controllo si posa quando l'operatore non ha scelto: la posizione attuale se la
+ *  destinazione è la propria fila, la coda altrimenti — là l'ombrellone non ha una posizione. */
+const defaultPosition = computed(() => (effectiveRowId.value === props.row.id
+  ? String(currentPosition.value)
+  : String(positions.value[positions.value.length - 1].position)));
 
 /**
  * Il valore MOSTRATO, non quello memorizzato. I pannelli non sono key-ati e ricevono props nuove a
@@ -54,25 +83,20 @@ const positions = computed(() => positionOptions(targetRow.value, props.umbrella
  * il ripiego. Ciò che si invia è ciò che si vede.
  */
 const position = computed(() => {
-  const chosen = positions.value.find((p) => String(p.position) === positionRef.value);
+  const wanted = chosenPosition.value ?? defaultPosition.value;
+  const chosen = positions.value.find((p) => String(p.position) === wanted);
   return String((chosen ?? positions.value[positions.value.length - 1]).position);
 });
 
-/**
- * Cambiare fila riporta la posizione in coda: nella fila nuova l'ombrellone non ha una posizione
- * attuale da conservare. Scritto come setter e non come `watch`, perché il `watch` su `umbrella.id`
- * qui sotto scrive entrambi i ref e l'ordine fra due watch sarebbe una dipendenza da non avere.
- */
+/** Cambiare fila azzera la scelta sulla posizione: nella fila nuova l'ombrellone non ha una
+ *  posizione attuale da conservare, e `defaultPosition` la porta in coda. */
 const targetRowId = computed({
-  get: () => targetRowIdRef.value,
-  set: (id: string) => {
-    targetRowIdRef.value = id;
-    positionRef.value = String(positions.value[positions.value.length - 1].position);
-  },
+  get: () => effectiveRowId.value,
+  set: (id: string) => { chosenRowId.value = id; chosenPosition.value = null; },
 });
 
 function onPositionChange(v: string | undefined): void {
-  if (v !== undefined) positionRef.value = v;
+  if (v !== undefined) chosenPosition.value = v;
 }
 
 /**
@@ -95,18 +119,44 @@ function onPositionChange(v: string | undefined): void {
 const positionKey = computed(() => JSON.stringify(positions.value.map((p) => p.beforeLabel)));
 
 const moveIsNoop = computed(() =>
-  targetRowIdRef.value === props.row.id && Number(position.value) === currentPosition.value);
+  effectiveRowId.value === props.row.id && Number(position.value) === currentPosition.value);
 
+/**
+ * L'intenzione si **consuma** con l'invio, e non resta appesa.
+ *
+ * ⚠️ Trovato dalla review avversariale del 2026-07-31: `movePending` cade quando risponde il POST,
+ * non quando atterra la rilettura. Nella finestra fra le due l'albero dice ancora che l'ombrellone
+ * è nella fila di partenza, quindi con l'intenzione ancora impostata `moveIsNoop` resta falso, il
+ * bottone torna cliccabile e un secondo clic rispedisce lo stesso spostamento — riaprendo la
+ * disclosure sul prezzo appena confermata. Azzerandola, il controllo torna a mostrare dove
+ * l'ombrellone sta e il bottone si spegne da sé, senza dipendere da quando la rilettura atterra.
+ *
+ * Il costo, dichiarato: se l'operatore annulla la disclosure deve riscegliere la destinazione. È il
+ * verso giusto in cui sbagliare — dopo un «no» è meglio un controllo a riposo che un bottone armato.
+ */
 function onMove(): void {
   if (moveIsNoop.value || props.movePending) return;
-  emit('move', targetRowIdRef.value, Number(position.value));
+  const rowId = effectiveRowId.value;
+  const to = Number(position.value);
+  chosenRowId.value = null;
+  chosenPosition.value = null;
+  emit('move', rowId, to);
 }
 
+/**
+ * Cambiare ombrellone azzera la bozza dell'etichetta **e** l'intenzione sullo spostamento: sono due
+ * entità diverse, e ciò che si stava per fare all'una non riguarda l'altra.
+ *
+ * ⚠️ La sorgente è il solo `id`, ed è deliberato: allargarla a `props.row` azzererebbe la bozza
+ * dell'etichetta ogni volta che un collega sposta l'ombrellone, cioè proprio ciò che
+ * `form-sync.spec.ts` esiste per impedire. Che il **controllo** segua lo spostamento non ha bisogno
+ * di alcun watch: è derivato, e senza intenzione espressa mostra dove l'ombrellone sta adesso.
+ */
 watch(() => props.umbrella.id, () => {
   label.value = props.umbrella.label;
   umbrellaTypeId.value = props.umbrella.umbrellaTypeId ?? '';
-  targetRowIdRef.value = props.row.id;
-  positionRef.value = String(currentPosition.value);
+  chosenRowId.value = null;
+  chosenPosition.value = null;
 });
 
 function submit() {

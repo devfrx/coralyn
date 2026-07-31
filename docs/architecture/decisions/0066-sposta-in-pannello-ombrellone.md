@@ -152,6 +152,35 @@ dalle etichette, non dall'identità degli oggetti — così il controllo si rimo
 quell'elenco cambia, e **mai** per una rilettura che non cambia nulla. Misurato: togliendo la chiave,
 **2 test diventano rossi** in `vitest`, esattamente i due che descrivono i due inneschi.
 
+### 9. Il controllo DERIVA da dove sta l'ombrellone; la scelta dell'operatore è un'intenzione facoltativa
+
+⚠️ **Questa forma viene dalla review avversariale del 2026-07-31, e la prima stesura era sbagliata.**
+Il controllo memorizzava fila e posizione e le risincronizzava con un `watch`. Ma un ombrellone può
+cambiare posto **senza cambiare identità** — lo trascina l'operatore stesso a `lg+`, o lo sposta un
+collega da un'altra postazione — e il pannello resta montato con la stessa selezione, ricevendo solo
+props nuove. Con la sorgente del `watch` legata al solo `umbrella.id`, il controllo restava puntato
+sulla fila di partenza mentre l'intestazione mostrava già quella d'arrivo, `moveIsNoop` diventava
+falso da solo, e **il bottone si accendeva su un gesto che riportava l'ombrellone indietro**.
+
+⚠️ **La prima correzione ha scambiato un difetto con un altro.** Risincronizzare sulla coppia
+fila-indice copriva anche lo spostamento *dentro* la stessa fila, ma trattava la **cancellazione di
+un vicino** come uno spostamento — l'indice cambia per entrambi — e buttava via la scelta in corso
+dell'operatore. Se ne è accorto un presidio scritto per un altro caso.
+
+La forma adottata non memorizza e non risincronizza: `chosenRowId`/`chosenPosition` sono `null`
+finché l'operatore non esprime un'intenzione, e tutto il resto è **derivato**. Senza intenzione il
+controllo mostra dove l'ombrellone sta adesso, quindi segue qualunque spostamento venga da fuori
+senza un solo `watch`; con un'intenzione, quella vince — ma **solo finché resta praticabile**, il che
+chiude gratis anche il caso della fila di destinazione eliminata da un'altra postazione, che prima
+sarebbe finita in un `rowId` morto e in un 404.
+
+L'intenzione si **consuma con l'invio**. `movePending` cade quando risponde il POST, non quando
+atterra la rilettura: nella finestra fra le due l'albero dice ancora che l'ombrellone è nella fila di
+partenza, e un'intenzione ancora impostata avrebbe riacceso il bottone e permesso un secondo invio
+identico, che riapre la disclosure appena confermata. Il costo, dichiarato: annullando la disclosure
+l'operatore deve riscegliere la destinazione — ed è il verso giusto in cui sbagliare, perché dopo un
+«no» un controllo a riposo è meglio di un bottone armato.
+
 ## Consequences
 
 ### Positive

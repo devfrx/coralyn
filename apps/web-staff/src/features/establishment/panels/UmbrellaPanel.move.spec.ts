@@ -96,14 +96,85 @@ describe('UmbrellaPanel — «Sposta in…» (D-071)', () => {
     w.unmount();
   });
 
-  it('cambiando ombrellone il controllo riparte da dove sta il NUOVO, non da vuoto', async () => {
+  it('cambiando ombrellone il controllo riparte da dove sta il NUOVO, scartando la scelta in corso', async () => {
     const w = await panel();
     await selectOption(w.get('[data-testid="umbrella-move-row"]'), 'Centro · F2');
-    await w.setProps({ umbrella: umb('D'), row: row('r-2') });
+    // ⚠️ Il nuovo ombrellone sta in r-1, NON in r-2: se la scelta non venisse scartata il controllo
+    // resterebbe su «Centro · F2». Passare a un ombrellone di r-2 renderebbe l'asserzione cieca —
+    // la scelta vecchia e la fila nuova coinciderebbero, e il test passerebbe comunque. È il difetto
+    // che la review avversariale ha trovato in questo stesso test.
+    await w.setProps({ umbrella: umb('A'), row: row('r-1') });
+    await settle();
+    expect(w.get('[data-testid="umbrella-move-row"]').text()).toContain('Centro · F1');
+    expect(w.get('[data-testid="umbrella-move-position"]').text()).toContain('Prima di «B»');
+    expect(isDisabled(w)).toBe(true); // A è già in testa a r-1: è dove sta
+    w.unmount();
+  });
+
+  it('se la fila scelta esce dall’albero il controllo torna su quella corrente, senza offrire un rowId morto', async () => {
+    const w = await panel();
+    await selectOption(w.get('[data-testid="umbrella-move-row"]'), 'Centro · F2');
+    // Un collega elimina «F2» mentre era selezionata come destinazione.
+    await w.setProps({ sectors: [{ ...SECTORS[0], rows: [row('r-1')] }, SECTORS[1]] });
+    await settle();
+    expect(w.get('[data-testid="umbrella-move-row"]').text()).toContain('Centro · F1');
+    // E il bottone non propone di scrivere su una fila che non esiste più.
+    expect(isDisabled(w)).toBe(true);
+    w.unmount();
+  });
+
+  /**
+   * ⚠️ Review avversariale del 2026-07-31. L'ombrellone può cambiare posto **senza cambiare id**:
+   * lo trascina l'operatore stesso a `lg+`, oppure lo sposta un collega da un'altra postazione. Il
+   * pannello resta montato con la stessa selezione e riceve solo props nuove, quindi un reset legato
+   * al solo `umbrella.id` non parte — e il controllo continua a puntare dove l'ombrellone NON è più,
+   * col bottone acceso su un ritorno indietro.
+   */
+  it('spostato in un’altra fila da fuori: il controllo segue, e non propone di riportarlo indietro', async () => {
+    const w = await panel();
+    // Dopo un trascinamento di B da r-1 a r-2: l'id non cambia, la fila sì.
+    const r1 = { id: 'r-1', label: 'F1', sortOrder: 1, umbrellas: [umb('A'), umb('C')] };
+    const r2 = { id: 'r-2', label: 'F2', sortOrder: 2, umbrellas: [umb('D'), umb('B')] };
+    await w.setProps({ row: r2, sectors: [{ ...SECTORS[0], rows: [r1, r2] }, SECTORS[1]] });
     await settle();
     expect(w.get('[data-testid="umbrella-move-row"]').text()).toContain('Centro · F2');
+    // B è in coda a r-2: è dove sta, quindi non c'è nulla da spostare.
+    expect(isDisabled(w)).toBe(true);
+    w.unmount();
+  });
+
+  it('spostato DENTRO la propria fila da fuori: segue anche quando la fila non cambia', async () => {
+    const w = await panel();
+    // B trascinato dall'indice 1 alla coda: `row.id` è identico, cambia solo l'indice. È il caso che
+    // un reset legato alla sola fila non vedrebbe.
+    const r1 = { id: 'r-1', label: 'F1', sortOrder: 1, umbrellas: [umb('A'), umb('C'), umb('B')] };
+    await w.setProps({ row: r1, sectors: [{ ...SECTORS[0], rows: [r1, row('r-2')] }, SECTORS[1]] });
+    await settle();
     expect(w.get('[data-testid="umbrella-move-position"]').text()).toContain('In coda');
-    expect(isDisabled(w)).toBe(true); // D è già l'unico di r-2: la coda è dove sta
+    expect(isDisabled(w)).toBe(true);
+    w.unmount();
+  });
+
+  it('una scelta in corso NON viene azzerata da una rilettura che non sposta nulla', async () => {
+    const w = await panel();
+    await selectOption(w.get('[data-testid="umbrella-move-row"]'), 'Centro · F2');
+    // Rilettura innocua: stessi contenuti, oggetti nuovi (è ciò che accade a ogni invalidazione).
+    await w.setProps({ row: { ...row('r-1'), umbrellas: [...row('r-1').umbrellas] }, sectors: [...SECTORS] });
+    await settle();
+    expect(w.get('[data-testid="umbrella-move-row"]').text()).toContain('Centro · F2');
+    w.unmount();
+  });
+
+  it('dopo l’invio il bottone si spegne subito, senza aspettare che la rilettura atterri', async () => {
+    const w = await panel();
+    await selectOption(w.get('[data-testid="umbrella-move-row"]'), 'Centro · F2');
+    await submit(w).trigger('click');
+    // Finestra fra la risposta del POST e l'atterraggio della rilettura: l'albero dice ancora r-1.
+    // Senza il consumo dell'intenzione il bottone resterebbe acceso e un secondo clic rispedirebbe
+    // lo stesso spostamento, riaprendo la disclosure sul prezzo appena confermata.
+    expect(isDisabled(w)).toBe(true);
+    await submit(w).trigger('click');
+    expect(w.emitted('move')).toHaveLength(1);
     w.unmount();
   });
 

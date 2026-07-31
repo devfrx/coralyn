@@ -1244,6 +1244,58 @@ describe('EstablishmentStructureView — shell Cantiere', () => {
       w.unmount();
     });
 
+    /**
+     * ⚠️ Review avversariale del 2026-07-31: `notify` viaggia dentro `pendingMove` perché la
+     * conferma della disclosure arriva dopo, ma era provato solo nel ramo `true`. Fissandolo a
+     * `true` in `confirmMove` non arrossava nulla: mancava il caso in cui è il TRASCINAMENTO ad
+     * attraversare un confine con tariffe dedicate e la conferma a far partire la scrittura.
+     */
+    it('il trascinamento che passa dalla disclosure NON notifica nemmeno dopo la conferma', async () => {
+      const { w, posted } = await shell();
+      w.findComponent(StructureScene).vm.$emit('move-umbrella', 'u-1', 'r-2', 0);
+      await settle();
+      expect(posted()).toBeNull();
+      expect(document.body.textContent).toContain('Il prezzo dei rinnovi cambierà base');
+      const confirm = [...document.body.querySelectorAll('button')].find((b) => b.textContent?.includes('Sposta comunque'))!;
+      confirm.click();
+      await settle();
+      expect(posted()).toEqual({ rowId: 'r-2', position: 0 });
+      expect(await spostato()).toBe(false);
+      w.unmount();
+    });
+
+    /**
+     * ⚠️ Review avversariale del 2026-07-31, verdetto «incerto» poi misurato: il cablaggio di
+     * `:move-pending` dalla shell al pannello non era esercitato da alcun test, e si poteva
+     * ricablare a `false` senza un solo rosso. Il caso che lo vede è quello in cui l'operatore
+     * sceglie una destinazione NUOVA mentre la scrittura precedente è ancora in volo: lì
+     * `moveIsNoop` è falso, e a tenere spento il bottone resta solo `movePending`.
+     */
+    it('mentre una scrittura è in volo il bottone resta spento anche se si sceglie un’altra destinazione', async () => {
+      let sblocca: (() => void) | null = null;
+      const inVolo = new Promise<void>((r) => { sblocca = r; });
+      server.use(
+        http.get('/api/establishment/structure', () => HttpResponse.json(ALBERO)),
+        http.post('/api/establishment/umbrellas/:id/move', async () => {
+          await inVolo;
+          return HttpResponse.json({ id: 'u-1', label: 'A1', umbrellaTypeId: null });
+        }),
+      );
+      const w = mountApp(EstablishmentStructureView, { attachTo: document.body });
+      asAdmin();
+      await settle();
+      await w.findAll('[data-testid="scene-cell"] button')[0].trigger('click');
+      await settle();
+      await selectOption(w.get('[data-testid="umbrella-move-position"]'), 'In coda');
+      await w.get('[data-testid="umbrella-move-submit"]').trigger('click');
+      await settle(); // il POST è appeso: isPending resta true
+      await selectOption(w.get('[data-testid="umbrella-move-row"]'), 'Levante · Fila 2');
+      expect((w.get('[data-testid="umbrella-move-submit"]').element as HTMLButtonElement).disabled).toBe(true);
+      sblocca!();
+      await settle();
+      w.unmount();
+    });
+
     it('il trascinamento NON notifica: la cella si è già mossa sotto gli occhi', async () => {
       const { w, posted } = await shell();
       w.findComponent(StructureScene).vm.$emit('move-umbrella', 'u-1', 'r-1', 1);

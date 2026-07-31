@@ -213,11 +213,19 @@ resta nel template.
 **`UmbrellaPanel.vue`**: un blocco fra il form e la Zona rischiosa, dietro `canManage`. Due `Select`
 e un `Button`, forma copiata dal ripristino (`BeachPanel.vue:148-155`). Emette `move: [rowId, position]`.
 
+> ⚠️ **Superato dall'implementazione, dopo la review avversariale del 2026-07-31.** Questo paragrafo
+> descriveva uno stato **memorizzato** (fila e posizione in due `ref`, risincronizzati da un `watch`
+> su `umbrella.id`). Quella forma aveva un difetto che la review ha trovato e che è stato riprodotto
+> prima di correggerlo: un ombrellone può cambiare posto **senza cambiare identità** — trascinato
+> dall'operatore stesso a `lg+`, o spostato da un collega — e il `watch` non partiva, lasciando il
+> controllo puntato sulla fila di partenza col bottone acceso su un ritorno indietro. La forma
+> adottata **deriva** invece di memorizzare: vedi
+> [ADR-0066](../../architecture/decisions/0066-sposta-in-pannello-ombrellone.md) §9, che è la fonte
+> autorevole. Il resto di questo documento resta valido.
+
 Stato iniziale: **la fila e la posizione attuali** dell'ombrellone. È lo stato più onesto — dice dove
 l'ombrellone è — e ha come effetto che il bottone nasce spento (§4.7). Cambiare la fila porta la
-posizione a «In coda», perché nella fila nuova l'ombrellone non ha una posizione attuale. Il `watch`
-su `umbrella.id` riporta entrambi allo stato iniziale del **nuovo** ombrellone — non a vuoto — come
-già fa `UmbrellaPanel.vue:15` per etichetta e tipologia.
+posizione a «In coda», perché nella fila nuova l'ombrellone non ha una posizione attuale.
 
 **Props**: `rowLabel: string` e `sectorName: string` diventano `row: StructureRowDTO` e
 `sector: StructureSectorDTO` — l'intestazione legge gli stessi due campi, ma servono anche `row.id`,
