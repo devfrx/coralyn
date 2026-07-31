@@ -846,11 +846,19 @@ Tre modifiche in `docs/architecture/deferred.md`, tutte necessarie — il parser
 2. Riga 98 (indice): `| [D-071](#d-071) | Sotto \`lg\` il riordino non esiste: tablet e telefono restano scoperti | 🔓 aperta |` → stessa riga con `| ✅ chiusa |`. ⚠️ **Il tema deve restare identico**: il parser confronta indice e voci, e un titolo cambiato in un posto solo è un rosso.
 3. Sposta l'intera riga della voce `<a id="d-071"></a>D-071` dalla tabella sotto `## Aperte` alla
    tabella sotto `## Chiuse` (stesse cinque colonne), e aggiungi in coda alla cella «Perché
-   rimandata» una frase di chiusura che contenga la parola **`CHIUSA`** in maiuscolo — `CLOSURE_MARKERS`
-   è **case-sensitive** — con il riferimento all'ADR, per esempio:
-   «**Aggiornamento 2026-07-31: CHIUSA da [ADR-0066](decisions/0066-sposta-in-pannello-ombrellone.md)**
-   — il controllo «Sposta» nel pannello ombrellone dà un secondo canale che non dipende dal puntatore,
-   reso a ogni larghezza; il trascinamento resta `lg+` e non è stato esteso.»
+   rimandata» una frase di chiusura che contenga la parola `CHIUSA` in maiuscolo — `CLOSURE_MARKERS`
+   è **case-sensitive** — con il riferimento all'ADR.
+
+Il testo da copiare in coda a quella cella, verbatim:
+
+```text
+**Aggiornamento 2026-07-31: CHIUSA da [ADR-0066](decisions/0066-sposta-in-pannello-ombrellone.md)** — il controllo «Sposta» nel pannello ombrellone dà un secondo canale che non dipende dal puntatore, reso a ogni larghezza; il trascinamento resta `lg+` e non è stato esteso.
+```
+
+⚠️ Quel path è relativo a **`deferred.md`**, non a questo piano: per questo sta in un blocco
+letterale. Scritto come link vivo qui dentro, il gate lo risolverebbe in
+`docs/superpowers/plans/decisions/…` e diventerebbe rosso — **è successo davvero scrivendo questo
+piano, e l'ha trovato il gate.**
 
 - [ ] **Step 3: aggiungi ADR-0066 all'indice**
 
