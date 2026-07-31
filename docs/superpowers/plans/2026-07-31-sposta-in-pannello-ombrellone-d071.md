@@ -842,7 +842,11 @@ senza equivalente da tastiera e sarebbe la terza cosa agganciata alla soglia dei
 
 Tre modifiche in `docs/architecture/deferred.md`, tutte necessarie — il parser le verifica:
 
-1. Riga 25: `**Aperte: 45** · **Chiuse: 28** · totale 73.` → `**Aperte: 44** · **Chiuse: 29** · totale 73.`
+1. Riga 25, la riga di riepilogo. ⚠️ **Il valore finale tiene conto anche di D-075**, che lo Step 2-bis
+   apre nella stessa slice: `**Aperte: 45** · **Chiuse: 28** · totale 73.` →
+   `**Aperte: 45** · **Chiuse: 29** · totale 74.` (D-071 esce dalle aperte, D-075 ci entra: le aperte
+   restano 45, le chiuse salgono a 29, il totale a 74). Se esegui i due Step separatamente, lascia
+   questa riga per ultima e **conta le voci dell'indice** invece di fidarti di questi numeri.
 2. Riga 98 (indice): `| [D-071](#d-071) | Sotto \`lg\` il riordino non esiste: tablet e telefono restano scoperti | 🔓 aperta |` → stessa riga con `| ✅ chiusa |`. ⚠️ **Il tema deve restare identico**: il parser confronta indice e voci, e un titolo cambiato in un posto solo è un rosso.
 3. Sposta l'intera riga della voce `<a id="d-071"></a>D-071` dalla tabella sotto `## Aperte` alla
    tabella sotto `## Chiuse` (stesse cinque colonne), e aggiungi in coda alla cella «Perché
@@ -859,6 +863,29 @@ Il testo da copiare in coda a quella cella, verbatim:
 letterale. Scritto come link vivo qui dentro, il gate lo risolverebbe in
 `docs/superpowers/plans/decisions/…` e diventerebbe rosso — **è successo davvero scrivendo questo
 piano, e l'ha trovato il gate.**
+
+- [ ] **Step 2-bis: apri D-075 — l'asimmetria `move`/`restore` sul `kind`**
+
+Chiesto dall'utente il 2026-07-31. **È una voce nuova, non una correzione**: il codice di `restore`
+non si tocca.
+
+Riga d'indice, da inserire **dopo** quella di D-074 (l'indice dev'essere ordinato per numero):
+
+```text
+| [D-075](#d-075) | Il ripristino consente il salto di `kind` che lo spostamento vieta con 422 | 🔓 aperta |
+```
+
+Voce, da inserire **dopo** la riga di D-074 nella tabella sotto `## Aperte` (cinque colonne):
+
+```text
+| <a id="d-075"></a>D-075 | **Il ripristino di un ritirato consente il salto di `kind` che lo spostamento vieta con 422** | `POST umbrellas/:id/move` rifiuta con **422** una fila il cui settore ha un `kind` diverso da quello di partenza ([ADR-0065](decisions/0065-riordino-ombrellone-per-trascinamento.md) §4): il vincolo è di dominio, e la Mappa lo rispecchia rendendo i `special` come **blocchi dedicati in coda** e non come tab (`MapView.vue:63-65`, con due presìdi in `MapView.spec.ts`). `POST umbrellas/:id/restore` **non ha quella guardia**: `umbrellas.service.ts` chiama solo `assertRow`, che verifica la **sola esistenza** della fila, quindi un ritirato rientra in un settore di `kind` qualsiasi. Il frontend **non** è il difetto ed è coerente col proprio server: `allRows` in `BeachPanel.vue` offre tutte le file senza filtro, di proposito. **Conseguenza:** la stessa regola di dominio vale su una via di scrittura e non sull'altra, e *ritira + ripristina* è un percorso che ottiene ciò che lo spostamento rifiuta. ⚠️ **Preesistente e non causata da [D-071](#d-071)**: `restore` viene da [ADR-0053](decisions/0053-ritiro-ombrellone-soft-delete.md) e la guardia sul `kind` è nata dopo, con [ADR-0065](decisions/0065-riordino-ombrellone-per-trascinamento.md) — non è una regressione, è un vincolo aggiunto a metà. Trovata di passaggio scrivendo D-071, che non la tocca. Tre vie: estendere la guardia a `restore` (e allora filtrare anche `allRows`); oppure dichiarare che il ripristino è deliberatamente più permissivo, perché riporta in vita un ombrellone e la fila la sceglie una persona; oppure togliere il vincolo da `move`. | Un ritirato ripristinato in un settore di `kind` diverso, notato dalla Mappa o al banco; oppure il prossimo lavoro su `restore` o sulla guardia del `kind`. | Bassa oggi: il concorso è stretto (serve un ritirato **e** un settore di `kind` diverso) e l'esito è un ombrellone reso nel blocco sbagliato della Mappa, non un prezzo sbagliato né una perdita di dati. Ma è una regola di dominio imposta su una porta e non sull'altra, cioè la classe di incoerenza che si scopre quando qualcuno la usa per aggirare il 422. |
+```
+
+⚠️ Anche qui i path sono relativi a **`deferred.md`**: stanno in blocchi letterali per la stessa
+ragione dello Step 2, e vanno copiati verbatim.
+
+⚠️ **Nessun presidio nuovo**: aprire una voce documenta un difetto, non lo corregge. Se un giorno la
+si chiude estendendo la guardia, il presidio si scrive allora.
 
 - [ ] **Step 3: aggiungi ADR-0066 all'indice**
 
@@ -909,8 +936,14 @@ Messaggio: `docs: ADR-0066, e D-071 chiusa — tablet e telefono non sono più s
       È l'unica prova che il canale nuovo funzioni davvero dove esiste per funzionare — `jsdom` non
       monta alcun Drawer reale né calcola alcuna cascata.
 
-## Fuori scope, da riportare all'utente a lavoro finito
+## Fuori scope
 
-- **L'asimmetria `move`/`restore` sul `kind`**: `move` risponde 422 al salto di `kind`, `restore` lo
+- **L'asimmetria `move`/`restore` sul `kind`** — `move` risponde 422 al salto di `kind`, `restore` lo
   consente in silenzio (`umbrellas.service.ts`, `assertRow` verifica la sola esistenza della fila).
-  Preesistente, non causata da questa slice. Merita una voce propria, non una correzione di straforo.
+  Preesistente, non causata da questa slice. **Portata all'utente il 2026-07-31 e aperta come
+  `D-075`** nello Step 2-bis del Task 4: si **documenta**, non si corregge. Il codice di `restore` e
+  il `allRows` di `BeachPanel` restano com'erano.
+
+  ⚠️ Citata **senza link** di proposito: l'anchor `#d-075` nasce eseguendo questo piano, e il gate
+  controlla anche gli anchor, non solo i path — un piano che linkasse il proprio esito sarebbe rosso
+  finché non è eseguito. Misurato: il gate l'ha preso.
