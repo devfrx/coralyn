@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { StructureRowDTO, StructureSectorDTO } from '@coralyn/contracts';
 import { applyMove, isCompatible, moveTargets, positionOptions, targetIndex, type CellRect } from './umbrellaMove';
 
-// Misure prese dal CSS vero: `.st-cells` ha `gap: 9px` (structure-scene.css:17) e la cella è 40x40
+// Misure prese dal CSS vero: `.st-cells` ha `gap: 9px` (structure-scene.css, regola `.st-cells`) e la cella è40x40
 // come `.st-ghost-cell` (:35). Scriverle qui rende i numeri dei test leggibili come una pianta.
 const SIZE = 40;
 const GAP = 9;

@@ -486,19 +486,27 @@ describe('UmbrellasService', () => {
       const { service, tx } = makeService();
       tx.umbrella.findUnique.mockResolvedValue({ id: 'u-1', label: '12', retiredAt: null, row: { label: 'F1', sectorId: 's-1', sector: { name: 'Centro' } } });
       tx.booking.count.mockResolvedValue(0);
-      tx.umbrella.update.mockResolvedValue({ id: 'u-1', label: '12', umbrellaTypeId: null, retiredAt: new Date('2026-07-22T10:00:00Z'), retiredFrom: 'Centro · F1' });
+      // ⚠️ La fixture deve essere ricca quanto la riga che Prisma restituisce davvero: l'update di
+      // `retire` è l'unico del file senza `select`, quindi porta TUTTE le colonne. Una fixture più
+      // povera fa uscire il campo come `undefined` e nessuna asserzione se ne accorge — misurato:
+      // azzerando la mappatura nella projection arrossava solo il test di `listRetired`, non questo.
+      tx.umbrella.update.mockResolvedValue({ id: 'u-1', label: '12', umbrellaTypeId: null, retiredAt: new Date('2026-07-22T10:00:00Z'), retiredFrom: 'Centro · F1', retiredFromSectorId: 's-1' });
       const dto = await service.retire('u-1');
       expect(tx.umbrella.update).toHaveBeenCalledWith(expect.objectContaining({
         where: { id: 'u-1' },
         data: expect.objectContaining({ rowId: null, retiredFrom: 'Centro · F1', retiredFromSectorId: 's-1', retiredAt: expect.any(Date) }),
       }));
       expect(dto.retiredFrom).toBe('Centro · F1');
+      expect(dto.retiredFromSectorId).toBe('s-1'); // la RISPOSTA, non solo la scrittura
     });
 
     it('retire: senza fila non si inventa un settore d’origine (D-072)', async () => {
-      // `rowId` è null solo sui già-ritirati, ma la guardia sta nel dominio, non nel tipo: se la
-      // fila manca l'origine NON esiste, e scriverci dentro un id arbitrario sarebbe peggio del
-      // silenzio — il ripristino confronterebbe le tariffe di un settore che non c'entra.
+      // ⚠️ Questo stato — attivo (`retiredAt: null`) ma sganciato (`row: null`) — NON è producibile
+      // dalle API: `retire` scrive `rowId: null` e `retiredAt` nella stessa update, `restore` fa
+      // l'opposto, e la fila non è cancellabile con ombrelloni sopra. Il test presidia quindi un
+      // ramo DIFENSIVO, non uno scenario: dice che se quel ramo viene mai raggiunto i due campi
+      // cadono INSIEME. Scriverci dentro un id arbitrario sarebbe peggio del silenzio — il
+      // ripristino confronterebbe le tariffe di un settore che non c'entra.
       const { service, tx } = makeService();
       tx.umbrella.findUnique.mockResolvedValue({ id: 'u-1', label: '12', retiredAt: null, row: null });
       tx.booking.count.mockResolvedValue(0);

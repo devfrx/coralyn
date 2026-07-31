@@ -45,17 +45,6 @@ const restore = useRestoreUmbrella();
 const restoreRowByUmbrella = ref<Record<string, string>>({});
 const allRows = computed(() =>
   props.data.sectors.flatMap((s) => s.rows.map((r) => ({ id: r.id, label: r.label, sectorName: s.name }))));
-/**
- * Nome del settore congelato dentro `retiredFrom`, lo snapshot testuale «Settore · Fila» scritto al
- * ritiro. È un'ETICHETTA storica, e da D-072/ADR-0067 serve a una cosa sola: dare un nome
- * all'origine nel dialogo quando il riferimento non risolve. Il confronto sulle tariffe passa
- * SEMPRE da `retiredFromSectorId`, mai da questo testo — un rename lo rendeva irrisolvibile e
- * l'avviso taceva proprio quando il dato era invecchiato.
- */
-function sectorOfSnapshot(retiredFrom: string | null): string | null {
-  if (!retiredFrom) return null;
-  return retiredFrom.split(' · ')[0].trim() || null;
-}
 
 // Stessa disclosure dello spostamento (spec §5.6): il ripristino riaggancia a QUALSIASI fila,
 // quindi a qualsiasi settore, e finora lo faceva senza dire nulla sul prezzo.
@@ -82,8 +71,15 @@ function onRestore(id: string) {
   const origin = originId ? props.data.sectors.find((s) => s.id === originId) ?? null : null;
   // Nome da MOSTRARE: quello attuale del settore quando l'origine risolve (dire «Centro» di un
   // settore che oggi si chiama «Ponente» manderebbe a cercare una cosa che non esiste più),
-  // altrimenti l'etichetta congelata nello snapshot, che è tutto ciò che resta.
-  const from = origin?.name ?? sectorOfSnapshot(umbrella?.retiredFrom ?? null);
+  // altrimenti lo snapshot INTERO, che è tutto ciò che resta.
+  //
+  // ⚠️ Intero, non il primo segmento. Tagliare a « · » è la stessa regola che il backfill della
+  // migration ha rifiutato, e qui sbaglierebbe allo stesso modo: il nome di un settore può
+  // contenere il separatore, e «Blu · Alto · F1» ridotto a «Blu» nomina un settore che esiste
+  // davvero e da cui quell'ombrellone non è mai passato — un'affermazione falsa, non un'etichetta
+  // vaga. Il caso è vivo e non solo d'archivio: ritira da «Blu · Alto», cancella quella fila e quel
+  // settore ora vuoti, e `ON DELETE SET NULL` lascia il riferimento a null con lo snapshot intatto.
+  const from = origin?.name ?? umbrella?.retiredFrom ?? null;
   if (umbrella && target && from && origin?.id !== target.id && (target.hasDedicatedRates || origin?.hasDedicatedRates)) {
     pendingRestore.value = { id, label: umbrella.label, rowId, from, to: target.name, toHasDedicatedRates: target.hasDedicatedRates };
     return;

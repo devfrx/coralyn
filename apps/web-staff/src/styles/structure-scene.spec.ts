@@ -81,6 +81,23 @@ describe('structure-scene.css — le evidenze di stato della fila battono l’ho
     expect(hover.map((r) => r.selector)).toContain('.st-row:hover');
   });
 
+  it('durante un trascinamento il segno di rilascio dipinge anche sopra una fila SELEZIONATA', () => {
+    // Il commento nel CSS dichiara portante l'ordine fra le due regole di stato — pari specificità,
+    // vince chi sta più in basso — ma finché non era asserito qui nessuno avrebbe visto uno
+    // scambio: la fila selezionata su cui stai per rilasciare tornerebbe a mostrare la selezione.
+    // `filter` e non `find`: con `find` una SECONDA regola su `.st-row-sel` aggiunta più in basso
+    // resterebbe invisibile al test, ed è proprio la forma che romperebbe l'invariante.
+    const sel = regole.filter((r) => r.selector.includes('.st-row-sel') && !/[\s>+~]/.test(r.selector));
+    const drop = regole.filter((r) => r.selector.includes('.st-row-drop') && !/[\s>+~]/.test(r.selector));
+    expect(sel.length).toBeGreaterThan(0);
+    expect(drop.length).toBeGreaterThan(0);
+    for (const d of drop) {
+      for (const s of sel) {
+        expect(vince(d, s), `«${d.selector}» deve battere «${s.selector}»`).toBe(true);
+      }
+    }
+  });
+
   for (const stato of ['.st-row-drop', '.st-row-sel']) {
     it(`${stato} dipinge sopra l’hover della fila`, () => {
       const regoleStato = regole.filter((r) => r.selector.includes(stato) && !/[\s>+~]/.test(r.selector));

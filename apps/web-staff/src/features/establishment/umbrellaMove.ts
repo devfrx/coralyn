@@ -71,7 +71,7 @@ interface VisualLine { indices: number[]; top: number; bottom: number }
 
 /**
  * Raggruppa gli indici per riga VISIVA. `.st-cells` è `display:flex; flex-wrap:wrap; gap:9px`
- * (`structure-scene.css:17`), quindi una fila lunga occupa più righe e l'indice di cella non ha
+ * (`structure-scene.css`, regola `.st-cells`), quindi una fila lunga occupa più righe e l'indice di cella non ha
  * relazione con la posizione orizzontale. I rect arrivano in ordine DOM, che per un flex row-wrap
  * è l'ordine di lettura: basta spezzare dove una cella comincia sotto la fine della precedente.
  */

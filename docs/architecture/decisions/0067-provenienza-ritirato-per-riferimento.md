@@ -8,6 +8,12 @@
   disclosure sul prezzo, che di quel campo si serviva), [ADR-0032](0032-pricing-engine-precedenza.md)
   (la precedenza delle tariffe, che è ciò che la disclosure dichiara)
 - **Chiude:** [D-072](../deferred.md#d-072)
+- **Registra, senza causarla:** [D-076](../deferred.md#d-076) — `retire` e `restore` scrivono con un
+  `where` nudo da una lettura mai ricontrollata, mentre `move` ha la guardia estesa. **Preesistente**
+  (su `main` a `0fd3b0f` la scrittura di `retire` era già così), trovata dalla review avversariale di
+  questa slice. Ciò che cambia qui è il **peso** dell'errore: alla stessa scrittura si aggiunge un
+  riferimento, e un riferimento sbagliato viene creduto — un nome sbagliato, prima, il più delle
+  volte non risolveva e taceva.
 - **Non supera ADR-0053**: `retiredFrom` resta, e resta scritto allo stesso modo. Cambia il suo
   **ruolo**, che quell'ADR non aveva mai fissato: era nato come storico da mostrare, ed era finito a
   fare da chiave.
@@ -58,18 +64,35 @@ lasciare la prima ferma e la seconda valida, ed è esattamente ciò che una e2e 
 
 ### 3. L'archivio si ripara una volta sola, nella migration
 
-La migration fa il backfill con **la stessa regola** che il frontend applicava a ogni render: primo
-segmento di «Settore · Fila» confrontato col nome dei settori vivi, che `@@unique([establishmentId,
-name])` rende non ambiguo.
+La migration confronta il **prefisso esatto** — `<nome settore> · ` — e scrive **solo quando il
+settore candidato è uno solo**. Fatto una volta, server-side, quel valore è il **migliore che quelle
+righe potranno mai avere**.
 
-Fatto una volta, server-side, quel valore è il **migliore che quelle righe potranno mai avere**.
+⚠️ **La prima stesura usava la regola del frontend** — `split_part(retiredFrom, ' · ', 1)`, cioè il
+primo segmento — e **era sbagliata**. Trovata dalla review avversariale del 2026-07-31 e **riprodotta
+su `coralyn_dev`**: `retiredFrom` nasce da «*nome settore* · *label fila*» e **nessuno dei due pezzi
+vieta il separatore** (il nome è testo libero: `create-sector.dto.ts` ha solo
+`@IsString @IsNotEmpty @MaxLength(60)`, e l'unicità è sul nome **intero**, quindi «Blu» e «Blu · Alto»
+convivono legittimamente). Un ritirato da «Blu · Alto» porta lo snapshot «Blu · Alto · F1», il primo
+segmento è «Blu», e il backfill lo agganciava a **«Blu»** — un settore da cui non era mai passato,
+scritto senza esitazione. **Peggio del `NULL`, perché il `NULL` almeno tace.**
+
+Lo snapshot in quel caso è **genuinamente ambiguo**: «Blu · Alto · F1» può venire dal settore
+«Blu · Alto» e dalla fila «F1», oppure dal settore «Blu» e dalla fila «Alto · F1», e **nessuna regola
+può deciderlo** — non è che ne serva una migliore, è che l'informazione non c'è. Per questo la regola
+non è «il prefisso più lungo vince» ma «se i candidati sono due, non scrivere». Verificato sul
+database, col blocco vero della migration eseguito dall'utente vero delle migration: lo snapshot
+ambiguo resta a `NULL`, quello non ambiguo si risolve — nessuna regressione sul caso normale.
 
 ### 4. Nessun fallback per nome nel frontend
 
 Non è pigrizia, è una conseguenza della §3: dopo il backfill, **una riga rimasta a `null` è per
-costruzione una che il nome non risolve**. Un fallback lì non recupererebbe nulla — potrebbe solo
-agganciare un settore **omonimo creato dopo**, cioè produrre un confronto attivamente sbagliato su
-un dato che ne dichiarava l'assenza. È codice morto nel caso migliore e dannoso nel peggiore.
+costruzione una che il nome non risolve** — o perché nessun settore combacia, o perché ne combaciano
+due e la risposta non esiste. Un fallback lì non recupererebbe nulla, e avrebbe **due** modi di
+sbagliare: agganciare un settore **omonimo creato dopo**, o risolvere lo snapshot **ambiguo** al
+candidato sbagliato — cioè proprio il difetto che la §3 ha appena tolto dal backfill. Reintrodurlo
+nel frontend, dove girerebbe a ogni render invece che una volta sola, sarebbe la stessa scelta in
+peggio. È codice morto nel caso migliore e dannoso nel peggiore.
 
 Questo toglie anche il **doppio percorso di risoluzione** che l'alternativa avrebbe lasciato in
 piedi per sempre: c'è una regola sola, e vale per tutti.

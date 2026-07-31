@@ -716,7 +716,9 @@ describe('EstablishmentStructureView — shell Cantiere', () => {
   /**
    * jsdom restituisce rettangoli a ZERO: senza queste misure la geometria non verrebbe esercitata
    * e il calcolo della posizione direbbe sempre 0, qualunque sia il puntatore. Sono quelle vere:
-   * cella 40px (`structure-scene.css:35`), gap 9px (`:17`).
+   * cella 40px (`structure-scene.css`, regola `.st-ghost-cell`), gap 9px (regola `.st-cells`).
+   * Il rimando è al SELETTORE e non al numero di riga: sette righi di commento aggiunti da D-074
+   * avevano spostato entrambe le regole, e i tre rimandi per numero puntavano ad altro.
    */
   function layoutCells(w: ReturnType<typeof mountApp>): void {
     w.findAll('[data-testid="scene-cell"]').forEach((c, i) => {

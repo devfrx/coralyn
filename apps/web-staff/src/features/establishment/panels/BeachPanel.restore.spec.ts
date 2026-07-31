@@ -86,7 +86,13 @@ describe('BeachPanel — provenienza del ritirato risolta per id (D-072)', () =>
     w.unmount();
   });
 
-  it('tornando nel settore d’origine RINOMINATO non chiede nulla: il confronto è sugli id', async () => {
+  // ⚠️ Il titolo di questo test diceva «il confronto è sugli id», e prometteva più di quanto un
+  // test possa provare: con `@@unique([establishmentId, name])` due settori non possono avere lo
+  // stesso nome, quindi `origin.id !== target.id` e `origin.name !== target.name` danno SEMPRE lo
+  // stesso esito e nessuno scenario li separa. Gli id restano la forma preferibile — non dipendono
+  // da un invariante che vive nel database e non nel client — ma ciò che questo test presidia è
+  // un'altra cosa: che un rename non faccia comparire un avviso quando si torna a casa propria.
+  it('tornando nel settore d’origine RINOMINATO non chiede nulla', async () => {
     const { w, posted } = await panel('Centro · F1', RINOMINATO, 's-1');
     await restoreInto(w, 'Ponente · F1');
     expect(posted()).toEqual({ rowId: 'r-1' });
@@ -109,7 +115,7 @@ describe('BeachPanel — provenienza del ritirato risolta per id (D-072)', () =>
     const { w, posted } = await panel('Ovest · F9', DATA, null);
     await restoreInto(w, 'Centro · F1');
     expect(posted()).toBeNull();
-    expect(document.body.textContent).toContain('era stato ritirato da «Ovest»');
+    expect(document.body.textContent).toContain('era stato ritirato da «Ovest · F9»');
     // Invariante da tenere ferma: il gate si apre solo su `target.hasDedicatedRates ||
     // origin?.hasDedicatedRates`, quindi con l'origine NON risolta può essere stato solo il primo.
     // Ne segue che il ramo di testo che AFFERMA qualcosa sull'origine («da «X», dove il listino ha
@@ -130,6 +136,33 @@ describe('BeachPanel — provenienza del ritirato risolta per id (D-072)', () =>
     await restoreInto(w, 'Scirocco · F2');
     expect(posted()).toEqual({ rowId: 'r-2' });
     expect(document.body.textContent).not.toContain('Il prezzo dei rinnovi cambierà base');
+    w.unmount();
+  });
+
+  it('senza riferimento il dialogo non TAGLIA lo snapshot: non può nominare un settore vero da cui non è mai passato', async () => {
+    // Il gemello, nel percorso di sola resa, della regola che il backfill ha rifiutato: tagliare al
+    // primo separatore. «Blu · Alto» è un nome legittimo (nessun vincolo sui caratteri, unicità sul
+    // nome INTERO), e «Blu» esiste davvero: mostrare «Blu» sarebbe un'affermazione FALSA su
+    // un'entità esistente. Il caso è vivo, non solo d'archivio: basta ritirare da «Blu · Alto» e poi
+    // cancellare quella fila e quel settore, ora vuoti — `ON DELETE SET NULL` azzera il riferimento
+    // e lo snapshot resta intatto.
+    const OMONIMI: EstablishmentStructureDTO = {
+      sectors: [
+        { id: 's-blu', name: 'Blu', sortOrder: 1, kind: 'grid', hasDedicatedRates: false, rows: [
+          { id: 'r-blu', label: 'F1', sortOrder: 1, umbrellas: [] },
+        ] },
+        { id: 's-centro', name: 'Centro', sortOrder: 2, kind: 'grid', hasDedicatedRates: true, rows: [
+          { id: 'r-centro', label: 'F1', sortOrder: 1, umbrellas: [] },
+        ] },
+      ],
+      umbrellaTypes: [],
+    };
+    const { w, posted } = await panel('Blu · Alto · F1', OMONIMI, null);
+    await restoreInto(w, 'Centro · F1');
+    expect(posted()).toBeNull();
+    expect(document.body.textContent).toContain('Il prezzo dei rinnovi cambierà base');
+    expect(document.body.textContent).not.toContain('era stato ritirato da «Blu»');
+    expect(document.body.textContent).toContain('era stato ritirato da «Blu · Alto · F1»');
     w.unmount();
   });
 
