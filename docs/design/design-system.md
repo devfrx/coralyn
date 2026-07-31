@@ -781,7 +781,7 @@ selezione e chiuso = deselezione (stesso pattern del dettaglio Mappa, [ADR-0019]
 | **Spiaggia** (default, selezione vuota) | Stat 2×2 (settori/file/ombrelloni/tipologie), **Tipologie** con CRUD inline (niente modale), sezione **«Ritirati (N)»** sotto le Tipologie (assente a N=0): per riga etichetta + `retiredFrom` + data ritiro + **«Ripristina»** con select della fila di destinazione ([D-055](../architecture/deferred.md)/[ADR-0053](../architecture/decisions/0053-ritiro-ombrellone-soft-delete.md)), hint d'uso |
 | **Settore** | Nome, disposizione (griglia/speciali), danger-zone «Elimina settore» |
 | **Fila** | Etichetta, generatore (prefisso/da numero/quantità/tipologia + anteprima live, limite 1..500 esplicito: oltre `GENERATE_MAX` hint «Massimo 500 per volta» e submit disabilitato, niente clamp silenzioso), danger-zone «Svuota fila (N)» + «Elimina fila» |
-| **Ombrellone** | Etichetta (hint «numero fisico reale, unico»), tipologia, Salva; danger-zone «Elimina ombrellone» + **«Ritira ombrellone»** con `ConfirmDialog` dedicato (copy: storico conservato, reversibile — [D-055](../architecture/deferred.md)/[ADR-0053](../architecture/decisions/0053-ritiro-ombrellone-soft-delete.md)) |
+| **Ombrellone** | Etichetta (hint «numero fisico reale, unico»), tipologia, Salva; blocco **«Sposta»** con fila di destinazione e posizione (§15.8, [ADR-0066](../architecture/decisions/0066-sposta-in-pannello-ombrellone.md)); danger-zone «Elimina ombrellone» + **«Ritira ombrellone»** con `ConfirmDialog` dedicato (copy: storico conservato, reversibile — [D-055](../architecture/deferred.md)/[ADR-0053](../architecture/decisions/0053-ritiro-ombrellone-soft-delete.md)) |
 | **Selezione multipla** | Conteggio (`aria-live="polite"`) + chip etichette, «Assegna tipologia a tutti», «Elimina N» |
 | **Nuovo settore / Nuova fila / Nuovo ombrellone** | Form di creazione; «Nuova fila» compone crea-fila + generate in due chiamate (`mutateAsync`, guardia anti doppio-create) |
 
@@ -855,13 +855,20 @@ l'overview, §15.3, **e la Mappa del giorno**: l'ordine dell'editor *è* l'ordin
 **Solo `lg+` (≥1024px). Sotto quel breakpoint l'affordance non si rende affatto.** Non è una
 dimenticanza responsive: sotto `lg` il `Drawer` scrive `body.style.pointerEvents = "none"` appena
 qualcosa è selezionato, quindi la scena è pointer-morta proprio quando si vorrebbe trascinare. Una
-maniglia inerte è peggio della sua assenza. Il caso scoperto è [D-071](../architecture/deferred.md#d-071).
+maniglia inerte è peggio della sua assenza. ⚠️ **Superato il 2026-07-31 per la parte «caso
+scoperto»**: sotto `lg` — e a ogni altra larghezza — si sposta dal controllo **«Sposta»** del
+pannello ombrellone (§15.8), che ha chiuso [D-071](../architecture/deferred.md#d-071). Il
+**trascinamento** resta `lg+` e la maniglia continua a non rendersi sotto quella soglia: sono due
+canali, non uno esteso.
 
 - **La maniglia sta FUORI dalla cella**, in alto a sinistra dello slot, in posizione assoluta: se
   occupasse spazio ogni cella sarebbe più larga e cambierebbe la densità del Cantiere. Compare
   all'hover della fila, come le azioni del rail (§15.1).
-- **Non è focalizzabile e non è annunciata** (`aria-hidden`, `<span>` e non `<button>`): non esiste
-  equivalente da tastiera, e annunciarla prometterebbe un'interazione che non c'è. Le celle restano
+- **Non è focalizzabile e non è annunciata** (`aria-hidden`, `<span>` e non `<button>`): la
+  **maniglia** non ha equivalente da tastiera, e annunciarla prometterebbe un'interazione che non
+  c'è. ⚠️ **Precisato il 2026-07-31**: lo **spostamento** un equivalente da tastiera ora ce l'ha, ed
+  è il controllo «Sposta» del pannello (§15.8) — questa riga resta vera della maniglia, non della
+  funzione. Le celle restano
   `<button>` nativi. ⚠️ È anche un vincolo di test: oltre 20 asserzioni indicizzano
   `[data-testid="scene-cell"] button` **per posizione**.
 - **Sparisce in modalità «Seleziona»** (§15.4): lì si costruisce una selezione multipla, e
@@ -882,6 +889,33 @@ maniglia inerte è peggio della sua assenza. Il caso scoperto è [D-071](../arch
   un `ConfirmDialog` dichiara che il prezzo dei **rinnovi futuri** cambierà base — e che le
   prenotazioni già registrate non cambiano. Stesso dialogo sul **ripristino** di un ritirato in un
   settore diverso da quello di provenienza.
+
+### 15.8 «Sposta»: il secondo canale, che non dipende dal puntatore ([ADR-0066](../architecture/decisions/0066-sposta-in-pannello-ombrellone.md))
+
+Nel pannello **Ombrellone**, fra il form e la Zona rischiosa e dietro `structure.manage`: eyebrow
+«Sposta», due `Select` in `Field` — **«Fila di destinazione»** e **«Posizione»** — e un `Button`
+`sm` «Sposta».
+
+**Si rende a ogni larghezza**, non solo sotto `lg`. Sotto quella soglia è l'**unico** modo di
+riordinare, perché il `Drawer` copre la scena e le toglie i pointer-event; sopra, affianca il
+trascinamento e gli dà l'equivalente da tastiera che la maniglia non ha (§15.7).
+
+- **Le file offerte sono solo quelle di settori dello stesso `kind`**, la propria compresa — senza
+  quest'ultima il riordino *dentro* una fila non esisterebbe. Etichetta «Settore · Fila», la stessa
+  forma del ripristino di un ritirato nel pannello Spiaggia. Le incompatibili **non si offrono**:
+  non si offrono-e-si-spiegano.
+- **La posizione si esprime col vicino**: «Prima di «A34»» o **«In coda»**, che è l'ultima voce
+  perché l'elenco legge la fila da testa a coda. Su una fila lunga l'elenco è lungo, e non c'è
+  ricerca: il costo è dichiarato in [ADR-0066](../architecture/decisions/0066-sposta-in-pannello-ombrellone.md) §Negative.
+- **All'apertura il controllo mostra dove l'ombrellone sta**, quindi il bottone nasce **spento**: è
+  già dove dice. Si accende appena la scelta cambia qualcosa. ⚠️ Non è uno stato memorizzato: il
+  controllo **deriva** dalla posizione corrente finché l'operatore non esprime un'intenzione, così
+  segue da solo un ombrellone spostato da un collega invece di proporre di riportarlo indietro.
+- **Stessa disclosure sul prezzo del trascinamento**, perché i due canali passano dallo stesso
+  ingresso: attraversando un confine di settore con tariffe dedicate si apre lo stesso
+  `ConfirmDialog` di §15.7.
+- **Un toast conferma lo spostamento** su questo canale e non sul trascinamento: là la cella si è
+  già mossa sotto gli occhi, qui sotto `lg` la scena è dietro lo scrim e non si vedrebbe nulla.
 
 ## 16. Accessibilità (trasversale)
 

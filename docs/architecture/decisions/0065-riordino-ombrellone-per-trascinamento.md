@@ -16,6 +16,11 @@
   avversariale del 2026-07-30 anche [D-072](../deferred.md#d-072) e [D-074](../deferred.md#d-074),
   più [D-073](../deferred.md#d-073) — quest'ultima **preesistente**, trovata di passaggio e non
   causata da questa slice. Il caso di [D-070](../deferred.md#d-070) è stato esteso, non duplicato.
+- ⚠️ **Superato in parte da [ADR-0066](0066-sposta-in-pannello-ombrellone.md) (2026-07-31)**, che
+  **chiude [D-071](../deferred.md#d-071)**. Le decisioni di questo ADR restano tutte valide — il
+  trascinamento è ancora solo `lg+` e la maniglia non si rende sotto quella soglia — ma **quattro
+  righe che davano il caso tablet/telefono per scoperto non lo sono più**, e portano la nota accanto:
+  §8, §10, §Negative e §Alternatives.
 
 ## Context
 
@@ -172,6 +177,11 @@ cella sposterebbe ogni indice e arrosserebbe la suite **senza che una sola logic
 rumore che costa e non protegge. La maniglia è quindi un elemento **sorella** dello span della
 cella, dentro uno slot comune.
 
+⚠️ **Precisato il 2026-07-31**: la frase qui sotto resta vera **della maniglia**, che è tuttora
+inerte alla tastiera. Non è più vera dello **spostamento**: dal controllo «Sposta» del pannello
+([ADR-0066](0066-sposta-in-pannello-ombrellone.md)) un equivalente da tastiera esiste, a ogni
+larghezza.
+
 È uno `<span draggable>` `aria-hidden`, non un `<button>`: **non esiste equivalente da tastiera**
 (vedi §10), e annunciare una maniglia inerte prometterebbe un'interazione che non c'è. Le celle
 restano `<button>` nativi, focalizzabili e annunciati come prima — questa slice **non spende** il
@@ -209,7 +219,12 @@ puntatore è morto è peggio della sua assenza.
 
 Non è un effetto collaterale scoperto a lavoro fatto: è una **rinuncia decisa**, presa sapendo che
 l'unico modo di coprire quel caso sarebbe un comando da tastiera, valutato ed **escluso dallo
-scope**. Il caso scoperto è [D-071](../deferred.md#d-071), e non è un rifinimento di accessibilità:
+scope**. ⚠️ **Superato il 2026-07-31**: era vero quando fu scritto, ma
+[D-071](../deferred.md#d-071) è stata **chiusa** da
+[ADR-0066](0066-sposta-in-pannello-ombrellone.md) con un controllo «Sposta» nel pannello, che è un
+secondo canale reso a ogni larghezza. **Questa decisione non è però riaperta**: il trascinamento
+resta `lg+` e la maniglia continua a non rendersi sotto quella soglia.
+Il caso scoperto era [D-071](../deferred.md#d-071), e non era un rifinimento di accessibilità:
 è l'intero caso tablet/telefono.
 
 ### 11. Drag-and-drop nativo, nessuna dipendenza nuova
@@ -268,8 +283,11 @@ ciò che l'operatore vede al banco.
 
 ### Negative / Trade-off
 
-- **Tablet e telefono restano scoperti** ([D-071](../deferred.md#d-071)). È il costo dichiarato di
-  aver escluso l'equivalente da tastiera.
+- ~~**Tablet e telefono restano scoperti** ([D-071](../deferred.md#d-071)). È il costo dichiarato di
+  aver escluso l'equivalente da tastiera.~~ ⚠️ **Superato il 2026-07-31**:
+  [ADR-0066](0066-sposta-in-pannello-ombrellone.md) ha chiuso D-071 con un controllo «Sposta» nel
+  pannello ombrellone, che copre tablet e telefono e dà anche l'equivalente da tastiera a `lg+`. Il
+  costo fu reale finché durò, ed è la ragione per cui la voce esisteva.
 - **La molla è un'affordance da scoprire.** Un operatore che non sosta sul tab non trova il modo di
   cambiare settore. L'alternativa — rendere tutti i settori insieme — costava l'architettura
   informativa dell'editor (vedi Alternatives).
@@ -310,7 +328,10 @@ ciò che l'operatore vede al banco.
 - **Un controllo «Sposta in…» nel pannello dell'ombrellone** (due select, settore e fila) — scartata
   perché introduce un **secondo meccanismo** per la stessa operazione, da tenere coerente col primo,
   e perché intaccherebbe [D-071](../deferred.md#d-071), che è stato deciso di lasciare aperto.
-  Resta però l'ipotesi più probabile per chiudere D-071, dove il puntatore non c'è.
+  Resta però l'ipotesi più probabile per chiudere D-071, dove il puntatore non c'è. ⚠️ **Ed è
+  esattamente ciò che è successo**: [ADR-0066](0066-sposta-in-pannello-ombrellone.md) l'ha adottata
+  il 2026-07-31 e ha chiuso [D-071](../deferred.md#d-071). L'analisi qui sopra è stata il punto di
+  partenza di quella slice, non un ostacolo.
 
 - **Deferire lo spostamento fra settori** e chiudere D-038 solo per il riordino intra-settore —
   scartata perché **crea debito per definizione**: lascerebbe endpoint, fixture e tre presidi e2e

@@ -20,7 +20,7 @@ destinazioni e l'aritmetica della posizione sono **funzioni pure** in un modulo 
 
 - **Nessuna riga di API cambia.** Nessun endpoint, nessun DTO, nessuna migration, nessun e2e nuovo.
 - **Nessuna dipendenza nuova.**
-- **La decisione 5 di ADR-0065 non si riapre:** `:can-drag="isDesktop"` resta com'è e la maniglia
+- **ADR-0065 §10 non si riapre:** `:can-drag="isDesktop"` resta com'è e la maniglia
   continua a non rendersi sotto `lg`. Questa slice aggiunge un canale, non estende il trascinamento.
 - **Una suite per volta.** In parallelo su questo host danno falsi rossi di massa (timeout di
   collection). Baseline di `@coralyn/web-staff`: **556 test su 64 file**.
@@ -349,6 +349,18 @@ Atteso: **FAIL** — il pannello non ha `[data-testid="umbrella-move-row"]`, qui
 `Unable to get [data-testid="umbrella-move-row"]`.
 
 - [ ] **Step 3: cambia le props e aggiungi il controllo al pannello**
+
+> ⚠️ **SUPERATO DALL'IMPLEMENTAZIONE — non copiare il blocco qui sotto alla lettera.** Il codice di
+> questo Step usa uno stato **memorizzato** (`targetRowIdRef`/`positionRef`, risincronizzati da un
+> `watch`). La review avversariale del 2026-07-31 ha trovato che quella forma lascia il controllo
+> puntato sulla fila di partenza quando l'ombrellone viene spostato **senza cambiare identità** — da
+> un trascinamento o da un collega — col bottone acceso su un gesto che lo riporta indietro. La forma
+> consegnata **deriva** invece di memorizzare (`chosenRowId`/`chosenPosition` a `null` finché non c'è
+> un'intenzione) e non ha alcun `watch` per lo spostamento. **La fonte autorevole è
+> [ADR-0066](../../architecture/decisions/0066-sposta-in-pannello-ombrellone.md) §9**, non questo
+> passo. ⚠️ I due simboli `targetRowIdRef` e `positionRef` **non esistono nel sorgente consegnato**:
+> un `grep` che li cerchi non trova nulla, ed è atteso. Il resto dello Step — props, template,
+> `data-testid`, il `:disabled` che include `movePending` — è rimasto valido.
 
 In `apps/web-staff/src/features/establishment/panels/UmbrellaPanel.vue`, sostituisci il blocco
 `<script setup>` con:
@@ -832,7 +844,9 @@ misura per cui `moveTargets` non unifica `allRows` (`restore` non ha guardia sul
 vincoli del `Select` (solo stringhe; props nuove a ogni rilettura), e in `Consequences` il costo
 dichiarato del secondo `Select` su una fila lunga.
 
-⚠️ **Deve dichiarare esplicitamente che la decisione 5 di ADR-0065 non è riaperta.**
+⚠️ **Deve dichiarare esplicitamente che ADR-0065 §10 non è riaperta.** ⚠️ Non scrivere «la decisione
+5»: quello è il numero della **tabella dell'handoff**, non della sezione dell'ADR, e in ADR-0065 la
+§5 è tutt'altro (il 409 su un ritirato). Cita sempre nella forma `ADR-0065 §N`.
 
 ⚠️ In `Alternatives considered` va registrato **«solo la fila, coda implicita»** — scartata perché
 chiuderebbe D-071 a metà — e **«il controllo solo sotto `lg`»**, scartata perché lascerebbe `lg+`

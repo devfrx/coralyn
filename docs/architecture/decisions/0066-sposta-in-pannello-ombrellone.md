@@ -3,9 +3,16 @@
 - **Status:** Accepted
 - **Data:** 2026-07-31
 - **Decisori:** Team di progetto
-- **Non supera nulla.** [ADR-0065](0065-riordino-ombrellone-per-trascinamento.md) resta valido parola
-  per parola: in particolare la sua §10, «il trascinamento è solo `lg+`». Questa slice **aggiunge**
-  un canale, non estende il primo.
+- **Non supera alcuna decisione di** [ADR-0065](0065-riordino-ombrellone-per-trascinamento.md): in
+  particolare la sua **§10**, «il trascinamento è solo `lg+`», resta intatta — questa slice
+  **aggiunge** un canale, non estende il primo.
+  ⚠️ **Ne supera però quattro righe**, e portano la nota accanto nell'ADR: le due che davano il caso
+  tablet/telefono per **scoperto** (§10 e §Negative), quella di §8 che dichiarava inesistente un
+  equivalente da tastiera — vera della **maniglia**, non più dello **spostamento** — e quella di
+  §Alternatives che indicava questo controllo come «l'ipotesi più probabile per chiudere D-071».
+  ⚠️ La prima stesura di questa riga diceva che ADR-0065 «resta valido **parola per parola**»: una
+  formula assoluta che il resto di questo stesso ADR smentiva. Corretta dalla review avversariale
+  del 2026-07-31.
 - **ADR correlati:** [ADR-0052](0052-editor-struttura-cantiere.md) (l'editor struttura e i suoi tab),
   [ADR-0053](0053-ritiro-ombrellone-soft-delete.md) (il ripristino, il cui controllo è il modello di
   forma), [ADR-0020](0020-resa-mappa.md) (HTML/CSS invece di SVG, per non ricostruire fuoco e ARIA)
@@ -76,8 +83,10 @@ voce: [D-071](../deferred.md#d-071) dice che «il **riordino** non esiste», e c
 spostamento *fra* file sarebbe stato possibile ma il riordino *dentro* una fila no — la voce si
 sarebbe chiusa a metà.
 
-**Il costo è dichiarato:** su una fila da 100 ombrelloni il secondo `Select` ha 101 voci, e il
-database di sviluppo ha davvero una fila con 100 ombrelloni. Il `Select` di `ui-kit` non ha ricerca.
+**Il costo è dichiarato:** su una fila da 100 ombrelloni il secondo `Select` ha 101 voci. Che una
+fila del genere sia realistica non è una supposizione: [ADR-0065](0065-riordino-ombrellone-per-trascinamento.md)
+§Context registra la misura fatta allora sul database di sviluppo — la `Fila 2` da 2 a 101 senza
+buchi — ⚠️ **e questa riga la cita, non la ri-misura**. Il `Select` di `ui-kit` non ha ricerca.
 Mitigazione: le voci sono etichettate col vicino (`Prima di «A34»`), quindi si scorrono per numero.
 
 ### 4. Si offrono le file compatibili, e fra queste la propria
@@ -220,11 +229,13 @@ l'operatore deve riscegliere la destinazione — ed è il verso giusto in cui sb
   memorizzata uscirebbe dall'intervallo e il server risponderebbe 422. Il controllo ricade sulla
   coda, che esiste sempre. **Ciò che si invia è ciò che si vede.**
 - **`InspectorPanels` è montato due volte** — l'`aside` desktop e il `Drawer` — e vanno collegati
-  entrambi. Non è teorico: staccando l'evento dal **solo** ramo Drawer, tutti i 187 test di
-  `features/establishment` restavano **verdi**. La mutazione provava l'assenza di *copertura*, non
-  l'assenza del difetto, ed è stato scritto il presidio che mancava. Lo stesso errore era già
-  capitato in questo file con i pannelli Fila.
-- **Le oltre 20 asserzioni che indicizzano le celle della scena per posizione non sono toccate**: il
+  entrambi. Non è teorico: staccando l'evento dal **solo** ramo Drawer, **tutti i test di
+  `features/establishment` restavano verdi** — erano 187 al momento della misura, il 2026-07-31 e
+  prima che il presidio mancante esistesse, quindi chi ri-conta oggi troverà un numero più alto. La
+  mutazione provava l'assenza di *copertura*, non l'assenza del difetto, ed è stato scritto il
+  presidio che mancava. Lo stesso errore era già capitato in questo file con i pannelli Fila.
+- **Le asserzioni che indicizzano le celle della scena per posizione non sono toccate** — sono **27**
+  al 2026-07-31 (`grep -rnE 'scene-cell"\] button.\)\[' apps/web-staff/src --include=*.spec.ts`): il
   controllo vive nel pannello, non dentro la cella. È il vincolo che aveva deciso la forma della
   maniglia in [ADR-0065](0065-riordino-ombrellone-per-trascinamento.md) §8, e qui non si ripresenta.
 

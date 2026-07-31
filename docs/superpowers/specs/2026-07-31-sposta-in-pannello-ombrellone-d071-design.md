@@ -80,7 +80,14 @@ Due ragioni, la seconda misurata:
 2. Renderlo solo sotto `lg` sarebbe la **terza** cosa agganciata alla stessa soglia — dopo il getter
    di `drawerOpen` e `:can-drag` — cioè tre punti da tenere allineati invece di uno.
 
-⚠️ **Questo NON riapre la decisione 5 di ADR-0065.** «Il trascinamento è solo `lg+`» resta vero:
+> ⚠️ **Nota sulla numerazione, aggiunta il 2026-07-31 dalla review avversariale.** Le prime stesure
+> di questo documento citavano «la decisione N di ADR-0065» usando i numeri della **tabella
+> dell'handoff**, che sono un'altra numerazione: là il vincolo `lg+` è la riga 5, in ADR-0065 è la
+> **§10** (la §5 è tutt'altro — il 409 su un ritirato). Chi seguiva il rimando per controllare il
+> vincolo finiva su una guardia di dominio del backend. Tutte le citazioni sono state riportate alla
+> forma **`ADR-0065 §N`**, che è quella verificabile aprendo l'ADR.
+
+⚠️ **Questo NON riapre [ADR-0065](../../architecture/decisions/0065-riordino-ombrellone-per-trascinamento.md) §10.** «Il trascinamento è solo `lg+`» resta vero:
 `:can-drag="isDesktop"` non si tocca e la maniglia continua a non rendersi sotto `lg`. Ciò che
 esiste a ogni larghezza è **l'altro** canale.
 
@@ -107,14 +114,16 @@ La ragione è il titolo stesso della voce: D-071 dice «il **riordino** non esis
 lo spostamento *fra* file sarebbe possibile ma il riordino *dentro* una fila no — la voce si
 chiuderebbe a metà.
 
-**Il costo è dichiarato:** su una fila da 100 ombrelloni il secondo `Select` ha 101 voci, e il
-database di sviluppo ha davvero una `Fila 2` con 100 ombrelloni. Il `Select` di ui-kit non ha
-ricerca. Mitigazione: le voci sono etichettate col vicino (`Prima di «A34»`), quindi si scorrono per
+**Il costo è dichiarato:** su una fila da 100 ombrelloni il secondo `Select` ha 101 voci. Che sia
+realistica lo dice la misura registrata in
+[ADR-0065](../../architecture/decisions/0065-riordino-ombrellone-per-trascinamento.md) §Context — la
+`Fila 2` da 2 a 101 senza buchi sul database di sviluppo — ⚠️ **citata qui, non ri-misurata**. Il
+`Select` di ui-kit non ha ricerca. Mitigazione: le voci sono etichettate col vicino (`Prima di «A34»`), quindi si scorrono per
 numero. Se un giorno dà fastidio è una voce nuova, non un debito nascosto.
 
 ### 4.4 Le file offerte sono solo quelle compatibili, e la propria è inclusa
 
-Filtro su `isCompatible(sector.kind, target.kind)`, cioè la decisione 3 di
+Filtro su `isCompatible(sector.kind, target.kind)`, cioè la **§4** di
 [ADR-0065](../../architecture/decisions/0065-riordino-ombrellone-per-trascinamento.md). Le file
 incompatibili **non si offrono**, non si offrono-e-si-spiegano: è la stessa politica del
 trascinamento, dove `umbrellaMove.ts:34-35` dichiara che il gemello frontend della guardia «serve
@@ -207,7 +216,7 @@ resta nel template.
 - `positionOptions(row, umbrellaId)` → `{ position, beforeLabel }[]` — le `n+1` scelte calcolate
   sulla fila **privata** dell'ombrellone che si sposta. `beforeLabel === null` è la coda, ed è
   l'ultima voce perché l'elenco legge la fila da testa a coda. Escludere l'ombrellone è ciò che
-  rende il numero prodotto **già** il `position` che l'API vuole — l'indice FINALE, decisione 9 di
+  rende il numero prodotto **già** il `position` che l'API vuole — l'indice FINALE, **§3** di
   [ADR-0065](../../architecture/decisions/0065-riordino-ombrellone-per-trascinamento.md).
 
 **`UmbrellaPanel.vue`**: un blocco fra il form e la Zona rischiosa, dietro `canManage`. Due `Select`
@@ -272,9 +281,9 @@ si ripresenta.
 ## 7. Cosa questa slice NON fa
 
 - **Non tocca l'API.** Nessun endpoint, nessun DTO, nessuna migration.
-- **Non tocca il trascinamento** né `:can-drag`: la decisione 5 resta intatta.
+- **Non tocca il trascinamento** né `:can-drag`: ADR-0065 §10 resta intatta.
 - **Non riordina file né settori**: D-038 è chiusa solo per l'ombrellone, e resta così.
-- **Non sposta più ombrelloni per volta**: la decisione 1 resta.
+- **Non sposta più ombrelloni per volta**: ADR-0065 §1 resta.
 - **Non risolve l'asimmetria `move`/`restore` sul `kind`** (§4.5): va portata all'utente.
 - **Non tocca `hasDedicatedRates`** né la sua cecità alle tariffe di fila, che è il corpo di
   [D-070](../../architecture/deferred.md#d-070).
