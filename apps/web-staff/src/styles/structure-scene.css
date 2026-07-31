@@ -8,7 +8,12 @@
 .st-row { display: grid; grid-template-columns: 92px 1fr; gap: 14px; align-items: start; padding: 10px 8px; margin: 0 -8px; border-radius: var(--radius-md); }
 .st-row + .st-row { margin-top: 6px; }
 .st-row:hover { background: color-mix(in srgb, var(--color-warm-000) 42%, transparent); }
-.st-row-sel { background: color-mix(in srgb, var(--color-warm-000) 62%, transparent); box-shadow: inset 0 0 0 1.5px var(--color-brand); }
+/* Le evidenze di STATO si scrivono `.st-row.st-row-*` e non `.st-row-*` (D-074): con una classe sola
+   perdevano il `background` contro `.st-row:hover`, che ne ha una piu' una pseudo-classe. Non era
+   teorico — misurato in browser: dentro la STESSA fila `:hover` resta applicato per tutto il
+   trascinamento, quindi il segno di rilascio non si vedeva mai proprio nel riordino piu' comune.
+   Restano a pari specificita' con l'hover e vincono per ORDINE: non spostarle piu' in alto. */
+.st-row.st-row-sel { background: color-mix(in srgb, var(--color-warm-000) 62%, transparent); box-shadow: inset 0 0 0 1.5px var(--color-brand); }
 .st-rail-name { font-size: 11px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; color: var(--color-stage-1); }
 .st-rail-name:hover { color: var(--color-brand-ink); }
 .st-rail-count { font-size: 11px; color: var(--color-text-muted); margin-top: 3px; font-variant-numeric: tabular-nums; }
@@ -25,7 +30,9 @@
 /* Sulla CELLA e non sullo slot: lo slot porta le barre d'inserimento come pseudo-elementi, e
    trascinando l'ultimo ombrellone della fila lo slot e' lo stesso che porta .st-drop-after. */
 .st-cell-dragged { opacity: .4; }
-.st-row-drop { background: color-mix(in srgb, var(--color-coral-050) 55%, transparent); }
+/* Dopo `.st-row.st-row-sel` di proposito: durante un trascinamento il segno di rilascio deve
+   dipingere anche sopra una fila selezionata (pari specificita', vince l'ordine). */
+.st-row.st-row-drop { background: color-mix(in srgb, var(--color-coral-050) 55%, transparent); }
 /* La barra d'inserimento vive nel gap e NON e' un elemento in flusso: un flex item in piu' farebbe
    scorrere le celle sotto il puntatore, l'indice si ricalcolerebbe e il segno oscillerebbe. */
 .st-drop-before::before, .st-drop-after::after { content: ''; position: absolute; top: -3px; bottom: -3px; width: 3px; border-radius: 2px; background: var(--color-brand); }
