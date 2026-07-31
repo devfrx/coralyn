@@ -24,6 +24,15 @@ ALTER TABLE "Umbrella" ADD CONSTRAINT "Umbrella_retiredFromSectorId_fkey" FOREIG
 -- ritirato da «Blu · Alto» con snapshot «Blu · Alto · F1» veniva agganciato a «Blu» — un settore da
 -- cui non era mai passato, scritto senza esitazione. Peggio del NULL, perche' il NULL almeno tace.
 --
+-- ⚠️ Cio' che questa regola NON puo' escludere: se un settore e' stato **rinominato** e poi ne e' stato
+-- creato uno **nuovo col vecchio nome**, entrambi prima di questa migration, il candidato e' UNO — il
+-- nuovo — e il backfill scrive un riferimento sbagliato con sicurezza. Non e' distinguibile dai dati:
+-- `Sector` non ha un `createdAt`, quindi non esiste alcun modo di sapere quale settore portava quel
+-- nome al momento del ritiro. E' un limite ACCETTATO e dichiarato, non un caso non visto: vedi
+-- ADR-0067 §3. Pesa poco perche' nessun database di produzione esiste — al primo deploy questa
+-- tabella e' vuota e il backfill e' un no-op — e perche' l'alternativa (non ripararlo affatto)
+-- perde ogni riga recuperabile per evitarne una sbagliata.
+--
 -- Qui si confronta il PREFISSO ESATTO (`<nome> · `) e si scrive **solo quando il candidato e' UNICO**.
 -- Con «Blu» e «Blu · Alto» entrambi candidati lo snapshot e' genuinamente ambiguo — potrebbe venire
 -- da «Blu · Alto»/fila «F1» o da «Blu»/fila «Alto · F1», e nessuna regola puo' deciderlo — quindi la

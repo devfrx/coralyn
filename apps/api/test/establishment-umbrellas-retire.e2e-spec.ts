@@ -186,6 +186,28 @@ describe('Establishment umbrellas retire (e2e)', () => {
     expect(riga.retiredFromSectorId).toBe(origineId);   // il riferimento resta valido: è il punto
   });
 
+  // Il verso simmetrico del test sopra, e presidia la scelta di ADR-0067 §1: `SET NULL` e non
+  // `Restrict`. Un settore cancellato non è un'origine confrontabile, e il vincolo non deve
+  // impedirne la cancellazione — il riferimento deve cadere da solo, lasciando lo snapshot.
+  it('cancellare il settore d’origine fa CADERE il riferimento e lascia l’etichetta', async () => {
+    const { umbrellaId, sectorId, rowIdTmp } = await prisma.forTenant(s1, async (tx) => {
+      const sector = await tx.sector.create({ data: { establishmentId: s1, name: 'Effimero', sortOrder: 10 } });
+      const row = await tx.row.create({ data: { establishmentId: s1, sectorId: sector.id, label: 'F10', sortOrder: 1 } });
+      const u = await tx.umbrella.create({ data: { establishmentId: s1, rowId: row.id, label: 'RT-10', logicalOrder: 10 } });
+      return { umbrellaId: u.id, sectorId: sector.id, rowIdTmp: row.id };
+    });
+    await request(app.getHttpServer()).post(`/api/establishment/umbrellas/${umbrellaId}/retire`).set(...bearer(adminT)).expect(201);
+
+    // Il ritirato ha `rowId = null`, quindi non trattiene né la fila né il settore.
+    await request(app.getHttpServer()).delete(`/api/establishment/rows/${rowIdTmp}`).set(...bearer(adminT)).expect(200);
+    await request(app.getHttpServer()).delete(`/api/establishment/sectors/${sectorId}`).set(...bearer(adminT)).expect(200);
+
+    const res = await request(app.getHttpServer()).get('/api/establishment/umbrellas/retired').set(...bearer(adminT)).expect(200);
+    const riga = res.body.find((u: { id: string }) => u.id === umbrellaId);
+    expect(riga.retiredFromSectorId).toBeNull();       // il riferimento è caduto
+    expect(riga.retiredFrom).toBe('Effimero · F10');   // l'etichetta storica resta
+  });
+
   it('creare una prenotazione su un ritirato → 422', async () => {
     // RT-1 è tuttora ritirato (mai ripristinato in questa suite).
     await request(app.getHttpServer()).post('/api/bookings').set(...bearer(adminT))

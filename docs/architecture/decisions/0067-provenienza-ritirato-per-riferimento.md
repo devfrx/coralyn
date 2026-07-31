@@ -8,8 +8,11 @@
   disclosure sul prezzo, che di quel campo si serviva), [ADR-0032](0032-pricing-engine-precedenza.md)
   (la precedenza delle tariffe, che è ciò che la disclosure dichiara)
 - **Chiude:** [D-072](../deferred.md#d-072)
-- **Registra, senza causarle:** quattro voci **preesistenti**, tutte verificate tali su `main` a
+- **Registra, senza causarle:** **cinque** voci **preesistenti**, tutte verificate tali su `main` a
   `0fd3b0f` e tutte trovate dalla review avversariale di questa slice —
+  [D-080](../deferred.md#d-080) (il **secondo ingrediente** di questa stessa disclosure invecchia
+  come invecchiava il primo: nessuna mutazione del listino scade la struttura, quindi
+  `hasDedicatedRates` può essere già falsa quando il gate la legge),
   [D-077](../deferred.md#d-077) (il **gemello** di D-074, nello strato Tailwind: una cella selezionata
   e focalizzata da tastiera è resa identica a una non selezionata),
   [D-078](../deferred.md#d-078) (i controlli del ripristino non si riconciliano con l'albero) e
@@ -83,7 +86,22 @@ convivono legittimamente). Un ritirato da «Blu · Alto» porta lo snapshot «Bl
 segmento è «Blu», e il backfill lo agganciava a **«Blu»** — un settore da cui non era mai passato,
 scritto senza esitazione. **Peggio del `NULL`, perché il `NULL` almeno tace.**
 
-Lo snapshot in quel caso è **genuinamente ambiguo**: «Blu · Alto · F1» può venire dal settore
+⚠️ **Un secondo modo di sbagliare resta, ed è accettato invece che risolto** — trovato dalla review
+d'insieme, che ha notato la contraddizione: la §4 toglie il fallback dal frontend anche perché
+potrebbe «agganciare un settore omonimo creato dopo», e il backfill è esposto alla stessa cosa. Se un
+settore è stato **rinominato** e poi ne è stato creato uno **nuovo col vecchio nome**, entrambi prima
+della migration, il candidato è **uno solo** — il nuovo — e `HAVING count(*) = 1` non protegge nulla:
+viene scritto un riferimento sbagliato **con sicurezza**, e nel verso pericoloso, perché ripristinare
+in quel settore troverebbe `origin.id === target.id` e **tacerebbe** un avviso dovuto.
+
+Non è distinguibile dai dati: `Sector` non ha un `createdAt`, quindi nulla dice quale settore
+portasse quel nome al momento del ritiro. Accettato per due ragioni, entrambe da rileggere il giorno
+in cui la prima diventasse falsa: **non esiste alcun database di produzione**, quindi al primo deploy
+la tabella è vuota e il backfill è un no-op; e l'alternativa — non riparare affatto — perde **ogni**
+riga recuperabile per evitarne una sbagliata. La differenza col frontend è che lì il rischio si
+correva a ogni render e per sempre, qui una volta sola e su un archivio che oggi è vuoto.
+
+Lo snapshot nel caso dell'ambiguità è invece **genuinamente ambiguo**: «Blu · Alto · F1» può venire dal settore
 «Blu · Alto» e dalla fila «F1», oppure dal settore «Blu» e dalla fila «Alto · F1», e **nessuna regola
 può deciderlo** — non è che ne serva una migliore, è che l'informazione non c'è. Per questo la regola
 non è «il prefisso più lungo vince» ma «se i candidati sono due, non scrivere». Verificato sul

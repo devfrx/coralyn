@@ -2,8 +2,10 @@ import { describe, expect, it } from 'vitest';
 import type { StructureRowDTO, StructureSectorDTO } from '@coralyn/contracts';
 import { applyMove, isCompatible, moveTargets, positionOptions, targetIndex, type CellRect } from './umbrellaMove';
 
-// Misure prese dal CSS vero: `.st-cells` ha `gap: 9px` (structure-scene.css, regola `.st-cells`) e la cella è40x40
-// come `.st-ghost-cell` (:35). Scriverle qui rende i numeri dei test leggibili come una pianta.
+// Misure prese dal CSS vero: in `structure-scene.css` la regola `.st-cells` ha `gap: 9px` e la cella
+// è 40x40 come la regola `.st-ghost-cell`. Scriverle qui rende i numeri dei test leggibili come una
+// pianta. I rimandi citano il SELETTORE e non il numero di riga: D-074 ha aggiunto sette righi di
+// commento a quel file e i numeri, che erano esatti, hanno smesso di esserlo tutti insieme.
 const SIZE = 40;
 const GAP = 9;
 const STEP = SIZE + GAP;

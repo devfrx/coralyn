@@ -580,7 +580,7 @@ export const server = setupServer(
   // Ritiro ombrelloni (D-055): query e mutation
   http.get('/api/establishment/umbrellas/retired', () => HttpResponse.json([])),
   http.post('/api/establishment/umbrellas/:id/retire', ({ params }) =>
-    HttpResponse.json({ id: params.id as string, label: '1', umbrellaTypeId: null, retiredAt: '2026-06-27T10:00:00.000Z', retiredFrom: 'Centro · Fila 1', retiredFromSectorId: null }, { status: 201 })),
+    HttpResponse.json({ id: params.id as string, label: '1', umbrellaTypeId: null, retiredAt: '2026-06-27T10:00:00.000Z', retiredFrom: 'Centro · Fila 1', retiredFromSectorId: 'sec-1' }, { status: 201 })),
   http.post('/api/establishment/umbrellas/:id/restore', ({ params }) =>
     HttpResponse.json({ id: params.id as string, label: '1', umbrellaTypeId: null }, { status: 201 })),
   http.post('/api/establishment/umbrellas', async ({ request }) => {

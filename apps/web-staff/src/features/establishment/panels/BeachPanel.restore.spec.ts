@@ -139,6 +139,20 @@ describe('BeachPanel — provenienza del ritirato risolta per id (D-072)', () =>
     w.unmount();
   });
 
+  it('senza riferimento, tornare nel settore che lo snapshot nomina AVVISA lo stesso: è la regressione accettata', async () => {
+    // Il verso simmetrico del caso sopra, ed è una **decisione**, non una svista: con l'origine non
+    // identificata non si può sapere che è la stessa, quindi si avvisa. Su `main` questo input
+    // partiva in silenzio, perché il confronto per nome vedeva «Centro» uguale a «Centro».
+    // ADR-0067 §Consequences/Negative la dichiara; senza questo presidio, fra sei mesi, non si
+    // distinguerebbe da un difetto da correggere.
+    const { w, posted } = await panel('Centro · F1', DATA, null);
+    await restoreInto(w, 'Centro · F1');
+    expect(posted()).toBeNull();
+    expect(document.body.textContent).toContain('Il prezzo dei rinnovi cambierà base');
+    expect(document.body.textContent).toContain('era stato ritirato da «Centro · F1»');
+    w.unmount();
+  });
+
   it('senza riferimento il dialogo non TAGLIA lo snapshot: non può nominare un settore vero da cui non è mai passato', async () => {
     // Il gemello, nel percorso di sola resa, della regola che il backfill ha rifiutato: tagliare al
     // primo separatore. «Blu · Alto» è un nome legittimo (nessun vincolo sui caratteri, unicità sul
