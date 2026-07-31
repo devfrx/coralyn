@@ -8,7 +8,13 @@
   disclosure sul prezzo, che di quel campo si serviva), [ADR-0032](0032-pricing-engine-precedenza.md)
   (la precedenza delle tariffe, che è ciò che la disclosure dichiara)
 - **Chiude:** [D-072](../deferred.md#d-072)
-- **Registra, senza causarla:** [D-076](../deferred.md#d-076) — `retire` e `restore` scrivono con un
+- **Registra, senza causarle:** quattro voci **preesistenti**, tutte verificate tali su `main` a
+  `0fd3b0f` e tutte trovate dalla review avversariale di questa slice —
+  [D-077](../deferred.md#d-077) (il **gemello** di D-074, nello strato Tailwind: una cella selezionata
+  e focalizzata da tastiera è resa identica a una non selezionata),
+  [D-078](../deferred.md#d-078) (i controlli del ripristino non si riconciliano con l'albero) e
+  [D-079](../deferred.md#d-079) (la cessione lascia fresca la Scheda del subentrante); più
+  [D-076](../deferred.md#d-076) — `retire` e `restore` scrivono con un
   `where` nudo da una lettura mai ricontrollata, mentre `move` ha la guardia estesa. **Preesistente**
   (su `main` a `0fd3b0f` la scrittura di `retire` era già così), trovata dalla review avversariale di
   questa slice. Ciò che cambia qui è il **peso** dell'errore: alla stessa scrittura si aggiunge un
@@ -100,18 +106,34 @@ piedi per sempre: c'è una regola sola, e vale per tutti.
 ### 5. Origine irrisolvibile ⇒ fuori dal confronto, ma il nome si mostra lo stesso
 
 Se il riferimento è `null` (archivio non recuperato, o settore cancellato), l'origine **non entra**
-nel confronto sulle tariffe: il gate resta quello del solo settore d'arrivo. Il silenzio su quel ramo
+nel confronto sulle tariffe: il gate resta quello del solo settore d'arrivo — e se manca **anche** lo
+snapshot, non c'è nulla da nominare e il dialogo non si apre affatto. Il silenzio su quel ramo
 è quindi **dichiarato**, non accidentale — la differenza rispetto a prima non è l'esito, è che ora
 c'è una ragione e un presidio che la nomina.
 
 L'etichetta, invece, si mostra: se il dialogo si apre per il ramo della destinazione, dice comunque
-da dove veniva, usando lo snapshot. È tutto ciò che resta, ed è meglio di un trattino.
+da dove veniva, usando lo snapshot **intero** — «Blu · Alto · F1», non «Blu».
+
+⚠️ **Intero, e non il primo segmento, per la stessa ragione della §3.** La prima stesura tagliava al
+separatore, cioè applicava nella resa la regola che il backfill aveva appena rifiutato, e sbagliava
+allo stesso modo: «Blu · Alto · F1» ridotto a «Blu» nomina un settore che **esiste davvero** e da cui
+quell'ombrellone non è mai passato — un'affermazione falsa, non un'etichetta vaga. Trovata dalla
+review avversariale, che ne ha anche mostrato il percorso **vivo**: ritira da «Blu · Alto», poi
+cancella quella fila e quel settore ormai vuoti (nessuno dei due conta un ritirato, che ha
+`rowId = null`), e `ON DELETE SET NULL` lascia il riferimento a `null` con lo snapshot intatto.
+Nessuna migrazione coinvolta: tre gesti ordinari da interfaccia.
 
 ### 6. Il confronto «è lo stesso settore?» passa dagli id
 
-Prima era `from !== target.name`. Ora è `origin?.id !== target.id`. Non è un dettaglio di stile: due
-settori con lo stesso nome non possono esistere nello stesso lido, ma **lo stesso settore con due
-nomi nel tempo** sì — ed è precisamente il caso che apriva questo ADR.
+Prima era `from !== target.name`. Ora è `origin?.id !== target.id`.
+
+⚠️ **Attenzione a non promettere troppo, e la prima stesura di questa § lo faceva.** Dato che
+`@@unique([establishmentId, name])` rende i nomi unici e che `from` è il nome **attuale**
+dell'origine quando questa risolve, le due forme danno **sempre lo stesso esito**: nessuno scenario
+le separa, e nessun test può distinguerle. Gli id restano comunque la forma giusta, ma per una
+ragione diversa da quella scritta prima: **non dipendono da un invariante che vive nel database e
+non nel client**. Il giorno in cui `data.sectors` arrivasse filtrato, unito o proiettato, il
+confronto per nome comincerebbe a sbagliare in silenzio; quello per id no.
 
 ### 7. Si memorizza il settore, non la fila
 
@@ -154,13 +176,16 @@ un pattern che si copia, e che la prossima volta potrebbe non essere racchiuso i
   query attraversa**: esiste solo perché Prisma pretende il lato inverso.
 - Il residuo resta scoperto: chi era già stato rinominato al momento della migration non ha modo di
   essere recuperato, e per quelle righe l'avviso tace. È un presidio esplicito, non una svista.
-- Un angolo stretto peggiora, e va dichiarato: se una riga d'archivio è rimasta senza riferimento e
-  **oggi esiste un settore che porta esattamente il nome dello snapshot**, ripristinarci dentro apre
-  un dialogo che dice «era stato ritirato da «Centro» e sta tornando in «Centro»». Prima taceva.
-  L'avviso non è falso — l'origine resta non identificata, e la base di prezzo può davvero cambiare —
-  ma si legge male. Non è stato chiuso con un caso speciale sul nome, perché sarebbe la §4
-  reintrodotta dalla porta di servizio, e sbaglierebbe proprio quando i due settori omonimi sono
-  entità diverse.
+- Un angolo stretto peggiora, e va dichiarato: se una riga d'archivio è rimasta **senza riferimento**
+  e la si ripristina nel settore da cui in realtà proveniva, il dialogo si apre lo stesso — prima
+  taceva. L'avviso non è falso (l'origine resta non identificata, e la base di prezzo *può* davvero
+  cambiare), ed è il verso sicuro: si avvisa di più, non di meno. Non è stato chiuso con un caso
+  speciale sul nome, perché sarebbe la §4 reintrodotta dalla porta di servizio e sbaglierebbe proprio
+  quando due settori omonimi sono entità diverse.
+  ⚠️ **La prima stesura di questa riga descriveva un dialogo che diceva «era stato ritirato da
+  «Centro» e sta tornando in «Centro»»**: era vera finché l'etichetta veniva tagliata al primo
+  separatore. Dalla correzione della §5 il dialogo mostra lo snapshot intero — «Centro · F1» — e
+  quella lettura sgradevole non si produce più. Resta l'avviso di troppo, che è il punto.
 - Ogni fixture di test che costruisce un `RetiredUmbrellaDTO` deve ora dichiarare anche il
   riferimento, altrimenti esercita il ramo d'archivio credendo di esercitare quello normale.
   ⚠️ **È già successo durante questa slice** — vedi la nota qui sotto.

@@ -60,11 +60,16 @@ API (admin-only, `establishment/umbrellas`, stile del repo — `forTenant` + `@R
   `endDate >= todayInRome()`** (copy: «Ombrellone con prenotazioni attive o future: disdici prima
   di ritirare»). Prenotazioni scadute o cancellate non bloccano. Effetto in transazione:
   `retiredAt = now()`, `rowId = null`, `retiredFrom` = snapshot da fila+settore correnti.
+  ⚠️ **Superato in parte il 2026-07-31 da [ADR-0067](0067-provenienza-ritirato-per-riferimento.md)**:
+  la transazione scrive **anche** `retiredFromSectorId`, il settore d'origine come riferimento vivo.
+  `retiredFrom` resta e resta scritto così, ma da allora è un'**etichetta** storica e non una chiave:
+  nessun percorso di confronto la attraversa più.
   **Idempotente**: ripetuto su un già-ritirato restituisce lo stato corrente senza rilanciare la
   guardia né toccare il timestamp (mirror dell'`archive` dei pacchetti).
 - **`POST :id/restore`** — input `{ rowId }`: 404 se la fila non esiste nel tenant (RLS), **409** se un
   **attivo** ha già la stessa label (copy che spiega il conflitto, invita a rinominare prima).
-  Effetto: `retiredAt = null`, `retiredFrom = null`, `rowId = input.rowId`,
+  Effetto: `retiredAt = null`, `retiredFrom = null`, `retiredFromSectorId = null` (ADR-0067),
+  `rowId = input.rowId`,
   `logicalOrder = nextLogicalOrder(rowId)`. Idempotente su un già-attivo (no-op).
 - **`GET :id/retired`** (route statica, dichiarata **prima** delle rotte parametriche `:id/...`
   per non farla catturare come un `id` letterale) — lista `RetiredUmbrellaDTO`, ordinata per

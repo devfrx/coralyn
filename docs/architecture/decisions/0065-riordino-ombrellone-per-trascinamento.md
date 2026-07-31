@@ -21,8 +21,9 @@
   trascinamento è ancora solo `lg+` e la maniglia non si rende sotto quella soglia — ma **quattro
   righe che davano il caso tablet/telefono per scoperto non lo sono più**, e portano la nota accanto:
   §8, §10, §Negative e §Alternatives.
-- ⚠️ **Aggiornamento 2026-07-31**: delle voci elencate sopra ne restano aperte **due**,
-  [D-070](../deferred.md#d-070) e [D-075](../deferred.md#d-075). [D-072](../deferred.md#d-072) è
+- ⚠️ **Aggiornamento 2026-07-31**: delle voci elencate sopra ne resta aperta **una**,
+  [D-070](../deferred.md#d-070). ([D-075](../deferred.md#d-075) è pure aperta ma **non è fra queste**:
+  è preesistente e questo ADR non l'ha aperta.) [D-072](../deferred.md#d-072) è
   chiusa da [ADR-0067](0067-provenienza-ritirato-per-riferimento.md), che **non tocca la §6 di
   questo ADR**: la disclosure sul prezzo resta quella decisa qui, cambia solo **come si risolve il
   settore di provenienza** (per riferimento, non per nome). [D-073](../deferred.md#d-073) e
