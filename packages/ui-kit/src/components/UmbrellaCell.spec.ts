@@ -35,6 +35,27 @@ describe('UmbrellaCell (Tessera)', () => {
     expect(btn.attributes('aria-pressed')).toBe('true');
     expect(btn.classes()).toContain('outline');
   });
+  // D-077. Il fuoco da tastiera e la selezione devono restare distinguibili quando coesistono, e in
+  // Tailwind non è una questione di gusto ma di specificità: le utility di `focus-visible:` sono
+  // classe + pseudo-classe (0-2-0) e battono sempre quelle del ramo `selected`, che sono classi sole
+  // (0-1-0). `focus-visible:outline-none` azzera per giunta la variabile `--tw-outline-style` da cui
+  // dipende `.outline-2`: doppia uccisione, e la selezione spariva del tutto sotto fuoco.
+  //
+  // Il rimedio non tocca l'anello di fuoco — è box-shadow `--ring-focus` in tutto il kit e il design
+  // system lo impone — ma separa le due evidenze: il fuoco resta sul box-shadow, la selezione
+  // sull'outline, e l'`outline-none` si applica SOLO quando non c'è una selezione da spegnere.
+  it('la selezione non porta l’azzeramento dell’outline: sotto fuoco resta visibile (D-077)', () => {
+    const selezionata = mount(UmbrellaCell, { props: { ...base, selected: true } }).get('button').classes();
+    expect(selezionata).toContain('outline-2');
+    expect(selezionata).not.toContain('focus-visible:outline-none');
+  });
+  it('senza selezione l’outline nativo resta soppresso, come vuole il design system', () => {
+    // Il verso simmetrico: togliere `outline-none` dappertutto farebbe comparire l'outline del
+    // browser SOPRA l'anello coral su ogni cella focalizzata, che è la regressione opposta.
+    const normale = mount(UmbrellaCell, { props: { ...base } }).get('button').classes();
+    expect(normale).toContain('focus-visible:outline-none');
+    expect(normale).toContain('focus-visible:[box-shadow:var(--ring-focus)]');
+  });
   it('N=1: una sola colonna piena', () => {
     const w = mount(UmbrellaCell, { props: { ...base, slotStates: ['free'] } });
     expect(w.vm.uniform).toBe(true);

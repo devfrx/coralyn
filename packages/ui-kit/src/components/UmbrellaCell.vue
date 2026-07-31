@@ -47,11 +47,20 @@ defineExpose({ uniform, fills, rest });
   <span class="relative inline-flex transition-[opacity,filter] duration-200" :class="dimmed ? 'opacity-25 saturate-50' : ''">
     <button
       type="button" :aria-label="ariaLabel" :aria-pressed="selected"
-      class="relative grid size-11 place-items-center overflow-hidden rounded-[12px] text-xs font-semibold [font-variant-numeric:tabular-nums] transition-transform hover:-translate-y-0.5 active:translate-y-0 active:scale-[.97] focus-visible:outline-none focus-visible:[box-shadow:var(--ring-focus)] lg:size-10"
+      class="relative grid size-11 place-items-center overflow-hidden rounded-[12px] text-xs font-semibold [font-variant-numeric:tabular-nums] transition-transform hover:-translate-y-0.5 active:translate-y-0 active:scale-[.97] focus-visible:[box-shadow:var(--ring-focus)] lg:size-10"
       :class="[
+        // D-077. `focus-visible:outline-none` sta nel ramo NON selezionato e non nella classe statica:
+        // Tailwind emette le utility di `focus-visible:` come classe + pseudo-classe (0-2-0), che
+        // battono sempre le classi sole del ramo `selected` (0-1-0), e `outline-none` azzera per
+        // giunta la variabile `--tw-outline-style` da cui dipende `outline-2` — doppia uccisione, con
+        // la selezione che spariva del tutto sotto fuoco da tastiera.
+        // Le due evidenze ora non si contendono nulla: il fuoco tiene il `box-shadow` (`--ring-focus`,
+        // convenzione di tutto il kit, imposta dal design system §Focus visibile), la selezione tiene
+        // l'`outline`. Una cella selezionata e focalizzata mostra entrambi; l'outline nativo resta
+        // soppresso dove non c'è una selezione da spegnere.
         selected
           ? 'outline outline-2 outline-offset-2 outline-[var(--color-brand)] [box-shadow:0_0_0_4px_var(--color-brand-tint)]'
-          : '[box-shadow:var(--shadow-sun)]',
+          : 'focus-visible:outline-none [box-shadow:var(--shadow-sun)]',
         found ? '[animation:cell-found_1.15s_var(--ease-standard)_2]' : '',
       ]"
       :style="{ color }"

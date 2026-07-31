@@ -8,13 +8,16 @@
   disclosure sul prezzo, che di quel campo si serviva), [ADR-0032](0032-pricing-engine-precedenza.md)
   (la precedenza delle tariffe, che è ciò che la disclosure dichiara)
 - **Chiude:** [D-072](../deferred.md#d-072)
-- **Registra, senza causarle:** **cinque** voci **preesistenti**, tutte verificate tali su `main` a
+- **Chiude anche** [D-077](../deferred.md#d-077), **preesistente e aperta dalla review di questa
+  slice**: il gemello di [D-074](../deferred.md#d-074) nello strato Tailwind, dove una cella
+  selezionata e focalizzata da tastiera era resa **identica** a una non selezionata. Chiusa qui su
+  richiesta esplicita, perché lasciare aperto il gemello di ciò che la slice corregge è esattamente
+  l'errore che la review d'insieme esiste per impedire.
+- **Registra, senza causarle:** **quattro** voci **preesistenti**, tutte verificate tali su `main` a
   `0fd3b0f` e tutte trovate dalla review avversariale di questa slice —
   [D-080](../deferred.md#d-080) (il **secondo ingrediente** di questa stessa disclosure invecchia
   come invecchiava il primo: nessuna mutazione del listino scade la struttura, quindi
   `hasDedicatedRates` può essere già falsa quando il gate la legge),
-  [D-077](../deferred.md#d-077) (il **gemello** di D-074, nello strato Tailwind: una cella selezionata
-  e focalizzata da tastiera è resa identica a una non selezionata),
   [D-078](../deferred.md#d-078) (i controlli del ripristino non si riconciliano con l'albero) e
   [D-079](../deferred.md#d-079) (la cessione lascia fresca la Scheda del subentrante); più
   [D-076](../deferred.md#d-076) — `retire` e `restore` scrivono con un
