@@ -18,12 +18,21 @@ import { useSessionStore } from '@/stores/session';
 // a schermo — e la data si cambia dalla topbar, quindi in cache ce n'è più d'una. In TanStack Query
 // l'invalidazione combacia per prefisso, e sotto `'map'` la mappa del giorno è l'unica query
 // registrata: il prefisso non scade nient'altro.
+// ⚠️ E la Scheda cliente (D-073): `positionLabel` vi rende «Settore · Ombrellone» leggendo
+// `customerBookings`, un dato che la Scheda MOSTRA senza possederlo. Nessuna mutazione di struttura
+// la scadeva, quindi dopo aver spostato o rinominato qualcosa nel Cantiere la Scheda aperta subito
+// dopo dava la posizione vecchia per attuale, per tutta la finestra di `staleTime`. Il prefisso è
+// più largo del bersaglio per come è fatta la chiave (l'id del cliente precede il segmento
+// 'bookings'): porta con sé anagrafica e ceduti, che nel Cantiere non sono montati — quindi li
+// marca stantii senza una richiesta in più. `EstablishmentStructureView.spec.ts` ne fissa il bordo
+// esatto, lista clienti inclusa fra ciò che NON deve scadere.
 function structureKeys(establishmentId: string) {
   return [
     queryKeys.establishmentStructure(establishmentId),
     queryKeys.establishmentOverview(establishmentId),
     queryKeys.setupStatus(establishmentId),
     queryKeys.dayMaps(establishmentId),
+    queryKeys.customerScope(establishmentId),
   ];
 }
 

@@ -3,6 +3,12 @@ export const queryKeys = {
   customer: (tenantId: string, id: string) => ['customer', tenantId, id] as const,
   customerBookings: (tenantId: string, id: string) => ['customer', tenantId, id, 'bookings'] as const,
   cededSubscriptions: (tenantId: string, id: string) => ['customer', tenantId, id, 'ceded'] as const,
+  /** Prefisso di `customer`, `customerBookings` e `cededSubscriptions`: scade la Scheda cliente di
+   *  OGNI cliente in cache. **Non** tocca `customers` (la lista), che ha un primo segmento diverso,
+   *  né `customerAccess`. Serve alle mutazioni che cambiano un dato che la Scheda RENDE senza
+   *  possederlo — la posizione dell'ombrellone (D-073). L'id del cliente sta prima del segmento
+   *  'bookings', quindi un prefisso che colga le sole prenotazioni non esiste. */
+  customerScope: (tenantId: string) => ['customer', tenantId] as const,
   customerAccess: (tenantId: string, bookingId: string) => ['customer-access', tenantId, bookingId] as const,
   dayMap: (tenantId: string, date: string) => ['map', tenantId, date] as const,
   /** Prefisso di `dayMap`: invalida la mappa di OGNI data in cache, non solo quella attiva. */

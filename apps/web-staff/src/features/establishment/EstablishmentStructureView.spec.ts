@@ -992,6 +992,48 @@ describe('EstablishmentStructureView — shell Cantiere', () => {
     await settle();
   });
 
+  // D-073. La Scheda cliente rende la posizione dell'ombrellone (`positionLabel`, alimentato da
+  // `useCustomerBookings`) e nessuna mutazione di struttura la scadeva: per la finestra di
+  // `staleTime` mostrava la posizione VECCHIA come se fosse attuale.
+  //
+  // ⚠️ Il prefisso `['customer', tenantId]` è deliberatamente più largo del bersaglio, e questo test
+  // ne misura il bordo: la chiave delle prenotazioni porta l'id del cliente PRIMA del segmento
+  // 'bookings', quindi non esiste un prefisso che colga solo quelle. Ciò che porta con sé è
+  // l'anagrafica e i ceduti dei clienti in cache — due voci che nel Cantiere non sono montate,
+  // quindi l'invalidazione le marca stantie senza una richiesta in più. Ciò che NON porta con sé è
+  // la lista clienti, che sta sotto `['customers', …]`: primo segmento diverso, nessun match.
+  it('una mutazione di struttura scade la Scheda cliente, e non la lista né altri lidi (D-073)', async () => {
+    useFixture();
+    server.use(http.post('/api/establishment/umbrellas/:id/move', () =>
+      HttpResponse.json({ id: 'u-1', label: 'A1', umbrellaTypeId: null })));
+    const invalidate = vi.spyOn(QueryClient.prototype, 'invalidateQueries');
+    const w = mountApp(EstablishmentStructureView, { attachTo: document.body });
+    asAdmin();
+    await settle();
+    layoutCells(w);
+
+    await w.findAll('[data-testid="drag-handle"]')[0].trigger('dragstart');
+    await w.find('.st-cells').trigger('drop', { clientX: 300, clientY: 20 });
+    await settle();
+
+    const keys = invalidate.mock.calls.map((c) => (c[0] as { queryKey: readonly unknown[] }).queryKey);
+    invalidate.mockRestore();
+
+    const cache = new QueryClient();
+    cache.setQueryData(queryKeys.customerBookings('e-1', 'c-1'), []);       // il bersaglio
+    cache.setQueryData(queryKeys.customer('e-1', 'c-1'), {});               // collaterale accettato
+    cache.setQueryData(queryKeys.cededSubscriptions('e-1', 'c-1'), []);     // collaterale accettato
+    cache.setQueryData(queryKeys.customers('e-1'), []);                     // la LISTA: fuori
+    cache.setQueryData(queryKeys.customerAccess('e-1', 'b-1'), {});         // dominio diverso: fuori
+    cache.setQueryData(queryKeys.customerBookings('e-2', 'c-9'), []);       // altro lido: fuori
+    const scadute = new Set(keys.flatMap((queryKey) => cache.getQueryCache().findAll({ queryKey }).map((q) => q.queryHash)));
+    expect(scadute).toEqual(new Set([
+      JSON.stringify(queryKeys.customerBookings('e-1', 'c-1')),
+      JSON.stringify(queryKeys.customer('e-1', 'c-1')),
+      JSON.stringify(queryKeys.cededSubscriptions('e-1', 'c-1')),
+    ]));
+  });
+
   // L'ordine dell'editor È l'ordine della Mappa operativa: `map.service.ts:22,25,26` ordina con gli
   // stessi campi. Senza questa invalidazione chi ha la Mappa aperta al banco resta con la
   // disposizione vecchia — e nessuna mutazione di struttura la invalidava, non solo il move.
