@@ -147,3 +147,4 @@ componenti) è la spec d'implementazione di `ui-kit` ([ADR-0017](decisions/0017-
 - [ADR-0064](decisions/0064-permessi-vicini-gate-per-query.md) — La nav dichiara il permesso primario, ogni query dichiara il proprio, e l'assenza da permesso si dichiara
 - [ADR-0065](decisions/0065-riordino-ombrellone-per-trascinamento.md) — L'ombrellone si riordina trascinandolo, il confine di settore si dichiara invece di bloccarlo, e i tab si aprono a molla
 - [ADR-0066](decisions/0066-sposta-in-pannello-ombrellone.md) — Lo spostamento dell'ombrellone ha un secondo canale che non dipende dal puntatore, e si rende a ogni larghezza
+- [ADR-0067](decisions/0067-provenienza-ritirato-per-riferimento.md) — La provenienza di un ombrellone ritirato è un riferimento, non il nome scritto nello snapshot

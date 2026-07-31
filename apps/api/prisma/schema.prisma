@@ -218,9 +218,12 @@ model Sector {
   name            String
   sortOrder       Int
   kind            SectorKind    @default(grid)
-  establishment   Establishment @relation(fields: [establishmentId], references: [id])
-  rows            Row[]
-  rates           Rate[]
+  establishment    Establishment @relation(fields: [establishmentId], references: [id])
+  rows             Row[]
+  rates            Rate[]
+  // Ritirati che dichiarano questo settore come provenienza (D-072). Lato inverso obbligatorio
+  // per Prisma: nessuna query parte da qui, la lettura e' sempre dall'ombrellone.
+  retiredUmbrellas Umbrella[]
 
   @@unique([establishmentId, name])
   @@index([establishmentId])
@@ -249,7 +252,12 @@ model Umbrella {
   label                String // real physical number, unique among ACTIVE per Establishment (ADR-0016, D-055)
   logicalOrder         Int
   retiredAt            DateTime? // null = attivo; valorizzato = ritirato (soft-delete, D-055/ADR-0053)
-  retiredFrom          String? // snapshot «Settore · Fila» al ritiro (storico, non riferimento vivo)
+  retiredFrom          String? // snapshot «Settore · Fila» al ritiro: ETICHETTA storica, non una chiave
+  // Provenienza come RIFERIMENTO vivo (D-072/ADR-0067): il nome dentro `retiredFrom` invecchia a
+  // ogni rename del settore, e la disclosure sul ripristino ci ricadeva sopra. `SetNull` perche' un
+  // settore cancellato non e' un'origine confrontabile: meglio nessuna origine che una sbagliata.
+  retiredFromSectorId  String?       @db.Uuid
+  retiredFromSector    Sector?       @relation(fields: [retiredFromSectorId], references: [id], onDelete: SetNull)
   presentationPosition Json?         @db.JsonB // visual layer (D-005): modeled, unused in this slice
   establishment        Establishment @relation(fields: [establishmentId], references: [id])
   row                  Row?          @relation(fields: [rowId], references: [id], onDelete: Restrict)
@@ -262,6 +270,7 @@ model Umbrella {
   // (il DSL Prisma non modella indici parziali). Non reintrodurre @@unique qui.
   @@index([establishmentId])
   @@index([rowId])
+  @@index([retiredFromSectorId])
 }
 
 model Booking {

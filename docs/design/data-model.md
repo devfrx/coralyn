@@ -152,6 +152,7 @@ erDiagram
     SECTOR ||--o{ ROW : "contiene"
     ROW |o--o{ UMBRELLA : "contiene (nullable = ritirato, D-055)"
     UMBRELLA_TYPE |o--o{ UMBRELLA : "classifica"
+    SECTOR |o--o{ UMBRELLA : "provenienza di un ritirato (nullable, SET NULL, D-072)"
     SEASON ||--o{ PRICING : "contiene"
     PRICING ||--o{ RATE : "contiene"
     PACKAGE ||--o{ RATE : "qualifica"
@@ -219,7 +220,8 @@ erDiagram
         string label "numero fisico reale; unico tra gli ATTIVI per Establishment (D-055/ADR-0053)"
         int logicalOrder
         datetime retiredAt "nullable; valorizzato = ritirato, soft-delete (D-055/ADR-0053)"
-        string retiredFrom "nullable; snapshot storico «Settore · Fila» al ritiro (D-055/ADR-0053)"
+        string retiredFrom "nullable; ETICHETTA storica «Settore · Fila» al ritiro (D-055/ADR-0053)"
+        uuid retiredFromSectorId FK "nullable; settore d'origine come riferimento vivo (D-072/ADR-0067)"
         json presentationPosition "layer visivo (D-005)"
     }
     UMBRELLA_TYPE {
@@ -577,7 +579,10 @@ erDiagram
   [ADR-0052](../architecture/decisions/0052-editor-struttura-cantiere.md)); `retiredAt`
   (nullable, non-null = ritirato) lo dismette dalla spiaggia operativa **sganciandolo dalla
   fila** (`rowId → null`) preservando lo storico intatto, con `retiredFrom` a registrarne lo
-  snapshot testuale di posizione. Reversibile via `Ripristina` (sceglie la fila di
+  snapshot testuale di posizione e `retiredFromSectorId` a tenerne il **riferimento vivo** — il
+  primo è l'etichetta da mostrare, il secondo è ciò su cui si confronta
+  ([D-072](../architecture/deferred.md#d-072)/[ADR-0067](../architecture/decisions/0067-provenienza-ritirato-per-riferimento.md)).
+  Reversibile via `Ripristina` (sceglie la fila di
   destinazione, ricalcola `logicalOrder`). Guardia di ritiro: prenotazioni **confermate** con
   `endDate` futura bloccano (409); scadute/cancellate no
   ([D-055](../architecture/deferred.md)/[ADR-0053](../architecture/decisions/0053-ritiro-ombrellone-soft-delete.md)).

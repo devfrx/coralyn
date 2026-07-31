@@ -782,6 +782,10 @@ export interface RetiredUmbrellaDTO {
     umbrellaTypeId: string | null;
     retiredAt: string;
     retiredFrom: string | null;
+    /** Settore di provenienza come RIFERIMENTO vivo, immune ai rename (D-072/ADR-0067).
+     *  `null` sui ritirati d'archivio che il backfill non ha saputo risolvere, e sui settori
+     *  cancellati dopo il ritiro (`ON DELETE SET NULL`): in quel caso l'origine non si confronta. */
+    retiredFromSectorId: string | null;
 }
 export interface RestoreUmbrellaInput {
     rowId: string;

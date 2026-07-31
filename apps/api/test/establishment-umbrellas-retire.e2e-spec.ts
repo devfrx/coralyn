@@ -167,6 +167,25 @@ describe('Establishment umbrellas retire (e2e)', () => {
     expect(retired.body.some((u: { id: string }) => u.id === rt2)).toBe(false);
   });
 
+  // D-072. La proprietà vera si vede solo end-to-end: l'etichetta storica resta congelata e il
+  // riferimento sopravvive al rename. Con un settore tutto suo, creato qui dentro, per non spostare
+  // il terreno ai casi sopra — e in coda alla suite, perché aggiunge una riga all'archivio.
+  it('la provenienza di un ritirato sopravvive al RENAME del settore d’origine', async () => {
+    const { umbrellaId, origineId } = await prisma.forTenant(s1, async (tx) => {
+      const sector = await tx.sector.create({ data: { establishmentId: s1, name: 'Origine', sortOrder: 9 } });
+      const row = await tx.row.create({ data: { establishmentId: s1, sectorId: sector.id, label: 'F9', sortOrder: 1 } });
+      const u = await tx.umbrella.create({ data: { establishmentId: s1, rowId: row.id, label: 'RT-9', logicalOrder: 9 } });
+      return { umbrellaId: u.id, origineId: sector.id };
+    });
+    await request(app.getHttpServer()).post(`/api/establishment/umbrellas/${umbrellaId}/retire`).set(...bearer(adminT)).expect(201);
+    await prisma.forTenant(s1, (tx) => tx.sector.update({ where: { id: origineId }, data: { name: 'Ribattezzato' } }));
+
+    const res = await request(app.getHttpServer()).get('/api/establishment/umbrellas/retired').set(...bearer(adminT)).expect(200);
+    const riga = res.body.find((u: { id: string }) => u.id === umbrellaId);
+    expect(riga.retiredFrom).toBe('Origine · F9');      // l'etichetta storica NON insegue il rename
+    expect(riga.retiredFromSectorId).toBe(origineId);   // il riferimento resta valido: è il punto
+  });
+
   it('creare una prenotazione su un ritirato → 422', async () => {
     // RT-1 è tuttora ritirato (mai ripristinato in questa suite).
     await request(app.getHttpServer()).post('/api/bookings').set(...bearer(adminT))

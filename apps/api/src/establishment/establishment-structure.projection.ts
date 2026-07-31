@@ -9,10 +9,10 @@ export function toStructureUmbrella(u: RawUmbrella): StructureUmbrellaDTO {
   return { id: u.id, label: u.label, umbrellaTypeId: u.umbrellaTypeId };
 }
 
-type RawRetired = { id: string; label: string; umbrellaTypeId: string | null; retiredAt: Date; retiredFrom: string | null };
+type RawRetired = { id: string; label: string; umbrellaTypeId: string | null; retiredAt: Date; retiredFrom: string | null; retiredFromSectorId: string | null };
 /** Ombrellone ritirato (soft-delete, D-055). */
 export function toRetiredUmbrella(u: RawRetired): RetiredUmbrellaDTO {
-  return { id: u.id, label: u.label, umbrellaTypeId: u.umbrellaTypeId, retiredAt: u.retiredAt.toISOString(), retiredFrom: u.retiredFrom };
+  return { id: u.id, label: u.label, umbrellaTypeId: u.umbrellaTypeId, retiredAt: u.retiredAt.toISOString(), retiredFrom: u.retiredFrom, retiredFromSectorId: u.retiredFromSectorId };
 }
 
 export function toStructureRow(r: RawRow): StructureRowDTO {

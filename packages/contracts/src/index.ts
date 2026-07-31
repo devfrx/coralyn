@@ -822,7 +822,11 @@ export interface RetiredUmbrellaDTO {
   label: string;
   umbrellaTypeId: string | null;
   retiredAt: string;            // ISO
-  retiredFrom: string | null;   // snapshot «Settore · Fila» al ritiro
+  retiredFrom: string | null;   // snapshot «Settore · Fila» al ritiro: ETICHETTA storica, non una chiave
+  /** Settore di provenienza come RIFERIMENTO vivo, immune ai rename (D-072/ADR-0067).
+   *  `null` sui ritirati d'archivio che il backfill non ha saputo risolvere, e sui settori
+   *  cancellati dopo il ritiro (`ON DELETE SET NULL`): in quel caso l'origine non si confronta. */
+  retiredFromSectorId: string | null;
 }
 export interface RestoreUmbrellaInput { rowId: string }
 

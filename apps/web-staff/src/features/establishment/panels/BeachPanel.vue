@@ -46,12 +46,11 @@ const restoreRowByUmbrella = ref<Record<string, string>>({});
 const allRows = computed(() =>
   props.data.sectors.flatMap((s) => s.rows.map((r) => ({ id: r.id, label: r.label, sectorName: s.name }))));
 /**
- * Il settore di provenienza sta dentro `retiredFrom`, lo snapshot «Settore · Fila» scritto al
- * ritiro. È testo, non un riferimento vivo: se il settore è stato rinominato dopo il ritiro non
- * combacia più con nessuno esistente, `origin` sotto non si risolve (resta `null`) e il gate
- * ricade sul solo `target.hasDedicatedRates`. Il nome stantio può quindi SOPPRIMERE l'avviso sul
- * ramo dell'origine: un ripristino che fa perdere una tariffa dedicata dell'origine passa senza
- * dirlo. Non è il verso sicuro — si avvisa di meno, non di più.
+ * Nome del settore congelato dentro `retiredFrom`, lo snapshot testuale «Settore · Fila» scritto al
+ * ritiro. È un'ETICHETTA storica, e da D-072/ADR-0067 serve a una cosa sola: dare un nome
+ * all'origine nel dialogo quando il riferimento non risolve. Il confronto sulle tariffe passa
+ * SEMPRE da `retiredFromSectorId`, mai da questo testo — un rename lo rendeva irrisolvibile e
+ * l'avviso taceva proprio quando il dato era invecchiato.
  */
 function sectorOfSnapshot(retiredFrom: string | null): string | null {
   if (!retiredFrom) return null;
@@ -74,9 +73,18 @@ function onRestore(id: string) {
   if (!rowId) return;
   const umbrella = retired.data.value?.find((u) => u.id === id) ?? null;
   const target = props.data.sectors.find((s) => s.rows.some((r) => r.id === rowId)) ?? null;
-  const from = sectorOfSnapshot(umbrella?.retiredFrom ?? null);
-  const origin = from ? props.data.sectors.find((s) => s.name === from) ?? null : null;
-  if (umbrella && target && from && from !== target.name && (target.hasDedicatedRates || origin?.hasDedicatedRates)) {
+  // Il settore d'origine è un RIFERIMENTO (D-072/ADR-0067), non il nome letto nello snapshot: un
+  // rename non lo tocca. Se non risolve — archivio che il backfill della migration non ha saputo
+  // recuperare, oppure settore cancellato dopo il ritiro (`ON DELETE SET NULL`) — l'origine NON
+  // entra nel confronto. Ricadere sul nome non recupererebbe nulla che il backfill non abbia già
+  // preso, e potrebbe agganciare un settore OMONIMO creato dopo.
+  const originId = umbrella?.retiredFromSectorId ?? null;
+  const origin = originId ? props.data.sectors.find((s) => s.id === originId) ?? null : null;
+  // Nome da MOSTRARE: quello attuale del settore quando l'origine risolve (dire «Centro» di un
+  // settore che oggi si chiama «Ponente» manderebbe a cercare una cosa che non esiste più),
+  // altrimenti l'etichetta congelata nello snapshot, che è tutto ciò che resta.
+  const from = origin?.name ?? sectorOfSnapshot(umbrella?.retiredFrom ?? null);
+  if (umbrella && target && from && origin?.id !== target.id && (target.hasDedicatedRates || origin?.hasDedicatedRates)) {
     pendingRestore.value = { id, label: umbrella.label, rowId, from, to: target.name, toHasDedicatedRates: target.hasDedicatedRates };
     return;
   }

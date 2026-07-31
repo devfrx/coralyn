@@ -239,21 +239,25 @@ export class UmbrellasService {
     const retired = await this.prisma.forTenant(tenantId, async (tx) => {
       const existing = await tx.umbrella.findUnique({
         where: { id },
-        include: { row: { select: { label: true, sector: { select: { name: true } } } } },
+        include: { row: { select: { label: true, sectorId: true, sector: { select: { name: true } } } } },
       });
       if (!existing) return null;
       if (existing.retiredAt != null) {
         // idempotente, come l'archive dei pacchetti: retiredAt è già valorizzato, narrow esplicito per il DTO.
-        return { id: existing.id, label: existing.label, umbrellaTypeId: existing.umbrellaTypeId, retiredAt: existing.retiredAt, retiredFrom: existing.retiredFrom };
+        return { id: existing.id, label: existing.label, umbrellaTypeId: existing.umbrellaTypeId, retiredAt: existing.retiredAt, retiredFrom: existing.retiredFrom, retiredFromSectorId: existing.retiredFromSectorId };
       }
       const active = await tx.booking.count({
         where: { umbrellaId: id, status: 'confirmed', endDate: { gte: toDbDate(todayInRome()) } },
       });
       if (active > 0) throw new ConflictException('Ombrellone con prenotazioni attive o future: disdici prima di ritirare.');
+      // `retiredFrom` resta l'ETICHETTA storica da mostrare («com'era chiamato allora»);
+      // `retiredFromSectorId` e' il RIFERIMENTO su cui si confronta (D-072/ADR-0067): il nome
+      // invecchia a ogni rename, l'id no.
       const retiredFrom = existing.row ? `${existing.row.sector.name} · ${existing.row.label}` : null;
-      const updated = await tx.umbrella.update({ where: { id }, data: { retiredAt: new Date(), rowId: null, retiredFrom } });
+      const retiredFromSectorId = existing.row?.sectorId ?? null;
+      const updated = await tx.umbrella.update({ where: { id }, data: { retiredAt: new Date(), rowId: null, retiredFrom, retiredFromSectorId } });
       // Appena valorizzato in questa stessa transazione: mai null a runtime.
-      return { id: updated.id, label: updated.label, umbrellaTypeId: updated.umbrellaTypeId, retiredAt: updated.retiredAt!, retiredFrom: updated.retiredFrom };
+      return { id: updated.id, label: updated.label, umbrellaTypeId: updated.umbrellaTypeId, retiredAt: updated.retiredAt!, retiredFrom: updated.retiredFrom, retiredFromSectorId: updated.retiredFromSectorId };
     });
     if (!retired) throw new NotFoundException('Ombrellone non trovato');
     return toRetiredUmbrella(retired);
@@ -274,7 +278,7 @@ export class UmbrellasService {
       const logicalOrder = await this.nextLogicalOrder(tx, input.rowId);
       return tx.umbrella.update({
         where: { id },
-        data: { retiredAt: null, retiredFrom: null, rowId: input.rowId, logicalOrder },
+        data: { retiredAt: null, retiredFrom: null, retiredFromSectorId: null, rowId: input.rowId, logicalOrder },
         select: UMBRELLA_SELECT,
       });
     });

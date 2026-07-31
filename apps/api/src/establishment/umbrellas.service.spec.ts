@@ -476,7 +476,7 @@ describe('UmbrellasService', () => {
   describe('retire/restore (D-055)', () => {
     it('retire: 409 se esistono prenotazioni confermate con endDate >= oggi', async () => {
       const { service, tx } = makeService();
-      tx.umbrella.findUnique.mockResolvedValue({ id: 'u-1', label: '12', retiredAt: null, row: { label: 'F1', sector: { name: 'Centro' } } });
+      tx.umbrella.findUnique.mockResolvedValue({ id: 'u-1', label: '12', retiredAt: null, row: { label: 'F1', sectorId: 's-1', sector: { name: 'Centro' } } });
       tx.booking.count.mockResolvedValue(1);
       await expect(service.retire('u-1')).rejects.toBeInstanceOf(ConflictException);
       expect(tx.umbrella.update).not.toHaveBeenCalled();
@@ -484,15 +484,30 @@ describe('UmbrellasService', () => {
 
     it('retire: sgancia dalla fila, timbra retiredAt e salva lo snapshot posizione', async () => {
       const { service, tx } = makeService();
-      tx.umbrella.findUnique.mockResolvedValue({ id: 'u-1', label: '12', retiredAt: null, row: { label: 'F1', sector: { name: 'Centro' } } });
+      tx.umbrella.findUnique.mockResolvedValue({ id: 'u-1', label: '12', retiredAt: null, row: { label: 'F1', sectorId: 's-1', sector: { name: 'Centro' } } });
       tx.booking.count.mockResolvedValue(0);
       tx.umbrella.update.mockResolvedValue({ id: 'u-1', label: '12', umbrellaTypeId: null, retiredAt: new Date('2026-07-22T10:00:00Z'), retiredFrom: 'Centro · F1' });
       const dto = await service.retire('u-1');
       expect(tx.umbrella.update).toHaveBeenCalledWith(expect.objectContaining({
         where: { id: 'u-1' },
-        data: expect.objectContaining({ rowId: null, retiredFrom: 'Centro · F1', retiredAt: expect.any(Date) }),
+        data: expect.objectContaining({ rowId: null, retiredFrom: 'Centro · F1', retiredFromSectorId: 's-1', retiredAt: expect.any(Date) }),
       }));
       expect(dto.retiredFrom).toBe('Centro · F1');
+    });
+
+    it('retire: senza fila non si inventa un settore d’origine (D-072)', async () => {
+      // `rowId` è null solo sui già-ritirati, ma la guardia sta nel dominio, non nel tipo: se la
+      // fila manca l'origine NON esiste, e scriverci dentro un id arbitrario sarebbe peggio del
+      // silenzio — il ripristino confronterebbe le tariffe di un settore che non c'entra.
+      const { service, tx } = makeService();
+      tx.umbrella.findUnique.mockResolvedValue({ id: 'u-1', label: '12', retiredAt: null, row: null });
+      tx.booking.count.mockResolvedValue(0);
+      tx.umbrella.update.mockResolvedValue({ id: 'u-1', label: '12', umbrellaTypeId: null, retiredAt: new Date('2026-07-22T10:00:00Z'), retiredFrom: null, retiredFromSectorId: null });
+      const dto = await service.retire('u-1');
+      expect(tx.umbrella.update).toHaveBeenCalledWith(expect.objectContaining({
+        data: expect.objectContaining({ retiredFrom: null, retiredFromSectorId: null }),
+      }));
+      expect(dto.retiredFromSectorId).toBeNull();
     });
 
     it('retire: idempotente se già ritirato (nessun update, nessun 409)', async () => {
@@ -521,18 +536,18 @@ describe('UmbrellasService', () => {
       tx.umbrella.update.mockResolvedValue({ id: 'u-1', label: '12', umbrellaTypeId: null, logicalOrder: 8 });
       await service.restore('u-1', { rowId: 'r-1' });
       expect(tx.umbrella.update).toHaveBeenCalledWith(expect.objectContaining({
-        data: { retiredAt: null, retiredFrom: null, rowId: 'r-1', logicalOrder: 8 },
+        data: { retiredAt: null, retiredFrom: null, retiredFromSectorId: null, rowId: 'r-1', logicalOrder: 8 },
       }));
     });
 
     it('listRetired: filtra retiredAt not-null, ordina per retiredAt desc', async () => {
       const { service, tx } = makeService();
-      tx.umbrella.findMany.mockResolvedValue([{ id: 'u-1', label: '12', umbrellaTypeId: null, retiredAt: new Date('2026-07-22T10:00:00Z'), retiredFrom: 'Centro · F1' }]);
+      tx.umbrella.findMany.mockResolvedValue([{ id: 'u-1', label: '12', umbrellaTypeId: null, retiredAt: new Date('2026-07-22T10:00:00Z'), retiredFrom: 'Centro · F1', retiredFromSectorId: 's-1' }]);
       const list = await service.listRetired();
       expect(tx.umbrella.findMany).toHaveBeenCalledWith(expect.objectContaining({
         where: { retiredAt: { not: null } }, orderBy: { retiredAt: 'desc' },
       }));
-      expect(list[0]).toEqual({ id: 'u-1', label: '12', umbrellaTypeId: null, retiredAt: '2026-07-22T10:00:00.000Z', retiredFrom: 'Centro · F1' });
+      expect(list[0]).toEqual({ id: 'u-1', label: '12', umbrellaTypeId: null, retiredAt: '2026-07-22T10:00:00.000Z', retiredFrom: 'Centro · F1', retiredFromSectorId: 's-1' });
     });
   });
 
