@@ -10,9 +10,15 @@ export interface IconCatalog {
 
 /** Body SVG del nome dato, seguendo gli alias. `null` se il catalogo non lo conosce. */
 export function resolveFromCatalog(catalog: IconCatalog, name: string): string | null {
-  if (name in catalog.icons) return catalog.icons[name];
-  const parent = catalog.aliases[name];
-  return parent !== undefined ? (catalog.icons[parent] ?? null) : null;
+  // Object.hasOwn, non `in` o l'accesso diretto: i due record sono oggetti letterali, e un nome
+  // uguale a un membro di Object.prototype (`toString`, `constructor`, ...) altrimenti
+  // risulterebbe "trovato", restituendo un riferimento a funzione al posto di `string | null`.
+  if (Object.hasOwn(catalog.icons, name)) return catalog.icons[name];
+  if (Object.hasOwn(catalog.aliases, name)) {
+    const parent = catalog.aliases[name];
+    return Object.hasOwn(catalog.icons, parent) ? catalog.icons[parent] : null;
+  }
+  return null;
 }
 
 /**

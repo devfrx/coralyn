@@ -46,4 +46,10 @@ describe('catalog', () => {
   it('la ricerca trova anche per alias', () => {
     expect(searchCatalog(CAT, 'palmtree', 10).names).toContain('palmtree');
   });
+
+  it('un catalogo vuoto non risolve un nome ereditato dalla catena dei prototipi', () => {
+    const empty: IconCatalog = { icons: {}, aliases: {} };
+    expect(resolveFromCatalog(empty, 'toString')).toBeNull();
+    expect(resolveFromCatalog(empty, 'constructor')).toBeNull();
+  });
 });
