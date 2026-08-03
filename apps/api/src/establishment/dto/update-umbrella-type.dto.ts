@@ -1,7 +1,6 @@
-import { IsIn, IsNotEmpty, IsOptional, IsString, MaxLength } from 'class-validator';
+import { IsNotEmpty, IsOptional, IsString, MaxLength } from 'class-validator';
 import type { UpdateUmbrellaTypeInput } from '@coralyn/contracts';
-
-const ICON_KEYS = ['umbrella', 'leaf', 'palmtree'] as const;
+import { IsIconKey } from '../../common/is-icon-key';
 
 export class UpdateUmbrellaTypeDto implements UpdateUmbrellaTypeInput {
   @IsOptional()
@@ -11,6 +10,6 @@ export class UpdateUmbrellaTypeDto implements UpdateUmbrellaTypeInput {
   name?: string;
 
   @IsOptional()
-  @IsIn(ICON_KEYS)
+  @IsIconKey()
   icon?: string;
 }

@@ -35,6 +35,9 @@ importers:
       '@coralyn/contracts':
         specifier: workspace:*
         version: link:../../packages/contracts
+      '@iconify-json/lucide':
+        specifier: ^1.2.114
+        version: 1.2.114
       '@nestjs/common':
         specifier: ^10.4.4
         version: 10.4.22(class-transformer@0.5.1)(class-validator@0.15.1)(reflect-metadata@0.2.2)(rxjs@7.8.2)
@@ -428,6 +431,9 @@ importers:
       '@coralyn/contracts':
         specifier: workspace:*
         version: link:../contracts
+      '@iconify-json/lucide':
+        specifier: ^1.2.114
+        version: 1.2.114
       '@internationalized/date':
         specifier: ^3.5.0
         version: 3.12.2
@@ -444,9 +450,6 @@ importers:
         specifier: ^7.0.3
         version: 7.0.3(@vue/runtime-core@3.5.39)(echarts@5.6.0)(vue@3.5.39(typescript@5.9.3))
     devDependencies:
-      '@iconify-json/lucide':
-        specifier: ^1.2.114
-        version: 1.2.114
       '@types/node':
         specifier: ^24.13.2
         version: 24.13.2
