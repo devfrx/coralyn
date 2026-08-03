@@ -10,9 +10,15 @@
 
 ## 0. In una riga
 
-**D-072, D-073, D-074 e D-077 sono chiuse, mergiate in `main` (`23b1df4`) e riviste con quattro
-passaggi di review avversariale.** Non c'è lavoro in sospeso. Il prossimo passo è **D-070**, l'unica
-voce lunga rimasta, che **non si inizia senza una decisione a tre presa con l'utente**.
+**D-072, D-073, D-074 e D-077 sono chiuse, mergiate e riviste con quattro passaggi di review
+avversariale.** Non c'è lavoro in sospeso, nessun branch aperto, CI verde.
+
+⚠️⚠️ **Il prossimo lavoro lo dice l'utente all'apertura della sessione: NON darlo per scontato.**
+Questo handoff descrive lo **stato** e il **metodo**, non un ordine di marcia. Se l'utente non indica
+altro, il default tracciato è **[D-070](../architecture/deferred.md#d-070)** (§6.1), l'unica voce
+lunga rimasta — e **non si inizia senza una decisione a tre presa con lui**. Ma è un default, non una
+consegna: leggi §6.2 e §6.5 prima di proporre, perché quattro voci nuove sono state aperte proprio da
+questa sessione e potrebbero essere ciò che l'utente ha in mente.
 
 ### 0.1 I primi cinque minuti
 
@@ -23,7 +29,9 @@ git fetch --all --prune && git status -sb && git log --oneline -8
 Il repo ha **più di un clone attivo**: `git log --all` copre solo i ref locali, quindi `fetch`
 **prima** di dichiarare che qualcosa non esiste.
 
-`main` = **`23b1df4`**, CI verde (run #34). Nessun lavoro in sospeso:
+⚠️ **`main` è il commit di QUESTO handoff**, quindi il numero qui sotto è già vecchio di uno: il
+codice della slice finisce a **`23b1df4`**, ed è su quello che la CI è verde (run #34). Fidati di
+`git log`, non di questa riga. Nessun lavoro in sospeso:
 `fix/coda-corta-d072-d073-d074` è stato mergiato in **fast-forward** (la storia di questo repo è
 **lineare**: nessun merge commit per le slice). Il branch **esiste ancora**, locale e remoto, ed è
 interamente contenuto in `main`: si può cancellare quando vuoi, non c'è niente sopra.
