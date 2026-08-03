@@ -32,6 +32,8 @@ export { default as ErrorState } from './components/ErrorState.vue';
 export { default as QueryBoundary } from './components/QueryBoundary.vue';
 export { default as Select } from './components/Select.vue';
 export { default as Option } from './components/Option.vue';
+export { default as IconPicker } from './components/IconPicker.vue';
+export { SUGGESTED_ICONS } from './icons/suggested';
 export { default as Calendar } from './components/Calendar.vue';
 export { default as ModalFooter } from './components/ModalFooter.vue';
 export { default as PageToolbar } from './components/PageToolbar.vue';
