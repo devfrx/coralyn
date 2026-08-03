@@ -128,14 +128,14 @@ anziché dietro un `import()` lazy è dell'utente, presa conoscendo **entrambe**
 | Metrica | Oggi | Col catalogo | Delta |
 |---|---|---|---|
 | Byte totali alla prima visita | 400,7 KB | 478,7 KB | **+19%** |
-| JS che blocca il primo render | 113,3 KB | 191,3 KB | **+69%** |
+| JS che blocca il primo render | 113,3 KB | **197,8 KB** | **+75%** |
 
 Le due metriche contano cose diverse e sono **entrambe vere**: la prima conta perché `web-staff` è
 una PWA il cui service worker **precacha tutti e 58 i chunk** (Workbox `globPatterns:
 ['**/*.{js,css,html,svg,png,woff2}']`), quindi i chunk per-rotta non sono byte risparmiati, sono byte
 scaricati comunque — e su questa metrica il catalogo eager costa solo +19%. La seconda conta perché
 `index.html` carica **solo** l'entry `index` più un `modulepreload` di `vue.runtime`: il catalogo,
-essendo eager, entra in quel percorso e costa **+69%** sul tempo al primo render. Se un domani questo
+essendo eager, entra in quel percorso e costa **+75%** sul tempo al primo render. Se un domani questo
 pesasse troppo, la via d'uscita non richiede riscrivere nulla: lo stesso entry separato si importa
 con `import()` invece che staticamente.
 
@@ -148,7 +148,7 @@ con `import()` invece che staticamente.
 | `web-customer` | 89,2 KB | **no** |
 
 Verificato con una ricerca **validata** (`umbrellaTypes\|typeIcon\|\.icon` su `.vue`/`.ts` di
-`apps/*/src`, esclusi spec e mock): 8 righe in `web-staff`, zero nelle altre due. Perimetro
+`apps/*/src`, esclusi spec e mock): **23 righe in 8 file** in `web-staff`, zero nelle altre due. Perimetro
 dichiarato: fuori da quei file, o per un nome costruito per concatenazione, la ricerca resta cieca.
 `registerIconCatalog`/`lucideCatalog` sono importati solo da `web-staff` (`main.ts` e
 `test/setup.ts`): le altre due app non pagano il peso del §6 perché non lo caricano.
@@ -212,7 +212,7 @@ di `deferred.md` tracciava, corretto senza un intervento dedicato.
 
 ### Negative / Trade-off
 
-- **+78,0 KB gzip su `web-staff`**: +19% sui byte totali alla prima visita, **+69%** sul JS che
+- **+78,0 KB gzip su `web-staff`**: +19% sui byte totali alla prima visita, **+75%** sul JS che
   blocca il primo render (§6). Decisione dell'utente, presa conoscendo entrambi i numeri.
 - **La ricerca è per sottostringa sul nome Lucide, in inglese**: cercare «palma» non trova
   `tree-palm`. Un dizionario italiano sarebbe un secondo elenco da tenere allineato a 1743 voci — la

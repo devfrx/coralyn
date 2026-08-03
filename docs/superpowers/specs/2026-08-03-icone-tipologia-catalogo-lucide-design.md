@@ -54,15 +54,21 @@ metriche diverse, e la revisione ha mostrato che riportarne una sola è fuorvian
 | Metrica | Oggi | Col catalogo | Delta |
 |---|---|---|---|
 | **Byte totali alla prima visita** | 400,7 KB | 478,7 KB | **+19%** |
-| **JS che blocca il primo render** | 113,3 KB | 191,3 KB | **+69%** |
+| **JS che blocca il primo render** | 113,3 KB | **197,8 KB** | **+75%** |
 
 La prima riga vale perché web-staff è una PWA il cui service worker **precacha tutti e 58 i chunk**
 (`globPatterns: ['**/*.{js,css,html,svg,png,woff2}']` in `vite.config.ts`): i 287 KB di chunk per
 rotta non sono byte risparmiati, sono byte scaricati comunque. La seconda vale perché `index.html`
-carica **solo** `index` più un `modulepreload` di `vue.runtime`: il catalogo, essendo eager, entra lì.
+carica **solo** i chunk eager: il catalogo, essendo eager, entra lì.
 
-**Il tempo al primo render peggiora del 69%, i byte totali del 19%.** La decisione 1 è stata presa
-conoscendo il solo +19%: va riconfermata sapendo anche l'altro numero.
+⚠️ **Misurato dopo l'implementazione, e più alto del previsto.** `index.html` precarica ora **tre**
+chunk e non due: `index` (148,0), `vue.runtime` (41,2) e un **`Teleport-*.js` da 8,7 KB gzip che nel
+baseline non esisteva** — è un effetto collaterale dell'`IconPicker`, che compone il `Popover` di
+reka-ui e ha fatto scattare lo split del codice condiviso. Il primo calcolo, fermo a due chunk,
+dava +69% e **sottostimava il costo**.
+
+**Il tempo al primo render peggiora del 75%, i byte totali del 19%.** La decisione 1 è stata presa
+conoscendo il solo +19%, poi **riconfermata dall'utente** sapendo anche il secondo numero.
 
 Contro le altre due app:
 
@@ -73,15 +79,16 @@ Contro le altre due app:
 | `web-customer` | 89,2 KB | **no** |
 
 L'ultima colonna è stata verificata con una ricerca **validata**: `umbrellaTypes\|typeIcon\|\.icon`
-sui `.vue`/`.ts` di `apps/*/src`, esclusi spec e mocks, trova 8 righe in `web-staff` (caso noto
-presente) e **zero** nelle altre due. ⚠️ **Perimetro:** fuori da quei file, o per un nome costruito
+sui `.vue`/`.ts` di `apps/*/src`, esclusi spec e mocks, trova **23 righe in 8 file** in `web-staff`
+(caso noto presente) e **zero** nelle altre due. ⚠️ La prima stesura diceva «8 righe»: era il
+troncamento di un `head -8` scambiato per il totale. La conclusione — zero nelle altre due — regge. ⚠️ **Perimetro:** fuori da quei file, o per un nome costruito
 per concatenazione, la ricerca resta cieca.
 
 ## 3. Decisioni prese con l'utente
 
 | # | Decisione | Perché |
 |---|---|---|
-| 1 | **Il catalogo sta nel bundle, non in un chunk lazy** | scelta dell'utente. ⚠️ Presa conoscendo il +19% sui byte totali, **non** il +69% sul render-blocking: vedi §2.1 |
+| 1 | **Il catalogo sta nel bundle, non in un chunk lazy** | scelta dell'utente, **riconfermata** sapendo entrambi i numeri: +19% sui byte totali e **+75%** sul render-blocking (§2.1) |
 | 2 | **Ma solo nel bundle di `web-staff`** | le altre due app non rendono icone di dominio |
 | 3 | **Perimetro: sottosistema del ui-kit con un solo consumatore oggi** | dare un'icona a Settore e Fila richiederebbe due colonne e due migration per un bisogno non espresso |
 | 4 | **Il picker suggerisce in cima, cerca su tutte** | Lucide contiene `bitcoin` e `syringe`: nessuna icona è preclusa, cambia solo cosa si vede per primo |
@@ -282,8 +289,9 @@ dichiarare conclusa a metà una voce è la classe di bugia documentale che quest
 
 ## 9. Rischi e limiti dichiarati
 
-- **Peso.** +78,0 KB gzip su `web-staff`: +19% sui byte totali, **+69% sul JS che blocca il primo
-  render** (§2.1). Se un domani pesasse troppo, la via d'uscita non richiede riscrivere nulla: lo
+- **Peso.** +78,0 KB gzip su `web-staff`: +19% sui byte totali, **+75% sul JS che blocca il primo
+  render** (§2.1) — il secondo numero misurato a lavoro finito, e più alto della prima stima perché
+  l'`IconPicker` ha fatto nascere un terzo chunk eager. Se un domani pesasse troppo, la via d'uscita non richiede riscrivere nulla: lo
   stesso entry separato si importa con `import()` invece che staticamente.
 - **Il gruppo suggerito è una scelta di gusto**, non una regola di dominio: un solo posto.
 - **La ricerca è per sottostringa sul nome Lucide**, che è in inglese: cercare «palma» non troverà
