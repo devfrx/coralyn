@@ -121,10 +121,12 @@ export interface IconCatalog {
 
 /** Body SVG del nome dato, seguendo gli alias. `null` se il catalogo non lo conosce. */
 export function resolveFromCatalog(catalog: IconCatalog, name: string): string | null {
-  const direct = catalog.icons[name];
-  if (direct) return direct;
+  // Esistenza della chiave, non verita' del valore: il tipo ammette la stringa vuota, e con un
+  // controllo di verita' un body vuoto cadrebbe sul ramo degli alias facendo restituire `null`
+  // per un nome che il catalogo invece CONOSCE — cioe' il contrario di cio' che il commento promette.
+  if (name in catalog.icons) return catalog.icons[name];
   const parent = catalog.aliases[name];
-  return parent ? (catalog.icons[parent] ?? null) : null;
+  return parent !== undefined ? (catalog.icons[parent] ?? null) : null;
 }
 
 /**
