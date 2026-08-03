@@ -5,6 +5,7 @@ import IconPicker from './IconPicker.vue';
 import Field from './Field.vue';
 import { registerIconCatalog } from '../icons/registered-catalog';
 import { lucideCatalog } from '../icons/lucide-catalog';
+import { searchCatalog } from '../icons/catalog';
 
 // ⚠️ Il pacchetto ui-kit NON ha `setupFiles`: ogni spec dichiara i propri stub. reka-ui misura
 // l'arrow del Popover con `new ResizeObserver`, che jsdom non implementa e che non e' guardato:
@@ -51,8 +52,15 @@ describe('IconPicker', () => {
   it('quando tronca lo DICE: un elenco troncato non e un elenco esaurito', async () => {
     const w = mount(IconPicker, { ...open, props: { ...open.props, limit: 5 } });
     await w.get('input[type="text"]').setValue('arrow');
-    expect(w.findAll('[data-testid="icon-option"]')).toHaveLength(5);
-    expect(w.get('[data-testid="icon-count"]').text()).toMatch(/\d+/);
+    // Numeri ricavati dal catalogo vero, non scritti a mano: cosi' il test non invecchia se Lucide
+    // cambia quante icone contengono "arrow". `.toMatch(/\d+/)` passerebbe anche invertendo
+    // `risultati.names.length` e `risultati.total` nel template, perche' sono cifre entrambe:
+    // qui si prova il CONTEGGIO vero, nell'ordine giusto (mostrate, poi totale).
+    const { names, total } = searchCatalog(lucideCatalog, 'arrow', 5);
+    expect(w.findAll('[data-testid="icon-option"]')).toHaveLength(names.length);
+    expect(w.get('[data-testid="icon-count"]').text()).toBe(
+      `Mostrate ${names.length} di ${total} — restringi la ricerca.`,
+    );
   });
 
   it('una ricerca senza esiti lo dice invece di mostrare il vuoto', async () => {

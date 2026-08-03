@@ -1,5 +1,5 @@
 import { describe, it, expect, afterEach } from 'vitest';
-import { enableAutoUnmount } from '@vue/test-utils';
+import { enableAutoUnmount, flushPromises } from '@vue/test-utils';
 import type { EstablishmentStructureDTO } from '@coralyn/contracts';
 import { mountApp } from '@/test/utils';
 import BeachPanel from './BeachPanel.vue';
@@ -17,6 +17,16 @@ describe('BeachPanel — l icona della tipologia si sceglie dal catalogo', () =>
     await w.get('[data-testid="type-new"]').trigger('click');
     expect(w.find('[data-testid="icon-picker-trigger"]').exists()).toBe(true);
     expect(w.find('[data-testid="type-icon"]').exists()).toBe(false); // la Select non c'e' piu'
+
+    // Le due asserzioni sopra passerebbero anche a catalogo NON registrato (verificato commentando
+    // `registerIconCatalog(lucideCatalog)` in test/setup.ts): guardano solo il trigger e l'assenza
+    // della vecchia Select, mai il contenuto della griglia. Solo aprire il popover e contare le
+    // opzioni dipende davvero dal catalogo — il popover e' in un portal su document.body, come nei
+    // test di IconPicker.spec.ts (ui-kit) e di BeachPanel.restore.spec.ts.
+    await w.get('[data-testid="icon-picker-trigger"]').trigger('click');
+    await flushPromises();
+    const opzioni = document.body.querySelectorAll('[data-testid="icon-option"]');
+    expect(opzioni.length).toBeGreaterThan(0);
   });
 
   it('riaprendo in modifica NON riporta a ombrellone un icona fuori dai tre nomi vecchi', async () => {
