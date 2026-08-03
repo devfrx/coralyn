@@ -189,7 +189,8 @@ export type UpdateCustomerInput = Partial<CreateCustomerInput>;
 /** State of a slot (umbrella, date, time slot). Derived from the backend. ADR-0013/0020. */
 export type SlotState = 'free' | 'season' | 'daily' | 'booked' | 'covered';
 
-/** Umbrella type (ADR-0016). `icon` = icon-registry key (additive, ADR-0020). */
+/** Umbrella type (ADR-0016). `icon` = Lucide icon-catalog key, validated server-side against the
+ * real (non-deprecated) icon list — not a closed registry anymore (additive, ADR-0020/ADR-0068). */
 export interface UmbrellaTypeDTO {
   id: string;
   name: string;
@@ -783,7 +784,8 @@ export interface EstablishmentStructureDTO {
   umbrellaTypes: UmbrellaTypeDTO[]; // ordinati per sortOrder ("Normale" = null, non in lista)
 }
 
-/** Input creazione tipologia (admin-only). icon = chiave icon-registry ui-kit. */
+/** Input creazione tipologia (admin-only). icon = chiave del catalogo icone Lucide, validata contro
+ * l'elenco vero non deprecato, non piu' un registry chiuso (ADR-0068). */
 export interface CreateUmbrellaTypeInput { name: string; icon: string; }
 export interface UpdateUmbrellaTypeInput { name?: string; icon?: string; }
 

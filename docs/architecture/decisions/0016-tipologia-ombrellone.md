@@ -4,6 +4,9 @@
 - **Data:** 2026-06-28
 - **Decisori:** Team di progetto
 - **ADR correlati:** [ADR-0005](0005-modello-mappa.md) (estende), [ADR-0014](0014-setup-mappa-strutturato.md) (raffina numerazione/setup), [ADR-0006](0006-dominio-prenotazioni-e-pricing.md) (pricing per posizione, invariato), [D-005](../deferred.md), [D-018](../deferred.md), [D-019](../deferred.md)
+- **Addendum emendato da:** [ADR-0068](0068-catalogo-icone-tipologia.md) (2026-08-03) — la frase
+  sul dominio di `icona` nell'Addendum sotto non è più esatta; la correzione è in coda
+  all'Addendum stesso.
 
 ## Context
 
@@ -119,3 +122,11 @@ tipo* sulla cella di mappa. È un attributo di **presentazione persistito per ti
 (configurato dal gestore), **additivo** e con fallback senza icona; non altera la decisione
 principale (Tipologia = classificazione ortogonale, non dimensione di prezzo). Riflesso nel
 [data-model](../../design/data-model.md).
+
+> ⚠️ **Emendamento (2026-08-03, [ADR-0068](0068-catalogo-icone-tipologia.md)):** «una chiave del
+> registry icone del `ui-kit`» non è più la descrizione esatta. Il registry chiuso (41 voci
+> statiche) resta, ma serve solo il chrome applicativo: `icona` è ora una chiave del **catalogo
+> Lucide** intero — 1743 icone non deprecate più 214 alias con padre superstite — esposto da
+> `@coralyn/ui-kit/icons/lucide` e validata server-side contro l'elenco vero
+> (`@IsIconKey`, ADR-0068 §8). La decisione presa qui non cambia: `icona` resta un attributo di
+> presentazione **opzionale**, **additivo**, senza migration (il campo era già `String?`).

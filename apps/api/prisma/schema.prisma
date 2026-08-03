@@ -190,7 +190,7 @@ model UmbrellaType {
   establishmentId String        @db.Uuid
   name            String
   sortOrder       Int
-  icon            String? // ui-kit icon-registry key (ADR-0020); null = no marker
+  icon            String? // Lucide icon-catalog key, validated by @IsIconKey (ADR-0020/ADR-0068); null = no marker
   establishment   Establishment @relation(fields: [establishmentId], references: [id])
   umbrellas       Umbrella[]
 

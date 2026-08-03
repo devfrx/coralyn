@@ -148,3 +148,4 @@ componenti) è la spec d'implementazione di `ui-kit` ([ADR-0017](decisions/0017-
 - [ADR-0065](decisions/0065-riordino-ombrellone-per-trascinamento.md) — L'ombrellone si riordina trascinandolo, il confine di settore si dichiara invece di bloccarlo, e i tab si aprono a molla
 - [ADR-0066](decisions/0066-sposta-in-pannello-ombrellone.md) — Lo spostamento dell'ombrellone ha un secondo canale che non dipende dal puntatore, e si rende a ogni larghezza
 - [ADR-0067](decisions/0067-provenienza-ritirato-per-riferimento.md) — La provenienza di un ombrellone ritirato è un riferimento, non il nome scritto nello snapshot
+- [ADR-0068](decisions/0068-catalogo-icone-tipologia.md) — L'icona della tipologia diventa il catalogo Lucide intero, non tre valori chiusi nel registry

@@ -593,8 +593,10 @@ erDiagram
   ([ADR-0006](../architecture/decisions/0006-dominio-prenotazioni-e-pricing.md));
   prezzo‑per‑tipo rimandato ([D-018](../architecture/deferred.md),
   [ADR-0016](../architecture/decisions/0016-tipologia-ombrellone.md)). Porta una `icon`
-  opzionale (chiave del registry icone del `ui-kit`) per il marker di tipo sulla mappa
-  ([ADR-0020](../architecture/decisions/0020-resa-mappa.md)).
+  opzionale — chiave del **catalogo icone Lucide** (1743 non deprecate + alias), non più del
+  registry chiuso del `ui-kit` ([ADR-0068](../architecture/decisions/0068-catalogo-icone-tipologia.md),
+  che emenda l'Addendum di [ADR-0016](../architecture/decisions/0016-tipologia-ombrellone.md)) —
+  per il marker di tipo sulla mappa ([ADR-0020](../architecture/decisions/0020-resa-mappa.md)).
 - **Ombrelloni speciali**: gli esemplari fuori griglia (es. palme) si modellano come un
   **Sector dedicato** ("Speciali") con Row; nell'MVP ogni `Umbrella` resta in una
   `Row` (standalone rimandato, [D-019](../architecture/deferred.md))
