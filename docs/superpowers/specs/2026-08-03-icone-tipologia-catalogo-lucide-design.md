@@ -107,7 +107,9 @@ nome**, due chiavi fanno ombra a icone vere:
 Senza rimedio, un operatore che sceglie `edit` dal picker vedrebbe la matita sulla Mappa: nessun
 errore, nessun fallback, solo l'icona sbagliata. Le due chiavi vanno quindi **rinominate al nome
 Lucide che già rendono** — `edit` → `pencil`, `building` → `building-2` — e il costo è misurato:
-`name="edit"` ha **3** occorrenze, `building` **zero**. Le altre tre chiavi non canoniche (`chart`,
+**10** occorrenze per `edit` e **zero** per `building`. ⚠️ Le dieci si trovano solo cercando **due
+forme**: `name="edit"` ne dà 3, e `icon="edit"` — la prop di `IconButton` — le altre 7. Cercare la
+sola prima forma ne manca sette. Le altre tre chiavi non canoniche (`chart`,
 `renew`, `logout`) **non esistono in Lucide**, quindi non fanno ombra e restano: rinominarle sarebbe
 invasività senza guadagno.
 
