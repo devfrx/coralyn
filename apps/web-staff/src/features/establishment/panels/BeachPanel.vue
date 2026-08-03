@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
-import { Button, IconButton, Icon, Field, Input, Select, Option, ConfirmDialog, pushToast } from '@coralyn/ui-kit';
+import { Button, IconButton, Icon, Field, Input, Select, Option, IconPicker, ConfirmDialog, pushToast } from '@coralyn/ui-kit';
 import type { EstablishmentStructureDTO, UmbrellaTypeDTO } from '@coralyn/contracts';
 import { useCreateUmbrellaType, useUpdateUmbrellaType, useDeleteUmbrellaType, useRetiredUmbrellas, useRestoreUmbrella } from '../useEstablishmentStructure';
 
@@ -18,9 +18,9 @@ const removeType = useDeleteUmbrellaType();
 
 const editing = ref<'new' | string | null>(null); // null = lista; 'new' | id = form inline
 const name = ref('');
-const icon = ref<'umbrella' | 'leaf' | 'palmtree'>('umbrella');
+const icon = ref<string>('umbrella');
 function openNew() { editing.value = 'new'; name.value = ''; icon.value = 'umbrella'; }
-function openEdit(t: UmbrellaTypeDTO) { editing.value = t.id; name.value = t.name; icon.value = (t.icon as typeof icon.value) ?? 'umbrella'; }
+function openEdit(t: UmbrellaTypeDTO) { editing.value = t.id; name.value = t.name; icon.value = t.icon ?? 'umbrella'; }
 function submit() {
   const n = name.value.trim();
   if (!n) return;
@@ -118,9 +118,7 @@ function confirmRestore() {
         <form v-if="editing !== null" data-testid="type-save" class="flex flex-col gap-3" @submit.prevent="submit">
           <Field label="Nome"><Input name="type-name" data-testid="type-name" v-model="name" placeholder="es. Gazebo" /></Field>
           <Field label="Icona sulla mappa">
-            <Select v-model="icon" data-testid="type-icon">
-              <Option value="umbrella">Ombrellone</Option><Option value="leaf">Paglia</Option><Option value="palmtree">Palma</Option>
-            </Select>
+            <IconPicker v-model="icon" />
           </Field>
           <div class="flex justify-end gap-2">
             <Button variant="secondary" type="button" size="sm" @click="editing = null">Annulla</Button>

@@ -1,11 +1,18 @@
 import { createApp } from 'vue';
 import { createPinia } from 'pinia';
 import { VueQueryPlugin } from '@tanstack/vue-query';
+import { registerIconCatalog } from '@coralyn/ui-kit';
+import { lucideCatalog } from '@coralyn/ui-kit/icons/lucide';
 import App from './App.vue';
 import { router } from './router';
 import { queryClient } from './lib/queryClient';
 import { useSessionStore } from './stores/session';
 import './styles/main.css';
+
+// Il catalogo va registrato PRIMA del mount: l'IconPicker e Icon.vue lo leggono in modo
+// sincrono al render, e senza questa riga ogni icona (anche quelle già in uso) cadrebbe sul
+// fallback visibile invece di risolvere dal registro Lucide.
+registerIconCatalog(lucideCatalog);
 
 async function cleanupDevServiceWorker(): Promise<boolean> {
   // In dev NON usiamo mock nel browser: tutte le /api vanno al backend reale via proxy Vite,

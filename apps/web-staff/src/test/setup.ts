@@ -1,6 +1,11 @@
 import { afterAll, afterEach, beforeAll, beforeEach } from 'vitest';
-import { clearToasts } from '@coralyn/ui-kit';
+import { clearToasts, registerIconCatalog } from '@coralyn/ui-kit';
+import { lucideCatalog } from '@coralyn/ui-kit/icons/lucide';
 import { server, resetCustomersSeed, resetPricingSeed, resetCampaignSeed, resetCustomerBookingsSeed, resetRentalsSeed, resetDayRentalsSeed } from '@/mocks/server';
+
+// Vitest carica SOLO i `setupFiles`, mai `main.ts`: senza questa stessa registrazione l'IconPicker
+// girerebbe a catalogo vuoto in ogni test, e la griglia icone sarebbe sempre vuota in silenzio.
+registerIconCatalog(lucideCatalog);
 
 beforeAll(() => server.listen({ onUnhandledRequest: 'error' }));
 beforeEach(() => { resetCustomersSeed(); resetPricingSeed(); resetCampaignSeed(); resetCustomerBookingsSeed(); resetRentalsSeed(); resetDayRentalsSeed(); clearToasts(); });
