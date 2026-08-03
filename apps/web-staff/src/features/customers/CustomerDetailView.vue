@@ -152,7 +152,7 @@ function onConfirmDelete() {
             </div>
           </div>
           <ActionBar v-if="!customer.anonymizedAt" gap="sm">
-            <Button variant="secondary" size="sm" data-testid="edit-customer" @click="editOpen = true"><Icon name="edit" :size="15" />Modifica</Button>
+            <Button variant="secondary" size="sm" data-testid="edit-customer" @click="editOpen = true"><Icon name="pencil" :size="15" />Modifica</Button>
             <Button
               v-if="canErase"
               variant="danger"

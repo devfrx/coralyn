@@ -132,7 +132,7 @@ function confirmRestore() {
             <span class="grid size-7 place-items-center rounded-[9px] bg-[var(--color-raised)] text-[var(--color-text-2nd)]"><Icon :name="t.icon ?? 'umbrella'" :size="14" /></span>
             <span class="flex-1 text-[12.5px] font-bold">{{ t.name }}</span>
             <template v-if="canManage">
-              <IconButton icon="edit" label="Modifica tipologia" variant="ghost" size="sm" data-testid="type-edit" @click="openEdit(t)" />
+              <IconButton icon="pencil" label="Modifica tipologia" variant="ghost" size="sm" data-testid="type-edit" @click="openEdit(t)" />
               <IconButton icon="trash-2" label="Elimina tipologia" variant="danger" size="sm" data-testid="type-delete" @click="deleting = t" />
             </template>
           </div>

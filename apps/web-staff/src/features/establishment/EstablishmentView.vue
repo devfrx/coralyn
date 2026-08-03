@@ -149,10 +149,10 @@ function onConfirmReset() {
           <h2 class="text-[23px] font-bold tracking-[-.015em] text-[var(--color-text)]">{{ data?.establishment.name ?? '…' }}</h2>
           <div class="mt-1 text-[13px] text-[var(--color-text-muted)]">{{ currentUserRoleLabel }} · {{ session.userEmail }} · <span class="tabular-nums">{{ seasonName }}</span></div>
         </div>
-        <Button v-if="canManageEstablishment" data-testid="edit-establishment" variant="secondary" size="sm" @click="openRename"><Icon name="edit" :size="15" />Modifica</Button>
+        <Button v-if="canManageEstablishment" data-testid="edit-establishment" variant="secondary" size="sm" @click="openRename"><Icon name="pencil" :size="15" />Modifica</Button>
         <div v-else class="flex items-center gap-2">
           <Badge tone="soon">Modifica · in arrivo</Badge>
-          <Button variant="secondary" size="sm" disabled><Icon name="edit" :size="15" />Modifica</Button>
+          <Button variant="secondary" size="sm" disabled><Icon name="pencil" :size="15" />Modifica</Button>
         </div>
       </div>
     </Card>

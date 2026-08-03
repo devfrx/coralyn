@@ -48,7 +48,7 @@ export const icons: Record<string, Component> = {
   leaf: IconLeaf, plus: IconPlus, star: IconStar, check: IconCheck, x: IconX,
   'chevron-left': IconChevronLeft, 'chevron-right': IconChevronRight, 'chevron-down': IconChevronDown,
   bell: IconBell, settings: IconSettings, euro: IconEuro, clock: IconClock, phone: IconPhone,
-  mail: IconMail, renew: IconRenew, edit: IconEdit, logout: IconLogout, building: IconBuilding,
+  mail: IconMail, renew: IconRenew, pencil: IconEdit, logout: IconLogout, 'building-2': IconBuilding,
   layers: IconLayers, filter: IconFilter, 'arrow-up': IconArrowUp, 'arrow-down': IconArrowDown,
   waves: IconWaves, 'trash-2': IconTrash, 'alert-triangle': IconAlert, archive: IconArchive,
   'loader-2': IconLoader,

@@ -221,7 +221,7 @@ function onConfirmDelete() {
           <div class="flex items-center justify-between gap-2">
             <span class="text-[13.5px] font-semibold text-[var(--color-text)]">{{ it.name }}</span>
             <ActionBar gap="sm">
-              <IconButton icon="edit" label="Modifica" variant="ghost" size="sm"
+              <IconButton icon="pencil" label="Modifica" variant="ghost" size="sm"
                 :data-test="`edit-item-${it.id}`" @click.stop="openEditItem(it)" />
               <IconButton icon="archive" label="Archivia" variant="ghost" size="sm"
                 :data-test="`archive-item-${it.id}`" @click.stop="archiveItem.mutate(it.id)" />
@@ -286,7 +286,7 @@ function onConfirmDelete() {
         <template #cell-price="{ row }"><span class="font-bold tabular-nums text-[var(--color-text)]">{{ formatEuro(row.price) }}</span></template>
         <template #cell-actions="{ row }">
           <ActionBar gap="sm">
-            <IconButton icon="edit" label="Modifica" variant="ghost" size="sm"
+            <IconButton icon="pencil" label="Modifica" variant="ghost" size="sm"
               :data-test="`edit-tariff-${row.id}`" @click="openEditTariff(row)" />
             <IconButton icon="archive" label="Archivia" variant="ghost" size="sm"
               :data-test="`archive-tariff-${row.id}`" @click="archiveTariff.mutate(row.id)" />

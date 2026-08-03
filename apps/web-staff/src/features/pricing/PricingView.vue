@@ -444,7 +444,7 @@ const rateCols: DataTableColumn<RateDTO>[] = [
         <div class="flex items-center justify-between gap-2 p-3.5">
           <span class="text-[13.5px] font-semibold text-[var(--color-text)]">{{ t.name }}</span>
           <ActionBar gap="sm">
-            <IconButton icon="edit" label="Modifica" variant="ghost" size="sm"
+            <IconButton icon="pencil" label="Modifica" variant="ghost" size="sm"
               :data-test="`edit-eqt-${t.id}`" @click="openEditEquipmentType(t)" />
             <IconButton icon="archive" label="Archivia" variant="ghost" size="sm"
               :data-test="`archive-eqt-${t.id}`" @click="archiveEquipmentType.mutate(t.id)" />
@@ -484,7 +484,7 @@ const rateCols: DataTableColumn<RateDTO>[] = [
           <div class="mb-2 flex items-start justify-between gap-2">
             <span class="text-[15px] font-bold text-[var(--color-text)]">{{ p.name }}</span>
             <ActionBar gap="sm">
-              <IconButton icon="edit" label="Modifica" variant="ghost" size="sm"
+              <IconButton icon="pencil" label="Modifica" variant="ghost" size="sm"
                 :data-test="`edit-pkg-${p.id}`" @click="openEditPackage(p)" />
               <IconButton icon="archive" label="Archivia" variant="ghost" size="sm"
                 :data-test="`archive-pkg-${p.id}`" @click="archivePackage.mutate(p.id)" />
@@ -539,7 +539,7 @@ const rateCols: DataTableColumn<RateDTO>[] = [
           <span class="text-[12.5px] font-semibold text-[var(--color-text)]">{{ f.name }}</span>
           <span v-if="f.startTime" class="text-[11.5px] text-[var(--color-text-muted)]">{{ f.startTime }}–{{ f.endTime }}</span>
           <ActionBar gap="sm">
-            <IconButton icon="edit" label="Modifica" variant="ghost" size="sm"
+            <IconButton icon="pencil" label="Modifica" variant="ghost" size="sm"
               :data-test="`edit-slot-${f.id}`" @click="openEditSlot(f)" />
             <IconButton icon="trash-2" label="Elimina" variant="danger" size="sm"
               :data-test="`del-slot-${f.id}`" @click="askDeleteTimeSlot(f)" />
@@ -564,7 +564,7 @@ const rateCols: DataTableColumn<RateDTO>[] = [
       </template>
       <template #cell-actions="{ row }">
         <ActionBar gap="sm">
-          <IconButton icon="edit" label="Modifica" variant="ghost" size="sm"
+          <IconButton icon="pencil" label="Modifica" variant="ghost" size="sm"
             :data-test="`edit-rate-${row.id}`" @click="openEditRate(row)" />
           <IconButton icon="trash-2" label="Elimina" variant="danger" size="sm"
             :data-test="`del-rate-${row.id}`" @click="askDeleteRate(row.id)" />
