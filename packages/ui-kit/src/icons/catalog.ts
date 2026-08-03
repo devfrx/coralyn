@@ -10,10 +10,9 @@ export interface IconCatalog {
 
 /** Body SVG del nome dato, seguendo gli alias. `null` se il catalogo non lo conosce. */
 export function resolveFromCatalog(catalog: IconCatalog, name: string): string | null {
-  const direct = catalog.icons[name];
-  if (direct) return direct;
+  if (name in catalog.icons) return catalog.icons[name];
   const parent = catalog.aliases[name];
-  return parent ? (catalog.icons[parent] ?? null) : null;
+  return parent !== undefined ? (catalog.icons[parent] ?? null) : null;
 }
 
 /**

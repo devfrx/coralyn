@@ -19,6 +19,14 @@ describe('catalog', () => {
     expect(resolveFromCatalog(CAT, 'non-esiste')).toBeNull();
   });
 
+  it('un nome canonico con body vuoto risolve alla stringa vuota, non a null', () => {
+    const withEmpty: IconCatalog = {
+      icons: { ...CAT.icons, ghost: '' },
+      aliases: CAT.aliases,
+    };
+    expect(resolveFromCatalog(withEmpty, 'ghost')).toBe('');
+  });
+
   it('cerca per sottostringa e riporta il totale, non solo la pagina', () => {
     const r = searchCatalog(CAT, 'a', 2);
     expect(r.names).toHaveLength(2);
