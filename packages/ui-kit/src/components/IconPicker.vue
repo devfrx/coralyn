@@ -22,7 +22,13 @@ const risultati = computed(() => {
   const catalog = getIconCatalog();
   if (!catalog) return { names: [] as string[], total: 0 };
   if (!query.value.trim()) {
-    return { names: SUGGESTED_ICONS.filter((n) => catalog.icons[n]).slice(0, props.limit), total: 0 };
+    // Object.hasOwn, non l'accesso diretto: stesso motivo di resolveFromCatalog in catalog.ts — un
+    // nome uguale a un membro di Object.prototype (`toString`, `constructor`, ...) altrimenti
+    // risulterebbe "presente" col valore della funzione ereditata, invece di essere scartato.
+    return {
+      names: SUGGESTED_ICONS.filter((n) => Object.hasOwn(catalog.icons, n)).slice(0, props.limit),
+      total: 0,
+    };
   }
   return searchCatalog(catalog, query.value, props.limit);
 });

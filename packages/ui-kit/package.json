@@ -9,6 +9,7 @@
     "**/echarts.ts"
   ],
   "//exports./toasts": "La coda toast e' raggiungibile anche SENZA passare dal barrel, perche' il barrel trascina i componenti e con essi ~icons/lucide/* e gli SFC: chi ne ha bisogno da codice non-componente (@coralyn/data-layer, che ha zero .vue) dovrebbe altrimenti installarsi @vitejs/plugin-vue, unplugin-icons e @iconify-json/lucide per compilare i test di un wrapper di fetch. Il tree-shaking del bundle e' un'altra cosa e funziona gia' (sideEffects, P9-007): questo risolve la catena di BUILD, non quella di runtime. Le app continuano a importare dal barrel.",
+  "//exports./icons/lucide": "Il catalogo delle 1743 icone Lucide non deprecate pesa 78,0 KB gzip (ADR-0068 §6): un peso che ha senso solo per chi rende icone di dominio scelte dall'utente. Dietro un entry point separato, non nel barrel principale, cosi' chi non lo importa non lo trascina — il solo tree-shaking non basterebbe, perche' il barrel resterebbe comunque raggiungibile. Oggi lo importa solo web-staff (main.ts e test/setup.ts, ADR-0068 §7): web-platform e web-customer non rendono icone di dominio e non pagano questo peso.",
   "exports": {
     ".": "./src/index.ts",
     "./toasts": "./src/toasts.ts",

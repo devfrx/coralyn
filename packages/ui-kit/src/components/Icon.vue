@@ -28,21 +28,22 @@ const body = computed(() => {
   const catalog = getIconCatalog();
   return (catalog ? resolveFromCatalog(catalog, props.name) : null) ?? UNKNOWN_BODY;
 });
+
+// Comune ai due rami del template (component risolto e <svg> di fallback): oggi sono identici, ma
+// scriverli due volte e' deriva latente, non un fatto stabile — un domani uno dei due rami
+// cambierebbe da solo. Un solo posto, legato con v-bind, senza toccare il markup reso.
+const a11yAttrs = computed(() => ({
+  'aria-hidden': props.label ? undefined : true,
+  'aria-label': props.label,
+  role: props.label ? 'img' : undefined,
+  style: 'display:inline-block; vertical-align:-0.15em;',
+}));
 </script>
 
 <template>
-  <component
-    :is="comp" v-if="comp" :width="size" :height="size"
-    :aria-hidden="label ? undefined : true" :aria-label="label" :role="label ? 'img' : undefined"
-    style="display:inline-block; vertical-align:-0.15em;"
-  />
+  <component :is="comp" v-if="comp" :width="size" :height="size" v-bind="a11yAttrs" />
   <!-- Il body arriva da un file statico versionato dentro il bundle: mai dalla rete, mai
        dall'utente, mai dal database. Il nome, che dal database ci arriva, e' solo una chiave di
        lookup e non finisce mai nel markup. -->
-  <svg
-    v-else viewBox="0 0 24 24" :width="size" :height="size"
-    :aria-hidden="label ? undefined : true" :aria-label="label" :role="label ? 'img' : undefined"
-    style="display:inline-block; vertical-align:-0.15em;"
-    v-html="body"
-  />
+  <svg v-else viewBox="0 0 24 24" :width="size" :height="size" v-bind="a11yAttrs" v-html="body" />
 </template>

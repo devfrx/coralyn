@@ -2,6 +2,8 @@ import { describe, it, expect } from 'vitest';
 import { mount } from '@vue/test-utils';
 import Icon from './Icon.vue';
 import { icons } from '../icons/registry';
+import { registerIconCatalog, resetIconCatalog } from '../icons/registered-catalog';
+import { lucideCatalog } from '../icons/lucide-catalog';
 
 describe('Icon', () => {
   it('rende un svg per un nome noto', () => {
@@ -16,9 +18,6 @@ describe('Icon', () => {
     }
   });
 });
-
-import { registerIconCatalog, resetIconCatalog } from '../icons/registered-catalog';
-import { lucideCatalog } from '../icons/lucide-catalog';
 
 describe('Icon — catena di risoluzione', () => {
   it('senza catalogo registrato, un nome fuori dal registry cade sul fallback', () => {
