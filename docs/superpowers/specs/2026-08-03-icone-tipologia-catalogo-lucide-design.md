@@ -114,8 +114,13 @@ sola prima forma ne manca sette. Le altre tre chiavi non canoniche (`chart`,
 invasività senza guadagno.
 
 Il secondo è `FALLBACK_ICON`, che è esportato dal barrel e vale `'umbrella'`. Col fallback visibile
-quella costante direbbe il falso restando pubblica: va **ripuntata** a una chiave che si legge come
-«icona ignota». Così resta l'unica fonte del fallback, non muore e non mente.
+quella costante direbbe il falso restando pubblica, e **va rimossa** — non ripuntata a un'altra
+chiave. La ragione è che *qualunque* chiave del catalogo è **sceglibile dal picker**: puntare il
+fallback su `alert-triangle` renderebbe una tipologia a cui si è assegnato volutamente quel glifo
+indistinguibile da una risoluzione fallita, cioè lo stesso difetto spostato di simbolo. Il fallback
+diventa perciò un glifo **dedicato, definito nel componente e assente da registry e catalogo**:
+nessuna tipologia può averlo addosso, quindi vederlo significa sempre e solo «questo nome non
+risolve».
 
 Per il resto il registry non si tocca: le sue icone del chrome restano import statici e
 tree-shakeable.

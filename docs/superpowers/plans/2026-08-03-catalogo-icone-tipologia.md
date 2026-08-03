@@ -29,7 +29,7 @@
 | `packages/ui-kit/src/icons/registered-catalog.ts` | **crea** — stato di registrazione, reattivo. Parte vuoto |
 | `packages/ui-kit/src/icons/suggested.ts` | **crea** — l'elenco delle icone suggerite, in **un solo posto** |
 | `packages/ui-kit/src/components/IconPicker.vue` | **crea** — compone `SearchInput` + `Popover` esistenti |
-| `packages/ui-kit/src/icons/registry.ts` | **modifica** — rinomina due chiavi in conflitto, ripunta `FALLBACK_ICON` |
+| `packages/ui-kit/src/icons/registry.ts` | **modifica** — rinomina due chiavi in conflitto, **rimuove** `FALLBACK_ICON` |
 | `packages/ui-kit/src/components/Icon.vue` | **modifica** — catena di risoluzione a quattro livelli |
 | `packages/ui-kit/src/index.ts` · `package.json` | **modifica** — export di `IconPicker` e registrazione; entry point `./icons/lucide` |
 | `apps/api/src/common/is-icon-key.ts` | **crea** — decoratore sul modello di `is-uuid-shape.ts` |
@@ -80,11 +80,12 @@ describe('catalog', () => {
   it('cerca per sottostringa e riporta il totale, non solo la pagina', () => {
     const r = searchCatalog(CAT, 'a', 2);
     expect(r.names).toHaveLength(2);
-    expect(r.total).toBe(3); // umbrella, tree-palm, anchor contengono tutte una "a"
+    // Quattro, non tre: la ricerca copre anche gli ALIAS, e 'palmtree' contiene una "a".
+    expect(r.total).toBe(4); // umbrella, tree-palm, anchor + l'alias palmtree
   });
 
   it('senza query elenca tutto, sempre col tetto', () => {
-    expect(searchCatalog(CAT, '', 10).total).toBe(3);
+    expect(searchCatalog(CAT, '', 10).total).toBe(4); // 3 canonici + 1 alias
     expect(searchCatalog(CAT, '   ', 1).names).toHaveLength(1);
   });
 
@@ -273,7 +274,7 @@ Expected: PASS — 6 test.
 - [ ] **Step 6: Rigira la suite intera del pacchetto**
 
 Run: `pnpm --filter @coralyn/ui-kit test`
-Expected: PASS, **220 test su 41 file** (baseline 214/39, più i due file nuovi).
+Expected: PASS, **227 test su 41 file** — baseline 214/39, più i **7** di `catalog.spec.ts` (Task 1) e i **6** di `lucide-catalog.spec.ts`.
 
 - [ ] **Step 7: Commit**
 
@@ -364,7 +365,7 @@ Expected: PASS.
 - [ ] **Step 6: Rigira le suite intere dei due pacchetti toccati**
 
 Run: `pnpm --filter @coralyn/ui-kit test`
-Expected: PASS, 222 test su 42 file.
+Expected: PASS, **229 test su 42 file** (227 più i 2 di `registry.spec.ts`).
 
 Run: `pnpm --filter @coralyn/web-staff test`
 Expected: PASS, 600 test su 66 file (invariato: nessun test asserisce il nome dell'icona di modifica).
@@ -385,7 +386,7 @@ Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
 **Files:**
 - Create: `packages/ui-kit/src/icons/registered-catalog.ts`
 - Modify: `packages/ui-kit/src/components/Icon.vue`
-- Modify: `packages/ui-kit/src/icons/registry.ts` (solo `FALLBACK_ICON`)
+- Modify: `packages/ui-kit/src/icons/registry.ts` (rimozione di `FALLBACK_ICON`)
 - Modify: `packages/ui-kit/src/index.ts`
 - Test: `packages/ui-kit/src/components/Icon.spec.ts`
 
@@ -397,9 +398,8 @@ Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
 
 ```ts
 // da aggiungere in coda a packages/ui-kit/src/components/Icon.spec.ts
-import { registerIconCatalog } from '../icons/registered-catalog';
+import { registerIconCatalog, resetIconCatalog } from '../icons/registered-catalog';
 import { lucideCatalog } from '../icons/lucide-catalog';
-import { FALLBACK_ICON } from '../icons/registry';
 
 describe('Icon — catena di risoluzione', () => {
   it('senza catalogo registrato, un nome fuori dal registry cade sul fallback', () => {
@@ -428,10 +428,24 @@ describe('Icon — catena di risoluzione', () => {
     expect(canonico.find('svg').exists()).toBe(true);
   });
 
-  it('il fallback non e piu un ombrellone: un nome ignoto deve essere DISTINGUIBILE', () => {
-    // Il difetto vecchio: icons[name] ?? icons['umbrella'] rendeva un ombrellone plausibile
-    // per un nome sbagliato, indistinguibile da un ombrellone voluto.
-    expect(FALLBACK_ICON).not.toBe('umbrella');
+  it('un nome ignoto non rende NESSUN glifo che una tipologia possa avere addosso', () => {
+    // Il difetto vecchio: icons[name] ?? icons['umbrella'] rendeva un ombrellone plausibile per un
+    // nome sbagliato, indistinguibile da un ombrellone voluto. Asserire `FALLBACK !== 'umbrella'`
+    // non basterebbe: passerebbe con qualsiasi altra chiave, comprese quelle che il picker offre —
+    // e allora una tipologia a cui si assegna VOLUTAMENTE quel glifo sarebbe di nuovo
+    // indistinguibile da una risoluzione fallita. Il fallback deve stare FUORI dal catalogo.
+    registerIconCatalog(lucideCatalog);
+    const ignoto = mount(Icon, { props: { name: 'non-esiste-affatto' } }).html();
+    for (const sceglibile of ['umbrella', 'alert-triangle', 'circle-help', 'tree-palm']) {
+      expect(ignoto).not.toBe(mount(Icon, { props: { name: sceglibile } }).html());
+    }
+  });
+
+  it('registrare e poi azzerare riporta al comportamento senza catalogo', () => {
+    registerIconCatalog(lucideCatalog);
+    resetIconCatalog();
+    const w = mount(Icon, { props: { name: 'anchor' } });
+    expect(w.html()).toBe(mount(Icon, { props: { name: 'altro-ignoto' } }).html());
   });
 });
 ```
@@ -467,6 +481,15 @@ export function registerIconCatalog(catalog: IconCatalog): void {
 export function getIconCatalog(): IconCatalog | null {
   return current.value;
 }
+
+/**
+ * Azzera la registrazione. Gemello di `clearToasts`: senza, l'isolamento fra un test che registra
+ * il catalogo e uno che non lo vuole starebbe tutto nell'ORDINE di dichiarazione dentro il file, e
+ * chi aggiunge un caso in testa fa asserire all'altro l'opposto del proprio titolo.
+ */
+export function resetIconCatalog(): void {
+  current.value = null;
+}
 ```
 
 - [ ] **Step 4: Riscrivi la catena in `Icon.vue`**
@@ -474,11 +497,25 @@ export function getIconCatalog(): IconCatalog | null {
 ```vue
 <script setup lang="ts">
 import { computed } from 'vue';
-import { icons, FALLBACK_ICON } from '../icons/registry';
+import { icons } from '../icons/registry';
 import { getIconCatalog } from '../icons/registered-catalog';
 import { resolveFromCatalog } from '../icons/catalog';
 
 const props = withDefaults(defineProps<{ name: string; size?: number; label?: string }>(), { size: 16 });
+
+/**
+ * Glifo reso quando un nome non risolve: un quadrato tratteggiato con un punto interrogativo.
+ *
+ * È scritto QUI e non è una chiave, né del registry né del catalogo, e questa è la ragione per cui
+ * funziona: nessuna tipologia può averlo addosso per scelta, quindi vederlo significa sempre e solo
+ * «questo nome non risolve». Una chiave qualunque — anche `alert-triangle` — sarebbe sceglibile dal
+ * picker, e allora un errore tornerebbe indistinguibile da una scelta: cioè il difetto che questo
+ * cambiamento esiste per chiudere.
+ */
+const UNKNOWN_BODY =
+  '<g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
+  '<rect x="3" y="3" width="18" height="18" rx="3" stroke-dasharray="3 3"/>' +
+  '<path d="M9.5 9.5a2.5 2.5 0 1 1 3 2.45V14"/><path d="M12 17.5v.01"/></g>';
 
 // Catena dichiarata: registry del chrome -> catalogo registrato -> alias -> fallback VISIBILE.
 // Il registry vince perche' le sue chiavi sono quelle del chrome, montate staticamente.
@@ -486,14 +523,13 @@ const comp = computed(() => icons[props.name]);
 const body = computed(() => {
   if (comp.value) return null;
   const catalog = getIconCatalog();
-  return catalog ? resolveFromCatalog(catalog, props.name) : null;
+  return (catalog ? resolveFromCatalog(catalog, props.name) : null) ?? UNKNOWN_BODY;
 });
-const fallbackComp = computed(() => (comp.value || body.value ? null : icons[FALLBACK_ICON]));
 </script>
 
 <template>
   <component
-    :is="comp ?? fallbackComp" v-if="comp || fallbackComp" :width="size" :height="size"
+    :is="comp" v-if="comp" :width="size" :height="size"
     :aria-hidden="label ? undefined : true" :aria-label="label" :role="label ? 'img' : undefined"
     style="display:inline-block; vertical-align:-0.15em;"
   />
@@ -509,18 +545,23 @@ const fallbackComp = computed(() => (comp.value || body.value ? null : icons[FAL
 </template>
 ```
 
-- [ ] **Step 5: Ripunta il fallback**
+- [ ] **Step 5: Togli `FALLBACK_ICON`, che ora mentirebbe**
 
-In `packages/ui-kit/src/icons/registry.ts`, l'ultima riga:
+Il fallback non è più una chiave: la costante non ha più un referente. Lasciarla esportata dal barrel col valore `'umbrella'` significherebbe pubblicare un'affermazione falsa sul comportamento del kit.
 
-```ts
-/** Reso quando un nome non risolve né dal registry né dal catalogo: deve LEGGERSI come anomalia. */
-export const FALLBACK_ICON = 'alert-triangle';
+In `packages/ui-kit/src/icons/registry.ts` cancella la riga di `FALLBACK_ICON`, e in `packages/ui-kit/src/index.ts` toglila dall'export. Sono le sue **uniche** quattro occorrenze di codice — verificale prima:
+
+```bash
+git grep -n "FALLBACK_ICON" -- "*.ts" "*.vue"
 ```
+
+Atteso dopo la modifica: **zero** righe.
+
+⚠️ **Questo ripara un difetto esistente e visibile**, e va detto nell'ADR invece di lasciarlo scoprire: `NoAccessView.vue` passa `icon="lock"`, `lock` **non è** fra le 41 chiavi del registry, e oggi quella schermata rende **un ombrellone** dove il sorgente ha sempre chiesto un lucchetto. Registrato il catalogo, renderà il lucchetto. Non è una rottura: è il sorgente che comincia a essere creduto.
 
 - [ ] **Step 6: Esporta dal barrel**
 
-In `packages/ui-kit/src/index.ts`, accanto alla riga che esporta `icons` e `FALLBACK_ICON`:
+In `packages/ui-kit/src/index.ts`, accanto alla riga che esporta `icons` (da cui `FALLBACK_ICON` è appena sparito):
 
 ```ts
 export { registerIconCatalog, getIconCatalog } from './icons/registered-catalog';
@@ -572,7 +613,9 @@ Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
  * Vive in un solo posto: duplicarlo rifarebbe la duplicazione che questo lavoro toglie (D-040).
  */
 export const SUGGESTED_ICONS: readonly string[] = [
-  'umbrella', 'tree-palm', 'leaf', 'tent', 'waves', 'anchor', 'sun', 'sunset',
+  // ⚠️ `waves` NON va usata: in lucide 1.2.114 e' `hidden`, quindi il catalogo la esclude e il
+  // filtro la scarterebbe in silenzio, aprendo il picker con 25 suggerimenti su 26.
+  'umbrella', 'tree-palm', 'leaf', 'tent', 'waves-horizontal', 'anchor', 'sun', 'sunset',
   'shell', 'fish', 'sailboat', 'ship-wheel', 'life-buoy', 'volleyball',
   'armchair', 'bed-double', 'sofa', 'utensils', 'coffee', 'ice-cream-cone',
   'shower-head', 'baby', 'accessibility', 'dog', 'parking-meter', 'star',
@@ -590,6 +633,13 @@ import IconPicker from './IconPicker.vue';
 import Field from './Field.vue';
 import { registerIconCatalog } from '../icons/registered-catalog';
 import { lucideCatalog } from '../icons/lucide-catalog';
+
+// ⚠️ Il pacchetto ui-kit NON ha `setupFiles`: ogni spec dichiara i propri stub. reka-ui misura
+// l'arrow del Popover con `new ResizeObserver`, che jsdom non implementa e che non e' guardato:
+// senza queste due righe i test che aprono il picker esplodono con un ReferenceError, e il difetto
+// sembra stare in IconPicker.vue, che invece e' sano. Stesso stub di Popover.spec.ts e Select.spec.ts.
+class ResizeObserverStub { observe() {} unobserve() {} disconnect() {} }
+globalThis.ResizeObserver ??= ResizeObserverStub as unknown as typeof ResizeObserver;
 
 beforeEach(() => registerIconCatalog(lucideCatalog));
 
@@ -765,7 +815,7 @@ Expected: PASS — 7 test.
 - [ ] **Step 7: Rigira la suite intera e il typecheck**
 
 Run: `pnpm --filter @coralyn/ui-kit test`
-Expected: PASS.
+Expected: PASS, **242 test su 43 file** (235 dopo Task 4, più i 7 dell'IconPicker).
 
 Run: `pnpm --filter @coralyn/ui-kit typecheck`
 Expected: nessun errore.
@@ -873,10 +923,17 @@ import { icons as lucide } from '@iconify-json/lucide';
  * Le `hidden` sono escluse per la stessa ragione per cui non le offre il picker: sono deprecate a
  * monte, e accettarle significherebbe persistere nomi che la libreria puo' togliere.
  */
+// ⚠️ Il predicato sugli alias dev'essere IDENTICO per costruzione a quello del catalogo (Task 2):
+// il padre dev'essere PRESENTE e non hidden. Scrivere solo `!hidden` non basta, perche'
+// `undefined?.hidden` e' falsy e un alias con padre inesistente passerebbe dall'API senza che il
+// picker lo offra — cioe' l'API accetterebbe un nome che il prodotto non sa rendere.
+const RENDIBILI = new Set(
+  Object.entries(lucide.icons).filter(([, d]) => !d.hidden).map(([name]) => name),
+);
 const VALID = new Set<string>([
-  ...Object.entries(lucide.icons).filter(([, d]) => !d.hidden).map(([name]) => name),
+  ...RENDIBILI,
   ...Object.entries(lucide.aliases ?? {})
-    .filter(([, d]) => d.parent && !lucide.icons[d.parent]?.hidden)
+    .filter(([, d]) => d.parent && RENDIBILI.has(d.parent))
     .map(([alias]) => alias),
 ]);
 
@@ -926,15 +983,48 @@ In `update-umbrella-type.dto.ts` applica la **stessa** sostituzione: via `ICON_K
 
 ⚠️ Vanno cambiati **entrambi**: erano duplicati, e correggerne uno solo è il difetto che si ripresenta.
 
-- [ ] **Step 7: Rigira la suite intera del pacchetto**
+- [ ] **Step 7: Il presidio sui DUE DTO veri, non su una classe fittizia**
+
+Il test dello Step 2 prova il **decoratore**. Non prova che sia stato **applicato** a entrambi i DTO: se si tocca solo il `create`, la PATCH continua a rispondere 400 su ogni nome che il picker propone, e nessun test se ne accorge. Crea `apps/api/src/establishment/dto/umbrella-type-icon.dto.spec.ts`, con la convenzione locale (`plainToInstance` + `validate`):
+
+```ts
+import 'reflect-metadata';
+import { validate } from 'class-validator';
+import { plainToInstance } from 'class-transformer';
+import { CreateUmbrellaTypeDto } from './create-umbrella-type.dto';
+import { UpdateUmbrellaTypeDto } from './update-umbrella-type.dto';
+
+// I due DTO portavano lo stesso ICON_KEYS duplicato: il presidio deve valere su ENTRAMBI, o
+// correggerne uno solo lascia l'altro indietro senza che nulla arrossi.
+const erroriCreate = async (icon: unknown): Promise<string[]> =>
+  (await validate(plainToInstance(CreateUmbrellaTypeDto, { name: 'Gazebo', icon }))).map((e) => e.property);
+const erroriUpdate = async (icon: unknown): Promise<string[]> =>
+  (await validate(plainToInstance(UpdateUmbrellaTypeDto, { icon }))).map((e) => e.property);
+
+describe('icona della tipologia — stessa regola sui due DTO', () => {
+  it.each([['create', erroriCreate], ['update', erroriUpdate]] as const)(
+    '%s accetta un nome lucide e un alias, e rifiuta un nome inventato',
+    async (_nome, errori) => {
+      expect(await errori('anchor')).toEqual([]);
+      expect(await errori('palmtree')).toEqual([]);
+      expect(await errori('non-esiste-affatto')).toEqual(['icon']);
+    },
+  );
+});
+```
+
+Run: `pnpm --filter @coralyn/api test -- umbrella-type-icon`
+Expected: PASS — 2 casi.
+
+- [ ] **Step 8: Rigira la suite intera del pacchetto**
 
 Run: `pnpm --filter @coralyn/api test`
-Expected: PASS, 455 test (baseline 449, più i 6 nuovi).
+Expected: PASS, **457** test (baseline 449, più i 6 di `is-icon-key.spec.ts` e i 2 casi del file sopra).
 
-- [ ] **Step 8: Commit**
+- [ ] **Step 9: Commit**
 
 ```bash
-git add apps/api/src/common/is-icon-key.ts apps/api/src/common/is-icon-key.spec.ts && git add -u apps/api
+git add apps/api/src/common/is-icon-key.ts apps/api/src/common/is-icon-key.spec.ts apps/api/src/establishment/dto/umbrella-type-icon.dto.spec.ts && git add -u apps/api
 git commit -m "feat(api): l'icona si valida sull'elenco lucide vero, non su tre valori
 
 Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
@@ -947,8 +1037,9 @@ Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
 **Files:**
 - Modify: `apps/web-staff/src/main.ts`, `apps/web-staff/src/test/setup.ts`
 - Modify: `apps/web-staff/src/features/establishment/panels/BeachPanel.vue`
-- Modify: `apps/web-staff/package.json`
-- Test: `apps/web-staff/src/features/establishment/panels/form-sync.spec.ts`
+- Test: `apps/web-staff/src/features/establishment/panels/BeachPanel.icon.spec.ts` (**nuovo**)
+
+⚠️ `apps/web-staff/package.json` **non si tocca**: `^1.2.114` c'è già e `@coralyn/ui-kit` pure. E la voce in `devDependencies` **deve restare lì**: serve a `unplugin-icons` per compilare i 41 `~icons/lucide/*` del registry.
 
 **Interfaces:**
 - Consumes: `IconPicker`, `registerIconCatalog` dal barrel; `lucideCatalog` da `@coralyn/ui-kit/icons/lucide`.
@@ -992,6 +1083,19 @@ describe('BeachPanel — l icona della tipologia si sceglie dal catalogo', () =>
     expect(w.find('[data-testid="icon-picker-trigger"]').exists()).toBe(true);
     expect(w.find('[data-testid="type-icon"]').exists()).toBe(false); // la Select non c'e' piu'
   });
+
+  it('riaprendo in modifica NON riporta a ombrellone un icona fuori dai tre nomi vecchi', async () => {
+    // Il ramo che lo Step 4 riscrive: se `openEdit` continuasse a normalizzare cio' che non
+    // riconosce, riaprire una tipologia con `anchor` la riporterebbe a `umbrella`, e il salvataggio
+    // successivo sovrascriverebbe la scelta dell'operatore senza dirglielo.
+    const DATI = {
+      ...DATA,
+      umbrellaTypes: [{ id: 't-1', name: 'Gazebo', sortOrder: 1, icon: 'anchor' }],
+    };
+    const w = mountApp(BeachPanel, { props: { data: DATI, canManage: true }, attachTo: document.body });
+    await w.get('[data-testid="type-edit"]').trigger('click');
+    expect(w.get('[data-testid="icon-picker-trigger"]').text()).toContain('anchor');
+  });
 });
 ```
 
@@ -1017,15 +1121,17 @@ function openEdit(t: UmbrellaTypeDTO) { editing.value = t.id; name.value = t.nam
 Nel template, dentro il `<Field label="Icona sulla mappa">`, la `Select` con i tre `<Option>` diventa:
 
 ```vue
-              <IconPicker v-model="icon" data-testid="type-icon-picker" />
+              <IconPicker v-model="icon" />
 ```
 
 E nell'import da `@coralyn/ui-kit`, aggiungi `IconPicker` e togli `Select`/`Option` **solo se** non sono più usati altrove nel file: verificalo, il pannello ne ha altri.
 
+⚠️ **Non** aggiungere un `data-testid` sull'`IconPicker` dal pannello: nel suo template `v-bind="$attrs"` **precede** il `data-testid` statico del trigger, e in `mergeProps` l'ultimo vince — resterebbe in `BeachPanel.vue` un selettore che non seleziona nulla. Il test usa `[data-testid="icon-picker-trigger"]`, che il componente si dà da sé.
+
 - [ ] **Step 5: Esegui e verifica che passi**
 
-Run: `pnpm --filter @coralyn/web-staff exec vitest run src/features/establishment/panels/form-sync.spec.ts`
-Expected: PASS.
+Run: `pnpm --filter @coralyn/web-staff exec vitest run src/features/establishment/panels/BeachPanel.icon.spec.ts`
+Expected: PASS — 2 test. ⚠️ È lo **stesso** file dello Step 3: lanciarne un altro passerebbe in verde senza aver mai eseguito il test appena scritto.
 
 - [ ] **Step 6: Rigira la suite intera del pacchetto**
 
@@ -1067,11 +1173,16 @@ it('la legenda nomina le tipologie del lido, non due etichette scritte a mano', 
     ] }],
   })));
   const w = await mountMap();
-  // La legenda e' chiusa di default e vive in un portal: va aperta dalla pillola.
+  // ⚠️ La legenda e' chiusa di default E vive in un PORTAL su document.body: non e' discendente
+  // del wrapper, quindi `w.get(...)` non la trova e il rosso che si otterrebbe sarebbe
+  // «Unable to get [data-test=legend-panel]» — un fallimento che NON distingue la legenda scritta a
+  // mano da quella derivata, e che resterebbe identico anche a lavoro finito.
+  // Stessa lettura del test gemello gia' presente in questo file.
   await w.get('[data-test="legend-pill"]').trigger('click');
-  const legenda = w.get('[data-test="legend-panel"]');
-  expect(legenda.text()).toContain('Gazebo');
-  expect(legenda.text()).not.toContain('Mini-palma');
+  await flushPromises();
+  const legenda = document.body.querySelector('[data-test="legend-panel"]');
+  expect(legenda?.textContent).toContain('Gazebo');
+  expect(legenda?.textContent).not.toContain('Mini-palma');
   w.unmount();
 });
 ```
@@ -1100,7 +1211,9 @@ La riga «Normale» col pallino colorato **resta**: non è una tipologia, è l'a
 - [ ] **Step 4: Esegui e verifica che passi**
 
 Run: `pnpm --filter @coralyn/web-staff exec vitest run src/features/map/MapView.spec.ts`
-Expected: PASS. I test esistenti che asserivano «Mini-palma» vanno **aggiornati** alle tipologie della loro fixture, non cancellati: asserivano una cosa vera, che ora si dice in modo derivato.
+Expected: PASS, e **nessun test esistente cambia**. Le due asserzioni che nominano «Mini-palma» montano sulla fixture di default, le cui tipologie *sono* Mini-palma e Palma: la legenda derivata produce esattamente lo stesso testo di quella scritta a mano.
+
+⚠️ Proprio per questo la suite esistente **non distingue** le due implementazioni: tutto il presidio di questo task poggia sul test nuovo, che usa una fixture con una tipologia diversa. Non cercare un rosso fra i test vecchi — non arriverà, e «aggiustare» un test verde sarebbe un danno.
 
 - [ ] **Step 5: Rigira la suite intera**
 
@@ -1172,7 +1285,17 @@ Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
 
 ## Verifica finale, prima di proporre il merge
 
-- [ ] `pnpm -r --workspace-concurrency=1 test` — ⚠️ **una alla volta**: in parallelo questo host dà falsi rossi di massa. Attesa ~10 min. Atteso: **≥1462** test su **≥197** file (baseline 1434/191, più i file nuovi di questo lavoro). Non stampa un totale: cattura su file e leggi dopo, con `grep -a`.
+- [ ] `pnpm -r --workspace-concurrency=1 test` — ⚠️ **una alla volta**: in parallelo questo host dà falsi rossi di massa. Attesa ~10 min. Non stampa un totale: cattura su file e leggi dopo, con `grep -a`, perché l'output può passare per binario.
+
+  Atteso **1473 test su 198 file**, dalla baseline 1434/191 più:
+
+  | Pacchetto | test nuovi | file nuovi |
+  |---|---|---|
+  | `ui-kit` | 28 — catalog 7, lucide-catalog 6, registry 2, IconPicker 7, Icon +6 | 4 |
+  | `api` | 8 — is-icon-key 6, i due DTO 2 | 2 |
+  | `web-staff` | 3 — BeachPanel.icon 2, MapView +1 | 1 |
+
+  ⚠️ Se il totale non torna, **conta prima quale pacchetto sfora**: un numero che non torna qui è quasi sempre un test in più scritto per prudenza, non un difetto — ma va spiegato, non arrotondato.
 - [ ] `pnpm --filter @coralyn/api test:e2e` — atteso 544/45, invariato. Richiede Docker su: `docker ps` **prima** di diagnosticare un rosso.
 - [ ] `pnpm run lint` — atteso 0 errori.
 - [ ] `pnpm run typecheck` — atteso 9 progetti.
