@@ -19,7 +19,11 @@ for (const [name, data] of Object.entries(lucide.icons)) {
 const aliases: Record<string, string> = {};
 for (const [alias, data] of Object.entries(lucide.aliases ?? {})) {
   // Un alias verso un'icona esclusa sarebbe un vicolo cieco: si scarta.
-  if (data.parent && icons[data.parent]) aliases[alias] = data.parent;
+  // Object.hasOwn, non l'accesso diretto: identico per costruzione al controllo di presenza che
+  // apps/api/src/common/is-icon-key.ts fa su un Set — un parent uguale a un membro di
+  // Object.prototype (`toString`, `constructor`, ...) altrimenti risulterebbe "presente" con la
+  // funzione ereditata, invece di essere scartato.
+  if (data.parent && Object.hasOwn(icons, data.parent)) aliases[alias] = data.parent;
 }
 
 export const lucideCatalog: IconCatalog = { icons, aliases };

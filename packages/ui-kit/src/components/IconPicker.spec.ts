@@ -6,6 +6,7 @@ import Field from './Field.vue';
 import { registerIconCatalog } from '../icons/registered-catalog';
 import { lucideCatalog } from '../icons/lucide-catalog';
 import { searchCatalog } from '../icons/catalog';
+import { SUGGESTED_ICONS } from '../icons/suggested';
 
 // ⚠️ Il pacchetto ui-kit NON ha `setupFiles`: ogni spec dichiara i propri stub. reka-ui misura
 // l'arrow del Popover con `new ResizeObserver`, che jsdom non implementa e che non e' guardato:
@@ -32,6 +33,16 @@ describe('IconPicker', () => {
     const w = mount(IconPicker, open);
     const primo = w.get('[data-testid="icon-option"]');
     expect(primo.attributes('data-icon')).toBe('umbrella');
+  });
+
+  it('il limite non tronca le suggerite: vale solo per la ricerca', async () => {
+    // Il ramo curato applicava .slice(0, limit) ma dichiarava total: 0, quindi un troncamento
+    // delle suggerite non poteva mai comparire come avviso: con limit piu' piccolo del numero di
+    // suggerite valide, l'elenco reso doveva restare INTERO (non troncato) e senza avviso.
+    const w = mount(IconPicker, { ...open, props: { ...open.props, limit: 3 } });
+    const nomi = w.findAll('[data-testid="icon-option"]').map((n) => n.attributes('data-icon'));
+    expect(nomi).toHaveLength(SUGGESTED_ICONS.length);
+    expect(w.find('[data-testid="icon-count"]').exists()).toBe(false);
   });
 
   it('la ricerca filtra il catalogo intero', async () => {

@@ -22,7 +22,11 @@ const UNKNOWN_BODY =
 
 // Catena dichiarata: registry del chrome -> catalogo registrato -> alias -> fallback VISIBILE.
 // Il registry vince perche' le sue chiavi sono quelle del chrome, montate staticamente.
-const comp = computed(() => icons[props.name]);
+// Object.hasOwn, non l'accesso diretto: come in resolveFromCatalog (catalog.ts) e nel filtro
+// delle suggerite (IconPicker.vue) — un nome uguale a un membro di Object.prototype (`toString`,
+// `constructor`, ...) altrimenti risulterebbe "trovato", con una funzione ereditata al posto di
+// un componente, e il ramo v-else del fallback diventerebbe irraggiungibile.
+const comp = computed(() => (Object.hasOwn(icons, props.name) ? icons[props.name] : undefined));
 const body = computed(() => {
   if (comp.value) return null;
   const catalog = getIconCatalog();

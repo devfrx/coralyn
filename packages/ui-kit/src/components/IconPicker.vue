@@ -25,8 +25,12 @@ const risultati = computed(() => {
     // Object.hasOwn, non l'accesso diretto: stesso motivo di resolveFromCatalog in catalog.ts — un
     // nome uguale a un membro di Object.prototype (`toString`, `constructor`, ...) altrimenti
     // risulterebbe "presente" col valore della funzione ereditata, invece di essere scartato.
+    // Niente .slice qui: le suggerite non si troncano mai, quindi total: 0 e' vero per
+    // costruzione (non solo dichiarato) e `limit` torna a significare una cosa sola — il tetto
+    // dei risultati di RICERCA. Se le suggerite crescessero oltre un tetto visivo, sparirebbero
+    // in silenzio; il rimedio e' curare l'elenco (suggested.ts), non troncarlo qui.
     return {
-      names: SUGGESTED_ICONS.filter((n) => Object.hasOwn(catalog.icons, n)).slice(0, props.limit),
+      names: SUGGESTED_ICONS.filter((n) => Object.hasOwn(catalog.icons, n)),
       total: 0,
     };
   }

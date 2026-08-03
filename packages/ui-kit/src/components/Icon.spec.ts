@@ -72,4 +72,14 @@ describe('Icon — catena di risoluzione', () => {
     const w = mount(Icon, { props: { name: 'anchor' } });
     expect(w.html()).toBe(mount(Icon, { props: { name: 'altro-ignoto' } }).html());
   });
+
+  it('un nome uguale a un membro di Object.prototype non "trova" nulla nel registry: fallback', () => {
+    // Il difetto: `icons[props.name]` con accesso diretto risolverebbe 'toString' alla funzione
+    // ereditata da Object.prototype (truthy), rendendo irraggiungibile il ramo v-else del
+    // fallback visibile. Object.hasOwn, come in resolveFromCatalog e nel filtro delle suggerite,
+    // tratta 'toString' come assente e il template cade sul fallback vero.
+    registerIconCatalog(lucideCatalog);
+    const w = mount(Icon, { props: { name: 'toString' } });
+    expect(w.html()).toBe(mount(Icon, { props: { name: 'nome-che-non-esiste-affatto' } }).html());
+  });
 });
