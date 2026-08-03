@@ -134,10 +134,13 @@ Le due metriche contano cose diverse e sono **entrambe vere**: la prima conta pe
 una PWA il cui service worker **precacha tutti e 58 i chunk** (Workbox `globPatterns:
 ['**/*.{js,css,html,svg,png,woff2}']`), quindi i chunk per-rotta non sono byte risparmiati, sono byte
 scaricati comunque — e su questa metrica il catalogo eager costa solo +19%. La seconda conta perché
-`index.html` carica **solo** l'entry `index` più un `modulepreload` di `vue.runtime`: il catalogo,
-essendo eager, entra in quel percorso e costa **+75%** sul tempo al primo render. Se un domani questo
-pesasse troppo, la via d'uscita non richiede riscrivere nulla: lo stesso entry separato si importa
-con `import()` invece che staticamente.
+`index.html` precarica **tre** chunk eager, non due: l'entry `index` (**148,0 KB**), il
+`modulepreload` di `vue.runtime` (**41,2 KB**) e un `Teleport-*.js` (**8,7 KB**) — effetto collaterale
+dell'`IconPicker`, che compone il `Popover` di reka-ui e ha fatto scattare lo split di quel codice
+condiviso; nel baseline senza catalogo questo terzo chunk non esisteva. Sommati, **148,0 + 41,2 + 8,7
+= 197,8 KB gzip**: il catalogo, essendo eager, entra in quel percorso e costa **+75%** sul tempo al
+primo render. Se un domani questo pesasse troppo, la via d'uscita non richiede riscrivere nulla: lo
+stesso entry separato si importa con `import()` invece che staticamente.
 
 ### 7. Solo `web-staff` lo paga
 
@@ -147,9 +150,18 @@ con `import()` invece che staticamente.
 | `web-platform` | 98,1 KB | **no** |
 | `web-customer` | 89,2 KB | **no** |
 
-Verificato con una ricerca **validata** (`umbrellaTypes\|typeIcon\|\.icon` su `.vue`/`.ts` di
-`apps/*/src`, esclusi spec e mock): **23 righe in 8 file** in `web-staff`, zero nelle altre due. Perimetro
-dichiarato: fuori da quei file, o per un nome costruito per concatenazione, la ricerca resta cieca.
+Verificato con una ricerca **validata**, e riproducibile con questo comando esatto (il numero è
+quello che dà **davvero** eseguendolo, non un valore trascritto a mano — è la seconda volta che
+questo conteggio si sposta fra una stesura e l'altra):
+
+```bash
+grep -rE "umbrellaTypes|typeIcon|\.icon" --include="*.vue" --include="*.ts" apps/web-staff/src | grep -vi "spec\|mock" | wc -l
+grep -rlE "umbrellaTypes|typeIcon|\.icon" --include="*.vue" --include="*.ts" apps/web-staff/src | grep -vi "spec\|mock" | wc -l
+```
+
+**23 righe in 8 file** in `web-staff`, zero nelle altre due (stesso comando su `apps/web-platform/src`
+e `apps/web-customer/src`). Perimetro dichiarato: fuori da quei file, o per un nome costruito per
+concatenazione, la ricerca resta cieca.
 `registerIconCatalog`/`lucideCatalog` sono importati solo da `web-staff` (`main.ts` e
 `test/setup.ts`): le altre due app non pagano il peso del §6 perché non lo caricano.
 
@@ -169,9 +181,13 @@ comunque da HTTP e va validato a runtime.
 
 ### 9. Nessuna migration, né di schema né di dati
 
-`UmbrellaType.icon` era già `String?`. `palmtree` — il terzo valore del vecchio elenco chiuso — è un
-**alias Lucide** di `tree-palm`: le righe già salvate con quel valore continuano a risolvere, tramite
-la catena di alias del catalogo, senza toccare un dato.
+`UmbrellaType.icon` era già `String?`. Le righe già salvate con `palmtree` continuano a risolvere
+allo stesso glifo di sempre, senza toccare un dato — ma **non** tramite l'alias Lucide (`palmtree` →
+`tree-palm`, che pure esiste nel catalogo, §2): `palmtree` è **anche** una chiave del registry del
+chrome (`icons/registry.ts`), e la catena dichiarata in `Icon.vue` (§5) risolve il registry **prima**
+di consultare il catalogo. Per questa chiave l'alias non viene mai percorso: il registry intercetta
+la risoluzione, esattamente come descritto per `edit` e `building` al §4. L'esito reso non cambia —
+lo stesso glifo di sempre — a cambiare qui è solo il meccanismo dichiarato.
 
 ### 10. Il `v-html` sul body dell'icona non è una superficie d'iniezione
 
@@ -207,8 +223,9 @@ di `deferred.md` tracciava, corretto senza un intervento dedicato.
 - La legenda della Mappa deriva ora le tipologie dai dati (`MapView.vue`), quindi non può più mentire
   su un tipo rinominato o ri-iconato — il quinto punto che il disegno originale non enumerava.
 - Nessuna migration, nessuna nuova libreria, nessuna union TypeScript da mantenere a 1743 voci.
-- Copertura nuova misurata: 28 test in `ui-kit` (catalog, lucide-catalog, registry, `IconPicker`,
-  `Icon`), 8 in `api` (il decoratore + i due DTO), 3 in `web-staff` (`BeachPanel`, `MapView`).
+- Copertura nuova misurata: 38 test in `ui-kit` (catalog 9, lucide-catalog 6 + 2 in un file dedicato
+  al filtro alias, registry 3, `IconPicker` 8, `Icon` 10), 8 in `api` (il decoratore + i due DTO), 3
+  in `web-staff` (`BeachPanel`, `MapView`).
 
 ### Negative / Trade-off
 

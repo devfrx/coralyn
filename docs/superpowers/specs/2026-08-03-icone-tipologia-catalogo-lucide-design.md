@@ -1,6 +1,6 @@
 # Icona della tipologia ombrellone: dal registro chiuso al catalogo Lucide intero
 
-**Data:** 2026-08-03 · **Stato:** design approvato, non ancora implementato · **ADR previsto:** 0068
+**Data:** 2026-08-03 · **Stato:** implementato · **ADR:** [0068](../../architecture/decisions/0068-catalogo-icone-tipologia.md)
 
 > **Revisione avversariale del 2026-08-03**: quattro lenti, 39 grezzi, 30 distinti dopo la
 > deduplicazione per ancoraggio, 15 confermati e 15 refutati. Le correzioni sono incorporate qui.

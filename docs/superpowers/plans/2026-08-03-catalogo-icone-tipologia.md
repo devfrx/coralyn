@@ -290,7 +290,7 @@ Expected: PASS — 6 test.
 - [ ] **Step 6: Rigira la suite intera del pacchetto**
 
 Run: `pnpm --filter @coralyn/ui-kit test`
-Expected: PASS, **227 test su 41 file** — baseline 214/39, più i **7** di `catalog.spec.ts` (Task 1) e i **6** di `lucide-catalog.spec.ts`.
+Expected: PASS, **229 test su 41 file** — baseline 214/39, più i **9** di `catalog.spec.ts` (Task 1, non 7: la review d'insieme ne ha aggiunti due dopo — body vuoto e catena dei prototipi) e i **6** di `lucide-catalog.spec.ts`.
 
 - [ ] **Step 7: Commit**
 
@@ -381,7 +381,7 @@ Expected: PASS.
 - [ ] **Step 6: Rigira le suite intere dei due pacchetti toccati**
 
 Run: `pnpm --filter @coralyn/ui-kit test`
-Expected: PASS, **229 test su 42 file** (227 più i 2 di `registry.spec.ts`).
+Expected: PASS, **231 test su 42 file** (229 più i 2 di `registry.spec.ts`).
 
 Run: `pnpm --filter @coralyn/web-staff test`
 Expected: PASS, 600 test su 66 file (invariato: nessun test asserisce il nome dell'icona di modifica).
@@ -656,6 +656,7 @@ import IconPicker from './IconPicker.vue';
 import Field from './Field.vue';
 import { registerIconCatalog } from '../icons/registered-catalog';
 import { lucideCatalog } from '../icons/lucide-catalog';
+import { searchCatalog } from '../icons/catalog';
 
 // ⚠️ Il pacchetto ui-kit NON ha `setupFiles`: ogni spec dichiara i propri stub. reka-ui misura
 // l'arrow del Popover con `new ResizeObserver`, che jsdom non implementa e che non e' guardato:
@@ -693,8 +694,15 @@ describe('IconPicker', () => {
   it('quando tronca lo DICE: un elenco troncato non e un elenco esaurito', async () => {
     const w = mount(IconPicker, { ...open, props: { ...open.props, limit: 5 } });
     await w.get('input[type="text"]').setValue('arrow');
-    expect(w.findAll('[data-testid="icon-option"]')).toHaveLength(5);
-    expect(w.get('[data-testid="icon-count"]').text()).toMatch(/\d+/);
+    // ⚠️ Bocciato dalla review: 5 scritto a mano e `.toMatch(/\d+/)` passano anche invertendo
+    // `risultati.names.length` e `risultati.total` nel template, perche' sono cifre entrambe.
+    // Numeri ricavati dal catalogo vero, cosi' il test non invecchia se Lucide cambia quante
+    // icone contengono "arrow": si prova il CONTEGGIO vero, nell'ordine giusto.
+    const { names, total } = searchCatalog(lucideCatalog, 'arrow', 5);
+    expect(w.findAll('[data-testid="icon-option"]')).toHaveLength(names.length);
+    expect(w.get('[data-testid="icon-count"]').text()).toBe(
+      `Mostrate ${names.length} di ${total} — restringi la ricerca.`,
+    );
   });
 
   it('una ricerca senza esiti lo dice invece di mostrare il vuoto', async () => {
@@ -838,7 +846,7 @@ Expected: PASS — 7 test.
 - [ ] **Step 7: Rigira la suite intera e il typecheck**
 
 Run: `pnpm --filter @coralyn/ui-kit test`
-Expected: PASS, **242 test su 43 file** (235 dopo Task 4, più i 7 dell'IconPicker).
+Expected: PASS, **244 test su 43 file** (237 dopo Task 4, più i 7 dell'IconPicker).
 
 Run: `pnpm --filter @coralyn/ui-kit typecheck`
 Expected: nessun errore.
@@ -1087,7 +1095,7 @@ registerIconCatalog(lucideCatalog);
 ```ts
 // packages/../apps/web-staff/src/features/establishment/panels/BeachPanel.icon.spec.ts
 import { describe, it, expect, afterEach } from 'vitest';
-import { enableAutoUnmount } from '@vue/test-utils';
+import { enableAutoUnmount, flushPromises } from '@vue/test-utils';
 import type { EstablishmentStructureDTO } from '@coralyn/contracts';
 import { mountApp } from '@/test/utils';
 import BeachPanel from './BeachPanel.vue';
@@ -1105,6 +1113,16 @@ describe('BeachPanel — l icona della tipologia si sceglie dal catalogo', () =>
     await w.get('[data-testid="type-new"]').trigger('click');
     expect(w.find('[data-testid="icon-picker-trigger"]').exists()).toBe(true);
     expect(w.find('[data-testid="type-icon"]').exists()).toBe(false); // la Select non c'e' piu'
+
+    // ⚠️ Bocciato dalla review: le due asserzioni sopra passano anche a catalogo NON registrato
+    // (verificato commentando `registerIconCatalog(lucideCatalog)` in test/setup.ts) — guardano
+    // solo il trigger e l'assenza della vecchia Select, mai il contenuto della griglia. Solo aprire
+    // il popover e contare le opzioni dipende davvero dal catalogo — il popover e' in un portal su
+    // document.body, come nei test di IconPicker.spec.ts (ui-kit) e di BeachPanel.restore.spec.ts.
+    await w.get('[data-testid="icon-picker-trigger"]').trigger('click');
+    await flushPromises();
+    const opzioni = document.body.querySelectorAll('[data-testid="icon-option"]');
+    expect(opzioni.length).toBeGreaterThan(0);
   });
 
   it('riaprendo in modifica NON riporta a ombrellone un icona fuori dai tre nomi vecchi', async () => {
@@ -1266,7 +1284,7 @@ Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
 
 - [ ] **Step 1: Scrivi ADR-0068**
 
-Deve registrare: la scelta del catalogo **nel bundle** invece che lazy, con **entrambi** i numeri (+19% sui byte totali, +69% sul JS che blocca il primo render) e il fatto che è una decisione dell'utente; l'esclusione delle `hidden`; il `v-html` sul body e perché non è una superficie d'iniezione; la rinomina delle due chiavi in ombra; il fallback visibile.
+Deve registrare: la scelta del catalogo **nel bundle** invece che lazy, con **entrambi** i numeri (+19% sui byte totali, +75% sul JS che blocca il primo render — misurato a lavoro finito, coi tre chunk eager reali: `index` 148,0 + `vue.runtime` 41,2 + `Teleport-*` 8,7 = 197,8 KB gzip) e il fatto che è una decisione dell'utente; l'esclusione delle `hidden`; il `v-html` sul body e perché non è una superficie d'iniezione; la rinomina delle due chiavi in ombra; il fallback visibile.
 
 - [ ] **Step 2: Aggiorna i commenti che dichiarano il dominio dei valori**
 
@@ -1310,13 +1328,18 @@ Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
 
 - [ ] `pnpm -r --workspace-concurrency=1 test` — ⚠️ **una alla volta**: in parallelo questo host dà falsi rossi di massa. Attesa ~10 min. Non stampa un totale: cattura su file e leggi dopo, con `grep -a`, perché l'output può passare per binario.
 
-  Atteso **1473 test su 198 file**, dalla baseline 1434/191 più:
+  Atteso **1475 test su 198 file**, dalla baseline 1434/191 più:
 
   | Pacchetto | test nuovi | file nuovi |
   |---|---|---|
-  | `ui-kit` | 28 — catalog 7, lucide-catalog 6, registry 2, IconPicker 7, Icon +6 | 4 |
+  | `ui-kit` | 30 — catalog 9 (non 7: la review d'insieme ne ha aggiunti due dopo), lucide-catalog 6, registry 2, IconPicker 7, Icon +6 | 4 |
   | `api` | 8 — is-icon-key 6, i due DTO 2 | 2 |
   | `web-staff` | 3 — BeachPanel.icon 2, MapView +1 | 1 |
+
+  ⚠️ **Non ri-eseguito in questa sessione**: `pnpm -r test` gira ~10 min e non era nel perimetro
+  della verifica richiesta (limitata a `ui-kit`, `web-staff`, i loro typecheck e `docs-lint`). Il
+  numero sopra è **derivato per somma** dalla correzione del solo conteggio `ui-kit` (28→30, allineato
+  ad ADR-0068), non ri-misurato da capo sull'intero monorepo.
 
   ⚠️ Se il totale non torna, **conta prima quale pacchetto sfora**: un numero che non torna qui è quasi sempre un test in più scritto per prudenza, non un difetto — ma va spiegato, non arrotondato.
 - [ ] `pnpm --filter @coralyn/api test:e2e` — atteso 544/45, invariato. Richiede Docker su: `docker ps` **prima** di diagnosticare un rosso.
