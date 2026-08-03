@@ -378,9 +378,14 @@ const freeSlotOptions = computed(() =>
                 <div class="border-t border-dashed border-[var(--color-border)] pt-2.5">
                   <div class="mb-1.5 text-[10px] font-semibold uppercase tracking-[.09em] text-[var(--color-stage-3)]">Tipologia</div>
                   <div class="flex flex-col gap-1">
+                    <!-- "Normale" resta scritta a mano: non è una tipologia ma la sua ASSENZA (pallino, non icona). -->
                     <span class="inline-flex items-center gap-1.5"><i class="size-[11px] rounded-full" style="background:var(--color-state-normal-mark)"></i>Normale</span>
-                    <span class="inline-flex items-center gap-1.5"><Icon name="leaf" :size="13" class="text-[var(--color-accent)]" />Mini-palma</span>
-                    <span class="inline-flex items-center gap-1.5"><Icon name="palmtree" :size="13" class="text-[var(--color-accent)]" />Palma</span>
+                    <!-- Le tipologie vere sono derivate da typesById (stessa fonte usata da typeIcon/typeName
+                         per le celle): prima erano due righe scritte a mano ("Mini-palma"/"Palma"), che
+                         mentivano non appena un admin rinominava o ri-iconava una tipologia dal picker. -->
+                    <span v-for="t in typesById.values()" :key="t.id" class="inline-flex items-center gap-1.5">
+                      <Icon :name="t.icon ?? 'umbrella'" :size="13" class="text-[var(--color-accent)]" />{{ t.name }}
+                    </span>
                   </div>
                 </div>
               </div>

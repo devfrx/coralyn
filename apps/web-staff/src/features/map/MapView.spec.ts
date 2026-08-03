@@ -829,6 +829,31 @@ describe('MapView', () => {
     expect(panel!.textContent).toContain('Mini-palma');
   });
 
+  it('la legenda nomina le tipologie del lido, non due etichette scritte a mano', async () => {
+    server.use(http.get('/api/map', () => HttpResponse.json({
+      date: '2026-06-27',
+      umbrellaTypes: [{ id: 't1', name: 'Gazebo', sortOrder: 1, icon: 'anchor' }],
+      timeSlots: [{ id: 'f-mat', name: 'Mattina', startTime: '08:00', endTime: '13:00', sortOrder: 1 }],
+      sectors: [{ id: 's-c', name: 'Centro', sortOrder: 1, kind: 'grid', rows: [
+        { id: 'r1', label: 'Fila 1', sortOrder: 1, umbrellas: [
+          { id: 'u1', label: '1', umbrellaTypeId: 't1', rowId: 'r1', stateBySlot: { 'f-mat': 'free' } },
+        ] },
+      ] }],
+    })));
+    const w = await mountMap();
+    // ⚠️ La legenda e' chiusa di default E vive in un PORTAL su document.body: non e' discendente
+    // del wrapper, quindi `w.get(...)` non la trova e il rosso che si otterrebbe sarebbe
+    // «Unable to get [data-test=legend-panel]» — un fallimento che NON distingue la legenda scritta a
+    // mano da quella derivata, e che resterebbe identico anche a lavoro finito.
+    // Stessa lettura del test gemello gia' presente in questo file.
+    await w.get('[data-test="legend-pill"]').trigger('click');
+    await flushPromises();
+    const legenda = document.body.querySelector('[data-test="legend-panel"]');
+    expect(legenda?.textContent).toContain('Gazebo');
+    expect(legenda?.textContent).not.toContain('Mini-palma');
+    w.unmount();
+  });
+
   it('ricerca per etichetta: la cella matchata pulsa (found)', async () => {
     const w = mountApp(MapView);
     await flushPromises();
