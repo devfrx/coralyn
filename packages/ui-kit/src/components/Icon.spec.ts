@@ -16,3 +16,54 @@ describe('Icon', () => {
     }
   });
 });
+
+import { registerIconCatalog, resetIconCatalog } from '../icons/registered-catalog';
+import { lucideCatalog } from '../icons/lucide-catalog';
+
+describe('Icon — catena di risoluzione', () => {
+  it('senza catalogo registrato, un nome fuori dal registry cade sul fallback', () => {
+    const w = mount(Icon, { props: { name: 'anchor' } });
+    expect(w.find('svg').exists()).toBe(true);
+    expect(w.html()).not.toContain('<path d="M12 6v16');
+  });
+
+  it('col catalogo registrato rende il glifo vero, non il fallback', () => {
+    registerIconCatalog(lucideCatalog);
+    const w = mount(Icon, { props: { name: 'anchor' } });
+    expect(w.html()).toContain('circle');
+    expect(w.get('svg').attributes('viewBox')).toBe('0 0 24 24');
+  });
+
+  it('il registry vince sul catalogo per le icone del chrome', () => {
+    registerIconCatalog(lucideCatalog);
+    expect(mount(Icon, { props: { name: 'umbrella' } }).find('svg').exists()).toBe(true);
+  });
+
+  it('un alias risolve dal catalogo', () => {
+    registerIconCatalog(lucideCatalog);
+    const alias = mount(Icon, { props: { name: 'palmtree' } });
+    const canonico = mount(Icon, { props: { name: 'tree-palm' } });
+    expect(alias.find('svg').exists()).toBe(true);
+    expect(canonico.find('svg').exists()).toBe(true);
+  });
+
+  it('un nome ignoto non rende NESSUN glifo che una tipologia possa avere addosso', () => {
+    // Il difetto vecchio: icons[name] ?? icons['umbrella'] rendeva un ombrellone plausibile per un
+    // nome sbagliato, indistinguibile da un ombrellone voluto. Asserire `FALLBACK !== 'umbrella'`
+    // non basterebbe: passerebbe con qualsiasi altra chiave, comprese quelle che il picker offre —
+    // e allora una tipologia a cui si assegna VOLUTAMENTE quel glifo sarebbe di nuovo
+    // indistinguibile da una risoluzione fallita. Il fallback deve stare FUORI dal catalogo.
+    registerIconCatalog(lucideCatalog);
+    const ignoto = mount(Icon, { props: { name: 'non-esiste-affatto' } }).html();
+    for (const sceglibile of ['umbrella', 'alert-triangle', 'circle-help', 'tree-palm']) {
+      expect(ignoto).not.toBe(mount(Icon, { props: { name: sceglibile } }).html());
+    }
+  });
+
+  it('registrare e poi azzerare riporta al comportamento senza catalogo', () => {
+    registerIconCatalog(lucideCatalog);
+    resetIconCatalog();
+    const w = mount(Icon, { props: { name: 'anchor' } });
+    expect(w.html()).toBe(mount(Icon, { props: { name: 'altro-ignoto' } }).html());
+  });
+});

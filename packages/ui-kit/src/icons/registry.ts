@@ -57,5 +57,3 @@ export const icons: Record<string, Component> = {
   info: IconInfo,
   zap: IconZap,
 };
-
-export const FALLBACK_ICON = 'umbrella';

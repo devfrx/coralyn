@@ -1,6 +1,8 @@
 export { default as Icon } from './components/Icon.vue';
 export { default as IconButton } from './components/IconButton.vue';
-export { icons, FALLBACK_ICON } from './icons/registry';
+export { icons } from './icons/registry';
+export { registerIconCatalog, getIconCatalog } from './icons/registered-catalog';
+export { resolveFromCatalog, searchCatalog, type IconCatalog } from './icons/catalog';
 export { default as Toast } from './components/Toast.vue';
 export { default as ToastHost } from './components/ToastHost.vue';
 export { useToasts, pushToast, dismissToast, clearToasts, type ToastItem } from './toasts';
