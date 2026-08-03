@@ -77,6 +77,14 @@ describe('catalog', () => {
     expect(resolveFromCatalog(CAT, 'non-esiste')).toBeNull();
   });
 
+  it('un nome canonico con body vuoto risolve alla stringa vuota, non a null', () => {
+    const withEmpty: IconCatalog = {
+      icons: { ...CAT.icons, ghost: '' },
+      aliases: CAT.aliases,
+    };
+    expect(resolveFromCatalog(withEmpty, 'ghost')).toBe('');
+  });
+
   it('cerca per sottostringa e riporta il totale, non solo la pagina', () => {
     const r = searchCatalog(CAT, 'a', 2);
     expect(r.names).toHaveLength(2);
@@ -95,6 +103,12 @@ describe('catalog', () => {
 
   it('la ricerca trova anche per alias', () => {
     expect(searchCatalog(CAT, 'palmtree', 10).names).toContain('palmtree');
+  });
+
+  it('un catalogo vuoto non risolve un nome ereditato dalla catena dei prototipi', () => {
+    const empty: IconCatalog = { icons: {}, aliases: {} };
+    expect(resolveFromCatalog(empty, 'toString')).toBeNull();
+    expect(resolveFromCatalog(empty, 'constructor')).toBeNull();
   });
 });
 ```
@@ -149,7 +163,7 @@ export function searchCatalog(
 - [ ] **Step 4: Esegui e verifica che passi**
 
 Run: `pnpm --filter @coralyn/ui-kit exec vitest run src/icons/catalog.spec.ts`
-Expected: PASS — 7 test.
+Expected: PASS — 9 test.
 
 - [ ] **Step 5: Commit**
 

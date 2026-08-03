@@ -58,7 +58,11 @@ const TYPE_HELP: Record<BookingType, string> = {
 };
 
 const timeSlots = computed(() => [...(map.value?.timeSlots ?? [])].sort((a, b) => a.sortOrder - b.sortOrder));
-const typesById = computed(() => new Map((map.value?.umbrellaTypes ?? []).map((t) => [t.id, t])));
+// Ordinata come timeSlots: la legenda itera su typesById.values(), e senza un ordine esplicito
+// dipenderebbe dall'ordine di risposta dell'API invece che da sortOrder.
+const typesById = computed(() => new Map(
+  [...(map.value?.umbrellaTypes ?? [])].sort((a, b) => a.sortOrder - b.sortOrder).map((t) => [t.id, t]),
+));
 const sectors = computed(() => map.value?.sectors ?? []);
 // Convenzione (§13.6, D-056): i settori kind=special sono resi come blocchi dedicati in coda, non come tab.
 const normalSectors = computed(() => sectors.value.filter((s) => s.kind !== 'special'));
