@@ -829,10 +829,16 @@ describe('MapView', () => {
     expect(panel!.textContent).toContain('Mini-palma');
   });
 
-  it('la legenda nomina le tipologie del lido, non due etichette scritte a mano', async () => {
+  it('la legenda nomina le tipologie del lido, non due etichette scritte a mano, nell ordine di sortOrder', async () => {
     server.use(http.get('/api/map', () => HttpResponse.json({
       date: '2026-06-27',
-      umbrellaTypes: [{ id: 't1', name: 'Gazebo', sortOrder: 1, icon: 'anchor' }],
+      // Ordine dell'ARRAY invertito rispetto a sortOrder: se il .sort() in MapView.vue sparisse,
+      // la legenda renderebbe "Ombra" prima di "Gazebo" (l'ordine di risposta dell'API), non
+      // quello dichiarato dalla tipologia. Nessun test lo copriva finora.
+      umbrellaTypes: [
+        { id: 't2', name: 'Ombra', sortOrder: 2, icon: 'tent' },
+        { id: 't1', name: 'Gazebo', sortOrder: 1, icon: 'anchor' },
+      ],
       timeSlots: [{ id: 'f-mat', name: 'Mattina', startTime: '08:00', endTime: '13:00', sortOrder: 1 }],
       sectors: [{ id: 's-c', name: 'Centro', sortOrder: 1, kind: 'grid', rows: [
         { id: 'r1', label: 'Fila 1', sortOrder: 1, umbrellas: [
@@ -851,6 +857,8 @@ describe('MapView', () => {
     const legenda = document.body.querySelector('[data-test="legend-panel"]');
     expect(legenda?.textContent).toContain('Gazebo');
     expect(legenda?.textContent).not.toContain('Mini-palma');
+    // sortOrder, non l'ordine di risposta dell'API: "Gazebo" (sortOrder 1) prima di "Ombra" (2).
+    expect(legenda!.textContent!.indexOf('Gazebo')).toBeLessThan(legenda!.textContent!.indexOf('Ombra'));
     w.unmount();
   });
 

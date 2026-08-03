@@ -33,6 +33,11 @@ describe('IconPicker', () => {
     const w = mount(IconPicker, open);
     const primo = w.get('[data-testid="icon-option"]');
     expect(primo.attributes('data-icon')).toBe('umbrella');
+    // Il filtro scarta in silenzio i suggerimenti che il catalogo non conosce (e' gia' successo
+    // con 'waves', hidden in Lucide 1.2.114): senza questa asserzione contro la costante intera,
+    // una futura voce invalida sparirebbe dall'elenco senza che nessun test se ne accorga.
+    const nomi = w.findAll('[data-testid="icon-option"]').map((n) => n.attributes('data-icon'));
+    expect(nomi).toHaveLength(SUGGESTED_ICONS.length);
   });
 
   it('il limite non tronca le suggerite: vale solo per la ricerca', async () => {

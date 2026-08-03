@@ -4,6 +4,7 @@ import Icon from './Icon.vue';
 import { icons } from '../icons/registry';
 import { registerIconCatalog, resetIconCatalog } from '../icons/registered-catalog';
 import { lucideCatalog } from '../icons/lucide-catalog';
+import type { IconCatalog } from '../icons/catalog';
 
 describe('Icon', () => {
   it('rende un svg per un nome noto', () => {
@@ -34,8 +35,17 @@ describe('Icon — catena di risoluzione', () => {
   });
 
   it('il registry vince sul catalogo per le icone del chrome', () => {
-    registerIconCatalog(lucideCatalog);
-    expect(mount(Icon, { props: { name: 'umbrella' } }).find('svg').exists()).toBe(true);
+    // L'asserzione vecchia (solo "esiste un <svg>") passa con QUALSIASI dei tre esiti della
+    // catena — registry, catalogo o fallback rendono tutti un <svg> — quindi non prova alcuna
+    // precedenza. Qui si registra un catalogo-sentinella che sovrascrive 'umbrella' con un body
+    // riconoscibile: se la catena si invertisse, la sentinella comparirebbe nel markup.
+    const sentinella: IconCatalog = {
+      icons: { ...lucideCatalog.icons, umbrella: '<path d="M0 0 SENTINELLA-CATALOGO"/>' },
+      aliases: lucideCatalog.aliases,
+    };
+    registerIconCatalog(sentinella);
+    const html = mount(Icon, { props: { name: 'umbrella' } }).html();
+    expect(html).not.toContain('SENTINELLA-CATALOGO');
   });
 
   it('un alias risolve lo stesso glifo del suo padre nel catalogo', () => {
