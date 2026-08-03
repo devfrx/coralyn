@@ -39,12 +39,19 @@ describe('Icon — catena di risoluzione', () => {
     expect(mount(Icon, { props: { name: 'umbrella' } }).find('svg').exists()).toBe(true);
   });
 
-  it('un alias risolve dal catalogo', () => {
+  it('un alias risolve lo stesso glifo del suo padre nel catalogo', () => {
+    // 'alert-circle' e' un alias Lucide di 'circle-alert': nessuno dei due e' una chiave del
+    // registry (a differenza di 'palmtree', che lo e' e quindi risolverebbe dal registry senza
+    // mai toccare il catalogo). Il padre non e' `hidden`, quindi l'alias sopravvive nel catalogo
+    // (vedi lucide-catalog.ts).
     registerIconCatalog(lucideCatalog);
-    const alias = mount(Icon, { props: { name: 'palmtree' } });
-    const canonico = mount(Icon, { props: { name: 'tree-palm' } });
-    expect(alias.find('svg').exists()).toBe(true);
-    expect(canonico.find('svg').exists()).toBe(true);
+    const alias = mount(Icon, { props: { name: 'alert-circle' } });
+    const canonico = mount(Icon, { props: { name: 'circle-alert' } });
+    const ignoto = mount(Icon, { props: { name: 'nome-che-non-esiste-affatto' } });
+    // Stesso glifo del padre: prova che l'alias e' stato seguito, non solo che "c'e' un svg".
+    expect(alias.html()).toBe(canonico.html());
+    // E diverso dal fallback: prova che non e' semplicemente caduto fuori catalogo.
+    expect(alias.html()).not.toBe(ignoto.html());
   });
 
   it('un nome ignoto non rende NESSUN glifo che una tipologia possa avere addosso', () => {
